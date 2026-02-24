@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Copy, Plus, Trash2, X, Check, ExternalLink, ArrowRight } from 'lucide-react';
+import { Copy, Plus, Trash2, X, Check, ExternalLink, ArrowRight, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const TIERS = ['챌린저', '그랜드마스터', '마스터', '다이아', '에메랄드', '플래티넘', '골드', '실버', '브론즈', '언랭'];
 const POSITIONS = ['탑', '정글', '미드', '원딜', '서포터', '무관'];
@@ -65,12 +66,100 @@ function removeRoomFromStorage(id: string) {
   } catch { }
 }
 
+const TIER_MAP: Record<string, string> = {
+  C: '챌린저', GM: '그랜드마스터', M: '마스터', D: '다이아',
+  E: '에메랄드', P: '플래티넘', G: '골드', S: '실버', B: '브론즈',
+};
+
+const POSITION_HEADER_KEYWORDS: { keywords: string[]; position: string }[] = [
+  { keywords: ['T', '탑'], position: '탑' },
+  { keywords: ['J', '정글'], position: '정글' },
+  { keywords: ['M', '미드'], position: '미드' },
+  { keywords: ['A', '원딜'], position: '원딜' },
+  { keywords: ['S', '서포터'], position: '서포터' },
+];
+
+function parseExcelPlayers(file: File): Promise<PlayerInfo[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        if (!data || typeof data === 'string') { resolve([]); return; }
+
+        const workbook = XLSX.read(new Uint8Array(data as ArrayBuffer), { type: 'array' });
+        const sheetName = workbook.SheetNames.includes('DB') ? 'DB' : workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }) as string[][];
+
+        if (rows.length < 2) { resolve([]); return; }
+
+        const headerRow = rows[0].map(h => String(h ?? '').trim());
+
+        // Detect name / tier / comment columns
+        let nameCol = 2, tierCol = 3, commentCol = 6;
+        for (let ci = 0; ci < headerRow.length; ci++) {
+          const h = headerRow[ci];
+          if (h.includes('이름')) nameCol = ci;
+          else if (h.includes('티어')) tierCol = ci;
+          else if (h.includes('코멘트') || h.includes('설명')) commentCol = ci;
+        }
+
+        // Detect position columns from header; fallback to J~N (index 9~13)
+        const positionColMap = new Map<number, string>();
+        for (let ci = 0; ci < headerRow.length; ci++) {
+          const h = headerRow[ci];
+          for (const { keywords, position } of POSITION_HEADER_KEYWORDS) {
+            if (keywords.includes(h)) { positionColMap.set(ci, position); break; }
+          }
+        }
+        if (positionColMap.size < 5) {
+          positionColMap.clear();
+          [['탑', 9], ['정글', 10], ['미드', 11], ['원딜', 12], ['서포터', 13]].forEach(
+            ([pos, idx]) => positionColMap.set(idx as number, pos as string)
+          );
+        }
+
+        const result: PlayerInfo[] = [];
+        for (let ri = 1; ri < rows.length; ri++) {
+          const row = rows[ri];
+          const name = String(row[nameCol] ?? '').trim();
+          if (!name) continue;
+
+          const tierRaw = String(row[tierCol] ?? '').trim();
+          const tier = TIER_MAP[tierRaw] ?? '언랭';
+          const description = String(row[commentCol] ?? '').trim();
+
+          let mainPosition = '', subPosition = '';
+          positionColMap.forEach((posName, colIdx) => {
+            const val = String(row[colIdx] ?? '').trim();
+            if (val === '●' && !mainPosition) mainPosition = posName;
+            else if (val === '○' && !subPosition) subPosition = posName;
+          });
+
+          result.push({
+            name, tier,
+            mainPosition: mainPosition || '무관',
+            subPosition: subPosition || '무관',
+            description,
+          });
+        }
+        resolve(result);
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 export function CreateRoomModal() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 미완료 방 알림
   const [activeRooms, setActiveRooms] = useState<StoredRoom[]>([]);
@@ -260,6 +349,24 @@ export function CreateRoomModal() {
 
   const addPlayer = () => {
     setPlayers(prev => [...prev, { name: '', tier: '골드', mainPosition: '탑', subPosition: '무관', description: '' }]);
+  };
+
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setIsUploading(true);
+    try {
+      const parsed = await parseExcelPlayers(file);
+      if (parsed.length === 0) { alert('파싱된 선수가 없습니다. 파일 형식을 확인해주세요.'); return; }
+      setPlayers(prev => [...prev, ...parsed]);
+      alert(`${parsed.length}명의 선수가 추가되었습니다.`);
+    } catch (err) {
+      console.error('Excel parse error:', err);
+      alert('엑셀 파일 파싱에 실패했습니다.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const removePlayer = (i: number) => {
@@ -559,12 +666,28 @@ export function CreateRoomModal() {
                         {players.length} / 최소 {minPlayers}명
                       </span>
                     </div>
-                    <button
-                      onClick={addPlayer}
-                      className="flex items-center gap-1.5 bg-minion-blue hover:bg-minion-blue-hover text-white px-3 py-1.5 rounded-xl text-sm font-bold transition-colors"
-                    >
-                      <Plus size={14} /> 선수 추가
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xlsm,.xls"
+                        className="hidden"
+                        onChange={handleExcelUpload}
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Upload size={14} /> {isUploading ? '처리 중...' : '엑셀 업로드'}
+                      </button>
+                      <button
+                        onClick={addPlayer}
+                        className="flex items-center gap-1.5 bg-minion-blue hover:bg-minion-blue-hover text-white px-3 py-1.5 rounded-xl text-sm font-bold transition-colors"
+                      >
+                        <Plus size={14} /> 선수 추가
+                      </button>
+                    </div>
                   </div>
 
                   {players.length === 0 ? (

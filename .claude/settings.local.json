@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:teambid.app)",
       "Bash(tail:*)",
-      "Bash(cd \"C:\\\\Users\\\\tuosm\\\\.gemini\\\\antigravity\\\\scratch\\\\league-auction\" && npm run build 2>&1)"
+      "Bash(cd \"C:\\\\Users\\\\tuosm\\\\.gemini\\\\antigravity\\\\scratch\\\\league-auction\" && npm run build 2>&1)",
+      "Bash(cd:*)"
     ]
   }
 }
