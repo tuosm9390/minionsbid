@@ -7,11 +7,38 @@ import { useAuctionRealtime } from '@/hooks/useAuctionRealtime'
 import { drawNextPlayer, startAuction, awardPlayer } from '@/lib/auctionActions'
 import { supabase } from '@/lib/supabase'
 import { AuctionBoard } from '@/components/AuctionBoard'
-import { TeamList } from '@/components/TeamList'
+import { TeamList, UnsoldPanel } from '@/components/TeamList'
 import { ChatPanel } from '@/components/ChatPanel'
 import { LinksModal } from '@/components/LinksModal'
 import { HowToUseModal } from '@/components/HowToUseModal'
 import { LotteryOverlay } from '@/components/LotteryOverlay'
+
+function ElapsedTimer({ createdAt }: { createdAt: string }) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const start = new Date(createdAt).getTime()
+    const iv = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - start) / 1000))
+    }, 1000)
+    setElapsed(Math.floor((Date.now() - start) / 1000))
+    return () => clearInterval(iv)
+  }, [createdAt])
+
+  const h = Math.floor(elapsed / 3600)
+  const m = Math.floor((elapsed % 3600) / 60)
+  const s = elapsed % 60
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const timeStr = h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+
+  return (
+    <div className="bg-white/10 px-3 py-1.5 rounded-xl text-sm font-mono font-bold flex items-center gap-1.5 border border-white/20 ml-2">
+      <span className="text-white/70 text-xs">진행 시간</span>
+      <span className="text-minion-yellow">{timeStr}</span>
+    </div>
+  )
+}
 
 export default function RoomPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -24,6 +51,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const setRoomContext = useAuctionStore(s => s.setRoomContext)
   const players = useAuctionStore(s => s.players)
   const timerEndsAt = useAuctionStore(s => s.timerEndsAt)
+  const createdAt = useAuctionStore(s => s.createdAt)
   const teams = useAuctionStore(s => s.teams)
   const storeOrganizerToken = useAuctionStore(s => s.organizerToken)
   const storeViewerToken = useAuctionStore(s => s.viewerToken)
@@ -109,6 +137,15 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
   const handleCloseLottery = async () => {
     if (effectiveRole !== 'ORGANIZER') return
+    // 추첨 결과 공개 메시지 전송 (닫기/경매시작 시점에만 전송)
+    if (lotteryPlayer && roomId) {
+      await supabase.from('messages').insert([{
+        room_id: roomId,
+        sender_name: '시스템',
+        sender_role: 'SYSTEM',
+        content: `🎲 ${lotteryPlayer.name} 선수 등장! (경매 시작 전)`,
+      }])
+    }
     // 내 화면 닫기
     setLotteryPlayer(null)
     // 다른 모든 사람 닫기
@@ -153,9 +190,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const handleStart = async () => {
     setIsStarting(true)
     try {
+      await handleCloseLottery() // 공개 메시지 전송 + 오버레이 글로벌 닫기
       const res = await startAuction(roomId)
       if (res.error) alert(res.error)
-      else await handleCloseLottery() // 경매 시작 시 모달 글로벌 닫기
     } finally {
       setIsStarting(false)
     }
@@ -208,8 +245,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           {effectiveRole === 'ORGANIZER' && <LinksModal />}
           <HowToUseModal variant="header" />
         </div>
-        {/* 헤더 타이머: 중앙 화면에 타이머가 없을 때(대기 중)만 표시 */}
-        {/* {!currentPlayer && <AuctionTimer />} */}
+        {createdAt && <ElapsedTimer createdAt={createdAt} />}
       </header>
 
       {/* Main Grid */}
@@ -227,7 +263,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
         {/* Center: 경매 보드 + 컨트롤 패널 */}
         <section className="col-span-6 flex flex-col gap-4">
-          <AuctionBoard />
+          <AuctionBoard isLotteryActive={!!lotteryPlayer} />
 
           {/* 주최자 컨트롤 패널 */}
           {effectiveRole === 'ORGANIZER' && (
@@ -302,8 +338,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           )}
         </section>
 
-        {/* Right: 채팅 */}
+        {/* Right: 유찰선수 + 채팅 */}
         <aside className="col-span-3 flex flex-col gap-4">
+          <UnsoldPanel />
           <ChatPanel />
         </aside>
 

@@ -2,13 +2,35 @@
 
 import { useAuctionStore, Team, Player } from '@/store/useAuctionStore'
 
+export function UnsoldPanel() {
+  const players = useAuctionStore((state) => state.players || [])
+  const unsoldPlayers = players.filter((p: Player) => p.status === 'UNSOLD')
+
+  if (unsoldPlayers.length === 0) return null
+
+  return (
+    <div className="bg-card rounded-2xl shadow-sm border border-red-200 p-3">
+      <h3 className="font-bold text-red-700 flex items-center gap-2 mb-2 text-sm">
+        <span>😭</span> 유찰 선수
+        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-auto">{unsoldPlayers.length}명</span>
+      </h3>
+      <div className="space-y-1 max-h-36 overflow-y-auto custom-scrollbar">
+        {unsoldPlayers.map((p: Player) => (
+          <div key={p.id} className="flex justify-between items-center text-xs bg-red-50 p-1.5 rounded border border-red-100">
+            <span className="font-bold text-gray-700 truncate mr-2">{p.name}</span>
+            <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{p.tier}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function TeamList() {
   const teams = useAuctionStore((state) => state.teams || [])
   const players = useAuctionStore((state) => state.players || [])
   const myTeamId = useAuctionStore((state) => state.teamId)
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam)
-
-  const unsoldPlayers = players.filter((p: Player) => p.status === 'UNSOLD')
 
   if (teams.length === 0) {
     return <div className="text-muted-foreground text-sm text-center py-10">생성된 팀이 없습니다. 주최자가 팀을 등록해야 합니다.</div>
@@ -79,25 +101,6 @@ export function TeamList() {
         )
       })}
 
-      {/* 유찰된 선수 목록 */}
-      <div className="mt-4 p-3 rounded-xl border-2 border-red-200 bg-red-50">
-        <h3 className="font-bold text-red-800 flex items-center gap-2 mb-2 text-sm">
-          <span>😭</span> 유찰 선수 명단
-          <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{unsoldPlayers.length}명</span>
-        </h3>
-        {unsoldPlayers.length === 0 ? (
-          <div className="text-xs text-red-400/70 italic p-1">아직 유찰된 선수가 없습니다.</div>
-        ) : (
-          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-            {unsoldPlayers.map((p: Player) => (
-              <div key={p.id} className="flex justify-between items-center text-xs bg-white p-2 rounded border border-red-100 shadow-sm">
-                <span className="font-bold text-gray-700 truncate mr-2">{p.name}</span>
-                <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{p.tier}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   )
 }

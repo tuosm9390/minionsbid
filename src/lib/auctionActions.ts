@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase'
 
-const AUCTION_DURATION_MS = 16_000      // 경매 시간 15초
-const EXTEND_THRESHOLD_MS = 6_000      // 5초 이하 입찰 시 연장
-const EXTEND_DURATION_MS = 6_000      // 5초 연장
+const AUCTION_DURATION_MS = 15_000      // 경매 시간 15초
+const EXTEND_THRESHOLD_MS = 5_000      // 5초 이하 입찰 시 연장
+const EXTEND_DURATION_MS = 5_000      // 5초 연장
 
 async function sysMsg(roomId: string, content: string) {
   await supabase.from('messages').insert([{
@@ -39,7 +39,6 @@ export async function drawNextPlayer(roomId: string): Promise<{ error?: string }
     .eq('id', roomId)
   if (rErr) return { error: rErr.message }
 
-  await sysMsg(roomId, `🎲 ${player.name} 선수 등장! (경매 시작 전)`)
   return {}
 }
 

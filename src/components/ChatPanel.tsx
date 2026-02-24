@@ -66,11 +66,20 @@ export function ChatPanel() {
 
   const [input, setInput]       = useState('')
   const [isSending, setIsSending] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const lastSentAtRef = useRef(0)
+  const lastMsgIdRef = useRef<string | null>(null)
 
+  // 진짜 새 메시지가 추가됐을 때만 스크롤 (fetchAll 재로드 시 고정 방지)
+  // scrollIntoView 대신 컨테이너 scrollTop 직접 제어 → 페이지 스크롤에 영향 없음
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const lastMsg = messages[messages.length - 1]
+    if (!lastMsg) return
+    if (lastMsg.id !== lastMsgIdRef.current) {
+      lastMsgIdRef.current = lastMsg.id
+      const el = scrollContainerRef.current
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    }
   }, [messages])
 
   const handleSend = async (e: React.FormEvent) => {
@@ -107,12 +116,12 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm border border-border flex-1 flex flex-col overflow-hidden max-h-[80vh]">
+    <div className="bg-card rounded-2xl shadow-sm border border-border flex-1 flex flex-col overflow-hidden max-h-[60vh]">
       <h2 className="text-lg font-bold text-minion-blue mx-4 mt-4 mb-2 flex items-center gap-2 border-b pb-2">
         <span className="text-2xl">💬</span> 실시간 채팅
       </h2>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-2 flex flex-col gap-1 custom-scrollbar">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 pb-2 flex flex-col gap-1 custom-scrollbar">
         {messages.length === 0 ? (
           <div className="text-muted-foreground text-sm text-center py-10 my-auto">
             첫 메시지를 입력해 대화를 시작하세요.
@@ -120,7 +129,6 @@ export function ChatPanel() {
         ) : (
           messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
         )}
-        <div ref={bottomRef} />
       </div>
 
       <form onSubmit={handleSend} className="p-3 border-t bg-gray-50 flex gap-2">

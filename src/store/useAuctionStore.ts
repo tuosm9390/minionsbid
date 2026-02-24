@@ -67,6 +67,7 @@ interface AuctionState {
   membersPerTeam: number
   orderPublic: boolean
   timerEndsAt: string | null
+  createdAt: string | null
   teams: Team[]
   bids: Bid[]
   players: Player[]
@@ -95,6 +96,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   membersPerTeam: 5,
   orderPublic: true,
   timerEndsAt: null,
+  createdAt: null,
   teams: [],
   bids: [],
   players: [],

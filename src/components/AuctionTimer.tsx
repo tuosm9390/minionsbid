@@ -21,7 +21,7 @@ export function AuctionTimer() {
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
 
-  const isWarning = timeLeft > 0 && timeLeft <= 5 // 5초 이하시 경고색상
+  const isWarning = timeLeft >= 0 && timeLeft <= 5 // 5초 이하시 경고색상
 
   return (
     <div className={`text-xl font-bold px-6 py-2 rounded-full font-mono shadow-inner border transition-colors duration-300 ${isWarning
@@ -29,7 +29,7 @@ export function AuctionTimer() {
       : 'bg-black/30 border-black/10 text-white'
       }`}>
       남은 시간: <span className={isWarning ? 'text-red-400' : 'text-minion-yellow'}>
-        {pad(minutes)}:{pad(seconds)}
+        {pad(minutes)}:{pad(seconds - 1)}
       </span>
     </div>
   )

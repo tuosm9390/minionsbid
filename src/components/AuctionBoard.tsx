@@ -37,7 +37,7 @@ function CenterTimer({ timerEndsAt }: { timerEndsAt: string }) {
   }, [])
 
   const target = new Date(timerEndsAt).getTime()
-  const timeLeft = Math.max(0, Math.floor((target - now) / 1000))
+  const timeLeft = Math.max(0, Math.ceil((target - now) / 1000))
   const pad = (n: number) => String(n).padStart(2, '0')
   const warn = timeLeft > 0 && timeLeft <= 5
 
@@ -53,7 +53,7 @@ function CenterTimer({ timerEndsAt }: { timerEndsAt: string }) {
   )
 }
 
-export function AuctionBoard() {
+export function AuctionBoard({ isLotteryActive = false }: { isLotteryActive?: boolean }) {
   const players = useAuctionStore(s => s.players)
   const bids = useAuctionStore(s => s.bids)
   const teams = useAuctionStore(s => s.teams)
@@ -65,7 +65,8 @@ export function AuctionBoard() {
   const timerEndsAt = useAuctionStore(s => s.timerEndsAt)
   const membersPerTeam = useAuctionStore(s => s.membersPerTeam) // 추가: 팀당 최대 인원
 
-  const currentPlayer = players.find(p => p.status === 'IN_AUCTION')
+  // 추첨 애니메이션 중에는 선수를 숨겨 중앙 화면에 노출되지 않도록 마스킹
+  const currentPlayer = isLotteryActive ? undefined : players.find(p => p.status === 'IN_AUCTION')
 
   // 최신 공지 메시지
   const latestNotice = [...messages].reverse().find(m => m.sender_role === 'NOTICE')
@@ -397,7 +398,7 @@ export function AuctionBoard() {
         </div>
 
         {/* 현재 입찰 현황 */}
-        <div className={`rounded-2xl p-4 border-2 ${highestBid > 0
+        <div className={`rounded-xl p-3 border-2 ${highestBid > 0
           ? 'bg-minion-yellow/10 border-minion-yellow'
           : 'bg-gray-50 border-gray-200'
           }`}>
@@ -405,69 +406,79 @@ export function AuctionBoard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">현재 최고 입찰</p>
-                <p className="text-3xl font-black text-minion-blue">{highestBid.toLocaleString()}P</p>
+                <p className="text-2xl font-black text-minion-blue">{highestBid.toLocaleString()}P</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-500 mb-0.5">선두 팀</p>
-                <p className="text-lg font-black text-gray-800">{leadingTeam?.name || '?'}</p>
+                <p className="text-sm font-black text-gray-800">{leadingTeam?.name || '?'}</p>
                 {leadingTeam?.id === teamId && (
                   <p className="text-xs font-bold text-green-600">내 팀 리드 중 👑</p>
                 )}
               </div>
             </div>
           ) : (
-            <p className="text-sm text-center text-gray-500 py-1">아직 입찰 없음 — 먼저 입찰하세요!</p>
+            <p className="text-sm text-center text-gray-500 py-0.5">아직 입찰 없음 — 먼저 입찰하세요!</p>
           )}
         </div>
 
         {/* 팀장 입찰 UI */}
         {role === 'LEADER' && (
           <div>
-            <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
               <span>보유: <span className="font-bold text-minion-blue">{myTeam?.point_balance?.toLocaleString() ?? 0}P</span></span>
               <span>최소: <span className="font-bold">{minBid.toLocaleString()}P</span></span>
             </div>
             {bidError && (
-              <p className="text-xs text-red-500 mb-1.5 text-center font-bold">{bidError}</p>
+              <p className="text-xs text-red-500 mb-1 text-center font-bold">{bidError}</p>
             )}
             {!isAuctionActive && (
-              <p className="text-xs text-gray-400 text-center mb-1.5 font-bold">
+              <p className="text-xs text-gray-400 text-center mb-1 font-bold">
                 {!timerEndsAt ? '⏱️ 주최자의 경매 시작을 대기 중입니다...' : '⏱️ 경매 시간 종료'}
               </p>
             )}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setBidAmount(v => Math.max(minBid, v - 10))}
-                disabled={!canBid || bidAmount <= minBid}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-3 rounded-xl font-black text-sm transition-colors disabled:opacity-30"
-              >−10</button>
-              <input
-                type="number"
-                value={bidAmount}
-                min={minBid}
-                step={10}
-                onChange={e => setBidAmount(Math.max(minBid, parseInt(e.target.value) || minBid))}
-                disabled={!canBid}
-                className="flex-1 border-2 border-gray-200 focus:border-red-400 rounded-xl px-2 py-3 text-xl font-black text-center focus:outline-none disabled:opacity-50 disabled:bg-gray-50"
-              />
-              <button
-                onClick={() => setBidAmount(v => v + 10)}
-                disabled={!canBid}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-3 rounded-xl font-black text-sm transition-colors disabled:opacity-30"
-              >+10</button>
-              <button
-                onClick={handleBid}
-                disabled={!canBid}
-                className={`px-5 py-3 rounded-xl font-black text-lg transition-all whitespace-nowrap ${isTeamFull
-                  ? 'bg-gray-300 text-gray-600 opacity-100 cursor-not-allowed border outline-none'
-                  : isLeading
-                    ? 'bg-minion-yellow text-minion-blue opacity-100 cursor-not-allowed border-2 border-minion-yellow shadow-[0_4px_0_#D9B310]'
-                    : 'bg-red-500 hover:bg-red-600 text-white shadow-[0_4px_0_#991B1B] hover:shadow-[0_2px_0_#991B1B] hover:translate-y-0.5 active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none'
-                  }`}
-              >
-                {isTeamFull ? '인원 가득 참 ❌' : isLeading ? '선두 유지 중 👑' : isBidding ? '입찰 중...' : '입찰 🔥'}
-              </button>
-            </div>
+
+            {isTeamFull ? (
+              <div className="w-full">
+                <button
+                  disabled
+                  className="w-full px-4 py-3 rounded-xl font-black text-lg bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed uppercase tracking-wide"
+                >
+                  🚫 팀 완성 (입찰 불가)
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setBidAmount(v => Math.max(minBid, v - 10))}
+                  disabled={!canBid || bidAmount <= minBid}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl font-black text-sm transition-colors disabled:opacity-30"
+                >−10</button>
+                <input
+                  type="number"
+                  value={bidAmount}
+                  min={minBid}
+                  step={10}
+                  onChange={e => setBidAmount(Math.max(minBid, parseInt(e.target.value) || minBid))}
+                  disabled={!canBid}
+                  className="flex-1 border-2 border-gray-200 focus:border-red-400 rounded-xl px-2 py-2 text-lg font-black text-center focus:outline-none disabled:opacity-50 disabled:bg-gray-50"
+                />
+                <button
+                  onClick={() => setBidAmount(v => v + 10)}
+                  disabled={!canBid}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl font-black text-sm transition-colors disabled:opacity-30"
+                >+10</button>
+                <button
+                  onClick={handleBid}
+                  disabled={!canBid}
+                  className={`px-4 py-2 rounded-xl font-black text-base transition-all whitespace-nowrap ${isLeading
+                      ? 'bg-minion-yellow text-minion-blue opacity-100 cursor-not-allowed border-2 border-minion-yellow shadow-[0_3px_0_#D9B310]'
+                      : 'bg-red-500 hover:bg-red-600 text-white shadow-[0_3px_0_#991B1B] hover:shadow-[0_2px_0_#991B1B] hover:translate-y-0.5 active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none'
+                    }`}
+                >
+                  {isLeading ? '선두 유지 중 👑' : isBidding ? '입찰 중...' : '입찰 🔥'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

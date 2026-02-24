@@ -4,10 +4,10 @@ import { useAuctionStore, PresenceUser, Bid, Message } from '@/store/useAuctionS
 
 export function useAuctionRealtime(roomId: string | null) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
-  const addBid          = useAuctionStore(s => s.addBid)
-  const addMessage      = useAuctionStore(s => s.addMessage)
-  const role            = useAuctionStore(s => s.role)
-  const teamId          = useAuctionStore(s => s.teamId)
+  const addBid = useAuctionStore(s => s.addBid)
+  const addMessage = useAuctionStore(s => s.addMessage)
+  const role = useAuctionStore(s => s.role)
+  const teamId = useAuctionStore(s => s.teamId)
 
   // 동시 fetch 방지: fetchAll 진행 중일 때 중복 요청 스킵
   const fetchingRef = useRef(false)
@@ -28,20 +28,21 @@ export function useAuctionRealtime(roomId: string | null) {
 
       if (roomRes.data) {
         setRealtimeData({
-          basePoint:      roomRes.data.base_point,
-          totalTeams:     roomRes.data.total_teams,
+          basePoint: roomRes.data.base_point,
+          totalTeams: roomRes.data.total_teams,
           membersPerTeam: roomRes.data.members_per_team ?? 5,
-          orderPublic:    roomRes.data.order_public ?? true,
-          timerEndsAt:    roomRes.data.timer_ends_at,
+          orderPublic: roomRes.data.order_public ?? true,
+          timerEndsAt: roomRes.data.timer_ends_at,
+          createdAt: roomRes.data.created_at,
           organizerToken: roomRes.data.organizer_token,
-          viewerToken:    roomRes.data.viewer_token,
+          viewerToken: roomRes.data.viewer_token,
         })
       }
 
       setRealtimeData({
-        teams:    teamsRes.data    || [],
-        bids:     bidsRes.data     || [],
-        players:  playersRes.data  || [],
+        teams: teamsRes.data || [],
+        bids: bidsRes.data || [],
+        players: playersRes.data || [],
         messages: messagesRes.data || [],
       })
     } catch (err) {
@@ -64,9 +65,9 @@ export function useAuctionRealtime(roomId: string | null) {
         { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
         (payload) => {
           setRealtimeData({
-            timerEndsAt:    payload.new.timer_ends_at,
+            timerEndsAt: payload.new.timer_ends_at,
             organizerToken: payload.new.organizer_token,
-            viewerToken:    payload.new.viewer_token,
+            viewerToken: payload.new.viewer_token,
           })
           // 전체 리프레시로 current_player_id 변경도 반영
           fetchAll()
