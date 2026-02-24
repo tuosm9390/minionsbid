@@ -29,20 +29,15 @@ function NoticeBanner({ msg }: { msg: Message }) {
 
 /** 중앙 타이머 (경매 중에만 표시) */
 function CenterTimer({ timerEndsAt }: { timerEndsAt: string }) {
-  const [timeLeft, setTimeLeft] = useState(0)
+  const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
-    const target = new Date(timerEndsAt).getTime()
-    const calc = () => Math.max(0, Math.floor((target - Date.now()) / 1000))
-    setTimeLeft(calc())
-    const iv = setInterval(() => {
-      const t = calc()
-      setTimeLeft(t)
-      if (t <= 0) clearInterval(iv)
-    }, 1000)
+    const iv = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(iv)
-  }, [timerEndsAt])
+  }, [])
 
+  const target = new Date(timerEndsAt).getTime()
+  const timeLeft = Math.max(0, Math.floor((target - now) / 1000))
   const pad = (n: number) => String(n).padStart(2, '0')
   const warn = timeLeft > 0 && timeLeft <= 5
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Role, Player } from '@/store/useAuctionStore'
 
 interface LotteryOverlayProps {
@@ -26,19 +26,17 @@ export function LotteryOverlay({
   const [startRoll, setStartRoll] = useState(false)
 
   // 40개의 랜덤 선수 목록 생성 + 마지막에 실제 당첨자 배치 (슬롯머신 트랙)
-  const trackItems = useMemo(() => {
+  // useState 초기값으로 생성 → 컴포넌트 마운트 시 1회만 실행 (LotteryOverlay는 매번 새로 마운트됨)
+  const [trackItems] = useState<Player[]>(() => {
     if (!targetPlayer) return []
-    const items = []
-    const cand = candidates && candidates.length > 0 ? candidates : [targetPlayer]
-
-    // 가짜 롤링용 40개
+    const cand = candidates.length > 0 ? candidates : [targetPlayer]
+    const items: Player[] = []
     for (let i = 0; i < 40; i++) {
       items.push(cand[Math.floor(Math.random() * cand.length)])
     }
-    // 진짜 당첨자 (마지막 항목)
     items.push(targetPlayer)
     return items
-  }, [candidates, targetPlayer])
+  })
 
   useEffect(() => {
     if (!targetPlayer) return

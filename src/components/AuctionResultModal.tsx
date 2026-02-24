@@ -1,4 +1,4 @@
-import { useAuctionStore } from '@/store/useAuctionStore'
+import { useAuctionStore, Team, Player } from '@/store/useAuctionStore'
 import { X, Trophy } from 'lucide-react'
 
 export function AuctionResultModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
@@ -37,7 +37,7 @@ export function AuctionResultModal({ isOpen, onClose }: { isOpen: boolean, onClo
             <div className="text-center py-20 text-gray-400 font-bold">표시할 팀 데이터가 없습니다.</div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {sortedTeams.map((team: any) => {
+              {sortedTeams.map((team: Team) => {
                 const teamPlayers = players.filter(p => p.team_id === team.id)
 
                 return (
@@ -68,7 +68,7 @@ export function AuctionResultModal({ isOpen, onClose }: { isOpen: boolean, onClo
 
                         {/* 팀원 행렬 */}
                         {teamPlayers.length > 0 ? (
-                          teamPlayers.map((p: any, idx: number) => (
+                          teamPlayers.map((p: Player, idx: number) => (
                             <tr key={p.id}>
                               <td className={`w-2/3 text-center py-2.5 px-4 font-semibold text-gray-700 ${idx !== teamPlayers.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                 {p.name}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuctionStore } from '@/store/useAuctionStore'
+import { useAuctionStore, Team } from '@/store/useAuctionStore'
 import { Copy, Check, X, Link } from 'lucide-react'
 
 export function LinksModal() {
@@ -74,7 +74,7 @@ export function LinksModal() {
               <div>
                 <p className="text-sm font-bold text-gray-600 mb-2">🛡️ 팀장 링크</p>
                 <div className="space-y-2">
-                  {teams.map((team: any, i: number) => {
+                  {teams.map((team: Team, i: number) => {
                     const link = team.leader_token
                       ? `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}&token=${team.leader_token}`
                       : null

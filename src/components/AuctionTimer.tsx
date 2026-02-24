@@ -5,36 +5,16 @@ import { useAuctionStore } from '@/store/useAuctionStore'
 
 export function AuctionTimer() {
   const timerEndsAt = useAuctionStore((state) => state.timerEndsAt)
-  const [timeLeft, setTimeLeft] = useState(0)
+  const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
-    if (!timerEndsAt) {
-      setTimeLeft(0)
-      return
-    }
+    const iv = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(iv)
+  }, [])
 
-    const targetDate = new Date(timerEndsAt).getTime()
-
-    const calculateTimeLeft = () => {
-      const now = new Date().getTime()
-      const difference = targetDate - now
-      return difference > 0 ? Math.floor(difference / 1000) : 0
-    }
-
-    // 초기 계산
-    setTimeLeft(calculateTimeLeft())
-
-    // 1초마다 갱신
-    const timer = setInterval(() => {
-      const remaining = calculateTimeLeft()
-      setTimeLeft(remaining)
-      if (remaining <= 0) {
-        clearInterval(timer)
-      }
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [timerEndsAt])
+  const timeLeft = timerEndsAt
+    ? Math.max(0, Math.floor((new Date(timerEndsAt).getTime() - now) / 1000))
+    : 0
 
   // 포맷팅 (mm:ss)
   const pad = (num: number) => num.toString().padStart(2, '0')

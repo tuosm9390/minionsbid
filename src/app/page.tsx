@@ -82,7 +82,7 @@ export default function Home() {
               <li>· 팀장 링크와 주최자 링크는 <span className="font-bold">다른 주소</span>입니다. 링크를 혼동하지 않도록 주의해주세요.</li>
               <li>· 경매 순서를 <span className="font-bold">주최자만 공개</span>로 설정하면 팀장들이 다음 선수를 미리 알 수 없습니다.</li>
               <li>· 팀장 포인트는 팀 시작 포인트에서 차감됩니다 (팀 예산 = 총 포인트 - 팀장 포인트).</li>
-              <li>· 링크는 <span className="font-bold">방 페이지 상단 "링크 확인" 버튼</span>으로 언제든지 다시 확인할 수 있습니다.</li>
+              <li>· 링크는 <span className="font-bold">방 페이지 상단 &ldquo;링크 확인&rdquo; 버튼</span>으로 언제든지 다시 확인할 수 있습니다.</li>
             </ul>
           </div>
         </div>

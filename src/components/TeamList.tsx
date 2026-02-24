@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuctionStore } from '@/store/useAuctionStore'
+import { useAuctionStore, Team, Player } from '@/store/useAuctionStore'
 
 export function TeamList() {
   const teams = useAuctionStore((state) => state.teams || [])
@@ -8,7 +8,7 @@ export function TeamList() {
   const myTeamId = useAuctionStore((state) => state.teamId)
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam)
 
-  const unsoldPlayers = players.filter((p: any) => p.status === 'UNSOLD')
+  const unsoldPlayers = players.filter((p: Player) => p.status === 'UNSOLD')
 
   if (teams.length === 0) {
     return <div className="text-muted-foreground text-sm text-center py-10">생성된 팀이 없습니다. 주최자가 팀을 등록해야 합니다.</div>
@@ -16,7 +16,7 @@ export function TeamList() {
 
   return (
     <div className="flex flex-col gap-3">
-      {teams.map((team: any) => {
+      {teams.map((team: Team) => {
         const teamPlayers = players.filter(p => p.team_id === team.id)
         const isMyTeam = team.id === myTeamId
 
@@ -41,7 +41,7 @@ export function TeamList() {
               {teamPlayers.length === 0 ? (
                 <div className="text-xs text-gray-400 italic">아직 낙찰된 선수가 없습니다.</div>
               ) : (
-                teamPlayers.map((p: any) => (
+                teamPlayers.map((p: Player) => (
                   <div key={p.id} className="flex justify-between items-center text-sm bg-white p-1.5 rounded border border-gray-100">
                     <span className="font-medium text-gray-700 truncate mr-2">{p.name}</span>
                     <span className="text-xs font-mono text-gray-500">{p.sold_price || 0}P</span>
@@ -63,7 +63,7 @@ export function TeamList() {
           <div className="text-xs text-red-400/70 italic p-1">아직 유찰된 선수가 없습니다.</div>
         ) : (
           <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-            {unsoldPlayers.map((p: any) => (
+            {unsoldPlayers.map((p: Player) => (
               <div key={p.id} className="flex justify-between items-center text-xs bg-white p-2 rounded border border-red-100 shadow-sm">
                 <span className="font-bold text-gray-700 truncate mr-2">{p.name}</span>
                 <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{p.tier}</span>

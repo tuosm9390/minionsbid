@@ -414,7 +414,7 @@ export function CreateRoomModal() {
                       <input
                         type="number" min={2} max={12}
                         value={basic.teamCount}
-                        onChange={e => setBasic(p => ({ ...p, teamCount: e.target.value === '' ? '' as any : parseInt(e.target.value) }))}
+                        onChange={e => setBasic(p => ({ ...p, teamCount: e.target.value === '' ? '' as unknown as number : parseInt(e.target.value) }))}
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-minion-blue"
                       />
                     </div>
@@ -423,7 +423,7 @@ export function CreateRoomModal() {
                       <input
                         type="number" min={2} max={20}
                         value={basic.membersPerTeam}
-                        onChange={e => setBasic(p => ({ ...p, membersPerTeam: e.target.value === '' ? '' as any : parseInt(e.target.value) }))}
+                        onChange={e => setBasic(p => ({ ...p, membersPerTeam: e.target.value === '' ? '' as unknown as number : parseInt(e.target.value) }))}
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-minion-blue"
                       />
                       <p className="text-xs text-gray-400 mt-1">팀장 포함</p>
@@ -433,7 +433,7 @@ export function CreateRoomModal() {
                       <input
                         type="number" min={100} step={100}
                         value={basic.totalPoints}
-                        onChange={e => setBasic(p => ({ ...p, totalPoints: e.target.value === '' ? '' as any : parseInt(e.target.value) }))}
+                        onChange={e => setBasic(p => ({ ...p, totalPoints: e.target.value === '' ? '' as unknown as number : parseInt(e.target.value) }))}
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-minion-blue"
                       />
                     </div>
@@ -523,7 +523,7 @@ export function CreateRoomModal() {
                           <input
                             type="number" min={0} max={basic.totalPoints - 1}
                             value={captain.captainPoints}
-                            onChange={e => updateCaptain(i, 'captainPoints', e.target.value === '' ? '' as any : parseInt(e.target.value))}
+                            onChange={e => updateCaptain(i, 'captainPoints', e.target.value === '' ? '' as unknown as number : parseInt(e.target.value))}
                             className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-minion-blue bg-white"
                           />
                         </div>

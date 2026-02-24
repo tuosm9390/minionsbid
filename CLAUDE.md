@@ -45,6 +45,7 @@ Supabase DB
   ↕ postgres_changes subscriptions (via useAuctionRealtime)
   ↕ 3-second polling fallback
   ↕ Presence tracking (supabase.channel `presence:{roomId}`)
+  ↕ Broadcast channel `lottery-{roomId}` (CLOSE_LOTTERY event sync)
 Zustand store (useAuctionStore)
   → React components
 ```
@@ -57,7 +58,7 @@ All tables have open anon RLS policies. Must have `REPLICA IDENTITY FULL` set an
 
 - **rooms**: id, name, total_teams, base_point, members_per_team, order_public, timer_ends_at, current_player_id, organizer_token, viewer_token
 - **teams**: id, room_id, name, point_balance, leader_token, leader_name, leader_position, leader_description, captain_points
-- **players**: id, room_id, name, tier, main_position, sub_position, status (`WAITING`/`IN_AUCTION`/`SOLD`), team_id, sold_price, description
+- **players**: id, room_id, name, tier, main_position, sub_position, status (`WAITING`/`IN_AUCTION`/`SOLD`/`UNSOLD`), team_id, sold_price, description
 - **bids**: id, room_id, player_id, team_id, amount, created_at
 - **messages**: id, room_id, sender_name, sender_role (`ORGANIZER`/`LEADER`/`VIEWER`/`SYSTEM`/`NOTICE`), content, created_at
 
@@ -65,12 +66,18 @@ Migrations must be run manually in Supabase SQL Editor (not via CLI).
 
 ### Auction Logic (`src/lib/auctionActions.ts`)
 
-- `drawNextPlayer`: picks random `WAITING` player → `IN_AUCTION`, sets `timer_ends_at = now + 30s`
-- `placeBid`: validates team's `point_balance`, inserts bid, extends timer to 5s if <5s remaining
-- `awardPlayer`: **idempotent** — re-checks `player.status === 'IN_AUCTION'` before acting. Marks `SOLD`, deducts team points. If no bids, returns player to `WAITING`.
-- `skipPlayer`: returns player to `WAITING`, clears room auction state
+- `drawNextPlayer(roomId)`: picks random `WAITING` player → `IN_AUCTION`, sets `current_player_id` (no timer yet)
+- `startAuction(roomId)`: sets `timer_ends_at = now + 16s`, sends system message
+- `placeBid(roomId, playerId, teamId, amount)`: validates team's `point_balance` (10P units, min bid, team capacity, auction active), inserts bid, extends timer to 6s if <6s remaining
+- `awardPlayer(roomId, playerId)`: **idempotent** — re-checks `player.status === 'IN_AUCTION'` before acting. Marks `SOLD`, deducts team points. If no bids, marks `UNSOLD` (not returned to WAITING).
+- `draftPlayer(roomId, playerId, teamId)`: UNSOLD 선수 0P로 팀에 직접 영입 (자유계약). `sold_price: 0`.
+- `restartAuctionWithUnsold(roomId)`: 모든 UNSOLD 선수를 WAITING으로 되돌려 재경매 준비.
 
 Auto-award on timer expiry: organizer's client sets `setTimeout(delay + 800ms grace)` with a `useRef` lock (`awardLock`) to prevent double execution. `playersRef` avoids stale closures.
+
+**Post-auction UNSOLD handling:**
+- 소수 빈자리: ORGANIZER가 팀별로 `draftPlayer` 호출 (자유계약 영입)
+- 다수 빈자리: `restartAuctionWithUnsold` → 재경매
 
 ### Key Components
 
@@ -79,9 +86,15 @@ Auto-award on timer expiry: organizer's client sets `setTimeout(delay + 800ms gr
 - `ChatPanel` — realtime chat. `SYSTEM` messages show as gray italic pills; `NOTICE` messages show as amber banners.
 - `LinksModal` — ORGANIZER only; regenerates all invite links from store data.
 - `HowToUseModal` — usage guide, available in header for all roles.
+- `AuctionResultModal` — 경매 완료 후 최종 결과 테이블 모달.
+- `LotteryOverlay` — 슬롯머신 추첨 애니메이션. `lottery-{roomId}` broadcast 채널로 CLOSE_LOTTERY 이벤트 동기화 (방장이 닫으면 전 클라이언트 동시 닫힘).
+- `TeamList` — 좌측 사이드바: 팀 로스터 + UNSOLD 선수 목록 표시.
+- **레거시 (미사용):** `CreateRoomButton.tsx`, `AuctionTimer.tsx`
 
 ### Custom Tailwind Colors
 
 Defined in `src/app/globals.css` `@theme` block:
 - `minion-yellow`: `#FBE042` / hover `#F2D214`
 - `minion-blue`: `#2358A4` / hover `#194079`
+- `minion-grey`: `#808080`
+- `minion-skin`: `#FFC09A`
