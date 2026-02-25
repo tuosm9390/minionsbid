@@ -8,6 +8,7 @@ interface LotteryOverlayProps {
   targetPlayer: Player | null
   role: Role
   isStarting?: boolean
+  allConnected?: boolean
   onClose: () => void
   onStartAuction: () => void
 }
@@ -19,6 +20,7 @@ export function LotteryOverlay({
   targetPlayer,
   role,
   isStarting = false,
+  allConnected = true,
   onClose,
   onStartAuction,
 }: LotteryOverlayProps) {
@@ -114,18 +116,25 @@ export function LotteryOverlay({
           }`}
       >
         {role === 'ORGANIZER' && (
-          <button
-            onClick={onStartAuction}
-            disabled={isStarting}
-            className="bg-gradient-to-r from-lime-400 to-lime-500 hover:from-lime-500 hover:to-lime-600 text-green-950 px-8 py-3.5 rounded-xl font-black text-lg shadow-[0_4px_16px_rgba(132,204,22,0.4)] hover:shadow-[0_6px_24px_rgba(132,204,22,0.6)] transition-all hover:-translate-y-1 active:translate-y-0 text-center disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none"
-          >
-            {isStarting ? '시작 중...' : '▶ 바로 경매 시작'}
-          </button>
+          <div className="flex flex-col gap-2 items-center">
+            <button
+              onClick={onStartAuction}
+              disabled={isStarting || !allConnected}
+              className="bg-gradient-to-r from-lime-400 to-lime-500 hover:from-lime-500 hover:to-lime-600 text-green-950 px-8 py-3.5 rounded-xl font-black text-lg shadow-[0_4px_16px_rgba(132,204,22,0.4)] hover:shadow-[0_6px_24px_rgba(132,204,22,0.6)] transition-all hover:-translate-y-1 active:translate-y-0 text-center disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none"
+            >
+              {isStarting ? '시작 중...' : !allConnected ? '⏳ 팀장 입장 대기 중' : '▶ 바로 경매 시작'}
+            </button>
+            {!allConnected && (
+              <p className="text-sm text-red-400 font-bold animate-pulse bg-red-950/30 px-4 py-1.5 rounded-full border border-red-500/30">
+                ⚠️ 모든 팀장이 입장해야 경매를 시작할 수 있습니다.
+              </p>
+            )}
+          </div>
         )}
         {role === 'ORGANIZER' && (
           <button
             onClick={onClose}
-            className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3.5 rounded-xl font-black text-lg shadow-lg hover:shadow-xl transition-all text-center"
+            className="h-fit bg-gray-700 hover:bg-gray-600 text-white px-8 py-3.5 rounded-xl font-black text-lg shadow-lg hover:shadow-xl transition-all text-center"
           >
             닫기 (전체 화면 닫힘)
           </button>

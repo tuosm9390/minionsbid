@@ -58,8 +58,14 @@ export function HowToUseModal({ variant = 'default' }: { variant?: 'default' | '
       {trigger}
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
 
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
               <h2 className="text-lg font-black text-minion-blue">🍌 이용 방법</h2>

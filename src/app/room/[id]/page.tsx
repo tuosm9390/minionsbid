@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, use, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuctionStore, Role, Player } from '@/store/useAuctionStore'
 import { useAuctionRealtime } from '@/hooks/useAuctionRealtime'
-import { drawNextPlayer, startAuction, awardPlayer } from '@/lib/auctionActions'
+import { drawNextPlayer, startAuction, awardPlayer, deleteRoom, saveAuctionArchive, pauseAuction } from '@/lib/auctionActions'
 import { supabase } from '@/lib/supabase'
 import { AuctionBoard } from '@/components/AuctionBoard'
 import { TeamList, UnsoldPanel } from '@/components/TeamList'
@@ -12,16 +12,21 @@ import { ChatPanel } from '@/components/ChatPanel'
 import { LinksModal } from '@/components/LinksModal'
 import { HowToUseModal } from '@/components/HowToUseModal'
 import { LotteryOverlay } from '@/components/LotteryOverlay'
+import { EndRoomModal } from '@/components/EndRoomModal'
+import { AuctionResultModal } from '@/components/AuctionResultModal'
+
+import { useRoomAuth } from '@/hooks/useRoomAuth'
+import { useAuctionControl } from '@/hooks/useAuctionControl'
 
 function ElapsedTimer({ createdAt }: { createdAt: string }) {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
     const start = new Date(createdAt).getTime()
-    const iv = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - start) / 1000))
-    }, 1000)
-    setElapsed(Math.floor((Date.now() - start) / 1000))
+    const update = () => setElapsed(Math.floor((Date.now() - start) / 1000))
+
+    const iv = setInterval(update, 1000)
+    update()
     return () => clearInterval(iv)
   }, [createdAt])
 
@@ -33,7 +38,7 @@ function ElapsedTimer({ createdAt }: { createdAt: string }) {
   const timeStr = h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
 
   return (
-    <div className="bg-white/10 px-3 py-1.5 rounded-xl text-sm font-mono font-bold flex items-center gap-1.5 border border-white/20 ml-2">
+    <div className="bg-white/10 px-3 py-1.5 rounded-xl text-sm font-mono font-bold flex items-center gap-1.5 border border-white/20 ml-2" role="timer" aria-label="경매 진행 시간">
       <span className="text-white/70 text-xs">진행 시간</span>
       <span className="text-minion-yellow">{timeStr}</span>
     </div>
@@ -47,131 +52,84 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const roleParam = searchParams.get('role')
   const role: Role = (roleParam === 'ORGANIZER' || roleParam === 'LEADER' || roleParam === 'VIEWER') ? roleParam : null
   const teamId = searchParams.get('teamId') || undefined
+  const tokenParam = searchParams.get('token')
 
+  // 스토어 데이터
   const setRoomContext = useAuctionStore(s => s.setRoomContext)
   const players = useAuctionStore(s => s.players)
   const timerEndsAt = useAuctionStore(s => s.timerEndsAt)
   const createdAt = useAuctionStore(s => s.createdAt)
+  const roomName = useAuctionStore(s => s.roomName)
   const teams = useAuctionStore(s => s.teams)
+  const presences = useAuctionStore(s => s.presences)
+  const isReAuctionRound = useAuctionStore(s => s.isReAuctionRound)
   const storeOrganizerToken = useAuctionStore(s => s.organizerToken)
   const storeViewerToken = useAuctionStore(s => s.viewerToken)
+  const roomExists = useAuctionStore(s => s.roomExists)
+  const isRoomLoaded = useAuctionStore(s => s.isRoomLoaded)
+  const membersPerTeam = useAuctionStore(s => s.membersPerTeam)
 
-  const tokenParam = searchParams.get('token')
-  // 토큰 검증 전까지는 URL param role로 초기화, 검증 실패 시 null로 강등
-  const [effectiveRole, setEffectiveRole] = useState<Role>(role)
-  const tokenCheckedRef = useRef(false)
+  // 1. 인증 및 역할 관리 (Hook)
+  const { effectiveRole } = useRoomAuth({
+    role, teamId, tokenParam, isRoomLoaded, roomExists,
+    storeOrganizerToken, storeViewerToken, teams, roomId, setRoomContext
+  })
 
-  useEffect(() => {
-    setRoomContext(roomId, role, teamId)
-  }, [roomId, role, teamId, setRoomContext])
-
-  // DB에서 토큰 로드 후 URL 토큰 검증 — 불일치 시 role 무효화
-  useEffect(() => {
-    if (tokenCheckedRef.current) return
-    let hasData = false
-    let valid = false
-    if (role === 'ORGANIZER' && storeOrganizerToken !== null) {
-      hasData = true
-      valid = tokenParam === storeOrganizerToken
-    } else if (role === 'VIEWER' && storeViewerToken !== null) {
-      hasData = true
-      valid = tokenParam === storeViewerToken
-    } else if (role === 'LEADER' && teams.length > 0) {
-      hasData = true
-      const myTeam = teams.find(t => t.id === teamId)
-      valid = !!myTeam && tokenParam === myTeam.leader_token
-    }
-    if (!hasData) return
-    tokenCheckedRef.current = true
-    if (!valid) {
-      setEffectiveRole(null)
-      setRoomContext(roomId, null, undefined)
-    }
-  }, [storeOrganizerToken, storeViewerToken, teams, role, tokenParam, roomId, teamId, setRoomContext])
+  // 2. 경매 진행 제어 (Hook)
+  const { lotteryPlayer, handleCloseLottery } = useAuctionControl({
+    roomId, effectiveRole, players, timerEndsAt
+  })
 
   useAuctionRealtime(roomId)
+
+  // 3. 기타 상태 및 계산
+  const [isInitializing, setIsInitializing] = useState(true)
+  useEffect(() => {
+    if (isRoomLoaded) {
+      const timer = setTimeout(() => setIsInitializing(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isRoomLoaded])
+
+  const connectedLeaderIds = new Set(presences.filter(p => p.role === 'LEADER').map(p => p.teamId))
+  const allConnected = teams.length > 0 && teams.every(t => connectedLeaderIds.has(t.id))
+
+  // 접속 장애 감지 및 자동 일시정지 (주최자 전용)
+  useEffect(() => {
+    if (effectiveRole === 'ORGANIZER' && !allConnected && timerEndsAt && roomId) {
+      void pauseAuction(roomId)
+    }
+  }, [allConnected, timerEndsAt, effectiveRole, roomId])
 
   const currentPlayer = players.find(p => p.status === 'IN_AUCTION')
   const waitingPlayers = players.filter(p => p.status === 'WAITING')
   const soldPlayers = players.filter(p => p.status === 'SOLD')
   const unsoldPlayers = players.filter(p => p.status === 'UNSOLD')
 
-  // 버튼 로딩 상태
+  // 자동 드래프트 모드 판별
+  const biddableTeams = teams.filter(t => {
+    const sold = players.filter(p => p.team_id === t.id && p.status === 'SOLD').length
+    return sold < (membersPerTeam - 1) && t.point_balance >= 10
+  })
+  const isAutoDraftMode = !currentPlayer && waitingPlayers.length > 0 && unsoldPlayers.length === 0 && biddableTeams.length <= 1
+
   const [isDrawing, setIsDrawing] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
-
-  // 추첨 모달 상태 관리 (진입 시 자동 실행 방지)
-  const [lotteryPlayer, setLotteryPlayer] = useState<Player | null>(null)
-  const prevPlayersRef = useRef<Player[]>([])
-
-  useEffect(() => {
-    const prev = prevPlayersRef.current
-    const curr = players
-
-    // 초기 로딩 이후(배열에 값이 채워진 뒤) 상태 변화 감지
-    if (prev.length > 0 && curr.length > 0) {
-      const prevActive = prev.find(p => p.status === 'IN_AUCTION')
-      const currActive = curr.find(p => p.status === 'IN_AUCTION')
-
-      // 이전에 IN_AUCTION 선수가 없었는데 새로 등장했을 때만 추첨 팝업 발생 (즉, 당첨 버튼이 눌렸을 때)
-      if (!prevActive && currActive) {
-        setLotteryPlayer(currActive)
-      }
-    }
-    prevPlayersRef.current = curr
-  }, [players])
-
-  // 전역 추첨 모달 닫기 동기화 (Broadcast)
-  useEffect(() => {
-    if (!roomId) return
-    const channel = supabase.channel(`lottery-${roomId}`)
-      .on('broadcast', { event: 'CLOSE_LOTTERY' }, () => {
-        setLotteryPlayer(null)
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [roomId])
-
-  const handleCloseLottery = async () => {
-    if (effectiveRole !== 'ORGANIZER') return
-    // 추첨 결과 공개 메시지 전송 (닫기/경매시작 시점에만 전송)
-    if (lotteryPlayer && roomId) {
-      await supabase.from('messages').insert([{
-        room_id: roomId,
-        sender_name: '시스템',
-        sender_role: 'SYSTEM',
-        content: `🎲 ${lotteryPlayer.name} 선수 등장! (경매 시작 전)`,
-      }])
-    }
-    // 내 화면 닫기
-    setLotteryPlayer(null)
-    // 다른 모든 사람 닫기
-    await supabase.channel(`lottery-${roomId}`).send({
-      type: 'broadcast',
-      event: 'CLOSE_LOTTERY',
-      payload: {}
-    })
-  }
-
-  // 공지 상태
+  const router = useRouter()
+  const [isEndRoomOpen, setIsEndRoomOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showResultModal, setShowResultModal] = useState(false)
   const [noticeText, setNoticeText] = useState('')
   const [isSendingNotice, setIsSendingNotice] = useState(false)
 
   const handleNotice = async () => {
     if (!noticeText.trim() || !roomId || isSendingNotice) return
-    if (noticeText.trim().length > 200) return
     setIsSendingNotice(true)
     try {
-      const { error } = await supabase.from('messages').insert([{
-        room_id: roomId,
-        sender_name: '주최자',
-        sender_role: 'NOTICE',
-        content: noticeText.trim(),
+      await supabase.from('messages').insert([{
+        room_id: roomId, sender_name: '주최자', sender_role: 'NOTICE', content: noticeText.trim(),
       }])
-      if (!error) setNoticeText('')
+      setNoticeText('')
     } finally {
       setIsSendingNotice(false)
     }
@@ -190,45 +148,74 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const handleStart = async () => {
     setIsStarting(true)
     try {
-      await handleCloseLottery() // 공개 메시지 전송 + 오버레이 글로벌 닫기
-      const res = await startAuction(roomId)
+      await handleCloseLottery()
+      const duration = isReAuctionRound ? 5000 : 10000
+      const res = await startAuction(roomId, duration)
       if (res.error) alert(res.error)
     } finally {
       setIsStarting(false)
     }
   }
 
-  // ── 타이머 만료 시 자동 낙찰 (주최자 클라이언트) ──
-  const awardLock = useRef(false)
-  const playersRef = useRef(players)
-  playersRef.current = players
+  // 모든 팀이 정원을 채웠는지 계산
+  const needyTeams = teams.filter(t =>
+    players.filter(p => p.team_id === t.id && p.status === 'SOLD').length < (membersPerTeam - 1)
+  )
+  const isRoomComplete = teams.length > 0 && needyTeams.length === 0
+  const allDone = waitingPlayers.length === 0 && !currentPlayer && soldPlayers.length > 0 && isRoomComplete
 
-  useEffect(() => {
-    if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
-
-    const cp = playersRef.current.find(p => p.status === 'IN_AUCTION')
-    if (!cp) return
-
-    const playerId = cp.id
-    const delay = Math.max(0, new Date(timerEndsAt).getTime() - Date.now()) + 800 // 800ms 여유
-
-    let cancelled = false
-    const t = setTimeout(async () => {
-      if (cancelled || awardLock.current) return
-      const stillActive = playersRef.current.find(p => p.id === playerId && p.status === 'IN_AUCTION')
-      if (!stillActive) return
-      awardLock.current = true
-      try {
-        await awardPlayer(roomId, playerId)
-      } finally {
-        awardLock.current = false
+  const handleEndRoom = async (saveResult: boolean) => {
+    if (!roomId) return
+    setIsDeleting(true)
+    try {
+      if (saveResult && allDone) {
+        await saveAuctionArchive({
+          roomId,
+          roomName: roomName ?? `경매방 (${new Date().toLocaleDateString('ko-KR')})`,
+          roomCreatedAt: createdAt ?? new Date().toISOString(),
+          teams: teams.map(t => ({
+            id: t.id, name: t.name, leader_name: t.leader_name, point_balance: t.point_balance,
+            players: players.filter(p => p.team_id === t.id).map(p => ({ name: p.name, sold_price: p.sold_price })),
+          })),
+        })
       }
-    }, delay)
+      const result = await deleteRoom(roomId)
+      if (!result.error) router.push('/')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
-    return () => { cancelled = true; clearTimeout(t) }
-  }, [timerEndsAt, role, roomId])
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 border-4 border-minion-blue border-t-minion-yellow rounded-full animate-spin mb-6" />
+        <h2 className="text-2xl font-black text-minion-blue mb-2">방 정보를 불러오고 있습니다</h2>
+        <p className="text-gray-500 font-bold">잠시만 기다려주세요. 실시간 데이터를 연결 중입니다...</p>
+        <div className="mt-8 flex gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="w-3 h-3 bg-minion-yellow rounded-full animate-bounce" style={{ animationDelay: `${i * 0.2}s` }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
-  const allDone = waitingPlayers.length === 0 && !currentPlayer && soldPlayers.length > 0 && unsoldPlayers.length === 0
+  if (!roomExists || roomName?.startsWith('[종료된 경매]')) {
+    return (
+      <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="text-6xl mb-6">🚪</div>
+        <h2 className="text-3xl font-black text-minion-blue mb-2">경매가 종료되었습니다.</h2>
+        <p className="text-gray-500 font-bold mb-8 italic">주최자에 의해 방이 삭제되었거나 종료된 경매입니다.</p>
+        <button
+          onClick={() => router.push('/')}
+          className="bg-minion-yellow hover:bg-minion-yellow-hover text-minion-blue font-black px-8 py-3 rounded-2xl text-lg shadow-md transition-all"
+        >
+          메인 화면으로 돌아가기
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-blue-50 text-foreground flex flex-col font-sans">
@@ -244,30 +231,50 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           </span>
           {effectiveRole === 'ORGANIZER' && <LinksModal />}
           <HowToUseModal variant="header" />
+          {/* 낙찰 선수가 한 명이라도 있으면 결과 확인 버튼 노출 */}
+          {soldPlayers.length > 0 && (
+            <button
+              onClick={() => setShowResultModal(true)}
+              className="flex items-center gap-1.5 bg-minion-yellow hover:bg-minion-yellow-hover text-minion-blue px-3 py-1.5 rounded-xl text-sm font-bold transition-colors"
+            >
+              📋 경매 결과
+            </button>
+          )}
+          {/* 주최자 전용: 방 종료 버튼 */}
+          {effectiveRole === 'ORGANIZER' && (
+            <button
+              onClick={() => setIsEndRoomOpen(true)}
+              className="flex items-center gap-1.5 bg-red-500/80 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl text-sm font-bold transition-colors border border-red-400/40"
+            >
+              🚪 방 종료
+            </button>
+          )}
         </div>
         {createdAt && <ElapsedTimer createdAt={createdAt} />}
       </header>
 
       {/* Main Grid */}
-      <main className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
+      <main className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden min-h-0">
 
         {/* Left: 팀 현황 */}
-        <aside className="col-span-3 flex flex-col gap-4">
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-4 flex-1 overflow-y-auto">
-            <h2 className="text-lg font-bold text-minion-blue mb-4 flex items-center gap-2 sticky top-0 bg-card py-2 z-10">
-              <span className="text-2xl">👥</span> 참가 팀 현황
-            </h2>
+        <aside className="col-span-3 flex flex-col gap-4 h-full min-h-0">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-4 flex-1 overflow-y-auto min-h-0 relative">
+            <div className="sticky top-0 bg-card py-2 z-10 mb-2">
+              <h2 className="text-lg font-bold text-minion-blue flex items-center gap-2">
+                <span className="text-2xl">👥</span> 참가 팀 현황
+              </h2>
+            </div>
             <TeamList />
           </div>
         </aside>
 
         {/* Center: 경매 보드 + 컨트롤 패널 */}
-        <section className="col-span-6 flex flex-col gap-4">
+        <section className="col-span-6 flex flex-col gap-4 h-full min-h-0">
           <AuctionBoard isLotteryActive={!!lotteryPlayer} />
 
           {/* 주최자 컨트롤 패널 */}
           {effectiveRole === 'ORGANIZER' && (
-            <div className="bg-card rounded-2xl shadow-sm border border-border p-4">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-4 shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-muted-foreground">🎛️ 주최자 컨트롤</h3>
                 <span className="text-xs text-gray-400">
@@ -307,26 +314,55 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                 </div>
               ) : !currentPlayer ? (
                 // 1. 경매 대기 상태 (추첨 전)
-                <button
-                  onClick={handleDraw}
-                  disabled={isDrawing || waitingPlayers.length === 0}
-                  className="w-full bg-minion-blue hover:bg-minion-blue-hover text-white py-3.5 rounded-xl font-black text-lg transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isDrawing
-                    ? '추첨 중...'
-                    : waitingPlayers.length === 0
-                      ? '대기 중인 선수 없음'
-                      : `🎲 다음 선수 추첨 (${waitingPlayers.length}명 대기)`}
-                </button>
+                isAutoDraftMode ? (
+                  <div className="bg-indigo-50 border-2 border-indigo-200 text-indigo-800 py-3.5 px-4 rounded-xl font-bold text-center flex flex-col items-center gap-1">
+                    <span className="text-lg">⚡ 자동 드래프트 진행 중</span>
+                    <span className="text-xs font-medium opacity-80">
+                      {biddableTeams.length === 0 ? '전 팀 포인트 부족' : '입찰 가능 팀 1팀'} — 중앙 보드에서 선수를 배정하세요.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={handleDraw}
+                      disabled={isDrawing || waitingPlayers.length === 0 || !allConnected}
+                      className="w-full bg-minion-blue hover:bg-minion-blue-hover text-white py-3.5 rounded-xl font-black text-lg transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDrawing
+                        ? '추첨 중...'
+                        : !allConnected
+                          ? '⏳ 팀장 전원 대기 중...'
+                          : waitingPlayers.length === 0
+                            ? '대기 중인 선수 없음'
+                            : `🎲 다음 선수 추첨 (${waitingPlayers.length}명 대기)`}
+                    </button>
+                    {!allConnected && (
+                      <p className="text-xs text-center text-red-600 font-bold animate-pulse bg-red-50 py-1.5 rounded-lg border border-red-100">
+                        ⚠️ 모든 팀장({connectedLeaderIds.size}/{teams.length})이 입장해야 추첨 가능합니다.
+                      </p>
+                    )}
+                  </div>
+                )
               ) : !timerEndsAt ? (
                 // 2. 선수 추첨됨, 경매 시작 대기
-                <button
-                  onClick={handleStart}
-                  disabled={isStarting}
-                  className="w-full bg-lime-500 hover:bg-lime-600 text-white py-3.5 rounded-xl font-black text-lg transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 shadow-[0_3px_0_#4d7c0f]"
-                >
-                  {isStarting ? '준비 중...' : '▶ 경매 시작'}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleStart}
+                    disabled={isStarting || !allConnected}
+                    className="w-full bg-lime-500 hover:bg-lime-600 text-white py-3.5 rounded-xl font-black text-lg transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 shadow-[0_3px_0_#4d7c0f]"
+                  >
+                    {isStarting
+                      ? '준비 중...'
+                      : !allConnected
+                        ? '⏳ 팀장 입장 대기 중'
+                        : '▶ 경매 시작'}
+                  </button>
+                  {!allConnected && (
+                    <p className="text-xs text-center text-red-600 font-bold animate-pulse bg-red-50 py-1.5 rounded-lg border border-red-100">
+                      ⚠️ 모든 팀장({connectedLeaderIds.size}/{teams.length})이 입장해야 경매를 시작할 수 있습니다.
+                    </p>
+                  )}
+                </div>
               ) : (
                 // 3. 경매 진행 중 (타이머 시작됨)
                 <div className="bg-minion-yellow/10 border-2 border-minion-yellow/30 text-minion-blue py-3.5 px-4 rounded-xl font-bold text-center flex flex-col items-center justify-center">
@@ -339,9 +375,19 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
         </section>
 
         {/* Right: 유찰선수 + 채팅 */}
-        <aside className="col-span-3 flex flex-col gap-4">
-          <UnsoldPanel />
-          <ChatPanel />
+        <aside className="col-span-3 flex flex-col gap-4 h-full min-h-0">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-4 flex-[2] overflow-y-auto min-h-0 relative">
+            <div className="sticky top-0 bg-card py-2 z-10 mb-2 border-b border-border">
+              <h2 className="text-lg font-bold text-red-500 flex items-center gap-2">
+                <span className="text-2xl">👻</span> 유찰 대기석
+              </h2>
+            </div>
+            <UnsoldPanel />
+          </div>
+
+          <div className="bg-card rounded-2xl shadow-sm border border-border flex-[3] overflow-hidden flex flex-col min-h-0">
+            <ChatPanel />
+          </div>
         </aside>
 
       </main>
@@ -353,10 +399,26 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           targetPlayer={lotteryPlayer}
           role={effectiveRole}
           isStarting={isStarting}
+          allConnected={allConnected}
           onClose={handleCloseLottery}
           onStartAuction={handleStart}
         />
       )}
+
+      {/* 방 종료 확인 모달 */}
+      <EndRoomModal
+        isOpen={isEndRoomOpen}
+        isCompleted={allDone}
+        isDeleting={isDeleting}
+        onClose={() => setIsEndRoomOpen(false)}
+        onConfirm={handleEndRoom}
+      />
+
+      {/* 경매 결과 확인 모달 (헤더 버튼 연결) */}
+      <AuctionResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+      />
     </div>
   )
 }

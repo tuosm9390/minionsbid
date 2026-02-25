@@ -1,4 +1,5 @@
 import { CreateRoomModal } from "@/components/CreateRoomModal";
+import { ArchiveModalWrapper } from "@/components/ArchiveModalWrapper";
 
 const HOW_TO_USE = [
   {
@@ -49,8 +50,9 @@ export default function Home() {
           <p className="text-xl text-muted-foreground font-medium break-keep">
             미니언즈 공식 팀 드래프트 시스템 두둥!등장!
           </p>
-          <div className="pt-4">
+          <div className="pt-4 w-full flex flex-col items-center">
             <CreateRoomModal />
+            <ArchiveModalWrapper />
           </div>
         </div>
 
@@ -86,7 +88,6 @@ export default function Home() {
             </ul>
           </div>
         </div>
-
       </div>
     </div>
   );

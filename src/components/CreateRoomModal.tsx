@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Copy, X, Check, ExternalLink, ArrowRight, Upload } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 const TIERS = ['챌린저', '그랜드마스터', '마스터', '다이아', '에메랄드', '플래티넘', '골드', '실버', '브론즈', '언랭'];
 const POSITIONS = ['탑', '정글', '미드', '원딜', '서포터', '무관'];
@@ -78,79 +77,6 @@ const POSITION_HEADER_KEYWORDS: { keywords: string[]; position: string }[] = [
   { keywords: ['A', '원딜'], position: '원딜' },
   { keywords: ['S', '서포터'], position: '서포터' },
 ];
-
-function parseExcelPlayers(file: File): Promise<PlayerInfo[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        if (!data || typeof data === 'string') { resolve([]); return; }
-
-        const workbook = XLSX.read(new Uint8Array(data as ArrayBuffer), { type: 'array' });
-        const sheetName = workbook.SheetNames.includes('DB') ? 'DB' : workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }) as (string | undefined)[][];
-
-        if (rows.length < 2) { resolve([]); return; }
-
-        const headerRow = Array.from(rows[0], h => String(h ?? '').trim());
-
-        // Detect name / tier / comment columns
-        let nameCol = 2, tierCol = 3, commentCol = 6;
-        for (let ci = 0; ci < headerRow.length; ci++) {
-          const h = headerRow[ci];
-          if (h.includes('닉네임')) nameCol = ci;
-          else if (h.includes('티어')) tierCol = ci;
-          else if (h.includes('코멘트') || h.includes('설명')) commentCol = ci;
-        }
-
-        // Detect position columns from header; fallback to J~N (index 9~13)
-        const positionColMap = new Map<number, string>();
-        for (let ci = 0; ci < headerRow.length; ci++) {
-          const h = headerRow[ci];
-          for (const { keywords, position } of POSITION_HEADER_KEYWORDS) {
-            if (keywords.includes(h)) { positionColMap.set(ci, position); break; }
-          }
-        }
-        if (positionColMap.size < 5) {
-          positionColMap.clear();
-          [['탑', 9], ['정글', 10], ['미드', 11], ['원딜', 12], ['서포터', 13]].forEach(
-            ([pos, idx]) => positionColMap.set(idx as number, pos as string)
-          );
-        }
-
-        const result: PlayerInfo[] = [];
-        for (let ri = 1; ri < rows.length; ri++) {
-          const row = rows[ri];
-          const name = String(row[nameCol] ?? '').trim();
-          if (!name) continue;
-
-          const tierRaw = String(row[tierCol] ?? '').trim();
-          const tier = TIER_MAP[tierRaw] ?? '언랭';
-          const description = String(row[commentCol] ?? '').trim();
-
-          let mainPosition = '', subPosition = '';
-          positionColMap.forEach((posName, colIdx) => {
-            const val = String(row[colIdx] ?? '').trim();
-            if (val === '●' && !mainPosition) mainPosition = posName;
-            else if (val === '○' && !subPosition) subPosition = posName;
-          });
-
-          result.push({
-            name, tier,
-            mainPosition: mainPosition || '무관',
-            subPosition: subPosition || '무관',
-            description,
-          });
-        }
-        resolve(result);
-      } catch (err) { reject(err); }
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
-}
 
 export function CreateRoomModal() {
   const router = useRouter();
@@ -347,21 +273,98 @@ export function CreateRoomModal() {
     e.target.value = '';
     setIsUploading(true);
     try {
-      const parsed = await parseExcelPlayers(file);
-      if (parsed.length === 0) { alert('파싱된 선수가 없습니다. 파일 형식을 확인해주세요.'); return; }
-      const fixed = basic.teamCount * (basic.membersPerTeam - 1);
-      const trimmed = parsed.slice(0, fixed);
-      const padded: PlayerInfo[] = trimmed.length < fixed
-        ? [...trimmed, ...Array.from({ length: fixed - trimmed.length }, () => ({
-            name: '', tier: '골드', mainPosition: '탑', subPosition: '무관', description: '',
-          }))]
-        : trimmed;
-      setPlayers(padded);
-      alert(`${trimmed.length}명의 선수 정보로 목록을 덮어썼습니다.${parsed.length > fixed ? `\n(엑셀의 ${parsed.length}명 중 ${fixed}명만 적용)` : ''}`);
+      // xlsx 라이브러리를 동적으로 로드 (초기 번들 사이즈 최적화)
+      const XLSX = await import('xlsx');
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data || typeof data === 'string') { return; }
+
+          const workbook = XLSX.read(new Uint8Array(data as ArrayBuffer), { type: 'array' });
+          const sheetName = workbook.SheetNames.includes('DB') ? 'DB' : workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }) as (string | undefined)[][];
+
+          if (rows.length < 2) { return; }
+
+          const headerRow = Array.from(rows[0], h => String(h ?? '').trim());
+
+          // Detect name / tier / comment columns
+          let nameCol = 2, tierCol = 3, commentCol = 6;
+          for (let ci = 0; ci < headerRow.length; ci++) {
+            const h = headerRow[ci];
+            if (h.includes('닉네임')) nameCol = ci;
+            else if (h.includes('티어')) tierCol = ci;
+            else if (h.includes('코멘트') || h.includes('설명')) commentCol = ci;
+          }
+
+          // Detect position columns from header; fallback to J~N (index 9~13)
+          const positionColMap = new Map<number, string>();
+          for (let ci = 0; ci < headerRow.length; ci++) {
+            const h = headerRow[ci];
+            for (const { keywords, position } of POSITION_HEADER_KEYWORDS) {
+              if (keywords.includes(h)) { positionColMap.set(ci, position); break; }
+            }
+          }
+          if (positionColMap.size < 5) {
+            positionColMap.clear();
+            [['탑', 9], ['정글', 10], ['미드', 11], ['원딜', 12], ['서포터', 13]].forEach(
+              ([pos, idx]) => positionColMap.set(idx as number, pos as string)
+            );
+          }
+
+          const parsed: PlayerInfo[] = [];
+          for (let ri = 1; ri < rows.length; ri++) {
+            const row = rows[ri];
+            const name = String(row[nameCol] ?? '').trim();
+            if (!name) continue;
+
+            const tierRaw = String(row[tierCol] ?? '').trim();
+            const tier = TIER_MAP[tierRaw] ?? '언랭';
+            const description = String(row[commentCol] ?? '').trim();
+
+            let mainPosition = '', subPosition = '';
+            positionColMap.forEach((posName, colIdx) => {
+              const val = String(row[colIdx] ?? '').trim();
+              if (val === '●' && !mainPosition) mainPosition = posName;
+              else if (val === '○' && !subPosition) subPosition = posName;
+            });
+
+            parsed.push({
+              name, tier,
+              mainPosition: mainPosition || '무관',
+              subPosition: subPosition || '무관',
+              description,
+            });
+          }
+
+          if (parsed.length === 0) { alert('파싱된 선수가 없습니다. 파일 형식을 확인해주세요.'); return; }
+          const fixed = basic.teamCount * (basic.membersPerTeam - 1);
+          const trimmed = parsed.slice(0, fixed);
+          const padded: PlayerInfo[] = trimmed.length < fixed
+            ? [...trimmed, ...Array.from({ length: fixed - trimmed.length }, () => ({
+              name: '', tier: '골드', mainPosition: '탑', subPosition: '무관', description: '',
+            }))]
+            : trimmed;
+          setPlayers(padded);
+          alert(`${trimmed.length}명의 선수 정보로 목록을 덮어썼습니다.${parsed.length > fixed ? `\n(엑셀의 ${parsed.length}명 중 ${fixed}명만 적용)` : ''}`);
+        } catch (err) {
+          console.error('Excel parse error:', err);
+          alert('엑셀 파일 파싱에 실패했습니다.');
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      reader.onerror = () => {
+        alert('파일을 읽는 중 오류가 발생했습니다.');
+        setIsUploading(false);
+      };
+      reader.readAsArrayBuffer(file);
     } catch (err) {
-      console.error('Excel parse error:', err);
-      alert('엑셀 파일 파싱에 실패했습니다.');
-    } finally {
+      console.error('xlsx load error:', err);
+      alert('라이브러리 로드에 실패했습니다.');
       setIsUploading(false);
     }
   };
@@ -414,8 +417,14 @@ export function CreateRoomModal() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => { if (step < 3) close(); }}
+        >
+          <div
+            className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
 
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
@@ -501,6 +510,7 @@ export function CreateRoomModal() {
                     <label className="text-sm font-bold text-gray-700 block mb-1.5">경매 제목 *</label>
                     <input
                       type="text"
+                      data-testid="room-title-input"
                       value={basic.title}
                       onChange={e => setBasic(p => ({ ...p, title: e.target.value }))}
                       placeholder="예: 롤 리그 시즌 1 선수 경매"
@@ -653,8 +663,8 @@ export function CreateRoomModal() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-gray-700">경매 선수 목록</span>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${players.filter(p => p.name.trim()).length === minPlayers
-                          ? 'bg-green-100 text-green-600'
-                          : 'bg-orange-100 text-orange-500'
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-orange-100 text-orange-500'
                         }`}>
                         {players.filter(p => p.name.trim()).length} / {minPlayers}명
                       </span>
@@ -670,6 +680,7 @@ export function CreateRoomModal() {
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
+                        data-testid="excel-upload-button"
                         className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Upload size={14} /> {isUploading ? '처리 중...' : '엑셀 업로드'}
@@ -790,6 +801,7 @@ export function CreateRoomModal() {
                   <button
                     onClick={handleNext}
                     disabled={isLoading}
+                    data-testid="next-button"
                     className="bg-minion-blue hover:bg-minion-blue-hover text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? '생성 중...' : step === 2 ? '방 만들기 🎉' : '다음 →'}

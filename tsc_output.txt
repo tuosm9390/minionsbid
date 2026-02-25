@@ -1,0 +1,197 @@
+__tests__/auctionActions.test.ts(109,7): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(118,7): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(127,7): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(138,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(139,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(147,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(148,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(157,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(158,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(159,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(167,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(168,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(169,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(170,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(171,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(181,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(182,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(183,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(184,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(185,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(186,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(187,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(188,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(201,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(202,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(203,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(204,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(205,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(206,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(207,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(208,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(209,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(223,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(224,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(225,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(226,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(227,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(228,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(229,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(230,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(251,7): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(262,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(263,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(274,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(275,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(276,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(277,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(278,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(279,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(292,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(293,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(294,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(295,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(296,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(297,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(298,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(299,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(320,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(321,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(328,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(329,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(336,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(337,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(344,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(345,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(346,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(347,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(354,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(355,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(356,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(357,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(358,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(359,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(366,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(367,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(368,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(369,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(370,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(371,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(385,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(386,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(387,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(388,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(389,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(390,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(391,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(417,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(418,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(419,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(420,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(421,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(422,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(423,28): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(451,34): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(459,7): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+__tests__/auctionActions.test.ts(467,34): error TS2345: Argument of type 'MockBuilder' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'MockBuilder' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': url, headers, urlLengthLimit, cloneRequestState, and 5 more.
+src/components/AuctionBoard.tsx(350,22): error TS18047: 'currentTurnTeam' is possibly 'null'.
+src/components/AuctionBoard.tsx(350,86): error TS18047: 'currentTurnTeam' is possibly 'null'.
+src/components/AuctionBoard.tsx(413,79): error TS18047: 'currentTurnTeam' is possibly 'null'.
+src/hooks/useAuctionRealtime.ts(97,41): error TS2304: Cannot find name 'Player'.
+src/hooks/useAuctionRealtime.ts(108,39): error TS2304: Cannot find name 'Team'.

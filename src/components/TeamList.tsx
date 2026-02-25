@@ -6,22 +6,22 @@ export function UnsoldPanel() {
   const players = useAuctionStore((state) => state.players || [])
   const unsoldPlayers = players.filter((p: Player) => p.status === 'UNSOLD')
 
-  if (unsoldPlayers.length === 0) return null
+  if (unsoldPlayers.length === 0) return (
+    <div className="flex-1 flex justify-center items-center py-10 text-sm text-gray-400 font-medium">유찰된 선수가 없습니다.</div>
+  )
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm border border-red-200 p-3">
-      <h3 className="font-bold text-red-700 flex items-center gap-2 mb-2 text-sm">
-        <span>😭</span> 유찰 선수
-        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-auto">{unsoldPlayers.length}명</span>
-      </h3>
-      <div className="space-y-1 max-h-36 overflow-y-auto custom-scrollbar">
-        {unsoldPlayers.map((p: Player) => (
-          <div key={p.id} className="flex justify-between items-center text-xs bg-red-50 p-1.5 rounded border border-red-100">
-            <span className="font-bold text-gray-700 truncate mr-2">{p.name}</span>
-            <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{p.tier}</span>
-          </div>
-        ))}
+    <div className="flex flex-col gap-1.5 pb-2">
+      <div className="flex justify-between items-center mb-1 px-1">
+        <span className="text-xs font-bold text-gray-500">총 인원</span>
+        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">{unsoldPlayers.length}명</span>
       </div>
+      {unsoldPlayers.map((p: Player) => (
+        <div key={p.id} className="flex justify-between items-center text-xs bg-red-50 hover:bg-red-100 transition-colors p-2.5 rounded-xl border border-red-100/50 shadow-sm">
+          <span className="font-bold text-gray-800 truncate mr-2">{p.name}</span>
+          <span className="text-[10px] font-black text-gray-500 bg-white px-2 py-0.5 rounded-md border border-gray-100">{p.tier}</span>
+        </div>
+      ))}
     </div>
   )
 }

@@ -45,3 +45,10 @@ next-env.d.ts
 
 # supabase
 /supabase
+
+# test
+/__tests__/
+CLAUDE.md
+
+# skills
+/skills

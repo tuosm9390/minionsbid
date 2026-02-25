@@ -142,4 +142,20 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .cursor-pointer {
+    cursor: pointer;
+  }
 }

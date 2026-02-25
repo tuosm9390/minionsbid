@@ -48,8 +48,14 @@ export function LinksModal() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl">
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
 
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-black text-minion-blue">🔗 경매방 링크</h2>
@@ -145,8 +151,8 @@ function LinkRow({
       <button
         onClick={() => onCopy(link, linkKey)}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shrink-0 ${copied === linkKey
-            ? 'bg-green-100 text-green-700'
-            : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
+          ? 'bg-green-100 text-green-700'
+          : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
           }`}
       >
         {copied === linkKey ? <><Check size={12} /> 복사됨</> : <><Copy size={12} /> 복사</>}

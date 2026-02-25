@@ -54,6 +54,7 @@ export interface Message {
 
 interface AuctionState {
   roomId: string | null
+  roomName: string | null
   role: Role
   teamId: string | null
 
@@ -68,6 +69,10 @@ interface AuctionState {
   orderPublic: boolean
   timerEndsAt: string | null
   createdAt: string | null
+  roomExists: boolean
+  isRoomLoaded: boolean
+  isReAuctionRound: boolean
+  hasPlayedReadyAnimation: boolean
   teams: Team[]
   bids: Bid[]
   players: Player[]
@@ -79,12 +84,18 @@ interface AuctionState {
   // Actions
   setRoomContext: (roomId: string, role: Role, teamId?: string) => void
   setRealtimeData: (data: Partial<AuctionState>) => void
+  updatePlayer: (player: Player) => void
+  updateTeam: (team: Team) => void
+  setRoomNotFound: () => void
+  setReadyAnimationPlayed: (played: boolean) => void
+  setReAuctionRound: (isRe: boolean) => void
   addBid: (bid: Bid) => void
   addMessage: (message: Message) => void
 }
 
 export const useAuctionStore = create<AuctionState>((set) => ({
   roomId: null,
+  roomName: null,
   role: null,
   teamId: null,
 
@@ -97,14 +108,31 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   orderPublic: true,
   timerEndsAt: null,
   createdAt: null,
+  roomExists: true,
+  isRoomLoaded: false,
+  isReAuctionRound: false,
+  hasPlayedReadyAnimation: false,
   teams: [],
   bids: [],
   players: [],
   messages: [],
   presences: [],
 
-  setRoomContext: (roomId, role, teamId) => set({ roomId, role, teamId: teamId || null }),
-  setRealtimeData: (data) => set((state) => ({ ...state, ...data })),
+  setRoomContext: (roomId, role, teamId) => set({ 
+    roomId, role, teamId: teamId || null, roomExists: true, isRoomLoaded: false, hasPlayedReadyAnimation: false, isReAuctionRound: false 
+  }),
+  setRealtimeData: (data) => set((state) => ({ 
+    ...state, ...data, isRoomLoaded: true 
+  })),
+  updatePlayer: (player) => set((state) => ({
+    players: state.players.map(p => p.id === player.id ? player : p)
+  })),
+  updateTeam: (team) => set((state) => ({
+    teams: state.teams.map(t => t.id === team.id ? team : t)
+  })),
+  setRoomNotFound: () => set({ roomExists: false, isRoomLoaded: true }),
+  setReadyAnimationPlayed: (played) => set({ hasPlayedReadyAnimation: played }),
+  setReAuctionRound: (isRe) => set({ isReAuctionRound: isRe }),
   addBid: (bid) => set((state) => {
     if (state.bids.some(b => b.id === bid.id)) return state;
     return { bids: [...state.bids, bid] };

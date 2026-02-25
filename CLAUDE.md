@@ -89,7 +89,6 @@ Auto-award on timer expiry: organizer's client sets `setTimeout(delay + 800ms gr
 - `AuctionResultModal` — 경매 완료 후 최종 결과 테이블 모달.
 - `LotteryOverlay` — 슬롯머신 추첨 애니메이션. `lottery-{roomId}` broadcast 채널로 CLOSE_LOTTERY 이벤트 동기화 (방장이 닫으면 전 클라이언트 동시 닫힘).
 - `TeamList` — 좌측 사이드바: 팀 로스터 + UNSOLD 선수 목록 표시.
-- **레거시 (미사용):** `CreateRoomButton.tsx`, `AuctionTimer.tsx`
 
 ### Custom Tailwind Colors
 

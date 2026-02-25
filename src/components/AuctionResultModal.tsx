@@ -11,12 +11,18 @@ export function AuctionResultModal({ isOpen, onClose }: { isOpen: boolean, onClo
   const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'ko-KR', { numeric: true }))
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl relative">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-minion-yellow/20 rounded-full blur-[100px] pointer-events-none" />
+    <div
+      className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-200 cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="absolute top-0 right-0 w-96 h-96 bg-minion-yellow/20 rounded-full blur-[80px] pointer-events-none transform-gpu" />
 
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white/80 backdrop-blur rounded-t-3xl z-10">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white/95 rounded-t-3xl z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-minion-yellow rounded-xl flex items-center justify-center shadow-inner pt-1 text-xl">
               <Trophy size={20} className="text-orange-600 mb-1" />
@@ -47,7 +53,7 @@ export function AuctionResultModal({ isOpen, onClose }: { isOpen: boolean, onClo
                         {/* 헤더 행: 왼쪽엔 팀명, 오른쪽엔 '롤닉' */}
                         <tr>
                           <td
-                            rowSpan={teamPlayers.length + 2}
+                            rowSpan={Math.max(teamPlayers.length, 1) + 2}
                             className="w-1/3 border-r-2 border-b border-gray-200 bg-gray-50 text-center align-middle p-4"
                           >
                             <span className="text-xl font-black text-gray-800">{team.leader_name}</span>
