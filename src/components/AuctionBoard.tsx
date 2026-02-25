@@ -131,23 +131,29 @@ export function AuctionBoard({
                 ) : <p className="text-xl text-center text-gray-400 py-2 font-black italic tracking-tight">입찰을 기다리고 있습니다...</p>}
               </div>
             </div>
-          ) : isAuctionFinished && !isRoomComplete ? (
+          ) : (isAuctionFinished || isAutoDraftMode) && !isRoomComplete ? (
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="text-center mb-4">
-                <span className={`text-white font-black px-8 py-3 rounded-2xl text-base border-[3px] shadow-lg ${phase === 'DRAFT' ? 'bg-purple-500 border-purple-600' : 'bg-orange-500 border-orange-600'}`}>{phase === 'DRAFT' ? '🤝 자유계약 (드래프트) 진행 중' : '🔄 유찰 선수 재경매 진행 중'}</span>
-                {phase === 'DRAFT' && currentTurnTeam && <div className="mt-6 flex flex-col items-center"><span className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Current Turn</span><span className="text-4xl font-black text-purple-700 bg-purple-50 px-8 py-2 rounded-2xl border-2 border-purple-200 shadow-sm">{currentTurnTeam.name} <span className="text-2xl text-purple-400 ml-2">({currentTurnTeam.point_balance}P)</span></span></div>}
-                {phase !== 'DRAFT' && role === 'ORGANIZER' && <div className="mt-6"><button onClick={handleRestartAuction} disabled={isRestarting || !allConnected} className="bg-orange-500 text-white font-black px-10 py-4 rounded-2xl text-xl shadow-[0_6px_0_#9a3412] active:translate-y-1 transition-all">▶ 재경매 시작하기</button></div>}
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-2 mt-2">
-                <div className="grid grid-cols-2 gap-3 p-1">
-                  {unsoldPlayers.map(p => (
-                    <div key={p.id} className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between hover:border-minion-blue transition-colors shadow-sm">
-                      <div className="min-w-0"><p className="font-black text-base text-gray-800 truncate">{p.name}</p><p className={`text-xs font-black ${TIER_COLOR[p.tier] || 'text-gray-500'}`}>{p.tier} <span className="text-gray-300 ml-1">|</span> <span className="text-gray-500 ml-1">{p.main_position}</span></p></div>
-                      {phase === 'DRAFT' && role === 'ORGANIZER' && <button onClick={() => handleDraft(p.id)} disabled={isProcessingAction !== null || !currentTurnTeam} className="bg-purple-600 text-white font-black px-5 py-2.5 rounded-xl text-sm shadow-[0_4px_0_#4c1d95] active:translate-y-0.5">배정</button>}
+              {(() => {
+                const effectivePhase = isAutoDraftMode ? 'DRAFT' : phase
+                const draftablePlayers = isAutoDraftMode ? waitingPlayersList : unsoldPlayers
+                return <>
+                  <div className="text-center mb-4">
+                    <span className={`text-white font-black px-8 py-3 rounded-2xl text-base border-[3px] shadow-lg ${effectivePhase === 'DRAFT' ? 'bg-purple-500 border-purple-600' : 'bg-orange-500 border-orange-600'}`}>{effectivePhase === 'DRAFT' ? '🤝 자유계약 (드래프트) 진행 중' : '🔄 유찰 선수 재경매 진행 중'}</span>
+                    {effectivePhase === 'DRAFT' && currentTurnTeam && <div className="mt-6 flex flex-col items-center"><span className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Current Turn</span><span className="text-4xl font-black text-purple-700 bg-purple-50 px-8 py-2 rounded-2xl border-2 border-purple-200 shadow-sm">{currentTurnTeam.name} <span className="text-2xl text-purple-400 ml-2">({currentTurnTeam.point_balance}P)</span></span></div>}
+                    {effectivePhase !== 'DRAFT' && role === 'ORGANIZER' && <div className="mt-6"><button onClick={handleRestartAuction} disabled={isRestarting || !allConnected} className="bg-orange-500 text-white font-black px-10 py-4 rounded-2xl text-xl shadow-[0_6px_0_#9a3412] active:translate-y-1 transition-all">▶ 재경매 시작하기</button></div>}
+                  </div>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar px-2 mt-2">
+                    <div className="grid grid-cols-2 gap-3 p-1">
+                      {draftablePlayers.map(p => (
+                        <div key={p.id} className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between hover:border-minion-blue transition-colors shadow-sm">
+                          <div className="min-w-0"><p className="font-black text-base text-gray-800 truncate">{p.name}</p><p className={`text-xs font-black ${TIER_COLOR[p.tier] || 'text-gray-500'}`}>{p.tier} <span className="text-gray-300 ml-1">|</span> <span className="text-gray-500 ml-1">{p.main_position}</span></p></div>
+                          {effectivePhase === 'DRAFT' && role === 'ORGANIZER' && <button onClick={() => handleDraft(p.id)} disabled={isProcessingAction !== null || !currentTurnTeam} className="bg-purple-600 text-white font-black px-5 py-2.5 rounded-xl text-sm shadow-[0_4px_0_#4c1d95] active:translate-y-0.5">배정</button>}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                </>
+              })()}
             </div>
           ) : isAuctionFinished ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
