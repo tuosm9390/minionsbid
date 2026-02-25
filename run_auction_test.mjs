@@ -59,41 +59,42 @@ async function runTest() {
 
   // Launch browser prominently
   const browser = await chromium.launch({ headless: false, slowMo: 60 });
+  const viewport = { width: 1400, height: 900 };
 
-  // We specify viewport to be large so user can see it
-  const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-  // Create Organizer Page
-  const orgPage = await context.newPage();
+  // ✅ 핵심 변경: 각 참가자를 독립된 context로 분리하여 WebSocket 스로틀링 방지
+  // Create Organizer in its own context
+  const orgContext = await browser.newContext({ viewport });
+  const orgPage = await orgContext.newPage();
   orgPage.on('console', msg => console.log(`[Org Console] ${msg.text()}`));
   orgPage.on('pageerror', err => console.log(`[Org Error] ${err.message}`));
   await orgPage.goto(`http://localhost:3000/room/${room.id}?role=ORGANIZER&token=${room.organizer_token}`);
   console.log('Organizer logged in.');
 
-  // Create Captain Pages in background
+  // Create Captain Pages - each in its OWN context (prevents background tab throttling)
   const capPages = [];
+  const capContexts = [];
   for (let i = 0; i < 8; i++) {
-    const p = await context.newPage();
+    const ctx = await browser.newContext({ viewport });
+    const p = await ctx.newPage();
     p.on('console', msg => console.log(`[Cap${i + 1} Console] ${msg.text()}`));
     await p.goto(`http://localhost:3000/room/${room.id}?role=LEADER&teamId=${teams[i].id}&token=${teams[i].leader_token}`);
-    await p.bringToFront(); // 탭 활성화 로직 추가 (브라우저 백그라운드 스로틀링 우회)
+    await p.bringToFront();
     await p.waitForTimeout(500);
     capPages.push(p);
+    capContexts.push(ctx);
   }
 
   console.log('All 8 captains logged in. Switching to Organizer view.');
   await orgPage.bringToFront();
 
   console.log('Waiting for all captains to be registered... (this might take a few seconds)');
-  // 타임아웃을 60초로 넉넉하게
   await orgPage.waitForSelector('text=모든 팀장이 입장했습니다!', { timeout: 60000 });
   console.log('Starting auction loop...');
 
   let actionCount = 0;
-  // Maximum possible actions to prevent infinite loop
   while (actionCount < 100) {
     actionCount++;
-    await orgPage.waitForTimeout(1000); // 1초 대기 후 상태 판별
+    await orgPage.waitForTimeout(1000);
 
     // 경매 종료 확인
     const isDone = await orgPage.isVisible('text=모든 경매가 종료되었습니다!');
@@ -102,16 +103,16 @@ async function runTest() {
       break;
     }
 
-    // 버튼 찾기
+    // 버튼 찾기 (느슨한 매칭)
     const drawBtn = await orgPage.$('button:has-text("추첨")');
-    const reAuctionBtn = await orgPage.$('button:has-text("유찰 선수 전체 재경매 시작")');
-    const draftBtn = await orgPage.$('button:has-text("배정 (→")');
+    const reAuctionBtn = await orgPage.$('button:has-text("재경매")');
+    const draftBtn = await orgPage.$('button:has-text("배정")');
 
     if (reAuctionBtn) {
       const isEnabled = await reAuctionBtn.isEnabled();
       if (isEnabled) {
         console.log(`[Action ${actionCount}] Re-auction needed, starting re-auction...`);
-        await reAuctionBtn.click();
+        await reAuctionBtn.click({ force: true });
         await orgPage.waitForTimeout(1000);
         continue;
       }
@@ -121,7 +122,8 @@ async function runTest() {
       const isEnabled = await draftBtn.isEnabled();
       if (isEnabled) {
         console.log(`[Action ${actionCount}] Draft phase, assigning player...`);
-        await draftBtn.click();
+        await draftBtn.click({ force: true });
+        await orgPage.waitForTimeout(1000);
         continue;
       }
     }
@@ -130,14 +132,19 @@ async function runTest() {
       const isEnabled = await drawBtn.isEnabled();
       if (isEnabled) {
         console.log(`[Action ${actionCount}] Drawing player...`);
-        await drawBtn.click();
+        await drawBtn.click({ force: true });
 
-        // Wait for '바로 경매 시작'
-        const startBtn = await orgPage.waitForSelector('button:has-text("바로 경매 시작")', { state: 'visible', timeout: 8000 });
+        // 선수 추첨 후 중앙 보드에서 애니메이션 진행
+        // 하단 컨트롤 패널의 "▶ 경매 시작" 버튼 대기 및 클릭
+        console.log(`[Action ${actionCount}] Waiting for animation and Start button...`);
+        const startBtn = await orgPage.waitForSelector('button:has-text("경매 시작")', { state: 'visible', timeout: 8000 }).catch(() => null);
+        
         if (startBtn) {
-          await orgPage.waitForTimeout(500);
-          await startBtn.click();
-          console.log(`[Action ${actionCount}] Auction started!`);
+          await orgPage.waitForTimeout(3500); // 추첨 애니메이션 감상 시간
+          await startBtn.click({ force: true });
+          console.log(`[Action ${actionCount}] Auction started from control panel!`);
+        } else {
+          console.log(`[Action ${actionCount}] Could not find Start Auction button.`);
         }
 
         // Wait a bit and simulate bids
@@ -149,44 +156,64 @@ async function runTest() {
 
         for (let b = 0; b < bidsTotal; b++) {
           const capPage = capPages[Math.floor(Math.random() * 8)];
+          await capPage.bringToFront();
           const bidBtn = await capPage.$('button:has-text("입찰 🔥")');
           if (bidBtn && (await bidBtn.isEnabled())) {
-            await bidBtn.click();
-            await orgPage.waitForTimeout(1000);
+            await bidBtn.click({ force: true });
+            await capPage.waitForTimeout(500);
           }
+          await orgPage.bringToFront();
+          await orgPage.waitForTimeout(500);
         }
 
         console.log(`[Action ${actionCount}] Waiting for round to end...`);
-        // The center timer is 15 seconds. Let's wait until one of the next action buttons reappears.
-        await Promise.race([
-          orgPage.waitForSelector('button:has-text("추첨")', { state: 'attached', timeout: 25000 }),
-          orgPage.waitForSelector('button:has-text("배정 (→")', { state: 'attached', timeout: 25000 }),
-          orgPage.waitForSelector('button:has-text("유찰 선수 전체 재경매 시작")', { state: 'attached', timeout: 25000 }),
-          orgPage.waitForSelector('text=모든 경매가 종료되었습니다!', { state: 'visible', timeout: 25000 })
-        ]).catch(() => console.log('Wait timeout, continuing loop...'));
+        // Polling: check every second for next action buttons (45s max)
+        let waited = 0;
+        while (waited < 45) {
+          await orgPage.waitForTimeout(1000);
+          waited++;
+          const drawVis = await orgPage.isVisible('button:has-text("추첨")').catch(() => false);
+          const draftVis = await orgPage.isVisible('button:has-text("배정")').catch(() => false);
+          const reaucVis = await orgPage.isVisible('button:has-text("재경매")').catch(() => false);
+          const finishVis = await orgPage.isVisible('text=모든 경매가 종료되었습니다!').catch(() => false);
+
+          if (drawVis || draftVis || reaucVis || finishVis) {
+            break;
+          }
+        }
+        if (waited >= 45) {
+          console.log(`[Action ${actionCount}] Wait timeout, continuing loop...`);
+        }
       }
     }
   }
 
   // 방 종료 로직
   console.log('Clicking End Room...');
-  // 방 종료 버튼은 상단 어딘가에 있음 ("🚪 방 종료")
   const endRoomBtn = await orgPage.$('button:has-text("방 종료")');
   if (endRoomBtn) {
     await endRoomBtn.click();
-    const saveBtn = await orgPage.waitForSelector('button:has-text("결과 저장 및 방 닫기")', { timeout: 5000 }).catch(() => null);
+    await orgPage.waitForTimeout(500);
+
+    const saveBtn = await orgPage.waitForSelector('button:has-text("결과 저장 후 방 종료")', { state: 'visible', timeout: 5000 }).catch(() => null);
     if (saveBtn) {
       console.log('Saving result and closing room...');
       await saveBtn.click();
     } else {
-      // In case the button text is different
+      console.log('Save button not found, looking for alternative...');
       const alternativeBtn = await orgPage.$('button:has-text("저장")');
       if (alternativeBtn) await alternativeBtn.click();
     }
   }
 
   console.log('Done!');
-  await orgPage.waitForTimeout(5000); // 5초간 최종 화면 띄워줌
+  await orgPage.waitForTimeout(5000);
+
+  // Cleanup all contexts
+  for (const ctx of capContexts) {
+    await ctx.close();
+  }
+  await orgContext.close();
   await browser.close();
 }
 
