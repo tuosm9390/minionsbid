@@ -149,7 +149,7 @@ export function BiddingControl({
             onChange={(e) => setBidAmount(e.target.value)}
             onFocus={(e) => e.target.select()}
             disabled={!canBid}
-            className="w-full h-full bg-white border-[4px] border-gray-100 focus:border-minion-blue rounded-2xl px-4 lg:px-6 text-2xl md:text-3xl lg:text-4xl font-black text-center focus:outline-none transition-all disabled:opacity-50 shadow-inner tabular-nums"
+            className="w-full h-full bg-white border-[3px] lg:border-[4px] border-gray-100 focus:border-minion-blue rounded-2xl px-3 sm:px-4 lg:px-6 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-center focus:outline-none transition-all disabled:opacity-50 shadow-inner tabular-nums"
           />
           <div className="absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 text-gray-300 font-black text-lg lg:text-xl pointer-events-none group-focus-within:text-minion-blue transition-colors">
             P

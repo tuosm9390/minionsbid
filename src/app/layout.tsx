@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description: "미니언즈 테마의 리그오브레전드 5인1조 경매 내전 플랫폼",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
