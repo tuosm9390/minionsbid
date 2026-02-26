@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { useAuctionStore, Message } from '@/store/useAuctionStore'
+import { useAuctionStore, Message } from '@/features/auction/store/useAuctionStore'
 import { supabase } from '@/lib/supabase'
 
 const MAX_MESSAGE_LENGTH = 200

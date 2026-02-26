@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuctionStore, Player, Team } from "@/store/useAuctionStore";
-import { placeBid } from "@/lib/auctionActions";
+import { useAuctionStore, Player, Team } from "@/features/auction/store/useAuctionStore";
+import { placeBid } from "@/features/auction/api/auctionActions";
 
 interface BiddingControlProps {
   roomId: string;

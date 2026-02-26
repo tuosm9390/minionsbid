@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Player } from "@/store/useAuctionStore";
+import { Player } from "@/features/auction/store/useAuctionStore";
 
 interface LotteryAnimationProps {
   candidates: Player[];

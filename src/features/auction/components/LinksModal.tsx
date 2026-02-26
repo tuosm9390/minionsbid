@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuctionStore, Team } from '@/store/useAuctionStore'
+import { useAuctionStore, Team } from '@/features/auction/store/useAuctionStore'
 import { Copy, Check, X, Link } from 'lucide-react'
 
 export function LinksModal() {

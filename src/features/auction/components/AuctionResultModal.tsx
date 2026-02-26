@@ -1,4 +1,4 @@
-import { useAuctionStore, Team, Player } from '@/store/useAuctionStore'
+import { useAuctionStore, Team, Player } from '@/features/auction/store/useAuctionStore'
 import { X, Trophy } from 'lucide-react'
 
 export function AuctionResultModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {

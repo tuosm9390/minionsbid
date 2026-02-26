@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Role, Team } from '@/store/useAuctionStore'
+import { Role, Team } from '@/features/auction/store/useAuctionStore'
 
 interface UseRoomAuthProps {
   role: Role

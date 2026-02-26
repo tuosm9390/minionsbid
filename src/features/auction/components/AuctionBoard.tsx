@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, memo } from 'react'
-import { useAuctionStore, Message, PresenceUser, Team, Player, Role } from '@/store/useAuctionStore'
-import { draftPlayer, restartAuctionWithUnsold } from '@/lib/auctionActions'
+import { useAuctionStore, Message, PresenceUser, Team, Player, Role } from '@/features/auction/store/useAuctionStore'
+import { draftPlayer, restartAuctionWithUnsold } from '@/features/auction/api/auctionActions'
 import { AuctionResultModal } from './AuctionResultModal'
 import { LotteryAnimation } from './LotteryAnimation'
 

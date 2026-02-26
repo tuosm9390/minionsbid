@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useAuctionStore, PresenceUser, Bid, Message, Player, Team } from '@/store/useAuctionStore'
+import { useAuctionStore, PresenceUser, Bid, Message, Player, Team } from '@/features/auction/store/useAuctionStore'
 
 export function useAuctionRealtime(roomId: string | null) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)

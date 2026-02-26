@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Player, Role } from '@/store/useAuctionStore'
-import { awardPlayer } from '@/lib/auctionActions'
+import { Player, Role } from '@/features/auction/store/useAuctionStore'
+import { awardPlayer } from '@/features/auction/api/auctionActions'
 
 interface UseAuctionControlProps {
   roomId: string

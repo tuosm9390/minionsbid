@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuctionStore, Team, Player } from '@/store/useAuctionStore'
+import { useAuctionStore, Team, Player } from '@/features/auction/store/useAuctionStore'
 
 const TIER_COLOR: Record<string, string> = {
   '챌린저': 'text-cyan-600', '그랜드마스터': 'text-red-600', '마스터': 'text-purple-600',
