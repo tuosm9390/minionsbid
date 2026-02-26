@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Minions Bid 🍌",
+  title: "Minions Bid",
   description: "미니언즈 테마의 리그오브레전드 5인1조 경매 내전 플랫폼",
   keywords: ["리그오브레전드", "LoL", "경매", "내전", "미니언즈", "팀구성"],
   authors: [{ name: "Antigravity" }],
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Minions Bid 🍌",
+    title: "Minions Bid",
     description: "미니언즈 테마의 리그오브레전드 5인1조 경매 내전 플랫폼",
     images: ["/thumbnail.png"],
   },
