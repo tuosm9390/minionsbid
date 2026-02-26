@@ -32,10 +32,10 @@ export function LinksModal() {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
   const organizerLink = organizerToken
-    ? `${baseUrl}/room/${roomId}?role=ORGANIZER&token=${organizerToken}`
+    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=ORGANIZER&token=${organizerToken}`
     : null
   const viewerLink = viewerToken
-    ? `${baseUrl}/room/${roomId}?role=VIEWER&token=${viewerToken}`
+    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=VIEWER&token=${viewerToken}`
     : null
 
   return (
@@ -84,7 +84,7 @@ export function LinksModal() {
                     .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
                     .map((team: Team, i: number) => {
                       const link = team.leader_token
-                        ? `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}&token=${team.leader_token}`
+                        ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=LEADER&teamId=${team.id}&token=${team.leader_token}`
                         : null
                       if (!link) return null
                       return (
