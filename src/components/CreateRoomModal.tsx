@@ -235,7 +235,7 @@ export function CreateRoomModal() {
     }
 
     const baseUrl = window.location.origin;
-    const organizerPath = `/room/${room.id}?role=ORGANIZER&token=${room.organizer_token}`;
+    const organizerPath = `/api/room-auth?roomId=${room.id}&role=ORGANIZER&token=${room.organizer_token}`;
 
     // localStorage에 저장
     saveRoomToStorage({ id: room.id, name: basic.title, organizerPath, createdAt: new Date().toISOString() });
@@ -246,9 +246,9 @@ export function CreateRoomModal() {
       organizerLink: `${baseUrl}${organizerPath}`,
       captainLinks: (teamsResult ?? []).map(team => ({
         teamName: team.name,
-        link: `${baseUrl}/room/${room.id}?role=LEADER&teamId=${team.id}&token=${team.leader_token}`,
+        link: `${baseUrl}/api/room-auth?roomId=${room.id}&role=LEADER&teamId=${team.id}&token=${team.leader_token}`,
       })),
-      viewerLink: `${baseUrl}/room/${room.id}?role=VIEWER&token=${room.viewer_token}`,
+      viewerLink: `${baseUrl}/api/room-auth?roomId=${room.id}&role=VIEWER&token=${room.viewer_token}`,
     });
   };
 
