@@ -348,8 +348,8 @@ export function RoomClient({
         {createdAt && <ElapsedTimer createdAt={createdAt} />}
       </header>
 
-      <main className="flex-1 grid grid-cols-12 gap-5 p-5 px-[200px] overflow-hidden min-h-0">
-        <aside className="col-span-3 flex flex-col min-h-0">
+      <main className="flex-1 flex flex-col xl:grid xl:grid-cols-12 gap-5 p-4 sm:p-6 lg:px-12 xl:px-24 overflow-y-auto xl:overflow-hidden min-h-0">
+        <aside className="xl:col-span-3 flex flex-col min-h-0 order-3 xl:order-1 mt-6 xl:mt-0 h-[400px] xl:h-auto">
           <div className="bg-card rounded-[2.5rem] shadow-xl border-[3px] border-border flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="p-5 border-b-2 border-border bg-card shrink-0">
               <h2 className="text-lg font-black text-minion-blue flex items-center gap-2 uppercase tracking-tighter">
@@ -362,7 +362,7 @@ export function RoomClient({
           </div>
         </aside>
 
-        <section className="col-span-6 flex flex-col gap-5 h-full min-h-0">
+        <section className="xl:col-span-6 flex flex-col gap-5 min-h-0 order-1 xl:order-2">
           <AuctionBoard
             isLotteryActive={!!lotteryPlayer}
             lotteryPlayer={lotteryPlayer}
@@ -457,7 +457,7 @@ export function RoomClient({
           )}
         </section>
 
-        <aside className="col-span-3 flex flex-col gap-5 h-full min-h-0">
+        <aside className="xl:col-span-3 flex flex-col gap-5 min-h-0 order-2 xl:order-3 mt-6 xl:mt-0 h-[500px] xl:h-auto">
           <div className="bg-card rounded-[2.5rem] shadow-xl border-[3px] border-border flex-none max-h-[160px] flex flex-col overflow-hidden min-h-0 relative">
             <div className="p-3 border-b-2 border-border bg-card shrink-0">
               <h2 className="text-sm font-black text-red-500 flex items-center gap-2 uppercase px-1">
