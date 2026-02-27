@@ -66,7 +66,6 @@ interface AuctionState {
   basePoint: number
   totalTeams: number
   membersPerTeam: number
-  orderPublic: boolean
   timerEndsAt: string | null
   createdAt: string | null
   roomExists: boolean
@@ -105,7 +104,6 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   basePoint: 1000,
   totalTeams: 5,
   membersPerTeam: 5,
-  orderPublic: true,
   timerEndsAt: null,
   createdAt: null,
   roomExists: true,

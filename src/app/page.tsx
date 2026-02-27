@@ -110,10 +110,6 @@ export default function Home() {
                 혼동하지 않도록 주의해주세요.
               </li>
               <li>
-                · 경매 순서를 <span className="font-bold">주최자만 공개</span>로
-                설정하면 팀장들이 다음 선수를 미리 알 수 없습니다.
-              </li>
-              <li>
                 · 팀장 포인트는 팀 시작 포인트에서 차감됩니다 (팀 예산 = 총
                 포인트 - 팀장 포인트).
               </li>

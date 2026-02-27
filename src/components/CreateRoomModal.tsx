@@ -44,7 +44,6 @@ interface BasicInfo {
   teamCount: number;
   membersPerTeam: number;
   totalPoints: number;
-  orderPublic: boolean;
 }
 
 interface CaptainInfo {
@@ -183,7 +182,6 @@ export function CreateRoomModal() {
     teamCount: 5,
     membersPerTeam: 5,
     totalPoints: 1000,
-    orderPublic: true,
   });
   const [captains, setCaptains] = useState<CaptainInfo[]>([]);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -336,7 +334,6 @@ export function CreateRoomModal() {
           total_teams: basic.teamCount,
           base_point: basic.totalPoints,
           members_per_team: basic.membersPerTeam,
-          order_public: basic.orderPublic,
         },
       ])
       .select()
@@ -601,7 +598,6 @@ export function CreateRoomModal() {
       teamCount: 5,
       membersPerTeam: 5,
       totalPoints: 1000,
-      orderPublic: true,
     });
     setCaptains([]);
     setPlayers([]);
@@ -834,34 +830,13 @@ export function CreateRoomModal() {
 
                   <div>
                     <label className="text-sm font-bold text-gray-700 block mb-1.5">
-                      경매 순서 공개
+                      경매 진행 방식
                     </label>
-                    <div className="flex gap-3">
-                      {[
-                        { value: true, label: "전체 공개" },
-                        { value: false, label: "주최자만 공개" },
-                      ].map((opt) => (
-                        <button
-                          key={String(opt.value)}
-                          type="button"
-                          onClick={() =>
-                            setBasic((p) => ({ ...p, orderPublic: opt.value }))
-                          }
-                          className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${
-                            basic.orderPublic === opt.value
-                              ? "border-minion-blue bg-minion-blue text-white"
-                              : "border-gray-200 text-gray-500 hover:border-gray-300"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs text-gray-500 leading-relaxed">
+                      경매는 주최자가 무작위로 선수를 추첨하여 시작됩니다. 
+                      팀장들은 한정된 포인트를 사용하여 입찰하며, 가장 높은 금액을 부른 팀장이 선수를 영입합니다. 
+                      모든 팀이 인원을 모두 채울 때까지 경매가 진행됩니다.
                     </div>
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      {basic.orderPublic
-                        ? "모든 참가자가 경매 순서를 볼 수 있습니다."
-                        : "주최자만 경매 순서를 볼 수 있습니다."}
-                    </p>
                   </div>
 
                   <div className="bg-blue-50 rounded-2xl p-4 text-sm text-gray-600 space-y-1">

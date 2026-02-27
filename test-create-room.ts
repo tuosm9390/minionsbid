@@ -18,7 +18,6 @@ async function testCreate() {
       total_teams: 2,
       base_point: 1000,
       members_per_team: 5,
-      order_public: true,
     }])
     .select()
     .single();
