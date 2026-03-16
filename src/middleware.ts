@@ -5,10 +5,11 @@ export function middleware(request: NextRequest) {
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' ${process.env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"};
-    style-src 'self' 'unsafe-inline';
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+    connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firestore.googleapis.com https://*.firebasedatabase.app wss://*.firebasedatabase.app;
     img-src 'self' data:;
-    font-src 'self';
+    font-src 'self' https://cdn.jsdelivr.net;
+    frame-src 'none';
     frame-ancestors 'none';
     object-src 'none';
     base-uri 'none';

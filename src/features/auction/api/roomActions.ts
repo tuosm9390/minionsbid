@@ -1,117 +1,175 @@
 'use server'
 
-import {
-  getServerClient,
-  broadcastState,
-  type CreateRoomPayload,
-  type CreateRoomResult,
-  type AuctionArchivePayload,
-} from './serverActionUtils'
-import { broadcastEvent } from '@/lib/supabase-server'
+import { adminDb } from '@/lib/firebaseAdmin'
+import * as admin from 'firebase-admin'
+
+// ---------- 타입 ----------
+
+export interface CreateRoomCaptain {
+  teamName: string
+  name: string
+  position: string
+  description: string
+  captainPoints: number
+}
+
+export interface CreateRoomPlayer {
+  name: string
+  tier: string
+  mainPosition: string
+  subPosition: string
+  description: string
+}
+
+export interface CreateRoomPayload {
+  name: string
+  totalTeams: number
+  basePoint: number
+  membersPerTeam: number
+  captains: CreateRoomCaptain[]
+  players: CreateRoomPlayer[]
+}
+
+export interface CreateRoomResult {
+  error?: string
+  roomId?: string
+  organizerToken?: string
+  viewerToken?: string
+  teams?: { id: string; name: string; leader_token: string }[]
+}
+
+export interface ArchiveTeam {
+  id: string
+  name: string
+  leader_name: string
+  point_balance: number
+  players: { name: string; sold_price: number | null }[]
+}
+
+export interface AuctionArchivePayload {
+  roomId: string
+  roomName: string
+  roomCreatedAt: string
+  teams: ArchiveTeam[]
+}
 
 // ---------- 방 생성 ----------
 
-/** 방 + 팀 + 선수를 service_role로 생성 (구독자가 없으므로 Broadcast 없음) */
+/** 방 + 팀 + 선수를 Firestore에 생성 */
 export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoomResult> {
-  const db = getServerClient()
+  try {
+    const roomId = crypto.randomUUID()
+    const organizerToken = crypto.randomUUID()
+    const viewerToken = crypto.randomUUID()
 
-  const { data: room, error: roomError } = await db
-    .from('rooms')
-    .insert([{
+    const roomRef = adminDb.collection('rooms').doc(roomId)
+    await roomRef.set({
       name: payload.name,
-      total_teams: payload.totalTeams,
+      total_teams: payload.captains.length,
       base_point: payload.basePoint,
       members_per_team: payload.membersPerTeam,
-    }])
-    .select()
-    .single()
-  if (roomError) return { error: roomError.message }
+      organizer_token: organizerToken,
+      viewer_token: viewerToken,
+      current_player_id: null,
+      timer_ends_at: null,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+    })
 
-  const teamsData = payload.captains.map((c) => ({
-    room_id: room.id,
-    name: c.teamName,
-    point_balance: payload.basePoint - c.captainPoints,
-    leader_name: c.name,
-    leader_position: c.position,
-    leader_description: c.description,
-    captain_points: c.captainPoints,
-  }))
-  const { data: teamsResult, error: teamsError } = await db
-    .from('teams')
-    .insert(teamsData)
-    .select()
-  if (teamsError) return { error: teamsError.message }
+    // teams 서브컬렉션 생성
+    const teamsResult: { id: string; name: string; leader_token: string }[] = []
+    for (const captain of payload.captains) {
+      const teamRef = roomRef.collection('teams').doc()
+      const leaderToken = crypto.randomUUID()
+      await teamRef.set({
+        name: captain.teamName,
+        point_balance: payload.basePoint - captain.captainPoints,
+        leader_token: leaderToken,
+        leader_name: captain.name,
+        leader_position: captain.position,
+        leader_description: captain.description || '',
+        captain_points: captain.captainPoints || 0,
+      })
+      teamsResult.push({
+        id: teamRef.id,
+        name: captain.teamName,
+        leader_token: leaderToken,
+      })
+    }
 
-  if (payload.players.length > 0) {
-    const playersData = payload.players.map((p) => ({
-      room_id: room.id,
-      name: p.name,
-      tier: p.tier,
-      main_position: p.mainPosition,
-      sub_position: p.subPosition,
-      description: p.description,
-    }))
-    const { error: playersError } = await db.from('players').insert(playersData)
-    if (playersError) return { error: playersError.message }
-  }
+    // players 서브컬렉션 생성
+    if (payload.players.length > 0) {
+      const batch = adminDb.batch()
+      for (const player of payload.players) {
+        const playerRef = roomRef.collection('players').doc()
+        batch.set(playerRef, {
+          name: player.name,
+          tier: player.tier,
+          main_position: player.mainPosition,
+          sub_position: player.subPosition || '',
+          description: player.description || '',
+          status: 'WAITING',
+          team_id: null,
+          sold_price: null,
+          room_id: roomId,
+        })
+      }
+      await batch.commit()
+    }
 
-  return {
-    roomId: room.id,
-    organizerToken: room.organizer_token,
-    viewerToken: room.viewer_token,
-    teams: (teamsResult ?? []).map((t) => ({
-      id: t.id,
-      name: t.name,
-      leader_token: t.leader_token,
-    })),
+    return {
+      roomId,
+      organizerToken,
+      viewerToken,
+      teams: teamsResult,
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '알 수 없는 오류'
+    return { error: message }
   }
 }
 
 // ---------- auction_archives ----------
 
-/** 경매 결과를 auction_archives 테이블에 영구 저장 (Broadcast 없음 — 방 종료 직전) */
+/** 경매 결과를 auction_archives 컬렉션에 영구 저장 */
 export async function saveAuctionArchive(payload: AuctionArchivePayload): Promise<{ error?: string }> {
-  const db = getServerClient()
-  const { error } = await db.from('auction_archives').insert([{
-    room_id: payload.roomId,
-    room_name: payload.roomName,
-    room_created_at: payload.roomCreatedAt,
-    closed_at: new Date().toISOString(),
-    result_snapshot: payload.teams,
-  }])
-  if (error) return { error: error.message }
-  return {}
+  try {
+    await adminDb.collection('auction_archives').add({
+      room_id: payload.roomId,
+      room_name: payload.roomName,
+      room_created_at: payload.roomCreatedAt,
+      closed_at: admin.firestore.FieldValue.serverTimestamp(),
+      result_snapshot: payload.teams,
+    })
+    return {}
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '알 수 없는 오류'
+    return { error: message }
+  }
 }
 
 // ---------- 방 삭제 ----------
 
-/** 방 종료 — 토큰 무효화 후 전체 삭제 → Broadcast { roomDeleted: true } */
+/** 방 종료 — 토큰 무효화 후 재귀 삭제 */
 export async function deleteRoom(roomId: string): Promise<{ error?: string }> {
-  const db = getServerClient()
+  try {
+    const roomRef = adminDb.collection('rooms').doc(roomId)
+    const roomSnap = await roomRef.get()
+    const currentName = roomSnap.data()?.name || '경매방'
 
-  const { data: roomData } = await db.from('rooms').select('name').eq('id', roomId).single()
-  const currentName = roomData?.name || '경매방'
+    // 토큰 무효화 + roomDeleted 플래그 (클라이언트가 onSnapshot으로 감지)
+    await roomRef.update({
+      name: `[종료된 경매] ${currentName}`,
+      organizer_token: crypto.randomUUID(),
+      viewer_token: crypto.randomUUID(),
+      roomDeleted: true,
+    })
 
-  // 토큰 무효화 (입장 링크 차단)
-  await db.from('rooms').update({
-    name: `[종료된 경매] ${currentName}`,
-    organizer_token: crypto.randomUUID(),
-    viewer_token: crypto.randomUUID(),
-  }).eq('id', roomId)
+    // 서브컬렉션 포함 재귀 삭제
+    await adminDb.recursiveDelete(roomRef)
 
-  // 방 삭제 전 모든 클라이언트에 알림
-  await broadcastEvent(roomId, 'STATE_UPDATE', { roomDeleted: true })
-
-  const tables = ['bids', 'messages', 'players', 'teams'] as const
-  for (const table of tables) {
-    const { error: delErr } = await db.from(table).delete().eq('room_id', roomId)
-    if (delErr) console.error(`deleteRoom: ${table} 삭제 실패 (계속 진행):`, delErr.message)
+    return {}
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '알 수 없는 오류'
+    return { error: message }
   }
-
-  const { error: roomErr } = await db.from('rooms').delete().eq('id', roomId)
-  if (roomErr) {
-    return { error: `방 삭제에 실패했습니다. (토큰은 무효화됨): ${roomErr.message}` }
-  }
-
-  return {}
 }

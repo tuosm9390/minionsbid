@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getServerClient } from '@/lib/supabase-server'
+import { adminDb } from '@/lib/firebaseAdmin'
 
 const VALID_ROLES = ['ORGANIZER', 'LEADER', 'VIEWER'] as const
 type ValidRole = typeof VALID_ROLES[number]
@@ -29,33 +29,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  const db = getServerClient()
-  const { data: room } = await db
-    .from('rooms')
-    .select('organizer_token, viewer_token')
-    .eq('id', roomId)
-    .single()
-
-  if (!room) {
+  const roomDoc = await adminDb.collection('rooms').doc(roomId).get()
+  if (!roomDoc.exists) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  const roomData = roomDoc.data()!
+
   if (role === 'ORGANIZER') {
-    if (room.organizer_token !== token) {
+    if (roomData.organizer_token !== token) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else if (role === 'VIEWER') {
-    if (room.viewer_token !== token) {
+    if (roomData.viewer_token !== token) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else if (role === 'LEADER' && teamId) {
-    const { data: team } = await db
-      .from('teams')
-      .select('leader_token')
-      .eq('id', teamId)
-      .eq('room_id', roomId)
-      .single()
-    if (!team || team.leader_token !== token) {
+    const teamDoc = await adminDb
+      .collection('rooms')
+      .doc(roomId)
+      .collection('teams')
+      .doc(teamId)
+      .get()
+    if (!teamDoc.exists || teamDoc.data()?.leader_token !== token) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else {

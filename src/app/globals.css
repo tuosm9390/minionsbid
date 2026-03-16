@@ -42,16 +42,34 @@
   --animate-shake: shake 0.4s cubic-bezier(.36, .07, .19, .97) infinite;
 
   @keyframes shake {
-    10%, 90% { transform: translate3d(-1px, 0, 0); }
-    20%, 80% { transform: translate3d(2px, 0, 0); }
-    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-    40%, 60% { transform: translate3d(4px, 0, 0); }
+
+    10%,
+    90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+      transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+      transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+      transform: translate3d(4px, 0, 0);
+    }
   }
 }
 
 @layer base {
   :root {
-    --background: #E5E5E5; /* 약간 더 진한 배경색으로 변경 */
+    --background: #E5E5E5;
+    /* 약간 더 진한 배경색으로 변경 */
     --foreground: #000000;
     --card: #FFFFFF;
     --card-foreground: #000000;
@@ -76,7 +94,7 @@
     font-family: var(--font-pixel);
     overflow-x: hidden;
     /* 도트 배경 패턴 강화 */
-    background-image: radial-gradient(rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 }
@@ -106,17 +124,25 @@
     transform: translate(4px, 4px);
   }
 
-  .font-heading { font-family: var(--font-heading); }
-  .font-pixel { font-family: var(--font-pixel); }
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .font-pixel {
+    font-family: var(--font-pixel);
+  }
 
   /* CRT 효과를 더 어둡고 선명하게 수정 */
   .crt-overlay::before {
     content: ' ';
     display: block;
     position: fixed;
-    top: 0; left: 0; bottom: 0; right: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
-                linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+      linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
     z-index: 9999;
     background-size: 100% 3px, 3px 100%;
     pointer-events: none;

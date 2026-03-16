@@ -90,8 +90,8 @@ export function useBiddingControl({
       } else {
         setBidAmount(finalAmount + 10)
         // 타이머 연장 시 실시간 이벤트 대기 없이 즉시 반영 (Optimistic Update)
-        if (res.newTimerEndsAt) {
-          setRealtimeData({ timerEndsAt: res.newTimerEndsAt })
+        if (res.timerEndsAt) {
+          setRealtimeData({ timerEndsAt: res.timerEndsAt })
         }
       }
     } finally {

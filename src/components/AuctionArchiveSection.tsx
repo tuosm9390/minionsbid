@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore";
 import { Trophy, X, RefreshCw } from "lucide-react";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
 
@@ -155,13 +156,27 @@ export function AuctionArchiveSection({
   const fetchArchives = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("auction_archives")
-        .select("*")
-        .order("closed_at", { ascending: false })
-        .limit(20);
-
-      if (!error && data) setArchives(data as AuctionArchiveRow[]);
+      const q = query(
+        collection(db, "auction_archives"),
+        orderBy("closed_at", "desc"),
+        limit(20),
+      );
+      const snap = await getDocs(q);
+      const data: AuctionArchiveRow[] = snap.docs.map((d) => {
+        const raw = d.data();
+        return {
+          id: d.id,
+          room_id: raw.room_id ?? "",
+          room_name: raw.room_name ?? "",
+          room_created_at: raw.room_created_at ?? "",
+          closed_at:
+            raw.closed_at instanceof Timestamp
+              ? raw.closed_at.toDate().toISOString()
+              : (raw.closed_at ?? ""),
+          result_snapshot: (raw.result_snapshot ?? []) as ArchiveTeam[],
+        };
+      });
+      setArchives(data);
     } finally {
       setLoading(false);
     }

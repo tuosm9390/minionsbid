@@ -15,7 +15,11 @@
       "Bash(git:*)",
       "Bash(npm:*)",
       "Bash(python:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "mcp__filesystem__list_directory",
+      "Bash(grep:*)",
+      "mcp__filesystem__move_file",
+      "Bash(cat:*)"
     ]
   }
 }

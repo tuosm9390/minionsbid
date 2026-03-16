@@ -1,122 +1,247 @@
-import { useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuctionStore, PresenceUser } from '@/features/auction/store/useAuctionStore'
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { db } from '@/lib/firebase'
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  limitToLast,
+  where,
+  Unsubscribe,
+  Timestamp,
+} from 'firebase/firestore'
+import { getDatabase, ref, onValue } from 'firebase/database'
+import { useAuctionStore } from '../store/useAuctionStore'
+import type { Bid, Team, Player, Message } from '../store/useAuctionStore'
+
+// Firestore 문서 데이터 → Store 타입 변환 헬퍼
+interface FirestoreRoomData {
+  name?: string
+  base_point?: number
+  members_per_team?: number
+  total_teams?: number
+  timer_ends_at?: Timestamp | null
+  current_player_id?: string | null
+  organizer_token?: string
+  viewer_token?: string
+  created_at?: Timestamp | null
+  roomDeleted?: boolean
+}
+
+interface FirestoreTeamData {
+  name?: string
+  point_balance?: number
+  leader_token?: string
+  leader_name?: string
+  leader_position?: string
+  leader_description?: string
+  captain_points?: number
+}
+
+interface FirestorePlayerData {
+  name?: string
+  tier?: string
+  main_position?: string
+  sub_position?: string
+  status?: string
+  team_id?: string | null
+  sold_price?: number | null
+  description?: string
+  room_id?: string
+}
+
+interface FirestoreBidData {
+  player_id?: string
+  team_id?: string
+  amount?: number
+  created_at?: Timestamp | null
+}
+
+interface FirestoreMessageData {
+  sender_name?: string
+  sender_role?: string
+  content?: string
+  created_at?: Timestamp | null
+}
+
+function timestampToISO(ts: Timestamp | null | undefined): string | null {
+  if (!ts) return null
+  return ts.toDate().toISOString()
+}
 
 /**
- * Broadcast-primary 실시간 구독 훅.
+ * Firebase Firestore + RTDB 기반 실시간 구독 훅.
  *
- * 아키텍처 변경점:
- * - 기존: postgres_changes CDC (300ms~2s 지연) + 3초 폴링 + 3개 채널
- * - 신규: Broadcast STATE_UPDATE (<100ms) + 단일 채널 + 폴링 제거
+ * Supabase Broadcast-primary 아키텍처를 대체:
+ * - Firestore onSnapshot: rooms, teams, players, messages, bids 실시간 동기화
+ * - RTDB onValue: CLOSE_LOTTERY 신호 감시
  *
- * 단일 채널 `auction-${roomId}`에:
- *   1. Broadcast STATE_UPDATE — Server Action이 DB 쓰기 후 즉시 전파
- *   2. Broadcast CLOSE_LOTTERY — 추첨 모달 동기화
- *   3. Presence — 팀장 접속 현황
+ * onSnapshot이 초기 데이터 + 실시간 변경을 자동 제공하므로 fetchAll 불필요.
  */
-export function useAuctionRealtime(roomId: string | null) {
+export function useFirebaseRealtime(roomId: string) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setRoomNotFound = useAuctionStore(s => s.setRoomNotFound)
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
-  const role = useAuctionStore(s => s.role)
-  const teamId = useAuctionStore(s => s.teamId)
 
-  // 동시 fetch 방지
-  const fetchingRef = useRef(false)
+  const currentPlayerIdRef = useRef<string | null>(null)
+  const bidsUnsubRef = useRef<Unsubscribe | null>(null)
+  // CLOSE_LOTTERY 초기값 무시를 위한 ref
+  const closeLotteryInitRef = useRef(true)
 
-  /** 초기 로드 및 재연결 시 DB에서 전체 상태 1회 읽기 */
-  const fetchAll = useCallback(async () => {
+  useEffect(() => {
     if (!roomId) return
-    if (fetchingRef.current) return
-    fetchingRef.current = true
-    try {
-      const [roomRes, teamsRes, playersRes, messagesRes] = await Promise.all([
-        supabase.from('rooms').select('*').eq('id', roomId).maybeSingle(),
-        supabase.from('teams').select('*').eq('room_id', roomId),
-        supabase.from('players').select('*').eq('room_id', roomId),
-        supabase.from('messages').select('*').eq('room_id', roomId)
-          .order('created_at', { ascending: true }).limit(200),
-      ])
 
-      if (!roomRes.data) {
+    const unsubs: Unsubscribe[] = []
+
+    // 1. Room 문서 구독
+    const roomUnsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
+      if (!snap.exists()) {
+        setRoomNotFound()
+        return
+      }
+      const data = snap.data() as FirestoreRoomData
+
+      if (data.roomDeleted) {
         setRoomNotFound()
         return
       }
 
-      const currentPlayerId = roomRes.data.current_player_id
-      const bidsRes = currentPlayerId
-        ? await supabase.from('bids').select('*')
-            .eq('player_id', currentPlayerId)
-            .eq('room_id', roomId)
-            .order('created_at', { ascending: true })
-        : { data: [] }
-
       setRealtimeData({
-        basePoint: roomRes.data.base_point,
-        totalTeams: roomRes.data.total_teams,
-        membersPerTeam: roomRes.data.members_per_team ?? 5,
-        timerEndsAt: roomRes.data.timer_ends_at,
-        createdAt: roomRes.data.created_at,
-        roomName: roomRes.data.name,
-        organizerToken: roomRes.data.organizer_token,
-        viewerToken: roomRes.data.viewer_token,
-        teams: teamsRes.data || [],
-        bids: bidsRes.data || [],
-        players: playersRes.data || [],
-        messages: messagesRes.data || [],
+        roomName: data.name ?? null,
+        basePoint: data.base_point ?? 1000,
+        membersPerTeam: data.members_per_team ?? 5,
+        totalTeams: data.total_teams ?? 0,
+        timerEndsAt: timestampToISO(data.timer_ends_at),
+        organizerToken: data.organizer_token ?? null,
+        viewerToken: data.viewer_token ?? null,
+        createdAt: timestampToISO(data.created_at),
       })
-    } catch (err) {
-      console.error('[useAuctionRealtime] fetchAll 오류:', err)
-    } finally {
-      fetchingRef.current = false
-    }
-  }, [roomId, setRealtimeData, setRoomNotFound])
 
-  // ── 단일 채널 구독 (Broadcast + Presence) ──
-  useEffect(() => {
-    if (!roomId) return
+      // current_player_id 변경 시 bids 구독 갱신
+      const newPlayerId = data.current_player_id ?? null
+      if (newPlayerId !== currentPlayerIdRef.current) {
+        currentPlayerIdRef.current = newPlayerId
+        bidsUnsubRef.current?.()
 
-    // 초기 로드: DB에서 전체 상태 1회 읽기
-    fetchAll()
-
-    const channel = supabase
-      .channel(`auction-${roomId}`)
-      // 1. Broadcast: 실시간 상태 동기화 (Server Action → REST API → 전체 클라이언트)
-      .on('broadcast', { event: 'STATE_UPDATE' }, ({ payload }) => {
-        if (payload?.roomDeleted) {
-          setRoomNotFound()
-          return
+        if (newPlayerId) {
+          const bidsQuery = query(
+            collection(db, 'rooms', roomId, 'bids'),
+            where('player_id', '==', newPlayerId),
+            orderBy('amount', 'desc'),
+          )
+          bidsUnsubRef.current = onSnapshot(bidsQuery, (bidsSnap) => {
+            const bids: Bid[] = bidsSnap.docs.map((d) => {
+              const bd = d.data() as FirestoreBidData
+              return {
+                id: d.id,
+                room_id: roomId,
+                player_id: bd.player_id ?? '',
+                team_id: bd.team_id ?? '',
+                amount: bd.amount ?? 0,
+                created_at: timestampToISO(bd.created_at) ?? new Date().toISOString(),
+              }
+            })
+            setRealtimeData({ bids })
+          })
+        } else {
+          bidsUnsubRef.current = null
+          setRealtimeData({ bids: [] })
         }
-        setRealtimeData(payload)
-      })
-      // 2. Broadcast: 추첨 모달 동기화 (ORGANIZER closeLotteryAction 호출 후 전파)
-      .on('broadcast', { event: 'CLOSE_LOTTERY' }, () => {
-        setLotteryPlayer(null)
-      })
-      // 3. Presence: 팀장 접속 현황 (heartbeat 30~60s, 이탈 즉시 감지 불가 — 알려진 한계)
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        const presences = Object.values(state).flat() as unknown as PresenceUser[]
-        setRealtimeData({ presences })
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // 재연결 완료 시 fetchAll 1회 — 비연결 구간 동안 놓친 상태 복원
-          // Broadcast는 비영속이므로 비연결 구간의 이벤트는 DB로만 복원 가능
-          fetchAll()
-          if (role) {
-            await channel.track({ role, teamId })
+      }
+    })
+    unsubs.push(roomUnsub)
+
+    // 2. Teams 구독
+    const teamsUnsub = onSnapshot(
+      collection(db, 'rooms', roomId, 'teams'),
+      (snap) => {
+        const teams: Team[] = snap.docs.map((d) => {
+          const td = d.data() as FirestoreTeamData
+          return {
+            id: d.id,
+            room_id: roomId,
+            name: td.name ?? '',
+            point_balance: td.point_balance ?? 0,
+            leader_token: td.leader_token ?? '',
+            leader_name: td.leader_name ?? '',
+            leader_position: td.leader_position ?? '',
+            leader_description: td.leader_description ?? '',
+            captain_points: td.captain_points ?? 0,
           }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Supabase 클라이언트가 자동 재연결 시도 — 별도 처리 불필요
-          console.warn(`[useAuctionRealtime] 채널 오류 (${status}), 자동 재연결 대기 중...`)
+        })
+        setRealtimeData({ teams })
+      },
+    )
+    unsubs.push(teamsUnsub)
+
+    // 3. Players 구독
+    const playersUnsub = onSnapshot(
+      collection(db, 'rooms', roomId, 'players'),
+      (snap) => {
+        const players: Player[] = snap.docs.map((d) => {
+          const pd = d.data() as FirestorePlayerData
+          return {
+            id: d.id,
+            room_id: roomId,
+            name: pd.name ?? '',
+            tier: pd.tier ?? '',
+            main_position: pd.main_position ?? '',
+            sub_position: pd.sub_position ?? '',
+            status: (pd.status ?? 'WAITING') as Player['status'],
+            team_id: pd.team_id ?? null,
+            sold_price: pd.sold_price ?? null,
+            description: pd.description ?? '',
+          }
+        })
+        setRealtimeData({ players })
+      },
+    )
+    unsubs.push(playersUnsub)
+
+    // 4. Messages 구독 (최근 200개)
+    const messagesQuery = query(
+      collection(db, 'rooms', roomId, 'messages'),
+      orderBy('created_at'),
+      limitToLast(200),
+    )
+    const messagesUnsub = onSnapshot(messagesQuery, (snap) => {
+      const messages: Message[] = snap.docs.map((d) => {
+        const md = d.data() as FirestoreMessageData
+        return {
+          id: d.id,
+          room_id: roomId,
+          sender_name: md.sender_name ?? '',
+          sender_role: (md.sender_role ?? 'SYSTEM') as Message['sender_role'],
+          content: md.content ?? '',
+          created_at: timestampToISO(md.created_at) ?? new Date().toISOString(),
         }
       })
+      setRealtimeData({ messages })
+    })
+    unsubs.push(messagesUnsub)
+
+    // 5. RTDB: CLOSE_LOTTERY 신호 감시
+    const rtdb = getDatabase()
+    const signalRef = ref(rtdb, `signals/${roomId}/closeLottery`)
+    closeLotteryInitRef.current = true
+    const signalUnsub = onValue(signalRef, (snapshot) => {
+      // 초기 로드 시 이미 존재하는 값은 무시
+      if (closeLotteryInitRef.current) {
+        closeLotteryInitRef.current = false
+        return
+      }
+      if (snapshot.exists()) {
+        setLotteryPlayer(null)
+      }
+    })
+    unsubs.push(() => signalUnsub())
 
     return () => {
-      supabase.removeChannel(channel)
+      unsubs.forEach((unsub) => unsub())
+      bidsUnsubRef.current?.()
     }
-  }, [roomId, fetchAll, setRealtimeData, setRoomNotFound, setLotteryPlayer, role, teamId])
-
-  return { fetchAll }
+  }, [roomId, setRealtimeData, setRoomNotFound, setLotteryPlayer])
 }

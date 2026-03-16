@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useAuctionStore, Player, Role } from '@/features/auction/store/useAuctionStore'
-import { awardPlayer, closeLotteryAction, type RoomStatePayload } from '@/features/auction/api/auctionActions'
+import { awardPlayer, closeLotteryAction } from '@/features/auction/api/auctionActions'
 
 interface UseAuctionControlProps {
   roomId: string
   effectiveRole: Role
   players: Player[]
   timerEndsAt: string | null
-  fetchAll?: () => Promise<void>
 }
 
 export function useAuctionControl({
@@ -15,11 +14,9 @@ export function useAuctionControl({
   effectiveRole,
   players,
   timerEndsAt,
-  fetchAll,
 }: UseAuctionControlProps) {
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
   const lotteryPlayer = useAuctionStore(s => s.lotteryPlayer)
-  const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
 
   // 1. IN_AUCTION 전환 감지 → 추첨 모달 표시
   // lotteryPlayer는 Zustand store로 관리됨.
@@ -77,20 +74,11 @@ export function useAuctionControl({
         if (result.error) {
           console.error('[Auto-Award] 낙찰 처리 실패:', result.error)
           alert(`낙찰 처리 오류: ${result.error}`)
-        } else {
-          if (result.state) {
-            // Server Action이 반환한 최신 상태로 즉시 업데이트
-            setRealtimeData(result.state as Parameters<typeof setRealtimeData>[0])
-          }
-          if (fetchAll) {
-            // Broadcast 유실 혹은 로컬상태 비동기 누락을 방지하기 위해 조금 뒤 확실하게 다시 동기화
-            setTimeout(() => fetchAll(), 500)
-          }
         }
+        // Firebase onSnapshot이 자동으로 최신 상태를 반영하므로 fetchAll/setRealtimeData 불필요
       } catch (err) {
-        // Server Action 타임아웃/예외: DB는 이미 업데이트됐을 수 있으므로 fetchAll로 복원
         console.error('[Auto-Award] Server Action 예외:', err)
-        fetchAll?.()
+        // Firebase onSnapshot이 DB 변경사항을 자동 감지하므로 별도 복원 불필요
       } finally {
         awardLock.current = false
       }

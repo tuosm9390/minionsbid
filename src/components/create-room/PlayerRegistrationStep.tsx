@@ -43,7 +43,7 @@ export function PlayerRegistrationStep({
             🎲 테스트 데이터 생성
           </button>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm,.xls" className="hidden" onChange={handleExcelUpload} />
-          <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="pixel-button flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm font-bold transition-colors disabled:opacity-50">
+          <button data-testid="excel-upload-button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="pixel-button flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm font-bold transition-colors disabled:opacity-50">
             <Upload size={14} /> {isUploading ? "처리 중..." : "엑셀 업로드"}
           </button>
         </div>

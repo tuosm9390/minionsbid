@@ -23,7 +23,7 @@ export function DraftPanel({
   return (
     <div className="flex-1 flex flex-col">
       <div className="text-center mb-6">
-        <div className="pixel-box bg-black text-white inline-block px-6 py-2 font-bold mb-4">
+        <div className="pixel-box !bg-primary text-primary-foreground inline-block px-6 py-2 font-bold mb-4">
           {phase === "DRAFT" || isAutoDraftMode
             ? "유찰 선수 배정"
             : "재경매 진행"}

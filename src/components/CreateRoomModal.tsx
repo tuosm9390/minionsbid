@@ -175,6 +175,7 @@ export function CreateRoomModal() {
                     {step === 0 ? "취소" : "← 이전"}
                   </button>
                   <button
+                    data-testid="next-button"
                     onClick={handleNext}
                     disabled={isLoading}
                     className="pixel-button bg-black text-white px-8 py-3 text-sm font-heading disabled:opacity-50"

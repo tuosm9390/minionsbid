@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
-import { useAuctionRealtime } from "@/features/auction/hooks/useAuctionRealtime";
+import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
+import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
 import { useRoomAuth } from "@/features/auction/hooks/useRoomAuth";
 import { useAuctionControl } from "@/features/auction/hooks/useAuctionControl";
 import {
@@ -25,7 +26,7 @@ import { RoomHeader } from "./components/RoomHeader";
 import { OrganizerControlPanel } from "./components/OrganizerControlPanel";
 
 export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
-  const { fetchAll } = useAuctionRealtime(roomId);
+  useFirebaseRealtime(roomId);
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
   const roomName = useAuctionStore((s) => s.roomName);
@@ -57,6 +58,15 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
     teamId: teamIdParam || undefined,
     roomId,
     setRoomContext,
+  });
+
+  // Firebase RTDB Presence (팀장/주최자 접속 현황)
+  const myTeamForPresence = teams.find((t) => t.id === storeTeamId);
+  useFirebasePresence({
+    roomId,
+    teamId: storeTeamId,
+    role: effectiveRole,
+    teamName: myTeamForPresence?.name,
   });
 
   const connectedLeaderIds = new Set(
@@ -109,7 +119,6 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
     effectiveRole: effectiveRole ?? "VIEWER",
     players,
     timerEndsAt,
-    fetchAll,
   });
 
   const handleNotice = async () => {

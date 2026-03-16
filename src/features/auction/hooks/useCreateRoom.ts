@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { db as firebaseDb } from "@/lib/firebase";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { createRoom as createRoomAction } from "@/features/auction/api/auctionActions";
 import { buildTemplateData, CaptainInfo, PlayerInfo } from "../utils/roomGenerator";
 import { TIER_MAP, POSITION_HEADER_KEYWORDS } from "../constants/room";
@@ -72,24 +73,17 @@ export function useCreateRoom() {
 
       const active: StoredRoom[] = [];
       for (const room of stored) {
-        const { data: roomCheck } = await supabase
-          .from("rooms")
-          .select("id")
-          .eq("id", room.id)
-          .maybeSingle();
-        if (!roomCheck) {
+        const roomDoc = await getDoc(doc(firebaseDb, "rooms", room.id));
+        if (!roomDoc.exists()) {
           const prev: StoredRoom[] = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
           localStorage.setItem(LS_KEY, JSON.stringify(prev.filter((r) => r.id !== room.id)));
           continue;
         }
-        const { data: playerData } = await supabase
-          .from("players")
-          .select("status")
-          .eq("room_id", room.id);
+        const playersSnap = await getDocs(collection(firebaseDb, "rooms", room.id, "players"));
+        const playerDocs = playersSnap.docs.map((d) => d.data());
         const allSold =
-          playerData &&
-          playerData.length > 0 &&
-          playerData.every((p) => p.status === "SOLD");
+          playerDocs.length > 0 &&
+          playerDocs.every((p) => p.status === "SOLD");
         if (!allSold) active.push(room);
       }
       setActiveRooms(active);

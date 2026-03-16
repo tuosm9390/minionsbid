@@ -46,6 +46,7 @@ export function BasicInfoStep({
       <div>
         <label className="text-sm font-bold text-gray-700 block mb-1.5">경매 제목 *</label>
         <input
+          data-testid="room-title-input"
           type="text"
           value={basic.title}
           onChange={(e) => setBasic((p) => ({ ...p, title: e.target.value }))}

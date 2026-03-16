@@ -475,3 +475,23 @@ pm run build\를 통한 지속적인 타입 체크로 분리된 컴포넌트 간
 ## AI 행동 지침 (Lessons Learned & New Rules)
 - **PowerShell을 통한 코드 생성 시 지침**: JavaScript/TypeScript 코드를 생성할 때는 반드시 단일 인용구 Here-string (\@'...'@\)을 사용하여 \$\ 문자가 보간되는 것을 방지하라.
 - **컴포넌트 분리 원칙**: 10KB를 초과하는 컴포넌트는 반드시 기능적 최소 단위로 분리하고, 메인 컴포넌트는 오직 '조합'의 역할만 수행하도록 설계하라.
+
+---
+
+## 이슈 요약 (The Problem) — 2026-03-16
+
+Phase 4 Firebase 마이그레이션 완료 후 `CreateRoomModal.test.tsx`가 `room-title-input`, `next-button`, `excel-upload-button` testId를 찾지 못해 2개 테스트 실패.
+
+## 실패한 접근법 (What didn't work)
+
+테스트 파일에 `getByTestId("room-title-input")` 등이 사용되어 있었지만, 해당 컴포넌트(`BasicInfoStep.tsx`, `CreateRoomModal.tsx`, `PlayerRegistrationStep.tsx`)에 `data-testid` 속성이 전혀 없었다. 컴포넌트와 테스트 파일의 동기화 여부를 사전에 확인하지 않았다.
+
+## 최종 해결책 (What worked)
+
+- `BasicInfoStep.tsx` title input → `data-testid="room-title-input"` 추가
+- `CreateRoomModal.tsx` next button → `data-testid="next-button"` 추가
+- `PlayerRegistrationStep.tsx` excel upload button → `data-testid="excel-upload-button"` 추가
+
+## AI 행동 지침 (Lessons Learned & New Rules)
+
+**테스트가 `getByTestId`를 사용할 경우, 대응하는 컴포넌트에 `data-testid` 속성이 실제로 존재하는지 반드시 `grep -rn "data-testid" src/`로 확인한 후 테스트를 실행하라. 속성이 없으면 컴포넌트에 먼저 추가해야 한다.**
