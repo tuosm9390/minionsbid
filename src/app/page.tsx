@@ -56,7 +56,7 @@ export default function Home() {
                 alt="Icon"
                 width={48}
                 height={48}
-                className="pixelated shrink-0"
+                className="pixelated shrink-0 animate-minion-bounce"
               />
               <div className="w-[300px] sm:w-[450px] aspect-[3/1] relative flex items-center justify-center overflow-hidden">
                 <Image
@@ -72,7 +72,7 @@ export default function Home() {
                 alt="Icon"
                 width={48}
                 height={48}
-                className="pixelated shrink-0"
+                className="pixelated shrink-0 animate-minion-bounce"
               />
             </div>
           </h1>

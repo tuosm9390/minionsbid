@@ -1,6 +1,6 @@
 @import url('https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
-@import "tailwindcss";
-@plugin "tailwindcss-animate";
+@import 'tailwindcss';
+@plugin 'tailwindcss-animate';
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -40,6 +40,7 @@
   --radius-sm: calc(var(--radius) - 4px);
 
   --animate-shake: shake 0.4s cubic-bezier(.36, .07, .19, .97) infinite;
+  --animate-minion-bounce: minion-bounce 1s infinite ease-in-out;
 
   @keyframes shake {
 
@@ -64,12 +65,23 @@
       transform: translate3d(4px, 0, 0);
     }
   }
+
+  @keyframes minion-bounce {
+
+    0%,
+    100% {
+      transform: translateY(0) scaleX(1.1) scaleY(0.9);
+    }
+
+    50% {
+      transform: translateY(-20px) scaleX(0.9) scaleY(1.1);
+    }
+  }
 }
 
 @layer base {
   :root {
     --background: #E5E5E5;
-    /* 약간 더 진한 배경색으로 변경 */
     --foreground: #000000;
     --card: #FFFFFF;
     --card-foreground: #000000;
@@ -81,19 +93,15 @@
     --muted-foreground: #4B5563;
     --border: #000000;
     --radius: 0rem;
-
     --pixel-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
     --pixel-shadow-sm: 4px 4px 0px 0px rgba(0, 0, 0, 1);
   }
-}
 
-@layer base {
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-pixel);
     overflow-x: hidden;
-    /* 도트 배경 패턴 강화 */
     background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 24px 24px;
   }
@@ -132,7 +140,6 @@
     font-family: var(--font-pixel);
   }
 
-  /* CRT 효과를 더 어둡고 선명하게 수정 */
   .crt-overlay::before {
     content: ' ';
     display: block;
@@ -148,11 +155,7 @@
     pointer-events: none;
     opacity: 0.6;
   }
-}
 
-@layer utilities {
-
-  /* 픽셀 스타일 커스텀 스크롤바 */
   .custom-scrollbar::-webkit-scrollbar {
     width: 16px;
     height: 16px;
