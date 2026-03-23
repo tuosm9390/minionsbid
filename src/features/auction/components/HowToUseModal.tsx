@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, HelpCircle } from "lucide-react";
 
 const HOW_TO_USE = [
@@ -48,15 +49,20 @@ export function HowToUseModal({
   variant?: "default" | "header";
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const renderTriggerButton = () => {
     if (variant === "header") {
       return (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-1.5 bg-gray-800 text-white px-4 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all text-[10px] font-heading"
+          className="pixel-button bg-gray-800 text-white px-4 h-10 text-[10px] font-heading uppercase tracking-tight shadow-none transition-all"
         >
-          HELP
+          도움말
         </button>
       );
     }
@@ -64,87 +70,89 @@ export function HowToUseModal({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="pixel-button w-full bg-white text-minion-blue py-4 text-base font-heading mt-4"
+        className="pixel-button w-full h-14 bg-white text-minion-blue text-fluid-xs font-heading uppercase tracking-tighter mt-4"
       >
-        HOW TO PLAY
+        이용 방법
       </button>
     );
   };
+
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={() => setIsOpen(false)}
+    >
+      <div
+        className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-minion-blue px-4 py-4 flex items-center justify-between border-b-4 border-black shrink-0">
+          <h2 className="text-sm font-black text-minion-yellow flex items-center gap-2">
+            💡 이용 방법
+          </h2>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-white hover:text-minion-yellow transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 custom-scrollbar">
+          {HOW_TO_USE.map((item) => (
+            <div
+              key={item.step}
+              className="flex gap-4 bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <div className="text-2xl shrink-0 mt-1">{item.icon}</div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[8px] font-heading text-minion-blue bg-minion-yellow px-2 py-0.5 border border-black">
+                    {item.step}단계
+                  </span>
+                  <h3 className="font-black text-gray-800 text-sm">
+                    {item.title}
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-500 font-bold leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+
+          <div className="bg-black text-white border-2 border-minion-yellow p-4 mt-6">
+            <p className="text-[10px] font-heading text-minion-yellow mb-2 uppercase">
+              ● 알아두면 좋은 팁
+            </p>
+            <ul className="text-xs font-bold text-gray-300 space-y-2">
+              {TIPS.map((tip, i) => (
+                <li key={i} className="flex gap-2">
+                  <span>-</span> {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="pixel-button w-full h-12 bg-black text-white text-[10px] font-heading uppercase tracking-tight"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {renderTriggerButton()}
-
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setIsOpen(false)}
-        >
-          <div
-            className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl flex flex-col max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="bg-minion-blue px-4 py-4 flex items-center justify-between border-b-4 border-black shrink-0">
-              <h2 className="text-sm font-black text-minion-yellow flex items-center gap-2">
-                💡 이용 방법
-              </h2>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:text-minion-yellow transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 custom-scrollbar">
-              {HOW_TO_USE.map((item) => (
-                <div
-                  key={item.step}
-                  className="flex gap-4 bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  <div className="text-2xl shrink-0 mt-1">{item.icon}</div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[8px] font-heading text-minion-blue bg-minion-yellow px-2 py-0.5 border border-black">
-                        STAGE {item.step}
-                      </span>
-                      <h3 className="font-black text-gray-800 text-sm">
-                        {item.title}
-                      </h3>
-                    </div>
-                    <p className="text-xs text-gray-500 font-bold leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-
-              <div className="bg-black text-white border-2 border-minion-yellow p-4 mt-6">
-                <p className="text-[10px] font-heading text-minion-yellow mb-2 uppercase">
-                  ● 알아두면 좋은 팁
-                </p>
-                <ul className="text-xs font-bold text-gray-300 space-y-2">
-                  {TIPS.map((tip, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span>-</span> {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="pixel-button w-full py-3 bg-black text-white text-[10px] font-heading"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {isOpen && mounted && createPortal(modalContent, document.body)}
     </>
   );
 }

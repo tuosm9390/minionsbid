@@ -44,12 +44,15 @@ export function useAuctionBoard({
   const setReAuctionRound = useAuctionStore((s) => s.setReAuctionRound)
 
   // ── 로컬 상태 ──
-  const [hasPlayedReadyAnimation, setHasPlayedReadyAnimation] = useState(false)
-  const [showReadyAnim, setShowReadyAnim] = useState(false)
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null)
   const [showResultModal, setShowResultModal] = useState(false)
   const [isRestarting, setIsRestarting] = useState(false)
   const [lotteryDone, setLotteryDone] = useState(false)
+  const [soldOverlayData, setSoldOverlayData] = useState<{
+    playerName: string
+    teamName: string
+    price: number
+  } | null>(null)
 
   // ── 파생 데이터 ──
   const connectedLeaderIds = new Set(
@@ -117,22 +120,27 @@ export function useAuctionBoard({
   )
   const currentTurnTeam = needyTeams.length > 0 ? needyTeams[0] : null
 
-  // ── 애니메이션 Effect ──
-  useEffect(() => {
-    if (allConnected && !hasPlayedReadyAnimation && teams.length > 0)
-      setShowReadyAnim(true)
-  }, [allConnected, hasPlayedReadyAnimation, teams.length])
+  // ── SOLD 감지 ──
+  const prevCurrentPlayerRef = useRef<Player | undefined>(undefined)
 
   useEffect(() => {
-    if (!allConnected && showReadyAnim) setShowReadyAnim(false)
-  }, [allConnected, showReadyAnim])
-
-  useEffect(() => {
-    if (players.some((p) => p.status === 'IN_AUCTION') && showReadyAnim) {
-      setShowReadyAnim(false)
-      setHasPlayedReadyAnimation(true)
+    const prev = prevCurrentPlayerRef.current
+    // IN_AUCTION이었던 선수가 사라졌을 때 → SOLD 상태로 전환됐는지 확인
+    if (prev && !currentPlayer) {
+      const justSold = players.find(
+        (p) => p.id === prev.id && p.status === 'SOLD',
+      )
+      if (justSold) {
+        const team = teams.find((t) => t.id === justSold.team_id)
+        setSoldOverlayData({
+          playerName: justSold.name,
+          teamName: team?.name ?? '팀 미정',
+          price: justSold.sold_price ?? 0,
+        })
+      }
     }
-  }, [players, showReadyAnim])
+    prevCurrentPlayerRef.current = currentPlayer
+  }, [currentPlayer, players, teams])
 
   useEffect(() => {
     setLotteryDone(false)
@@ -190,7 +198,8 @@ export function useAuctionBoard({
     currentTurnTeam,
 
     // 로컬 상태
-    showReadyAnim,
+    soldOverlayData,
+    setSoldOverlayData,
     showResultModal,
     setShowResultModal,
     isProcessingAction,

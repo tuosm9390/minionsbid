@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Team } from "@/features/auction/store/useAuctionStore";
 
@@ -9,42 +9,69 @@ interface BidStatusProps {
 }
 
 export function BidStatus({ highestBid, leadingTeam, teamId }: BidStatusProps) {
+  const isLeadingMe = leadingTeam?.id === teamId && teamId;
+
   return (
     <div
-      className={`pixel-box p-4 transition-all ${highestBid > 0 ? "bg-minion-yellow/10" : "bg-gray-100 opacity-50"}`}
+      className={`pixel-box p-3 transition-all duration-300 ${
+        highestBid > 0 
+          ? isLeadingMe 
+            ? "bg-minion-yellow/20 border-minion-yellow shadow-[0_0_20px_rgba(251,224,66,0.3)]" 
+            : "bg-white" 
+          : "bg-gray-50 opacity-60"
+      }`}
     >
       {highestBid > 0 ? (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">💰</span>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-black flex items-center justify-center pixel-box border-2 shadow-none">
+              <span className="text-xl animate-bounce">💰</span>
+            </div>
             <div>
-              <p className="text-[10px] font-bold uppercase text-gray-500">
-                CURRENT BID
+              <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter mb-1">
+                현재 입찰가
               </p>
-              <p className="text-3xl font-black text-minion-blue">
-                {highestBid.toLocaleString()} P
+              <p className="text-fluid-lg font-black text-minion-blue leading-none tabular-nums">
+                {highestBid.toLocaleString()} <span className="text-sm">P</span>
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] font-bold uppercase text-gray-500">
-              LEADING TEAM
+
+          <div className="text-right flex flex-col items-end gap-1">
+            <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter">
+              최고 입찰 팀
             </p>
-            <p className="text-xl font-black">
-              {leadingTeam?.name || "?"}
-            </p>
-            {leadingTeam?.id === teamId && teamId && (
-              <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 font-bold">
-                선두입니다!
-              </span>
-            )}
+            <div className="flex flex-col items-end">
+              <p className={`text-fluid-sm font-black leading-none mb-1 ${isLeadingMe ? "text-black" : "text-gray-800"}`}>
+                {leadingTeam?.name || "?"}
+              </p>
+              {teamId === null ? (
+                <div className="bg-black text-minion-yellow px-2 py-1 text-fluid-xs font-heading animate-pulse flex items-center gap-1 border border-minion-yellow shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                  👑 입찰 중
+                </div>
+              ) : isLeadingMe ? (
+                <div className="bg-black text-minion-yellow px-2 py-1 text-fluid-xs font-heading animate-pulse flex items-center gap-1 border border-minion-yellow shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                  👑 입찰 중
+                </div>
+              ) : (
+                <div className="bg-gray-200 text-gray-500 px-2 py-1 text-fluid-xs font-heading border border-gray-300">
+                  입찰 밀림
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : (
-        <p className="text-center font-bold text-gray-600 py-2 animate-pulse">
-          경매 대기중...
-        </p>
+        <div className="flex flex-col items-center justify-center py-4 gap-2">
+          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center animate-pulse">
+            <span className="text-xl grayscale">💰</span>
+          </div>
+          <p className="text-fluid-xs font-heading text-gray-400 animate-pulse">
+            첫 입찰을 기다리는 중...
+          </p>
+        </div>
       )}
     </div>
   );
 }
+

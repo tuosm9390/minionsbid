@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useState, useCallback } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore";
@@ -190,17 +191,15 @@ export function AuctionArchiveSection({
 
   if (!isOpen) return null;
 
-  if (loading)
-    return (
-      <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
-        <div className="bg-white border-4 border-black p-10 max-w-sm w-full text-center text-black font-heading text-xs animate-pulse">
-          LOADING ARCHIVES...
-        </div>
-      </div>
-    );
-
-  return (
+  return createPortal(
     <>
+      {loading ? (
+        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black p-10 max-w-sm w-full text-center text-black font-heading text-xs animate-pulse">
+            LOADING ARCHIVES...
+          </div>
+        </div>
+      ) : (
       <div
         className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
         onClick={onClose}
@@ -283,6 +282,7 @@ export function AuctionArchiveSection({
           </div>
         </div>
       </div>
+      )}
 
       {selected && (
         <ArchiveDetailModal
@@ -290,6 +290,7 @@ export function AuctionArchiveSection({
           onClose={() => setSelected(null)}
         />
       )}
-    </>
+    </>,
+    document.body
   );
 }

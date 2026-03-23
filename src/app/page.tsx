@@ -45,8 +45,9 @@ export default function Home() {
   return (
     <div className="min-h-screen relative crt-overlay">
       <div className="relative z-10 flex flex-col items-center px-4 py-20 gap-20">
-        <div className="bg-white p-10 lg:p-14 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-3xl w-full text-center space-y-10">
-          <div className="inline-block px-4 py-1 bg-black text-white text-sm font-bold tracking-widest uppercase mb-4">
+        {/* Hero Section */}
+        <div className="bg-white p-10 lg:p-14 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-3xl w-full text-center space-y-10 animate-slide-up">
+          <div className="inline-block px-4 py-1 bg-black text-white text-sm font-bold tracking-widest uppercase mb-4 animate-pulse">
             Level 1: System Start
           </div>
           <h1 className="text-4xl lg:text-6xl font-heading flex flex-col items-center gap-4">
@@ -56,7 +57,8 @@ export default function Home() {
                 alt="Icon"
                 width={48}
                 height={48}
-                className="pixelated shrink-0 animate-minion-bounce"
+                className="pixelated shrink-0 animate-minion-bounce w-auto h-auto"
+                priority
               />
               <div className="w-[300px] sm:w-[450px] aspect-[3/1] relative flex items-center justify-center overflow-hidden">
                 <Image
@@ -64,7 +66,8 @@ export default function Home() {
                   alt="MINIONS AUCTION"
                   fill
                   priority
-                  className="pixelated object-contain scale-[1.8]"
+                  sizes="(max-width: 768px) 300px, 450px"
+                  className="pixelated object-contain scale-[1.8] hover:scale-[2.0] transition-transform duration-500"
                 />
               </div>
               <Image
@@ -72,7 +75,8 @@ export default function Home() {
                 alt="Icon"
                 width={48}
                 height={48}
-                className="pixelated shrink-0 animate-minion-bounce"
+                className="pixelated shrink-0 animate-minion-bounce w-auto h-auto"
+                priority
               />
             </div>
           </h1>
@@ -85,15 +89,17 @@ export default function Home() {
           </div>
         </div>
 
+        {/* How to Use Section */}
         <div className="max-w-6xl w-full space-y-10">
-          <h2 className="text-3xl font-black text-center text-minion-blue uppercase tracking-tighter">
+          <h2 className="text-3xl font-black text-center text-minion-blue uppercase tracking-tighter animate-slide-up delay-100">
             [ Main Quest: How to Play ]
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {HOW_TO_USE.map((item) => (
+            {HOW_TO_USE.map((item, index) => (
               <div
                 key={item.step}
-                className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+                className={`bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all animate-slide-up`}
+                style={{ animationDelay: `${(index + 2) * 100}ms` }}
               >
                 <div className="flex justify-between items-start mb-4">
                   <span className="text-3xl">{item.icon}</span>
@@ -110,22 +116,23 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="max-w-3xl w-full bg-black text-white border-4 border-minion-yellow p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+        {/* Tips Section */}
+        <div className="max-w-3xl w-full bg-black text-white border-4 border-minion-yellow p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] animate-slide-in-right delay-500">
           <h3 className="text-xl font-bold text-minion-yellow mb-4 flex items-center gap-2">
             <span className="animate-pulse">●</span> 알아두면 좋은 팁
           </h3>
           <ul className="text-sm space-y-3 font-bold text-gray-300">
-            <li className="flex gap-2">
+            <li className="flex gap-2 hover:text-white transition-colors">
               <span>-</span>{" "}
               <span>팀장 링크와 주최자 링크는 별개의 고유 주소입니다.</span>
             </li>
-            <li className="flex gap-2">
+            <li className="flex gap-2 hover:text-white transition-colors">
               <span>-</span>{" "}
               <span>
                 모든 입찰은 실시간으로 동기화되며 취소가 불가능합니다.
               </span>
             </li>
-            <li className="flex gap-2">
+            <li className="flex gap-2 hover:text-white transition-colors">
               <span>-</span>{" "}
               <span>
                 방 페이지 상단의 [LINK] 버튼으로 언제든 주소를 재확인하세요.

@@ -1,51 +1,82 @@
 ﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
 interface CenterTimerProps {
   timerEndsAt: string;
 }
 
 export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
-  const [now, setNow] = useState(Date.now());
-  const initialDuration = useRef<number | null>(null);
-
-  useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(iv);
-  }, []);
+  const [now, setNow] = useState(() => Date.now());
+  const [initialDuration, setInitialDuration] = useState<number | null>(null);
 
   const target = new Date(timerEndsAt).getTime();
-  useEffect(() => {
-    initialDuration.current = target - Date.now();
-  }, [target]);
-
   const timeLeftMs = Math.max(0, target - now);
   const timeLeftSec = Math.max(0, (timeLeftMs - 100) / 1000);
+  const isUrgent = Math.ceil(timeLeftSec) > 0 && Math.ceil(timeLeftSec) <= 5;
+
+  // urgent 구간(≤5s)에서만 100ms, 평상시는 200ms로 렌더링 빈도 절반 감소
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), isUrgent ? 100 : 200);
+    return () => clearInterval(iv);
+  }, [isUrgent]);
+
+  useEffect(() => {
+    setInitialDuration(target - Date.now());
+  }, [target]);
+
   const displayTime = Math.ceil(timeLeftSec);
-  const progress = initialDuration.current
-    ? (timeLeftMs / initialDuration.current) * 100
-    : 0;
-  const isUrgent = displayTime > 0 && displayTime <= 5;
+  const progress = initialDuration ? (timeLeftMs / initialDuration) * 100 : 0;
   const pad = (n: number) => String(n).padStart(2, "0");
+
+  // 매 초 변경 시에만 단발성 shake 트리거 (무한 반복 없음)
+  // urgent(≤5s): 300ms 강한 흔들림 / 평상시: 150ms 틱 흔들림
+  const [isTickShaking, setIsTickShaking] = useState(false);
+  const prevDisplayTimeRef = useRef(displayTime);
+  useEffect(() => {
+    if (prevDisplayTimeRef.current !== displayTime && displayTime > 0) {
+      prevDisplayTimeRef.current = displayTime;
+      setIsTickShaking(true);
+      const t = setTimeout(() => setIsTickShaking(false), isUrgent ? 310 : 160);
+      return () => clearTimeout(t);
+    }
+  }, [displayTime, isUrgent]);
 
   return (
     <div className="w-full flex flex-col items-center gap-2">
       <div
-        className={`pixel-box px-6 py-2 flex items-center gap-3 ${isUrgent ? "bg-white !border-red-600 text-red-600 animate-shake" : "bg-black border-black text-minion-yellow"}`}
+        className={cn(
+          "pixel-box px-5 py-2 flex items-center gap-3 transition-colors duration-300",
+          isUrgent
+            ? cn("bg-white border-minion-red text-minion-red", isTickShaking && "animate-urgent-shake")
+            : cn("bg-black border-black text-minion-yellow", isTickShaking && "animate-timer-tick")
+        )}
       >
-        <span className="text-xl">⏳</span>
-        <span className="text-3xl lg:text-4xl font-black tracking-widest">
+        <span className={`text-2xl ${isUrgent ? "animate-pulse" : ""}`}>
+          {isUrgent ? "🚨" : "⏳"}
+        </span>
+        <span className="text-fluid-lg font-heading tracking-widest tabular-nums leading-none">
           {isUrgent
             ? timeLeftSec.toFixed(1)
             : `${pad(Math.floor(displayTime / 60))}:${pad(displayTime % 60)}`}
         </span>
       </div>
-      <div className="w-48 h-4 bg-gray-800 border-2 border-black overflow-hidden">
+      
+      {/* Progress Bar with CRT feel */}
+      <div className={cn(
+        "w-48 h-4 bg-black/20 border-4 border-black relative overflow-hidden shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)] transition-colors",
+        isUrgent && "border-minion-red"
+      )}>
         <div
-          className={`h-full transition-all duration-100 ${isUrgent ? "bg-red-500" : "bg-minion-yellow"}`}
+          className={cn(
+            "h-full transition-all duration-150",
+            isUrgent ? "bg-minion-red animate-pulse" : "bg-minion-yellow"
+          )}
           style={{ width: `${progress}%` }}
         />
+        {/* Decorative scanline on progress bar */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
       </div>
     </div>
   );

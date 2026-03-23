@@ -32,7 +32,7 @@ export function RoomHeader({
             </span>
           </div>
           <div className="flex gap-2">
-            <div className="pixel-box bg-black font-black text-black text-[12px] px-3 py-1 font-heading uppercase border-white/20">
+            <div className="pixel-box bg-black font-black text-black text-fluid-sm px-3 py-1 font-heading uppercase border-white/20">
               {effectiveRole === "ORGANIZER"
                 ? "주최자"
                 : effectiveRole === "LEADER"
@@ -46,7 +46,7 @@ export function RoomHeader({
           {effectiveRole === "ORGANIZER" && <LinksModal />}
           <button
             onClick={onLeaveRoom}
-            className="flex items-center gap-1.5 bg-white/50 hover:bg-white/20 text-white px-4 py-1.5 border-2 border-white/20 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all text-[10px] font-heading uppercase"
+            className="pixel-button bg-white/50 hover:bg-white/20 text-white px-4 h-10 text-fluid-xs font-heading uppercase tracking-tight border-white/20 shadow-none transition-all"
           >
             EXIT
           </button>

@@ -12,7 +12,10 @@
     아이언: "Iron",
     언랭: "Iron",
   };
-  const englishTier = map[tier] || tier;
+  
+  // Find the matching base tier by checking if the input tier contains any of the keys
+  const baseTier = Object.keys(map).find(key => tier.includes(key)) || tier;
+  const englishTier = map[baseTier] || baseTier;
   return `/Rank=${englishTier}.png`;
 };
 

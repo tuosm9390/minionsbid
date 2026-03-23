@@ -1,32 +1,34 @@
 @import url('https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 @import 'tailwindcss';
 @plugin 'tailwindcss-animate';
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-minion-yellow: #FBE042;
-  --color-minion-yellow-hover: #F2D214;
-  --color-minion-blue: #2358A4;
-  --color-minion-blue-hover: #194079;
-  --color-minion-grey: #808080;
-  --color-minion-skin: #FFC09A;
+  /* --- Cyber-Pixel Color Palette (OKLCH) --- */
+  --color-minion-yellow: oklch(88.3% 0.17 90);
+  --color-minion-yellow-hover: oklch(82% 0.18 90);
+  --color-minion-blue: oklch(50% 0.14 250);
+  --color-minion-blue-hover: oklch(42% 0.15 250);
+  --color-minion-red: oklch(62% 0.22 25);
+  --color-minion-red-hover: oklch(54% 0.23 25);
+  --color-minion-grey: oklch(55% 0.02 250);
+  --color-minion-skin: oklch(82% 0.12 60);
 
+  /* --- Typography --- */
   --font-pixel: 'Galmuri11', var(--font-vt323), monospace;
   --font-heading: var(--font-press-start), 'Galmuri11', cursive;
-  --font-pixelify: var(--font-pixelify), 'Galmuri11', cursive;
+  --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
 
+  /* --- Semantic Colors --- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -35,76 +37,80 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
+  /* --- Animations --- */
   --animate-shake: shake 0.4s cubic-bezier(.36, .07, .19, .97) infinite;
   --animate-minion-bounce: minion-bounce 1s infinite ease-in-out;
+  --animate-glitch: glitch 1s linear infinite;
 
   @keyframes shake {
-
-    10%,
-    90% {
-      transform: translate3d(-1px, 0, 0);
-    }
-
-    20%,
-    80% {
-      transform: translate3d(2px, 0, 0);
-    }
-
-    30%,
-    50%,
-    70% {
-      transform: translate3d(-4px, 0, 0);
-    }
-
-    40%,
-    60% {
-      transform: translate3d(4px, 0, 0);
-    }
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
   }
 
   @keyframes minion-bounce {
+    0%, 100% { transform: translateY(0) scaleX(1.1) scaleY(0.9); }
+    50% { transform: translateY(-20px) scaleX(0.9) scaleY(1.1); }
+  }
 
-    0%,
-    100% {
-      transform: translateY(0) scaleX(1.1) scaleY(0.9);
-    }
-
-    50% {
-      transform: translateY(-20px) scaleX(0.9) scaleY(1.1);
-    }
+  @keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
   }
 }
 
 @layer base {
   :root {
-    --background: #E5E5E5;
-    --foreground: #000000;
-    --card: #FFFFFF;
-    --card-foreground: #000000;
-    --primary: #FBE042;
-    --primary-foreground: #000000;
-    --secondary: #2358A4;
-    --secondary-foreground: #FFFFFF;
-    --muted: #D1D5DB;
-    --muted-foreground: #4B5563;
-    --border: #000000;
+    /* Refined Neutral Palette */
+    --background: oklch(92% 0.01 250);
+    --foreground: oklch(15% 0.02 250);
+    
+    --card: oklch(100% 0 0);
+    --card-foreground: var(--foreground);
+    
+    --primary: var(--color-minion-yellow);
+    --primary-foreground: oklch(10% 0.02 250);
+    
+    --secondary: var(--color-minion-blue);
+    --secondary-foreground: oklch(98% 0.01 250);
+    
+    --accent: oklch(95% 0.04 90);
+    --accent-foreground: var(--foreground);
+    
+    --destructive: var(--color-minion-red);
+    --destructive-foreground: oklch(98% 0.01 250);
+    
+    --border: oklch(0% 0 0);
+    --input: oklch(98% 0.01 250);
+    --ring: var(--color-minion-blue);
+    
     --radius: 0rem;
     --pixel-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
     --pixel-shadow-sm: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+    --pixel-shadow-active: 2px 2px 0px 0px rgba(0, 0, 0, 1);
   }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-pixel);
+    font-family: var(--font-body); /* Default to High-readability body font */
     overflow-x: hidden;
-    background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: 
+      radial-gradient(oklch(0% 0 0 / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(0% 0 0 / 0.02) 1px, transparent 1px);
+    background-size: 20px 20px, 100% 40px;
+    -webkit-font-smoothing: antialiased;
   }
+
+  /* Utility font classes */
+  .font-pixel { font-family: var(--font-pixel); }
+  .font-heading { font-family: var(--font-heading); }
+  .font-body { font-family: var(--font-body); }
 }
 
 @layer utilities {
@@ -112,49 +118,46 @@
     background-color: white;
     border: 4px solid black;
     box-shadow: var(--pixel-shadow);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .pixel-button {
     border: 4px solid black;
+    font-family: var(--font-pixel);
     font-weight: bold;
     text-transform: uppercase;
-    transition: all 0.1s;
+    transition: all 0.1s steps(2);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     box-shadow: var(--pixel-shadow-sm);
     cursor: pointer;
+    user-select: none;
+  }
+
+  .pixel-button:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
   }
 
   .pixel-button:active:not(:disabled) {
-    box-shadow: none;
-    transform: translate(4px, 4px);
+    box-shadow: var(--pixel-shadow-active);
+    transform: translate(2px, 2px);
   }
 
-  .font-heading {
-    font-family: var(--font-heading);
+  .pixel-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(1);
   }
 
-  .font-pixel {
-    font-family: var(--font-pixel);
-  }
-
-  .crt-overlay::before {
-    content: ' ';
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
-      linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
-    z-index: 9999;
-    background-size: 100% 3px, 3px 100%;
-    pointer-events: none;
-    opacity: 0.6;
-  }
+  /* Text Clamp Scales for Responsive Typography */
+  .text-fluid-xs { font-size: clamp(0.7rem, 0.6rem + 0.5vw, 0.85rem); }
+  .text-fluid-sm { font-size: clamp(0.85rem, 0.75rem + 0.5vw, 1rem); }
+  .text-fluid-base { font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem); }
+  .text-fluid-lg { font-size: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem); }
+  .text-fluid-xl { font-size: clamp(1.75rem, 1.5rem + 1.25vw, 2.5rem); }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 16px;
@@ -162,28 +165,94 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #eeeeee;
+    background: oklch(90% 0.01 250);
     border-left: 4px solid black;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: white;
     border: 4px solid black;
-    box-shadow: inset -4px -4px 0px 0px #cccccc;
+    box-shadow: inset -4px -4px 0px 0px oklch(80% 0.01 250);
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--color-minion-yellow);
+  /* --- Entry Animations --- */
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
-  .custom-scrollbar::-webkit-scrollbar-button {
-    display: block;
-    background-color: #eeeeee;
-    background-repeat: no-repeat;
-    background-size: 8px;
-    background-position: center;
-    width: 16px;
-    height: 16px;
-    border-left: 4px solid black;
+  @keyframes slide-in-left {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes slide-in-right {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-slide-in-left { animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-slide-in-right { animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  /* Delay utilities for staggered reveal */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* 타이머 틱 흔들림 - transform만 사용, GPU 합성 레이어 활용 */
+  @keyframes timer-tick-shake {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    25%       { transform: translate3d(-3px, 0, 0); }
+    75%       { transform: translate3d(3px, 0, 0); }
+  }
+  .animate-timer-tick {
+    animation: timer-tick-shake 0.15s ease-out;
+    will-change: transform;
+  }
+
+  /* 긴급 타이머 위험 신호 - 매 초 단발 발화, 무한 반복 없음 */
+  @keyframes urgent-shake {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    15%  { transform: translate3d(-5px, 0, 0) scale(1.04); }
+    30%  { transform: translate3d(5px, 0, 0) scale(1.04); }
+    45%  { transform: translate3d(-4px, 0, 0) scale(1.02); }
+    60%  { transform: translate3d(4px, 0, 0) scale(1.02); }
+    75%  { transform: translate3d(-2px, 0, 0) scale(1.01); }
+    90%  { transform: translate3d(2px, 0, 0) scale(1.01); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
+  }
+  .animate-urgent-shake {
+    animation: urgent-shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    will-change: transform;
+  }
+
+  .animate-shimmer { animation: shimmer 2s infinite; }
+
+  /* 움직임 감소 선호 사용자 대응 */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-shimmer,
+    .animate-bounce,
+    .animate-pulse,
+    .animate-ping,
+    .animate-shake,
+    .animate-minion-bounce,
+    .animate-glitch,
+    .animate-slide-up,
+    .animate-slide-in-left,
+    .animate-slide-in-right {
+      animation: none;
+    }
+
+    * {
+      transition-duration: 0.01ms !important;
+    }
   }
 }

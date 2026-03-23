@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, LogOut, AlertCircle } from "lucide-react";
 
 interface LeaveRoomModalProps {
@@ -13,9 +15,15 @@ export function LeaveRoomModal({
   onClose,
   onConfirm,
 }: LeaveRoomModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={onClose}
@@ -46,7 +54,7 @@ export function LeaveRoomModal({
               className="text-minion-blue shrink-0 mt-0.5"
             />
             <div className="text-xs font-bold text-gray-700 space-y-1">
-              <p className="text-sm font-black">[!] ARE YOU SURE?</p>
+              <p className="text-sm font-black">정말로 나가시겠습니까?</p>
               <p className="leading-relaxed">
                 경매방에 다시 접속하려면 초대 링크가 필요합니다. 진행 중인
                 데이터는 서버에 안전하게 보관됩니다.
@@ -74,4 +82,6 @@ export function LeaveRoomModal({
       </div>
     </div>
   );
+
+  return mounted ? createPortal(modalContent, document.body) : null;
 }

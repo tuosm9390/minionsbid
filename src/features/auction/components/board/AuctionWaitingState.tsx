@@ -18,7 +18,7 @@ export function AuctionWaitingState({
       {!allConnected ? (
         <div className="w-full space-y-6">
           <h2 className="text-xl font-black text-minion-blue">
-            TEAM LEADERS CONNECTING...
+            팀장 연결 대기 중...
           </h2>
           <div className="flex flex-wrap justify-center gap-4">
             {teams.map((team) => (
@@ -40,7 +40,7 @@ export function AuctionWaitingState({
         <div className="animate-in zoom-in-95 duration-700 space-y-6">
           <div className="text-6xl animate-bounce">⏳</div>
           <h3 className="text-2xl font-black text-minion-blue">
-            ARE YOU READY?
+            경매 준비 완료
           </h3>
           <p className="font-bold text-gray-500">
             방장이 추첨을 시작하면 경매가 개시됩니다.

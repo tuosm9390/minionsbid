@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Trash2, AlertTriangle, Save } from "lucide-react";
 
 interface EndRoomModalProps {
@@ -19,6 +20,11 @@ export function EndRoomModal({
   onConfirm,
 }: EndRoomModalProps) {
   const [confirmed, setConfirmed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -28,7 +34,7 @@ export function EndRoomModal({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={handleClose}
@@ -58,7 +64,7 @@ export function EndRoomModal({
           <div className="bg-red-50 border-2 border-black p-3 flex gap-2">
             <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
             <div className="text-[10px] font-bold text-red-700 space-y-1">
-              <p className="text-xs font-black uppercase">Critical Warning!</p>
+              <p className="text-xs font-black uppercase">데이터 삭제 경고</p>
               <p className="leading-tight">
                 방을 종료하면 입찰 기록, 채팅 등 모든 데이터가 영구 삭제되며
                 복구할 수 없습니다.
@@ -83,7 +89,7 @@ export function EndRoomModal({
           {isCompleted && (
             <div className="bg-green-50 border-2 border-black p-3 text-[10px] font-bold text-green-700">
               <p className="text-xs font-black mb-1 uppercase">
-                Mission Complete!
+                경매 완료!
               </p>
               <p>
                 결과를 저장하면 나중에 아카이브에서 다시 확인할 수 있습니다.
@@ -132,4 +138,6 @@ export function EndRoomModal({
       </div>
     </div>
   );
+
+  return mounted ? createPortal(modalContent, document.body) : null;
 }

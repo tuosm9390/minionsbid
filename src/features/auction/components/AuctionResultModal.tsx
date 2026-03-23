@@ -1,9 +1,112 @@
+"use client";
+
+import { useState, useEffect, useMemo, memo } from "react";
+import { createPortal } from "react-dom";
 import {
   useAuctionStore,
   Team,
   Player,
 } from "@/features/auction/store/useAuctionStore";
-import { X, Trophy } from "lucide-react";
+import { X, Trophy, Medal } from "lucide-react";
+
+// 개별 팀 카드를 별도 컴포넌트로 분리하여 메모이제이션
+const TeamResultCard = memo(
+  ({
+    team,
+    players,
+    rosterSlots,
+  }: {
+    team: Team;
+    players: Player[];
+    rosterSlots: number;
+  }) => {
+    const teamPlayers = useMemo(
+      () => players.filter((p) => p.team_id === team.id),
+      [players, team.id],
+    );
+
+    const slots = useMemo(
+      () =>
+        Array.from({ length: rosterSlots }, (_, i) => teamPlayers[i] ?? null),
+      [teamPlayers, rosterSlots],
+    );
+
+    return (
+      <div className="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] flex flex-col group hover:-translate-y-1 transition-transform duration-200">
+        {/* Team Profile Section */}
+        <div className="p-5 border-b-4 border-black bg-gray-100/50">
+          <div className="flex justify-between items-start mb-4">
+            <div className="space-y-1">
+              <span className="text-[9px] font-heading text-minion-blue uppercase block">
+                팀명
+              </span>
+              <h3 className="text-fluid-sm font-black text-black leading-none">
+                {team.name}
+              </h3>
+            </div>
+            <div className="bg-black text-minion-yellow px-2 py-1 pixel-box border-2 shadow-none text-[10px] font-heading leading-none">
+              {team.point_balance}P
+            </div>
+          </div>
+
+          <div className="bg-white border-2 border-black p-3 relative overflow-hidden group-hover:border-minion-blue transition-colors duration-200">
+            <span className="absolute -right-4 -top-2 text-4xl opacity-[0.05] font-black italic">
+              팀장
+            </span>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-50 border-2 border-black flex items-center justify-center shrink-0">
+                <Medal size={20} className="text-minion-blue" />
+              </div>
+              <div>
+                <p className="text-[8px] font-heading text-gray-400 uppercase">
+                  팀장
+                </p>
+                <p className="text-fluid-xs font-black text-black leading-none">
+                  {team.leader_name}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Members List */}
+        <div className="flex-1 p-4 space-y-2 bg-white font-body">
+          <p className="text-[9px] font-heading text-gray-400 uppercase mb-2 tracking-tighter">
+            영입된 멤버
+          </p>
+          {slots.map((player, idx) => (
+            <div
+              key={player?.id ?? `empty-${team.id}-${idx}`}
+              className={`flex items-center justify-between p-2 border-2 border-black transition-colors duration-150 ${
+                player
+                  ? "bg-gray-50 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-yellow-50"
+                  : "bg-gray-100 border-dashed opacity-40 shadow-none"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-1.5 h-1.5 ${player ? "bg-green-500" : "bg-gray-300"}`}
+                />
+                <span
+                  className={`text-fluid-xs font-black ${player ? "text-gray-800" : "text-gray-400"}`}
+                >
+                  {player ? player.name : "빈 자리"}
+                </span>
+              </div>
+              {player && (
+                <span className="text-[10px] font-black text-minion-red bg-white px-1.5 py-0.5 border border-black tabular-nums">
+                  {player.sold_price}P
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  },
+);
+
+TeamResultCard.displayName = "TeamResultCard";
 
 export function AuctionResultModal({
   isOpen,
@@ -12,141 +115,100 @@ export function AuctionResultModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const teams = useAuctionStore((state) => state.teams || []);
-  const players = useAuctionStore((state) => state.players || []);
-
+  const teams = useAuctionStore((state) => state.teams);
+  const players = useAuctionStore((state) => state.players);
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
-  const rosterSlots = Math.max((membersPerTeam ?? 5) - 1, 1);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 팀 정렬 결과 메모이제이션
+  const sortedTeams = useMemo(
+    () =>
+      [...teams].sort((a, b) =>
+        a.name.localeCompare(b.name, "ko-KR", { numeric: true }),
+      ),
+    [teams],
+  );
+
+  // 로스터 슬롯 계산 메모이제이션
+  const rosterSlots = useMemo(
+    () => Math.max((membersPerTeam ?? 5) - 1, 1),
+    [membersPerTeam],
+  );
 
   if (!isOpen) return null;
 
-  const sortedTeams = [...teams].sort((a, b) =>
-    a.name.localeCompare(b.name, "ko-KR", { numeric: true }),
-  );
-
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-5xl max-h-[90vh] flex flex-col relative animate-in zoom-in-95 duration-200 cursor-default"
+        className="bg-white border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] w-full max-w-6xl max-h-[90vh] flex flex-col relative animate-in zoom-in-95 duration-200 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-5 py-4 border-b-4 border-black flex items-center justify-between shrink-0 bg-minion-yellow">
-          <div className="flex items-center gap-2.5">
-            <Trophy size={18} className="text-black" />
-            <h2 className="font-black text-lg font-heading text-black uppercase">
-              경매 결과
-            </h2>
+        {/* Header with Gold Effect */}
+        <div className="px-6 py-6 border-b-4 border-black flex items-center justify-between shrink-0 bg-black text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent animate-shimmer pointer-events-none" />
+
+          <div className="flex items-center gap-4 z-10">
+            <div className="w-12 h-12 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
+              <Trophy size={24} className="text-black" />
+            </div>
+            <div className="flex flex-col">
+              <h2 className="text-fluid-lg font-heading text-minion-yellow leading-none mb-1">
+                최종 팀 구성
+              </h2>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                모든 플레이어의 배정이 완료되었습니다
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-black hover:bg-black/10 p-1 transition-colors"
+            className="bg-minion-red text-white p-2 pixel-box border-2 shadow-none hover:bg-minion-red-hover transition-colors z-10"
           >
-            <X size={20} />
+            <X size={20} className="text-black" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-10 bg-gray-50/50 custom-scrollbar">
           {sortedTeams.length === 0 ? (
-            <div className="text-center py-10 text-gray-400 font-heading text-[10px] border-4 border-dashed border-gray-200">
-              NO DATA FOUND
+            <div className="flex flex-col items-center justify-center py-20 text-gray-300 font-heading gap-4 border-4 border-dashed border-gray-200">
+              <span className="text-6xl">❓</span>
+              <p className="text-fluid-xs">팀 데이터가 없습니다</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {sortedTeams.map((team: Team) => {
-                const teamPlayers = players.filter(
-                  (p) => p.team_id === team.id,
-                );
-                const slots = Array.from(
-                  { length: rosterSlots },
-                  (_, i) => teamPlayers[i] ?? null,
-                );
-
-                return (
-                  <div
-                    key={team.id}
-                    className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col"
-                  >
-                    <table className="w-full text-[10px] border-collapse h-full">
-                      <tbody>
-                        <tr>
-                          <td
-                            rowSpan={rosterSlots + 2}
-                            className="w-[35%] border-r-4 border-black bg-gray-100 text-center align-middle p-4"
-                          >
-                            <span className="text-sm font-black text-black block mb-1">
-                              {team.leader_name}
-                            </span>
-                            <div className="text-[8px] font-heading text-minion-blue mb-3">
-                              {team.name}
-                            </div>
-                            <div className="inline-block border-2 border-black bg-minion-yellow text-black font-heading text-[7px] px-2 py-1 uppercase">
-                              {team.point_balance}P LEFT
-                            </div>
-                          </td>
-                          <td className="w-[65%] border-b-4 border-black bg-minion-blue text-white text-center py-2 px-3">
-                            <span className="font-heading text-[10px] uppercase tracking-tighter">
-                              ROSTER
-                            </span>
-                          </td>
-                        </tr>
-
-                        <tr>
-                          <td className="w-[65%] border-b-2 border-black text-center py-2.5 px-3 bg-blue-50 relative">
-                            <span className="text-indigo-600 absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-heading">
-                              Leader
-                            </span>
-                            <span className="font-black text-[14px] text-gray-900">
-                              {team.leader_name}
-                            </span>
-                          </td>
-                        </tr>
-
-                        {slots.map((player, idx) => (
-                          <tr key={player?.id ?? `empty-${idx}`}>
-                            <td
-                              className={`w-[65%] text-center py-2.5 px-3 relative ${idx !== slots.length - 1 ? "border-b border-gray-300" : ""}`}
-                            >
-                              {player ? (
-                                <>
-                                  <span className="font-black text-[14px] text-gray-800">
-                                    {player.name}
-                                  </span>
-                                  {typeof player.sold_price === "number" && (
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] font-black text-red-500">
-                                      {player.sold_price}P
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-[8px] font-heading text-gray-300">
-                                  --- EMPTY ---
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {sortedTeams.map((team) => (
+                <TeamResultCard
+                  key={team.id}
+                  team={team}
+                  players={players}
+                  rosterSlots={rosterSlots}
+                />
+              ))}
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0">
+
+        {/* Footer with a large button */}
+        <div className="px-10 py-6 border-t-4 border-black bg-white shrink-0">
           <button
             onClick={onClose}
-            className="pixel-button w-full py-3 bg-black text-white text-[10px] font-heading"
+            className="pixel-button w-full py-4 bg-black text-white text-fluid-xs font-heading hover:bg-minion-blue transition-colors shadow-[8px_8px_0px_rgba(0,0,0,0.2)]"
           >
-            CLOSE
+            결과 확인 완료
           </button>
         </div>
       </div>
     </div>
   );
+
+  return mounted ? createPortal(modalContent, document.body) : null;
 }

@@ -24,24 +24,24 @@ export function UnsoldPanel() {
 
   if (unsoldPlayers.length === 0)
     return (
-      <div className="flex-1 flex justify-center items-center py-6 text-[10px] text-gray-600 font-bold italic tracking-tighter">
-        유찰 인원이 없습니다.
+      <div className="flex-1 flex justify-center items-center py-10 text-fluid-xs text-gray-400 font-heading italic opacity-50">
+        유찰된 플레이어가 없습니다
       </div>
     );
 
   return (
-    <div className="flex flex-col gap-1 pb-1 w-full">
-      <div className="grid grid-cols-1 gap-1">
+    <div className="flex flex-col gap-2 w-full">
+      <div className="grid grid-cols-1 gap-2">
         {unsoldPlayers.map((p: Player) => (
           <div
             key={p.id}
-            className="flex justify-between items-center bg-gray-50 border-2 border-black p-1.5 hover:bg-red-50 transition-colors shadow-sm"
+            className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 hover:bg-minion-red/5 transition-colors shadow-[2px_2px_0px_rgba(0,0,0,1)]"
           >
-            <span className="font-black text-gray-800 text-[10px] truncate">
+            <span className="font-black text-gray-800 text-fluid-xs truncate">
               {p.name}
             </span>
             <span
-              className={`text-[7px] font-heading ${TIER_COLOR[p.tier] || "text-gray-600"}`}
+              className={`text-fluid-xs font-heading ${TIER_COLOR[p.tier] || "text-gray-600"}`}
             >
               {p.tier}
             </span>
@@ -60,8 +60,8 @@ export function TeamList() {
 
   if (teams.length === 0)
     return (
-      <div className="text-gray-600 text-xs text-center py-10 font-bold">
-        NO PARTY DATA FOUND
+      <div className="text-gray-400 text-fluid-xs text-center py-20 font-heading opacity-50">
+        --- 파티 데이터가 없습니다 ---
       </div>
     );
 
@@ -72,7 +72,7 @@ export function TeamList() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {sortedTeams.map((team: Team) => {
         const teamPlayers = players.filter(
           (p) => p.team_id === team.id && p.status === "SOLD",
@@ -81,55 +81,79 @@ export function TeamList() {
         const totalSlots = membersPerTeam - 1;
         const isTeamComplete = teamPlayers.length === totalSlots;
 
+        // Point ratio for gauge (relative to 1000 or max balance)
+        const pointRatio = Math.min(100, (team.point_balance / 1000) * 100);
+
         return (
           <div
             key={team.id}
-            className={`p-3 border-4 border-black relative overflow-hidden transition-all ${isTeamComplete ? "bg-green-50 opacity-80" : isMyTeam ? "bg-blue-50 ring-2 ring-minion-blue ring-inset shadow-[4px_4px_0px_0px_rgba(35,88,164,1)]" : "bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`}
+            className={`p-4 border-4 border-black relative overflow-hidden transition-all duration-300 ${
+              isTeamComplete
+                ? "bg-gray-100 grayscale-[0.5] opacity-80"
+                : isMyTeam
+                  ? "bg-white border-minion-blue ring-4 ring-minion-blue/20 shadow-[8px_8px_0px_rgba(35,88,164,1)]"
+                  : "bg-white shadow-[6px_6px_0px_rgba(0,0,0,1)]"
+            }`}
           >
-            <div className="flex justify-between items-center mb-3 border-b-2 border-black pb-1">
-              <h3
-                className={`font-black text-xs flex items-center gap-1 ${isMyTeam ? "text-minion-blue" : "text-black"}`}
-              >
-                {isMyTeam && <span className="animate-bounce">▶</span>}{" "}
-                {team.name}
-              </h3>
-              <div className="bg-black text-white px-2 py-0.5 text-[10px] font-bold">
-                {team.point_balance.toLocaleString()} P
+            {/* Team Header */}
+            <div className="flex flex-col gap-2 mb-4 border-b-2 border-black pb-3">
+              <div className="flex justify-between items-center">
+                <h3
+                  className={`font-black text-fluid-xs flex items-center gap-2 ${isMyTeam ? "text-minion-blue" : "text-black"}`}
+                >
+                  {isMyTeam && <span className="animate-pulse">▶</span>}
+                  {team.name}
+                </h3>
+                <span className="text-fluid-xs font-black tabular-nums">
+                  {team.point_balance.toLocaleString()}{" "}
+                  <span className="text-fluid-xs">P</span>
+                </span>
+              </div>
+
+              {/* Point Gauge Bar */}
+              <div className="w-full h-2.5 bg-black/10 border-2 border-black overflow-hidden relative">
+                <div
+                  className={`h-full transition-all duration-[2000ms] ease-out ${isMyTeam ? "bg-minion-blue" : "bg-black"}`}
+                  style={{ width: `${pointRatio}%` }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-1.5">
-              {/* 실제 낙찰된 선수 슬롯 */}
+            <div className="grid grid-cols-1 gap-2">
+              {/* Sold Players */}
               {teamPlayers.map((p: Player) => (
                 <div
                   key={p.id}
-                  className="flex justify-between items-center bg-white border-2 border-black p-1.5 shadow-sm group"
+                  className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group"
                 >
                   <div className="flex flex-col">
-                    <span className="font-black text-[11px] text-gray-900 leading-none">
+                    <span className="font-black text-fluid-xs text-gray-900 leading-none">
                       {p.name}
                     </span>
                     <span
-                      className={`text-[8px] font-bold uppercase ${TIER_COLOR[p.tier]}`}
+                      className={`text-fluid-xs font-heading mt-1 ${TIER_COLOR[p.tier]}`}
                     >
                       {p.tier}
                     </span>
                   </div>
-                  <span className="font-black text-minion-blue text-[10px] bg-minion-yellow px-1.5 py-0.5 border border-black">
-                    {p.sold_price || 0} P
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-fluid-xs font-black text-minion-blue bg-minion-yellow px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
+                      {p.sold_price} P
+                    </span>
+                  </div>
                 </div>
               ))}
 
-              {/* 빈 슬롯 표시 */}
+              {/* Empty Slots */}
               {Array.from({ length: totalSlots - teamPlayers.length }).map(
                 (_, i) => (
                   <div
                     key={`empty-${i}`}
-                    className="border-2 border-black border-dashed p-2 flex items-center justify-center bg-gray-50/50"
+                    className="border-2 border-black border-dashed p-3 flex items-center justify-center bg-gray-50/30 opacity-40"
                   >
-                    <span className="text-[7px] font-heading text-gray-500 uppercase tracking-widest">
-                      --- EMPTY SLOT ---
+                    <span className="text-fluid-xs font-heading text-gray-400 uppercase tracking-widest">
+                      빈 자리
                     </span>
                   </div>
                 ),
@@ -137,8 +161,8 @@ export function TeamList() {
             </div>
 
             {isTeamComplete && (
-              <div className="absolute -bottom-1 -right-6 bg-green-500 text-white text-[7px] font-heading px-8 py-1 rotate-[-15deg] border-2 border-black shadow-lg">
-                FULL PARTY
+              <div className="absolute top-2 -right-10 bg-minion-red text-white text-fluid-xs font-heading px-12 py-1.5 rotate-[35deg] border-2 border-black shadow-lg z-20">
+                완료
               </div>
             )}
           </div>

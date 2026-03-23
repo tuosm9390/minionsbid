@@ -101,7 +101,7 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
       setIsExpired(remain <= 0);
     };
     update();
-    const t = setInterval(update, 100);
+    const t = setInterval(update, 500);
     return () => clearInterval(t);
   }, [timerEndsAt]);
 
@@ -215,103 +215,123 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
     );
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden relative crt-overlay">
+    <div className="flex flex-col h-screen overflow-hidden relative crt-overlay bg-background">
+      {/* Texture Polishing: Noise & Grid */}
+      <div className="absolute inset-0 pixel-noise z-0" />
+
       <RoomHeader
         effectiveRole={effectiveRole}
         createdAt={createdAt}
         onLeaveRoom={() => setIsLeaveRoomOpen(true)}
       />
 
-      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto">
-        <aside className="lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 h-[300px] lg:h-auto shrink-0">
-          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0">
-            <div className="bg-black text-white px-3 py-1.5 font-heading text-[8px] uppercase flex justify-between">
-              <span>Team Roster</span>
-              <span className="text-minion-yellow animate-pulse">ACTIVE</span>
+      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto z-10 relative max-h-[90vh]">
+        {/* Left Side: Team List */}
+        <aside className="lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 h-[400px] lg:h-auto shrink-0 animate-slide-in-left delay-200">
+          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+            <div className="bg-black text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+              <span>Team Rosters</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-gray-400 text-fluid-xs">LIVE</span>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30">
               <TeamList />
             </div>
           </div>
         </aside>
 
-        <section className="lg:col-span-6 flex flex-col gap-4 min-h-0 order-1 lg:order-2 lg:h-full shrink-0">
-          <div className="pixel-box bg-black p-3 flex items-center justify-between overflow-hidden">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🏆</span>
-              <h2 className="text-xl font-black text-black truncate uppercase">
+        {/* Center: Main Auction Board & Control */}
+        <section className="lg:col-span-6 flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:h-full shrink-0 animate-slide-up delay-100">
+          <div className="pixel-box bg-black p-4 flex items-center justify-between overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)] border-b-0">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
+                <span className="text-2xl animate-bounce">🏆</span>
+              </div>
+              <h2 className="text-fluid-sm font-heading text-minion-yellow truncate uppercase leading-none">
                 {roomName}
               </h2>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <HowToUseModal variant="header" />
               {effectiveRole === "ORGANIZER" && (
                 <button
                   onClick={() => setIsEndRoomOpen(true)}
-                  className="flex items-center gap-1.5 bg-red-600 text-white px-4 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all text-[10px] font-heading uppercase"
+                  className="pixel-button bg-minion-red text-white px-5 py-2 text-fluid-xs font-heading hover:bg-minion-red-hover border-2 shadow-none"
                 >
-                  END
+                  TERMINATE
                 </button>
               )}
             </div>
           </div>
 
-          <AuctionBoard
-            isLotteryActive={!!lotteryPlayer}
-            lotteryPlayer={lotteryPlayer}
-            waitingPlayers={waitingPlayers}
-            role={effectiveRole}
-            allConnected={allConnected}
-            onCloseLottery={handleCloseLottery}
-            roomId={roomId}
-          />
+          <div className="flex-1 flex flex-col min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+            <AuctionBoard
+              isLotteryActive={!!lotteryPlayer}
+              lotteryPlayer={lotteryPlayer}
+              waitingPlayers={waitingPlayers}
+              role={effectiveRole}
+              allConnected={allConnected}
+              onCloseLottery={handleCloseLottery}
+              roomId={roomId}
+            />
+          </div>
 
           {effectiveRole === "ORGANIZER" && (
-            <OrganizerControlPanel
-              noticeText={noticeText}
-              setNoticeText={setNoticeText}
-              onSendNotice={handleNotice}
-              waitingPlayersCount={waitingPlayers.length}
-              soldPlayersCount={soldPlayers.length}
-              allDone={allDone}
-              currentPlayer={currentPlayer || null}
-              timerEndsAt={timerEndsAt}
-              lotteryPlayer={lotteryPlayer}
-              isDrawing={isDrawing}
-              allConnected={allConnected}
-              onShowResult={() => setShowResultModal(true)}
-              onDraw={handleDraw}
-              onStart={handleStart}
-            />
+            <div className="animate-slide-up delay-300">
+              <OrganizerControlPanel
+                noticeText={noticeText}
+                setNoticeText={setNoticeText}
+                onSendNotice={handleNotice}
+                waitingPlayersCount={waitingPlayers.length}
+                soldPlayersCount={soldPlayers.length}
+                allDone={allDone}
+                currentPlayer={currentPlayer || null}
+                timerEndsAt={timerEndsAt}
+                lotteryPlayer={lotteryPlayer}
+                isDrawing={isDrawing}
+                allConnected={allConnected}
+                onShowResult={() => setShowResultModal(true)}
+                onDraw={handleDraw}
+                onStart={handleStart}
+              />
+            </div>
           )}
 
           {effectiveRole === "LEADER" && roomId && storeTeamId && (
-            <BiddingControl
-              roomId={roomId}
-              teamId={storeTeamId}
-              currentPlayer={currentPlayer || null}
-              myTeam={myTeam || null}
-              isAuctionActive={isAuctionActive}
-              timerEndsAt={timerEndsAt}
-              minBid={minBid}
-              isTeamFull={isTeamFull}
-            />
+            <div className="animate-slide-up delay-300">
+              <BiddingControl
+                roomId={roomId}
+                teamId={storeTeamId}
+                currentPlayer={currentPlayer || null}
+                myTeam={myTeam || null}
+                isAuctionActive={isAuctionActive}
+                timerEndsAt={timerEndsAt}
+                minBid={minBid}
+                isTeamFull={isTeamFull}
+              />
+            </div>
           )}
         </section>
 
-        <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-[400px] lg:h-auto shrink-0">
-          <div className="pixel-box bg-black flex-none max-h-[150px] flex flex-col overflow-hidden">
-            <div className="bg-red-600 text-white px-3 py-1.5 font-heading text-[8px] uppercase">
-              유찰명단 (Unsold)
+        {/* Right Side: Unsold & Chat */}
+        <aside className="lg:col-span-3 flex flex-col gap-6 min-h-0 order-2 lg:order-3 h-[500px] lg:h-auto shrink-0 animate-slide-in-right delay-200">
+          <div className="pixel-box bg-white flex-none max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+            <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
+              Unsold Roster
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 min-h-0">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
               <UnsoldPanel />
             </div>
           </div>
-          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden">
-            <div className="bg-minion-blue text-white px-3 py-1 font-heading text-[8px] uppercase flex justify-between">
-              <span>채팅 로그</span>
-              <span className="animate-pulse">● ONLINE</span>
+
+          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+            <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+              <span>Communication</span>
+              <span className="animate-pulse text-fluid-xs text-blue-200">
+                ● ENCRYPTED
+              </span>
             </div>
             <ChatPanel />
           </div>

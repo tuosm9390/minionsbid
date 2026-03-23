@@ -31,7 +31,7 @@ export function DraftPanel({
         {phase === "DRAFT" && currentTurnTeam && (
           <div className="flex flex-col items-center gap-1">
             <span className="text-[10px] font-bold text-gray-600">
-              CURRENT TURN
+              현재 차례
             </span>
             <div className="pixel-box bg-purple-100 px-6 py-2 font-black text-purple-700">
               {currentTurnTeam.name} ({currentTurnTeam.point_balance}P)

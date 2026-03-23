@@ -30,11 +30,11 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "SYSTEM") {
     return (
-      <div className="flex items-center gap-2 my-1 px-2">
-        <span className="text-[10px] text-gray-400 font-bold tracking-tighter">
-          [SYSTEM]
+      <div className="flex items-center gap-2 my-2 px-3 py-1 bg-gray-100/50 border-l-4 border-gray-300">
+        <span className="text-[9px] text-gray-400 font-heading tracking-tighter shrink-0">
+          [SYS]
         </span>
-        <span className="text-[12px] text-gray-500 font-medium italic">
+        <span className="text-fluid-xs text-gray-600 font-body leading-tight">
           {renderFormattedSystemMessage(msg.content)}
         </span>
       </div>
@@ -43,29 +43,32 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "NOTICE") {
     return (
-      <div className="bg-yellow-50 border-4 border-black p-3 my-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="bg-black text-minion-yellow text-[8px] px-1.5 py-0.5 font-heading uppercase">
-            공지사항
-          </span>
-          <span className="text-[8px] text-gray-400 ml-auto font-mono">
-            {new Date(msg.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
+      <div className="bg-minion-yellow border-4 border-black p-3 my-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0">
+        <div className="absolute inset-0 opacity-5 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,black_5px,black_10px)]" />
+        <div className="relative z-10 flex flex-col">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-black text-minion-yellow text-[9px] px-2 py-0.5 font-heading uppercase">
+              공지사항
+            </span>
+            <span className="text-[8px] text-black/40 ml-auto font-mono">
+              {new Date(msg.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <p className="text-fluid-xs font-black text-black leading-normal font-body break-words whitespace-pre-wrap">
+            {msg.content}
+          </p>
         </div>
-        <p className="text-xs font-black text-black leading-tight">
-          {msg.content}
-        </p>
       </div>
     );
   }
 
   const BADGE: Record<string, string> = {
-    ORGANIZER: "bg-red-600 text-white",
+    ORGANIZER: "bg-minion-red text-white",
     LEADER: "bg-minion-blue text-white",
-    VIEWER: "bg-gray-200 text-gray-600",
+    VIEWER: "bg-gray-200 text-gray-600 border-gray-300",
   };
   const label: Record<string, string> = {
     ORGANIZER: "주최자",
@@ -74,22 +77,24 @@ function MessageItem({ msg }: { msg: Message }) {
   };
 
   return (
-    <div className="text-[11px] p-2 hover:bg-gray-50 transition-colors border-b border-black/5">
+    <div className="p-2 hover:bg-black/[0.02] transition-colors rounded-sm group">
       <div className="flex items-center gap-2 mb-1">
         <span
-          className={`text-[10px] font-heading px-1 py-0.5 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${BADGE[role] || ""}`}
+          className={`text-[9px] font-heading px-1.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] leading-none ${BADGE[role] || ""}`}
         >
           {label[role] || "NPC"}
         </span>
-        <span className="font-black text-black">{msg.sender_name}</span>
-        <span className="text-[8px] text-gray-600 ml-auto font-mono">
+        <span className="text-fluid-xs font-black text-black tracking-tight">
+          {msg.sender_name}
+        </span>
+        <span className="text-[8px] text-gray-400 ml-auto font-mono opacity-0 group-hover:opacity-100 transition-opacity">
           {new Date(msg.created_at).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           })}
         </span>
       </div>
-      <p className="text-gray-700 font-bold leading-relaxed break-words pl-1 border-l-2 border-black/10">
+      <p className="text-gray-700 font-body text-fluid-xs leading-relaxed break-words pl-2 border-l-2 border-black/10">
         {msg.content}
       </p>
     </div>
@@ -137,14 +142,25 @@ export function ChatPanel() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white border-4 border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.05)]">
+      {/* Chat Header */}
+      {/* <div className="bg-black text-white px-4 py-2 flex items-center justify-between border-b-4 border-black">
+        <span className="text-[10px] font-heading tracking-widest">
+          실시간 로그
+        </span>
+        <div className="flex gap-1">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-[8px] font-bold text-gray-400">온라인</span>
+        </div>
+      </div> */}
+
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-1 custom-scrollbar"
+        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 custom-scrollbar"
       >
         {messages.length === 0 ? (
-          <div className="text-gray-600 text-[10px] text-center py-10 my-auto font-black italic uppercase">
-            No logs recorded
+          <div className="text-gray-300 text-fluid-xs text-center py-20 my-auto font-heading italic uppercase opacity-50">
+            --- 대기 중 ---
           </div>
         ) : (
           messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
@@ -153,30 +169,30 @@ export function ChatPanel() {
 
       <form
         onSubmit={handleSend}
-        className="p-3 bg-gray-50 border-t-4 border-black flex flex-col gap-2"
+        className="p-4 bg-gray-50 border-t-4 border-black flex flex-col gap-3"
       >
         <div className="flex justify-between items-center px-1">
-          <span className="text-[8px] font-black text-gray-400 uppercase">
-            Message Input
+          <span className="text-[9px] font-heading text-gray-400 uppercase tracking-tighter">
+            메시지 입력
           </span>
-          <span className="text-[8px] font-black text-gray-400">
+          <span className="text-[8px] font-mono text-gray-400">
             {input.length}/{MAX_MESSAGE_LENGTH}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3 h-12">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="입력하세요..."
+            placeholder="메시지를 입력하세요..."
             maxLength={MAX_MESSAGE_LENGTH}
-            className="flex-1 bg-white border-4 border-black px-3 py-2 text-[10px] font-black focus:outline-none placeholder:text-gray-200"
+            className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-xs font-body font-bold focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
             disabled={isSending}
           />
           <button
             type="submit"
             disabled={isSending || !input.trim()}
-            className="pixel-button bg-black text-white px-4 text-[10px]"
+            className="pixel-button bg-black text-white h-full px-4 text-[10px] font-heading uppercase tracking-tight hover:bg-minion-blue transition-colors"
           >
             전송
           </button>
