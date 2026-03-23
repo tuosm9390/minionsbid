@@ -68,7 +68,7 @@ export function LotteryAnimation({
           y: -(VISIBLE_ITEMS * ITEM_HEIGHT),
           transition: {
             duration: SPIN_DURATION,
-            ease: [0.16, 1, 0.3, 1], // easeOutExpo-like
+            ease: [0.16, 1, 0.3, 1] as const, // easeOutExpo-like
           },
         });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Player } from "@/features/auction/store/useAuctionStore";
 import { getTierImage, getPositionImage } from "../../utils/display";
 import { TIER_COLOR } from "../../constants/room";
@@ -12,7 +12,7 @@ interface PlayerInAuctionProps {
 }
 
 export function PlayerInAuction({ player }: PlayerInAuctionProps) {
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -23,14 +23,14 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
         duration: 0.5,
-        ease: [0.16, 1, 0.3, 1],
+        ease: [0.16, 1, 0.3, 1] as const,
       },
     },
   };

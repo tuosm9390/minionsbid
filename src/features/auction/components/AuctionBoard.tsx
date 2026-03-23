@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
 import { useAuctionBoard } from "@/features/auction/hooks/useAuctionBoard";
 import { AuctionResultModal } from "./AuctionResultModal";
 import { LotteryAnimation } from "./LotteryAnimation";
@@ -25,20 +25,20 @@ interface AuctionBoardProps {
 
 type SceneName = "lottery" | "bidding" | "draft" | "finished" | "waiting";
 
-const sceneVariants = {
+const sceneVariants: Record<SceneName, Variants> = {
   waiting: {
     initial: { y: 20, opacity: 0 },
-    animate: { y: 0, opacity: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+    animate: { y: 0, opacity: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const } },
     exit: { y: -20, opacity: 0, transition: { duration: 0.25 } },
   },
   lottery: {
     initial: { scale: 0.85, opacity: 0 },
-    animate: { scale: 1, opacity: 1, transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] } },
+    animate: { scale: 1, opacity: 1, transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] as const } },
     exit: { scale: 1.1, opacity: 0, transition: { duration: 0.3 } },
   },
   bidding: {
     initial: { y: -30, opacity: 0 },
-    animate: { y: 0, opacity: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+    animate: { y: 0, opacity: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
     exit: { x: 100, opacity: 0, transition: { duration: 0.35, ease: "easeIn" } },
   },
   draft: {
@@ -48,10 +48,10 @@ const sceneVariants = {
   },
   finished: {
     initial: { scale: 0.9, opacity: 0 },
-    animate: { scale: 1, opacity: 1, transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] } },
+    animate: { scale: 1, opacity: 1, transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] as const } },
     exit: {},
   },
-} satisfies Record<SceneName, { initial: object; animate: object; exit: object }>;
+};
 
 export function AuctionBoard(props: AuctionBoardProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -121,9 +121,10 @@ export function AuctionBoard(props: AuctionBoardProps) {
         <AnimatePresence mode="wait">
           <motion.div
             key={currentScene}
-            initial={shouldReduceMotion ? false : sceneVariants[currentScene].initial}
-            animate={sceneVariants[currentScene].animate}
-            exit={shouldReduceMotion ? {} : sceneVariants[currentScene].exit}
+            variants={sceneVariants[currentScene]}
+            initial={shouldReduceMotion ? false : "initial"}
+            animate="animate"
+            exit={shouldReduceMotion ? {} : "exit"}
             className="flex-1 flex flex-col"
           >
             {currentScene === "lottery" && (
