@@ -114,9 +114,6 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
             variants={itemVariants}
             className="bg-minion-yellow/10 p-3 border-4 border-dashed border-black/10 w-full max-w-lg text-center relative"
           >
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-3 py-1 border-2 border-black text-fluid-xs font-heading">
-              소개
-            </div>
             <p className="text-fluid-xs font-bold text-gray-700 leading-relaxed italic">
               &quot;{player.description}&quot;
             </p>
