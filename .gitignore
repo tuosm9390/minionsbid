@@ -53,3 +53,6 @@ next-env.d.ts
 .gemini/
 gha-creds-*.json
 .github/
+/.claude
+/.omc/
+/

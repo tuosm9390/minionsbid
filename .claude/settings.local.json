@@ -19,7 +19,18 @@
       "mcp__filesystem__list_directory",
       "Bash(grep:*)",
       "mcp__filesystem__move_file",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx tsc:*)",
+      "Skill(plan-eng-review)",
+      "Skill(office-hours)",
+      "Bash(B=~/.claude/skills/gstack/browse/dist/browse)",
+      "Bash($B goto:*)",
+      "Bash($B screenshot:*)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-review-log '{\"skill\":\"plan-eng-review\",\"timestamp\":\"2026-03-23T09:00:00Z\",\"status\":\"clean\",\"unresolved\":0,\"critical_gaps\":0,\"issues_found\":3,\"mode\":\"FULL_REVIEW\",\"commit\":\"2c3bc99\"}')",
+      "Bash(~/.claude/skills/gstack/bin/gstack-review-read)",
+      "Bash(pnpm test:*)",
+      "Bash(npx vitest:*)",
+      "mcp__plugin_oh-my-claudecode_t__state_list_active"
     ]
   }
 }
