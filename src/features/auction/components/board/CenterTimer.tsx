@@ -1,7 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface CenterTimerProps {
   timerEndsAt: string;
@@ -53,9 +55,13 @@ export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
             : cn("bg-black border-black text-minion-yellow", isTickShaking && "animate-timer-tick")
         )}
       >
-        <span className={`text-2xl ${isUrgent ? "animate-pulse" : ""}`}>
-          {isUrgent ? "🚨" : "⏳"}
-        </span>
+        <PixelIcon
+          icon={isUrgent ? PIXEL_ICONS.WARNING : PIXEL_ICONS.TIMER}
+          color={isUrgent ? "text-minion-red" : "text-minion-yellow"}
+          size={24}
+          animation={isUrgent ? "urgent" : "idle"}
+          label="남은 시간"
+        />
         <span className="text-fluid-lg font-heading tracking-widest tabular-nums leading-none">
           {isUrgent
             ? timeLeftSec.toFixed(1)

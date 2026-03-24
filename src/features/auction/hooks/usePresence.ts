@@ -17,29 +17,48 @@ interface PresenceOptions {
  */
 export function useFirebasePresence({ roomId, teamId, role, teamName }: PresenceOptions) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
+  const setPresenceLoaded = useAuctionStore(s => s.setPresenceLoaded)
+  const setLocalConnected = useAuctionStore(s => s.setLocalConnected)
 
   useEffect(() => {
-    if (!roomId || (role !== 'LEADER' && role !== 'ORGANIZER')) return
+    if (!roomId) return
 
     const rtdb = getDatabase()
-    const sessionId = `${teamId ?? 'organizer'}_${Date.now()}`
-    const presenceRef = ref(rtdb, `presence/${roomId}/${sessionId}`)
+    const unsubs: (() => void)[] = []
 
-    // 연결 시 존재 기록
-    set(presenceRef, {
-      teamId: teamId ?? null,
-      teamName: teamName ?? '',
-      role,
-      connectedAt: serverTimestamp(),
+    // 1. 로컬 연결 상태 모니터링 (FR-006)
+    const connectedRef = ref(rtdb, '.info/connected')
+    const unsubConnected = onValue(connectedRef, (snap) => {
+      setLocalConnected(snap.val() === true)
     })
+    unsubs.push(unsubConnected)
 
-    // 연결 끊기면 자동 삭제
-    onDisconnect(presenceRef).remove()
+    // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
+    let myPresenceRef: any = null
+    if (role === 'LEADER' || role === 'ORGANIZER') {
+      const sessionId = `${teamId ?? 'organizer'}_${Date.now()}`
+      myPresenceRef = ref(rtdb, `presence/${roomId}/${sessionId}`)
 
-    // 전체 presence 구독
+      // 연결 시 존재 기록
+      set(myPresenceRef, {
+        teamId: teamId ?? null,
+        teamName: teamName ?? '',
+        role,
+        connectedAt: serverTimestamp(),
+      })
+
+      // 연결 끊기면 자동 삭제
+      onDisconnect(myPresenceRef).remove()
+    }
+
+    // 3. 전체 presence 구독 (모든 역할 수행, FR-001)
     const allPresenceRef = ref(rtdb, `presence/${roomId}`)
     const unsubPresence = onValue(allPresenceRef, (snapshot) => {
       const data = snapshot.val()
+      
+      // 첫 데이터 수신 시 로딩 완료 표시 (FR-005)
+      setPresenceLoaded(true)
+
       if (!data) {
         setRealtimeData({ presences: [] })
         return
@@ -52,10 +71,13 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
       }))
       setRealtimeData({ presences })
     })
+    unsubs.push(unsubPresence)
 
     return () => {
-      set(presenceRef, null)
-      unsubPresence()
+      if (myPresenceRef) {
+        set(myPresenceRef, null)
+      }
+      unsubs.forEach((unsub) => unsub())
     }
-  }, [roomId, teamId, role, teamName, setRealtimeData])
+  }, [roomId, teamId, role, teamName, setRealtimeData, setPresenceLoaded, setLocalConnected])
 }

@@ -24,6 +24,8 @@ import { AuctionResultModal } from "@/features/auction/components/AuctionResultM
 import { LeaveRoomModal } from "@/features/auction/components/LeaveRoomModal";
 import { RoomHeader } from "./components/RoomHeader";
 import { OrganizerControlPanel } from "./components/OrganizerControlPanel";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 
 export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   useFirebaseRealtime(roomId);
@@ -36,6 +38,7 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt);
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
   const presences = useAuctionStore((s) => s.presences);
+  const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const isReAuctionRound = useAuctionStore((s) => s.isReAuctionRound);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
@@ -50,6 +53,7 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
 
   const router = useRouter();
 
@@ -225,18 +229,30 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
         onLeaveRoom={() => setIsLeaveRoomOpen(true)}
       />
 
-      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto z-10 relative max-h-[90vh]">
-        {/* Left Side: Team List */}
-        <aside className="lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 h-[400px] lg:h-auto shrink-0 animate-slide-in-left delay-200">
+      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
+        {/* Left Side: Team List (Mobile Accordion) */}
+        <aside
+          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-auto"}`}
+        >
           <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-            <div className="bg-black text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+            <button
+              onClick={() => setIsTeamsExpanded(!isTeamsExpanded)}
+              className="bg-black text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black w-full text-left lg:cursor-default"
+            >
               <span>Team Rosters</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-gray-400 text-fluid-xs">LIVE</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-gray-400 text-fluid-xs">LIVE</span>
+                </div>
+                <span className="lg:hidden text-minion-yellow font-heading">
+                  {isTeamsExpanded ? "▲" : "▼"}
+                </span>
               </div>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30">
+            </button>
+            <div
+              className={`flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30 ${!isTeamsExpanded ? "hidden lg:block" : "block"}`}
+            >
               <TeamList />
             </div>
           </div>
@@ -247,7 +263,15 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
           <div className="pixel-box bg-black p-4 flex items-center justify-between overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)] border-b-0">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
-                <span className="text-2xl animate-bounce">🏆</span>
+                <span className="text-2xl animate-bounce">
+                  <PixelIcon
+                    icon={PIXEL_ICONS.FINISH}
+                    size={18}
+                    color="text-minion-yellow"
+                    animation="active"
+                    label="이용 방법"
+                  />
+                </span>
               </div>
               <h2 className="text-fluid-sm font-heading text-minion-yellow truncate uppercase leading-none">
                 {roomName}
@@ -258,9 +282,9 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
               {effectiveRole === "ORGANIZER" && (
                 <button
                   onClick={() => setIsEndRoomOpen(true)}
-                  className="pixel-button bg-minion-red text-white px-5 py-2 text-fluid-xs font-heading hover:bg-minion-red-hover border-2 shadow-none"
+                  className="pixel-button bg-minion-red text-white h-10 px-5 py-2 text-fluid-xs font-heading hover:bg-minion-red-hover border-2 shadow-none"
                 >
-                  TERMINATE
+                  경매 종료
                 </button>
               )}
             </div>
@@ -316,8 +340,8 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
         </section>
 
         {/* Right Side: Unsold & Chat */}
-        <aside className="lg:col-span-3 flex flex-col gap-6 min-h-0 order-2 lg:order-3 h-[500px] lg:h-auto shrink-0 animate-slide-in-right delay-200">
-          <div className="pixel-box bg-white flex-none max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+        <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0 animate-slide-in-right delay-200">
+          <div className="pixel-box bg-white flex-none max-h-[160px] lg:max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
               Unsold Roster
             </div>
@@ -326,11 +350,11 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
             </div>
           </div>
 
-          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
             <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
               <span>Communication</span>
               <span className="animate-pulse text-fluid-xs text-blue-200">
-                ● ENCRYPTED
+                ● LIVE
               </span>
             </div>
             <ChatPanel />

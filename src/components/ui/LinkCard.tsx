@@ -29,9 +29,9 @@ export function LinkCard({
         <p className={`${isCompact ? "text-xs" : "text-sm"} font-black text-black uppercase flex items-center gap-2`}>
           {label}
         </p>
-        <p className={`${isCompact ? "text-[9px]" : "text-[10px]"} text-gray-400 font-bold mt-0.5`}>{desc}</p>
+        <p className="text-fluid-xs text-gray-400 font-bold mt-0.5">{desc}</p>
         <div className={`mt-2 bg-gray-100 p-2 border-2 border-black overflow-hidden relative group`}>
-          <p className={`${isCompact ? "text-[8px]" : "text-[9px]"} text-minion-blue font-mono truncate pr-2`}>
+          <p className="text-fluid-xs text-minion-blue font-mono truncate pr-2">
             {link}
           </p>
         </div>

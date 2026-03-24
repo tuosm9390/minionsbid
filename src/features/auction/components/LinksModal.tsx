@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -6,7 +6,9 @@ import {
   useAuctionStore,
   Team,
 } from "@/features/auction/store/useAuctionStore";
-import { X, Link as LinkIcon } from "lucide-react";
+import { X } from "lucide-react";
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { LinkCard } from "@/components/ui/LinkCard";
 
 export function LinksModal() {
@@ -58,16 +60,22 @@ export function LinksModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b-4 border-black flex items-center justify-between bg-minion-blue text-white">
-          <h2 className="text-sm font-black flex items-center gap-2">📡 접속 링크</h2>
-          <button onClick={() => setIsOpen(false)} className="hover:text-minion-yellow transition-colors">
-            <X size={20} />
+          <h2 className="text-sm font-black flex items-center gap-2">
+            <PixelIcon icon={PIXEL_ICONS.LINKS} size={18} color="text-white" label="연결" />
+            접속 링크
+          </h2>
+          <button onClick={() => setIsOpen(false)} className="hover:text-minion-yellow transition-colors flex items-center">
+            <PixelIcon icon={X} size={20} label="닫기" />
           </button>
         </div>
 
         <div className="p-5 space-y-2 overflow-y-auto custom-scrollbar bg-gray-50">
           {organizerLink && (
             <div>
-              <p className="text-[10px] font-heading text-gray-500 uppercase tracking-tighter mb-2">👑 주최자</p>
+              <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
+                <PixelIcon icon={PIXEL_ICONS.LEADING} size={14} color="text-minion-yellow" />
+                주최자
+              </div>
               <LinkCard
                 label="주최자" desc="주최자 전용 컨트롤 패널"
                 link={organizerLink} linkKey="organizer" variant="compact"
@@ -77,7 +85,10 @@ export function LinksModal() {
           )}
 
           <div className="pt-2">
-            <p className="text-[10px] font-heading text-gray-500 uppercase tracking-tighter mb-2">🛡️ 팀장 링크</p>
+            <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
+              <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={14} color="text-minion-blue" />
+              팀장 링크
+            </div>
             <div className="space-y-1">
               {[...teams]
                 .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
@@ -100,7 +111,10 @@ export function LinksModal() {
 
           {viewerLink && (
             <div className="pt-2">
-              <p className="text-[10px] font-heading text-gray-500 uppercase tracking-tighter mb-2">👀 관전자 링크</p>
+              <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
+                <PixelIcon icon={PIXEL_ICONS.HOW_TO_USE} size={14} color="text-gray-400" />
+                관전자 링크
+              </div>
               <LinkCard
                 label="관전자" desc="누구나 관전 가능"
                 link={viewerLink} linkKey="viewer" variant="compact"
@@ -113,7 +127,7 @@ export function LinksModal() {
         <div className="px-5 py-4 border-t-4 border-black bg-white">
           <button 
             onClick={() => setIsOpen(false)} 
-            className="pixel-button w-full h-12 bg-black text-white text-[10px] font-heading uppercase tracking-tight"
+            className="pixel-button w-full h-12 bg-black text-white text-fluid-xs font-heading uppercase tracking-tight"
           >
             닫기
           </button>
@@ -126,9 +140,10 @@ export function LinksModal() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="pixel-button bg-white/10 hover:bg-white/20 text-white px-4 h-10 text-[10px] font-heading uppercase tracking-tight border-white/20 shadow-none transition-all"
+        className="pixel-button bg-white/10 hover:bg-white/20 text-white px-4 h-10 text-fluid-xs font-heading uppercase tracking-tight border-white/20 shadow-none transition-all gap-2"
       >
-        <LinkIcon size={12} /> 링크
+        <PixelIcon icon={PIXEL_ICONS.LINKS} size={14} color="text-white" />
+        링크
       </button>
 
       {isOpen && mounted && createPortal(modalContent, document.body)}

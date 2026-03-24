@@ -5,6 +5,8 @@ import {
   type Team,
 } from "@/features/auction/store/useAuctionStore";
 import { useBiddingControl } from "@/features/auction/hooks/useBiddingControl";
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface BiddingControlProps {
   roomId: string;
@@ -36,15 +38,12 @@ export function BiddingControl(props: BiddingControlProps) {
   const {
     currentPlayer,
     isAuctionActive,
-    timerEndsAt,
     minBid,
     isTeamFull,
     myTeam,
   } = props;
 
   const pointBalance = myTeam?.point_balance ?? 0;
-  // Visual gauge: how much of the initial points (assumed 1000 for calc or relative) are left
-  // If we don't have initial, we just show a vibrant bar.
   const pointRatio = Math.min(100, (pointBalance / 1000) * 100);
 
   return (
@@ -101,8 +100,9 @@ export function BiddingControl(props: BiddingControlProps) {
       </div>
 
       {bidError && (
-        <div className="mb-4 bg-minion-red/10 border-2 border-minion-red text-minion-red text-fluid-xs py-2 px-3 font-bold text-center animate-shake uppercase">
-          ⚠️ {bidError}
+        <div className="mb-4 bg-minion-red/10 border-2 border-minion-red text-minion-red text-fluid-xs py-2 px-3 font-bold text-center animate-shake uppercase flex items-center justify-center gap-2">
+          <PixelIcon icon={PIXEL_ICONS.WARNING} size={14} color="text-minion-red" animation="urgent" />
+          {bidError}
         </div>
       )}
 
@@ -110,7 +110,7 @@ export function BiddingControl(props: BiddingControlProps) {
         {!isAuctionActive && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none transition-all">
             <div className="flex items-center gap-3">
-              <span className="text-2xl animate-bounce">⏳</span>
+              <PixelIcon icon={PIXEL_ICONS.WAITING} size={24} color="text-gray-400" animation="active" />
               <p className="text-fluid-xs font-heading text-gray-500 uppercase">
                 {!currentPlayer ? "다음 선수 불러오는 중..." : "대기 중"}
               </p>
@@ -161,19 +161,27 @@ export function BiddingControl(props: BiddingControlProps) {
               : "bg-minion-blue text-white border-black hover:bg-minion-blue-hover"
           }`}
         >
-          {/* Shine effect for leading state */}
+          {/* Gold Shine effect for leading state */}
           {isLeading && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shine pointer-events-none" />
           )}
 
-          <span className="relative z-10">
+          <span className="relative z-10 flex items-center justify-center gap-2">
+            {isLeading && (
+              <PixelIcon icon={PIXEL_ICONS.LEADING} size={16} color="text-minion-yellow" animation="success" />
+            )}
             {isLeading
-              ? "입찰 중"
+              ? "최고 입찰 중"
               : isBidding
                 ? "입찰 중..."
                 : isTeamFull
                   ? "팀 가득 참"
-                  : "입찰하기 🔥"}
+                  : (
+                    <span className="flex items-center gap-2">
+                      입찰하기
+                      <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={14} color="text-white" />
+                    </span>
+                  )}
           </span>
         </button>
       </div>

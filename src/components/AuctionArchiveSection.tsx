@@ -44,7 +44,7 @@ function ArchiveDetailModal({
               <h2 className="text-lg font-black text-black uppercase">
                 {archive.room_name}
               </h2>
-              <p className="text-[8px] font-heading text-black/80 mt-1 uppercase">
+              <p className="text-fluid-xs font-heading text-black/80 mt-1 uppercase">
                 CLOSED:{" "}
                 {new Date(archive.closed_at).toLocaleDateString("ko-KR")}
               </p>
@@ -66,25 +66,25 @@ function ArchiveDetailModal({
                 key={team.id}
                 className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
               >
-                <table className="w-full h-full text-[10px] border-collapse">
+                <table className="w-full h-full text-fluid-xs border-collapse">
                   <tbody>
                     <tr>
                       <td
                         rowSpan={Math.max(team.players.length, 1) + 2}
                         className="w-1/3 border-r-4 border-black bg-gray-100 text-center align-middle p-4"
                       >
-                        <span className="text-[14px] font-black text-black block mb-1">
+                        <span className="text-fluid-sm font-black text-black block mb-1">
                           {team.leader_name}
                         </span>
-                        <div className="text-[8px] font-heading text-minion-blue mb-2">
+                        <div className="text-fluid-xs font-heading text-minion-blue mb-2">
                           {team.name}
                         </div>
-                        <div className="inline-block border-2 border-black bg-minion-yellow text-black font-heading text-[7px] px-2 py-1 uppercase">
+                        <div className="inline-block border-2 border-black bg-minion-yellow text-black font-heading text-fluid-xs px-2 py-1 uppercase">
                           {team.point_balance.toLocaleString()}P LEFT
                         </div>
                       </td>
                       <td className="w-2/3 border-b-4 border-black bg-minion-blue text-white text-center py-2 px-4">
-                        <span className="font-heading text-[8px] uppercase tracking-tighter">
+                        <span className="font-heading text-fluid-xs uppercase tracking-tighter">
                           ROSTER
                         </span>
                       </td>
@@ -92,10 +92,10 @@ function ArchiveDetailModal({
                     {/* 팀장 행 */}
                     <tr>
                       <td className="w-2/3 border-b-2 border-black text-center py-2.5 px-4 bg-blue-50 relative">
-                        <span className="text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-heading">
+                        <span className="text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 text-fluid-xs font-heading">
                           Leader
                         </span>
-                        <span className="font-black text-[14px] text-gray-900">
+                        <span className="font-black text-fluid-sm text-gray-900">
                           {team.leader_name}
                         </span>
                       </td>
@@ -105,11 +105,11 @@ function ArchiveDetailModal({
                       team.players.map((p, idx) => (
                         <tr key={idx}>
                           <td
-                            className={`w-2/3 text-[14px] py-2.5 px-4 font-bold text-gray-700 relative ${idx !== team.players.length - 1 ? "border-b border-gray-300" : ""}`}
+                            className={`w-2/3 text-fluid-sm py-2.5 px-4 font-bold text-gray-700 relative ${idx !== team.players.length - 1 ? "border-b border-gray-300" : ""}`}
                           >
                             <div className="text-center w-full">{p.name}</div>
                             {p.sold_price != null && (
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-black text-red-500">
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-fluid-xs font-black text-red-500">
                                 {p.sold_price.toLocaleString()}P
                               </span>
                             )}
@@ -118,7 +118,7 @@ function ArchiveDetailModal({
                       ))
                     ) : (
                       <tr>
-                        <td className="w-2/3 text-center py-6 text-[8px] font-heading text-gray-300 italic">
+                        <td className="w-2/3 text-center py-6 text-fluid-xs font-heading text-gray-300 italic">
                           EMPTY ROSTER
                         </td>
                       </tr>
@@ -133,7 +133,7 @@ function ArchiveDetailModal({
         <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0">
           <button
             onClick={onClose}
-            className="pixel-button w-full py-3 bg-black text-white text-[10px] font-heading"
+            className="pixel-button w-full py-3 bg-black text-white text-fluid-xs font-heading"
           >
             CLOSE
           </button>
@@ -220,7 +220,7 @@ export function AuctionArchiveSection({
                   setLoading(true);
                   void fetchArchives();
                 }}
-                className="flex items-center gap-1.5 text-[8px] font-heading text-white hover:text-minion-yellow transition-colors"
+                className="flex items-center gap-1.5 text-fluid-xs font-heading text-white hover:text-minion-yellow transition-colors"
               >
                 <RefreshCw size={12} /> REFRESH
               </button>
@@ -236,7 +236,7 @@ export function AuctionArchiveSection({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
             {archives.length === 0 ? (
-              <div className="text-center py-20 text-gray-300 font-heading text-[10px] border-4 border-dashed border-gray-200">
+              <div className="text-center py-20 text-gray-300 font-heading text-fluid-xs border-4 border-dashed border-gray-200">
                 NO RECORDS FOUND
               </div>
             ) : (
@@ -255,7 +255,7 @@ export function AuctionArchiveSection({
                         <h3 className="font-black text-black text-lg truncate mb-1">
                           {archive.room_name}
                         </h3>
-                        <p className="text-[8px] font-heading text-gray-400 uppercase tracking-tighter flex items-center gap-2">
+                        <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter flex items-center gap-2">
                           {new Date(archive.closed_at).toLocaleDateString(
                             "ko-KR",
                           )}
@@ -275,7 +275,7 @@ export function AuctionArchiveSection({
           <div className="px-6 py-4 border-t-4 border-black bg-white">
             <button
               onClick={onClose}
-              className="pixel-button w-full py-3 bg-black text-white text-[10px] font-heading"
+              className="pixel-button w-full py-3 bg-black text-white text-fluid-xs font-heading"
             >
               CLOSE
             </button>

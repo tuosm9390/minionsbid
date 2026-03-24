@@ -5,6 +5,10 @@
 
 이 문서는 League Auction 프로젝트의 핵심 React 컴포넌트와 Zustand 전역 상태, 그리고 실시간 구독(Realtime) 전략에 대해 설명합니다.
 
+## UI Components
+
+- `PixelIcon` (`src/components/ui/PixelIcon.tsx`) — 프로젝트의 **Cyber-Pixel** 테마를 위한 공용 아이콘 컴포넌트. `lucide-react` 아이콘을 픽셀 아트 스타일(`crispEdges`, `strokeWidth: 3`)로 렌더링하며, `framer-motion` 기반의 상태별 애니메이션(idle, urgent, success, active)을 지원합니다. 접근성을 위해 `label` 속성을 통한 ARIA 지원 및 `isInteractive` 속성을 통한 터치 영역(44px) 확보 기능을 포함합니다.
+
 ## Key Components
 
 - `RoomClient` (`room/[id]/RoomClient.tsx`) — Client Component. 경매 UI 전체 + `useAuctionRealtime` 호출.

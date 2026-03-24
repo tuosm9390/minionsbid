@@ -37,14 +37,14 @@ const TeamResultCard = memo(
         <div className="p-5 border-b-4 border-black bg-gray-100/50">
           <div className="flex justify-between items-start mb-4">
             <div className="space-y-1">
-              <span className="text-[9px] font-heading text-minion-blue uppercase block">
+              <span className="text-fluid-xs font-heading text-minion-blue uppercase block">
                 팀명
               </span>
               <h3 className="text-fluid-sm font-black text-black leading-none">
                 {team.name}
               </h3>
             </div>
-            <div className="bg-black text-minion-yellow px-2 py-1 pixel-box border-2 shadow-none text-[10px] font-heading leading-none">
+            <div className="bg-black text-minion-yellow px-2 py-1 pixel-box border-2 shadow-none text-fluid-xs font-heading leading-none">
               {team.point_balance}P
             </div>
           </div>
@@ -71,7 +71,7 @@ const TeamResultCard = memo(
 
         {/* Members List */}
         <div className="flex-1 p-4 space-y-2 bg-white font-body">
-          <p className="text-[9px] font-heading text-gray-400 uppercase mb-2 tracking-tighter">
+          <p className="text-fluid-xs font-heading text-gray-400 uppercase mb-2 tracking-tighter">
             영입된 멤버
           </p>
           {slots.map((player, idx) => (
@@ -94,7 +94,7 @@ const TeamResultCard = memo(
                 </span>
               </div>
               {player && (
-                <span className="text-[10px] font-black text-minion-red bg-white px-1.5 py-0.5 border border-black tabular-nums">
+                <span className="text-fluid-xs font-black text-minion-red bg-white px-1.5 py-0.5 border border-black tabular-nums">
                   {player.sold_price}P
                 </span>
               )}
@@ -163,7 +163,7 @@ export function AuctionResultModal({
               <h2 className="text-fluid-lg font-heading text-minion-yellow leading-none mb-1">
                 최종 팀 구성
               </h2>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <p className="text-fluid-xs font-bold text-gray-400 uppercase tracking-widest">
                 모든 플레이어의 배정이 완료되었습니다
               </p>
             </div>
