@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import { X, ExternalLink, Check } from "lucide-react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCreateRoom } from "@/features/auction/hooks/useCreateRoom";
 import { BasicInfoStep } from "./create-room/BasicInfoStep";
 import { CaptainRegistrationStep } from "./create-room/CaptainRegistrationStep";
@@ -99,46 +100,55 @@ export function CreateRoomModal() {
                 )}
               </div>
 
-              {/* Pixel Step Indicator */}
-              <div className="px-8 pt-6 pb-4 flex items-center justify-between shrink-0 bg-gray-50 border-b-2 border-black/5">
-                {STEPS.map((label, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col items-center gap-2 flex-1 relative group"
-                  >
-                    {/* Connector Line */}
-                    {i < STEPS.length - 1 && (
-                      <div
-                        className={`absolute top-4 left-[50%] right-[-50%] h-1 border-y border-black/10 z-0 ${i < step ? "bg-minion-blue" : "bg-gray-200"}`}
-                      />
-                    )}
+              {/* Dynamic Step Progress Indicator */}
+              <div className="bg-gray-50 border-b-4 border-black px-10 py-10 relative overflow-hidden shrink-0">
+                <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(black_2px,transparent_2px)] bg-[size:16px_16px] pointer-events-none" />
 
-                    <div
-                      className={`z-10 flex items-center justify-center w-8 h-8 pixel-box border-2 shadow-none transition-all duration-300 ${
-                        i < step
-                          ? "bg-minion-blue text-gray-500"
-                          : i === step
-                            ? "bg-black text-black scale-110 shadow-[4px_4px_0px_rgba(0,0,0,0.2)]"
-                            : "bg-white text-gray-300 border-gray-200"
-                      }`}
-                    >
-                      {i < step ? (
-                        <Check size={14} strokeWidth={3} />
-                      ) : (
-                        <span className="font-heading text-fluid-xs">
-                          {i + 1}
-                        </span>
-                      )}
+                <div className="relative flex justify-between items-center max-w-xl mx-auto">
+                  {/* Track Line */}
+                  <div className="absolute left-0 top-[20px] w-full h-1 bg-black/10 z-0" />
+
+                  {/* Animated Minion Character */}
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      left: `calc(${(step / (STEPS.length - 1)) * 100}% + ${
+                        20 - (step / (STEPS.length - 1)) * 40
+                      }px)`,
+                    }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                    className="absolute top-[-35px] z-20 flex flex-col items-center pointer-events-none -translate-x-1/2"
+                  >
+                    <div className="bg-minion-yellow text-black text-[10px] font-black px-2 py-0.5 border-2 border-black mb-1 animate-minion-bounce shadow-pixel-sm whitespace-nowrap">
+                      (•‿•) MISSION!
                     </div>
-                    <span
-                      className={`text-fluid-xs font-heading uppercase tracking-tighter transition-colors ${
-                        i === step ? "text-black" : "text-gray-400"
-                      }`}
+                    <div className="w-2 h-2 bg-black rotate-45 translate-y-[-4px]" />
+                  </motion.div>
+
+                  {STEPS.map((label, i) => (
+                    <div
+                      key={label}
+                      className="relative z-10 flex flex-col items-center gap-3"
                     >
-                      {label}
-                    </span>
-                  </div>
-                ))}
+                      <div
+                        className={`w-10 h-10 flex items-center justify-center border-4 font-black text-fluid-xs transition-all duration-300 ${
+                          i <= step
+                            ? "bg-black text-minion-yellow border-black scale-110 shadow-pixel-sm"
+                            : "bg-white text-gray-300 border-gray-200"
+                        }`}
+                      >
+                        {i < step ? <Check size={18} strokeWidth={4} /> : i + 1}
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-tighter transition-colors duration-300 ${
+                          i <= step ? "text-black" : "text-gray-300"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar font-body">

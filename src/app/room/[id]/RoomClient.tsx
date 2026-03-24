@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
+import { useAuctionStore, Role, PresenceUser } from "@/features/auction/store/useAuctionStore";
 import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
 import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
 import { useRoomAuth } from "@/features/auction/hooks/useRoomAuth";
@@ -27,7 +27,15 @@ import { OrganizerControlPanel } from "./components/OrganizerControlPanel";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 
-export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
+export function RoomClient({
+  roomId,
+  roleParam,
+  teamIdParam,
+}: {
+  roomId: string;
+  roleParam: Role;
+  teamIdParam: string | null;
+}) {
   useFirebaseRealtime(roomId);
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
@@ -38,7 +46,6 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt);
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
   const presences = useAuctionStore((s) => s.presences);
-  const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const isReAuctionRound = useAuctionStore((s) => s.isReAuctionRound);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
@@ -51,7 +58,6 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   const [noticeText, setNoticeText] = useState("");
   const [isSendingNotice, setIsSendingNotice] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
 
@@ -74,20 +80,13 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   });
 
   const connectedLeaderIds = new Set(
-    presences.filter((p: any) => p.role === "LEADER").map((p: any) => p.teamId),
+    presences.filter((p: PresenceUser) => p.role === "LEADER").map((p: PresenceUser) => p.teamId),
   );
   const allConnected =
     teams.length > 0 && connectedLeaderIds.size >= teams.length;
   const currentPlayer = players.find((p) => p.status === "IN_AUCTION");
   const waitingPlayers = players.filter((p) => p.status === "WAITING");
   const soldPlayers = players.filter((p) => p.status === "SOLD");
-  const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
-
-  const biddableTeams = teams.filter(
-    (t) =>
-      players.filter((p) => p.team_id === t.id && p.status === "SOLD").length <
-        membersPerTeam - 1 && t.point_balance >= 10,
-  );
 
   const bids = useAuctionStore((s) => s.bids);
   const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id);
@@ -147,12 +146,11 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
   };
 
   const handleStart = async () => {
-    setIsStarting(true);
     try {
       const res = await startAuction(roomId, isReAuctionRound ? 5000 : 10000);
       if (res.timerEndsAt) setRealtimeData({ timerEndsAt: res.timerEndsAt });
     } finally {
-      setIsStarting(false);
+      // isStarting removed as it was unused in UI
     }
   };
 
@@ -199,7 +197,7 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
 
   if (!isRoomLoaded)
     return (
-      <div className="h-screen flex items-center justify-center font-black text-3xl animate-pulse">
+      <div className="h-screen flex items-center justify-center font-black text-fluid-xl animate-pulse">
         LOADING INSTANCE...
       </div>
     );
@@ -207,7 +205,7 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
     return (
       <div className="h-screen flex flex-col items-center justify-center p-6 text-center gap-6">
         <div className="pixel-box bg-white p-10 font-black">
-          <p className="text-2xl mb-6">ERROR: ROOM NOT FOUND</p>
+          <p className="text-fluid-lg mb-6">ERROR: ROOM NOT FOUND</p>
           <button
             onClick={() => router.push("/")}
             className="pixel-button bg-minion-yellow px-8 py-3"
@@ -232,26 +230,35 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
       <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
         {/* Left Side: Team List (Mobile Accordion) */}
         <aside
-          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-auto"}`}
+          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-500 ease-in-out ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
         >
           <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <button
-              onClick={() => setIsTeamsExpanded(!isTeamsExpanded)}
-              className="bg-black text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black w-full text-left lg:cursor-default"
+              onClick={() => {
+                if (window.innerWidth < 1024) setIsTeamsExpanded(!isTeamsExpanded);
+              }}
+              className="bg-black text-white px-4 h-14 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black w-full text-left lg:cursor-default group shrink-0"
             >
-              <span>Team Rosters</span>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-gray-400 text-fluid-xs">LIVE</span>
+                <PixelIcon icon={PIXEL_ICONS.WAITING} size={16} color="text-minion-yellow" animation="active" />
+                <span>Team Rosters</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-1.5 bg-minion-blue/20 px-2 py-1 border-2 border-minion-blue/30">
+                  <div className="w-1.5 h-1.5 bg-green-500 animate-pulse" />
+                  <span className="text-minion-blue text-[10px] font-bold">LIVE FEED</span>
                 </div>
-                <span className="lg:hidden text-minion-yellow font-heading">
-                  {isTeamsExpanded ? "▲" : "▼"}
+                <span className={`lg:hidden text-minion-yellow font-heading transition-transform duration-300 ${isTeamsExpanded ? "rotate-180" : ""}`}>
+                  ▼
                 </span>
               </div>
             </button>
             <div
-              className={`flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30 ${!isTeamsExpanded ? "hidden lg:block" : "block"}`}
+              className={`flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30 transition-all duration-300 ${
+                isTeamsExpanded 
+                  ? "block opacity-100" 
+                  : "hidden lg:block lg:opacity-100 opacity-0"
+              }`}
             >
               <TeamList />
             </div>
@@ -269,11 +276,11 @@ export function RoomClient({ roomId, roleParam, teamIdParam }: any) {
                     size={18}
                     color="text-minion-yellow"
                     animation="active"
-                    label="이용 방법"
+                    label="도움말"
                   />
                 </span>
               </div>
-              <h2 className="text-fluid-sm font-heading text-minion-yellow truncate uppercase leading-none">
+              <h2 className="text-fluid-base lg:text-fluid-sm font-bold text-foreground truncate uppercase leading-none">
                 {roomName}
               </h2>
             </div>

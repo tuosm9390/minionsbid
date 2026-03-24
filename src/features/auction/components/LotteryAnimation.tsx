@@ -260,10 +260,10 @@ export function LotteryAnimation({
               </div>
 
               <div className="flex gap-2">
-                <span className="px-2 py-0.5 bg-black text-white text-[12px] font-pixel">
+                <span className="px-2 py-0.5 bg-black text-white text-fluid-xs font-pixel">
                   {p.tier}
                 </span>
-                <span className="px-2 py-0.5 bg-minion-blue text-white text-[12px] font-pixel">
+                <span className="px-2 py-0.5 bg-minion-blue text-white text-fluid-xs font-pixel">
                   {p.main_position}
                 </span>
               </div>

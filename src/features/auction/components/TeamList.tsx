@@ -84,39 +84,44 @@ export function TeamList() {
         // Point ratio for gauge (relative to 1000 or max balance)
         const pointRatio = Math.min(100, (team.point_balance / 1000) * 100);
 
+        const gaugeColor = 
+          pointRatio >= 60 ? "bg-minion-blue" :
+          pointRatio >= 30 ? "bg-minion-yellow" :
+          "bg-minion-red animate-pulse";
+
         return (
           <div
             key={team.id}
             className={`p-4 border-4 border-black relative overflow-hidden transition-all duration-300 ${
               isTeamComplete
-                ? "bg-gray-100 grayscale-[0.5] opacity-80"
+                ? "bg-gray-50 grayscale opacity-70"
                 : isMyTeam
-                  ? "bg-white border-minion-blue ring-4 ring-minion-blue/20 shadow-[8px_8px_0px_rgba(35,88,164,1)]"
-                  : "bg-white shadow-[6px_6px_0px_rgba(0,0,0,1)]"
+                  ? "bg-white border-minion-blue shadow-[8px_8px_0px_rgba(35,88,164,1)] scale-[1.02] z-10"
+                  : "bg-white shadow-[6px_6px_0px_rgba(0,0,0,1)] grayscale-[0.2]"
             }`}
           >
             {/* Team Header */}
             <div className="flex flex-col gap-2 mb-4 border-b-2 border-black pb-3">
               <div className="flex justify-between items-center">
                 <h3
-                  className={`font-black text-fluid-xs flex items-center gap-2 ${isMyTeam ? "text-minion-blue" : "text-black"}`}
+                  className={`font-black text-fluid-sm flex items-center gap-2 ${isMyTeam ? "text-minion-blue" : "text-black"}`}
                 >
-                  {isMyTeam && <span className="animate-pulse">▶</span>}
+                  {isMyTeam && <span className="animate-pulse text-minion-blue">▶</span>}
                   {team.name}
                 </h3>
-                <span className="text-fluid-xs font-black tabular-nums">
+                <span className="text-fluid-sm font-black tabular-nums">
                   {team.point_balance.toLocaleString()}{" "}
                   <span className="text-fluid-xs">P</span>
                 </span>
               </div>
 
               {/* Point Gauge Bar */}
-              <div className="w-full h-2.5 bg-black/10 border-2 border-black overflow-hidden relative">
+              <div className="w-full h-3 bg-gray-100 border-2 border-black overflow-hidden relative">
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(black_1px,transparent_1px)] bg-[size:4px_4px] z-10 pointer-events-none" />
                 <div
-                  className={`h-full transition-all duration-[2000ms] ease-out ${isMyTeam ? "bg-minion-blue" : "bg-black"}`}
+                  className={`h-full transition-all duration-[2000ms] ease-out ${gaugeColor}`}
                   style={{ width: `${pointRatio}%` }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
               </div>
             </div>
 
@@ -125,7 +130,7 @@ export function TeamList() {
               {teamPlayers.map((p: Player) => (
                 <div
                   key={p.id}
-                  className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group"
+                  className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group"
                 >
                   <div className="flex flex-col">
                     <span className="font-black text-fluid-xs text-gray-900 leading-none">
@@ -150,7 +155,7 @@ export function TeamList() {
                 (_, i) => (
                   <div
                     key={`empty-${i}`}
-                    className="border-2 border-black border-dashed p-3 flex items-center justify-center bg-gray-50/30 opacity-40"
+                    className="border-2 border-black border-dashed p-3 min-h-[44px] flex items-center justify-center bg-gray-50/30 opacity-40"
                   >
                     <span className="text-fluid-xs font-heading text-gray-400 uppercase tracking-widest">
                       빈 자리

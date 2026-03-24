@@ -128,7 +128,7 @@ export default function Home() {
             <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
             <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
           </div>
-          <p className="text-[10px] font-heading">Powered by Minions Bid Engine</p>
+          <p className="text-fluid-xs font-heading">Powered by Minions Bid Engine</p>
         </div>
       </div>
     </div>

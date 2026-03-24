@@ -34,7 +34,7 @@ export function PlayerRegistrationStep({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-gray-700">경매 선수 목록</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${players.filter((p) => p.name.trim()).length === minPlayers ? "bg-green-100 text-green-600" : "bg-orange-100 text-orange-500"}`}>
+          <span className={`text-xs font-bold px-2 py-0.5 ${players.filter((p) => p.name.trim()).length === minPlayers ? "bg-green-100 text-green-600" : "bg-orange-100 text-orange-500"}`}>
             {players.filter((p) => p.name.trim()).length} / {minPlayers}명
           </span>
         </div>

@@ -51,7 +51,7 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
 
       <div className="flex flex-col items-center gap-4 w-full z-10">
         <motion.div variants={itemVariants} className="text-center space-y-2">
-          {/* <span className="px-3 py-1 bg-minion-blue text-white text-[12px] font-heading uppercase tracking-widest inline-block">
+          {/* <span className="px-3 py-1 bg-minion-blue text-white text-fluid-xs font-heading uppercase tracking-widest inline-block">
             경매 진행 중
           </span> */}
           <h2 className="text-fluid-lg font-heading tracking-tighter leading-tight drop-shadow-sm">
@@ -87,7 +87,7 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
             </span>
           </div>
 
-          <div className="w-[4px] h-20 bg-black/10 rounded-full" />
+          <div className="w-[4px] h-20 bg-black/10" />
 
           {/* Position Section */}
           <div className="flex flex-col items-center gap-2 text-gray-700">

@@ -74,7 +74,7 @@ export function BiddingControl(props: BiddingControlProps) {
           <div className="flex flex-col">
             <span className="text-fluid-lg font-black text-black leading-none tabular-nums">
               {pointBalance.toLocaleString()}{" "}
-              <span className="text-sm font-bold">P</span>
+              <span className="text-fluid-xs font-bold">P</span>
             </span>
             {/* Point Gauge */}
             <div className="w-full h-2 bg-gray-100 border-2 border-black mt-1 overflow-hidden">
@@ -93,41 +93,41 @@ export function BiddingControl(props: BiddingControlProps) {
             </span>
             <span className="text-fluid-lg font-black text-minion-red leading-none tabular-nums block">
               {minBid.toLocaleString()}{" "}
-              <span className="text-sm font-bold">P</span>
+              <span className="text-fluid-xs font-bold">P</span>
             </span>
           </div>
         )}
       </div>
 
       {bidError && (
-        <div className="mb-4 bg-minion-red/10 border-2 border-minion-red text-minion-red text-fluid-xs py-2 px-3 font-bold text-center animate-shake uppercase flex items-center justify-center gap-2">
-          <PixelIcon icon={PIXEL_ICONS.WARNING} size={14} color="text-minion-red" animation="urgent" />
+        <div className="mb-4 bg-minion-red/10 border-4 border-minion-red text-minion-red text-fluid-xs py-2.5 px-4 font-bold text-center animate-shake uppercase flex items-center justify-center gap-2 pixel-box shadow-none">
+          <PixelIcon icon={PIXEL_ICONS.WARNING} size={16} color="text-minion-red" animation="urgent" />
           {bidError}
         </div>
       )}
 
-      <div className="flex gap-3 h-14 relative">
+      <div className="flex gap-3 h-14 relative group/control">
         {!isAuctionActive && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none transition-all">
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none transition-all duration-300">
             <div className="flex items-center gap-3">
               <PixelIcon icon={PIXEL_ICONS.WAITING} size={24} color="text-gray-400" animation="active" />
-              <p className="text-fluid-xs font-heading text-gray-500 uppercase">
-                {!currentPlayer ? "다음 선수 불러오는 중..." : "대기 중"}
+              <p className="text-fluid-xs font-heading text-gray-500 uppercase tracking-widest">
+                {!currentPlayer ? "READY FOR NEXT" : "WAITING..."}
               </p>
             </div>
           </div>
         )}
 
-        <div className="flex gap-1 h-full">
+        <div className="flex gap-1 h-full flex-none">
           <button
             onClick={decrementBid}
             disabled={!canBid || numericBidAmount <= minBid}
-            className="pixel-button bg-white text-black w-14 h-full text-xl font-heading hover:bg-gray-50 active:translate-y-1 uppercase"
+            className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
           >
             -
           </button>
 
-          <div className="relative group w-32">
+          <div className="relative w-32 h-full">
             <input
               type="number"
               value={bidAmount}
@@ -136,9 +136,9 @@ export function BiddingControl(props: BiddingControlProps) {
               onChange={(e) => setBidAmount(e.target.value)}
               onFocus={(e) => e.target.select()}
               disabled={!canBid}
-              className="w-full h-full bg-yellow-50/50 border-4 border-black px-4 text-fluid-base font-black text-center focus:bg-white focus:outline-none tabular-nums transition-colors"
+              className="w-full h-full bg-yellow-50/30 border-4 border-black px-4 text-fluid-base font-black text-center focus:bg-white focus:outline-none tabular-nums transition-colors"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 font-black text-sm pointer-events-none group-focus-within:text-minion-blue transition-colors">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 font-black text-fluid-xs pointer-events-none transition-colors">
               P
             </div>
           </div>
@@ -146,7 +146,7 @@ export function BiddingControl(props: BiddingControlProps) {
           <button
             onClick={incrementBid}
             disabled={!canBid}
-            className="pixel-button bg-white text-black w-14 h-full text-xl font-heading hover:bg-gray-50 active:translate-y-1 uppercase"
+            className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
           >
             +
           </button>
@@ -155,15 +155,15 @@ export function BiddingControl(props: BiddingControlProps) {
         <button
           onClick={handleBid}
           disabled={!canBid}
-          className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group ${
+          className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group/btn ${
             isLeading
-              ? "bg-black text-minion-yellow border-minion-yellow"
-              : "bg-minion-blue text-white border-black hover:bg-minion-blue-hover"
+              ? "bg-black text-minion-yellow border-minion-yellow shadow-[0_0_15px_rgba(251,224,66,0.4)]"
+              : "bg-minion-blue text-white border-black hover:bg-minion-blue-hover shadow-pixel-sm"
           }`}
         >
           {/* Gold Shine effect for leading state */}
           {isLeading && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shine pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shine pointer-events-none" />
           )}
 
           <span className="relative z-10 flex items-center justify-center gap-2">
@@ -171,14 +171,14 @@ export function BiddingControl(props: BiddingControlProps) {
               <PixelIcon icon={PIXEL_ICONS.LEADING} size={16} color="text-minion-yellow" animation="success" />
             )}
             {isLeading
-              ? "최고 입찰 중"
+              ? "최고 입찰 유지 중"
               : isBidding
-                ? "입찰 중..."
+                ? "입찰 통신 중..."
                 : isTeamFull
-                  ? "팀 가득 참"
+                  ? "TEAM FULL"
                   : (
                     <span className="flex items-center gap-2">
-                      입찰하기
+                      BID NOW
                       <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={14} color="text-white" />
                     </span>
                   )}

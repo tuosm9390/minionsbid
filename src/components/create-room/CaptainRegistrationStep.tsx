@@ -46,8 +46,7 @@ export function CaptainRegistrationStep({
       {captains.map((captain, i) => (
         <div key={i} className="bg-white border-2 border-black p-6 mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 bg-minion-blue rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">{i + 1}</div>
-            <input
+            <div className="w-7 h-7 bg-minion-blue flex items-center justify-center text-white text-xs font-bold shrink-0">{i + 1}</div>            <input
               type="text" value={captain.teamName}
               onChange={(e) => updateCaptain(i, "teamName", e.target.value)}
               placeholder="팀 이름"

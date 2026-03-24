@@ -54,13 +54,16 @@ export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
             ? cn("bg-white border-minion-red text-minion-red", isTickShaking && "animate-urgent-shake")
             : cn("bg-black border-black text-minion-yellow", isTickShaking && "animate-timer-tick")
         )}
+        role="timer"
+        aria-live={isUrgent ? "assertive" : "off"}
+        aria-atomic="true"
+        aria-label={`남은 시간: ${isUrgent ? timeLeftSec.toFixed(1) : displayTime}초`}
       >
         <PixelIcon
           icon={isUrgent ? PIXEL_ICONS.WARNING : PIXEL_ICONS.TIMER}
           color={isUrgent ? "text-minion-red" : "text-minion-yellow"}
           size={24}
           animation={isUrgent ? "urgent" : "idle"}
-          label="남은 시간"
         />
         <span className="text-fluid-lg font-heading tracking-widest tabular-nums leading-none">
           {isUrgent
@@ -70,10 +73,16 @@ export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
       </div>
       
       {/* Progress Bar with CRT feel */}
-      <div className={cn(
-        "w-48 h-4 bg-black/20 border-4 border-black relative overflow-hidden shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)] transition-colors",
-        isUrgent && "border-minion-red"
-      )}>
+      <div 
+        className={cn(
+          "w-48 h-4 bg-black/20 border-4 border-black relative overflow-hidden shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)] transition-colors",
+          isUrgent && "border-minion-red"
+        )}
+        role="progressbar"
+        aria-valuenow={progress}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className={cn(
             "h-full transition-all duration-150",

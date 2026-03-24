@@ -22,31 +22,36 @@ export function BidStatus({ highestBid, leadingTeam, teamId }: BidStatusProps) {
             : "bg-white" 
           : "bg-gray-50 opacity-60"
       }`}
+      aria-live="polite"
+      aria-atomic="true"
     >
       {highestBid > 0 ? (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-black flex items-center justify-center pixel-box border-2 shadow-none">
-              <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={20} color="text-minion-yellow" label="입찰" />
+              <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={20} color="text-minion-yellow" />
             </div>
             <div>
               <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter mb-1">
-                현재 입찰가
+                현재 최고 입찰가
               </p>
               <p className="text-fluid-lg font-black text-minion-blue leading-none tabular-nums">
-                {highestBid.toLocaleString()} <span className="text-sm">P</span>
+                {highestBid.toLocaleString()} <span className="text-fluid-xs">P</span>
               </p>
             </div>
           </div>
 
           <div className="text-right flex flex-col items-end gap-1">
             <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter">
-              최고 입찰 팀
+              선두 팀
             </p>
             <div className="flex flex-col items-end">
               <p className={`text-fluid-sm font-black leading-none mb-1 ${isLeadingMe ? "text-black" : "text-gray-800"}`}>
                 {leadingTeam?.name || "?"}
               </p>
+              <div className="sr-only">
+                {leadingTeam?.name} 팀이 {highestBid}포인트로 선두입니다.
+              </div>
               {teamId === null ? (
                 <div className="bg-black text-minion-yellow px-2 py-1 text-fluid-xs font-heading animate-pulse flex items-center gap-1.5 border border-minion-yellow shadow-[2px_2px_0px_rgba(0,0,0,1)]">
                   <PixelIcon icon={PIXEL_ICONS.LEADING} size={12} color="text-minion-yellow" animation="active" />

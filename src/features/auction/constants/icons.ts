@@ -12,7 +12,9 @@ import {
   Timer,
   Trophy,
   PlusSquare,
-  Gavel
+  Gavel,
+  X,
+  Medal
 } from "lucide-react";
 
 /**
@@ -37,4 +39,6 @@ export const PIXEL_ICONS = {
   FINISH: Trophy,
   CREATE: PlusSquare,
   SOLD: Gavel,
+  CLOSE: X,
+  MEDAL: Medal,
 } as const;

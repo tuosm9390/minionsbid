@@ -32,12 +32,18 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "SYSTEM") {
     return (
-      <div className="flex items-center gap-3 my-2 px-3 py-2 bg-minion-blue/5 border-l-4 border-minion-blue animate-slide-in-left">
-        <span className="text-fluid-xs text-minion-blue font-heading tracking-tighter shrink-0 flex items-center gap-1.5">
-          <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={10} color="text-minion-blue" strokeWidth={4} />
-          [SYS]
+      <div className="flex items-center gap-3 my-1.5 px-3 py-2 bg-minion-blue/5 border-l-4 border-minion-blue animate-slide-in-left relative group">
+        <div className="absolute inset-0 bg-minion-blue/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <span className="text-fluid-xs text-minion-blue font-heading tracking-tighter shrink-0 flex items-center gap-1.5 relative z-10">
+          <PixelIcon
+            icon={PIXEL_ICONS.SUCCESS}
+            size={10}
+            color="text-minion-blue"
+            strokeWidth={4}
+          />
+          SYS
         </span>
-        <span className="text-fluid-xs text-gray-700 font-body leading-tight">
+        <span className="text-fluid-xs text-gray-700 font-body leading-normal relative z-10 break-words">
           {renderFormattedSystemMessage(msg.content)}
         </span>
       </div>
@@ -46,21 +52,29 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "NOTICE") {
     return (
-      <div className="bg-minion-yellow border-4 border-black p-3 my-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0 animate-bounce">
+      <div className="bg-minion-yellow border-4 border-black p-3.5 my-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0 animate-bounce">
         <div className="absolute inset-0 opacity-5 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,black_5px,black_10px)]" />
-        <div className="relative z-10 flex flex-col">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-black text-minion-yellow text-fluid-xs px-2 py-0.5 font-heading uppercase">
-              NOTICE
-            </span>
-            <span className="text-fluid-xs text-black/40 ml-auto font-mono">
+        <div className="relative z-10 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="bg-black px-2 py-0.5 flex items-center gap-1.5">
+              <PixelIcon
+                icon={PIXEL_ICONS.WARNING}
+                size={10}
+                color="text-minion-yellow"
+                animation="urgent"
+              />
+              <span className="text-minion-yellow text-[10px] font-heading uppercase tracking-tighter">
+                IMPORTANT
+              </span>
+            </div>
+            <span className="text-[10px] text-black/40 ml-auto font-mono">
               {new Date(msg.created_at).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
             </span>
           </div>
-          <p className="text-fluid-xs font-black text-black leading-normal font-body break-words whitespace-pre-wrap">
+          <p className="text-fluid-xs font-black text-black leading-snug font-body break-words whitespace-pre-wrap">
             {msg.content}
           </p>
         </div>
@@ -74,30 +88,30 @@ function MessageItem({ msg }: { msg: Message }) {
     VIEWER: "bg-gray-100 text-gray-500 border-gray-200",
   };
   const label: Record<string, string> = {
-    ORGANIZER: "주최자",
-    LEADER: "팀장",
-    VIEWER: "관전자",
+    ORGANIZER: "HOST",
+    LEADER: "TEAM",
+    VIEWER: "VIEW",
   };
 
   return (
-    <div className="my-2 group animate-slide-up">
+    <div className="my-3 group animate-slide-up">
       <div className="flex items-center gap-2 mb-1.5 px-1">
         <span
-          className={`text-fluid-xs font-heading px-1.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] leading-none ${BADGE[role] || ""}`}
+          className={`text-[10px] font-heading px-1.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] leading-none ${BADGE[role] || ""}`}
         >
           {label[role] || "NPC"}
         </span>
-        <span className="text-fluid-xs font-heading text-black tracking-tighter uppercase">
+        <span className="text-fluid-xs font-black text-black tracking-tighter uppercase">
           {msg.sender_name}
         </span>
-        <span className="text-fluid-xs text-gray-300 ml-auto font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-[10px] text-gray-300 ml-auto font-mono opacity-0 group-hover:opacity-100 transition-opacity">
           {new Date(msg.created_at).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           })}
         </span>
       </div>
-      <div className="pixel-box bg-white border-2 p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.1)] group-hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] transition-all">
+      <div className="pixel-box bg-white border-2 p-3 shadow-pixel-active group-hover:shadow-pixel-sm transition-all">
         <p className="text-gray-800 font-body text-fluid-sm leading-relaxed break-words">
           {msg.content}
         </p>
@@ -148,24 +162,19 @@ export function ChatPanel() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white border-4 border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.05)]">
-      {/* Chat Header */}
-      {/* <div className="bg-black text-white px-4 py-2 flex items-center justify-between border-b-4 border-black">
-        <span className="text-fluid-xs font-heading tracking-widest">
-          실시간 로그
-        </span>
-        <div className="flex gap-1">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[8px] font-bold text-gray-400">온라인</span>
-        </div>
-      </div> */}
-
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 custom-scrollbar"
+        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1 custom-scrollbar"
       >
         {messages.length === 0 ? (
-          <div className="text-gray-300 text-fluid-xs text-center py-20 my-auto font-heading italic uppercase opacity-50">
-            --- 대기 중 ---
+          <div className="text-gray-300 text-fluid-xs text-center py-20 my-auto font-heading italic uppercase opacity-50 flex flex-col items-center gap-4">
+            <PixelIcon
+              icon={PIXEL_ICONS.WAITING}
+              size={32}
+              color="text-gray-200"
+              animation="active"
+            />
+            --- WAITING FOR LOGS ---
           </div>
         ) : (
           messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
@@ -177,10 +186,13 @@ export function ChatPanel() {
         className="p-4 bg-gray-50 border-t-4 border-black flex flex-col gap-3"
       >
         <div className="flex justify-between items-center px-1">
-          <span className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter">
-            MESSAGE
-          </span>
-          <span className="text-fluid-xs font-mono text-gray-400">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-green-500 animate-pulse" />
+            <span className="text-[10px] font-heading text-gray-400 uppercase tracking-tighter">
+              COMMS LINK ACTIVE
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-gray-400">
             {input.length}/{MAX_MESSAGE_LENGTH}
           </span>
         </div>
@@ -191,7 +203,7 @@ export function ChatPanel() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="메시지를 입력하세요..."
             maxLength={MAX_MESSAGE_LENGTH}
-            className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-sm font-body font-bold focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
+            className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-xs font-body focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
             disabled={isSending}
           />
           <button

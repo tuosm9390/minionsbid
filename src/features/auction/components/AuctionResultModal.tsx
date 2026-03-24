@@ -7,7 +7,8 @@ import {
   Team,
   Player,
 } from "@/features/auction/store/useAuctionStore";
-import { X, Trophy, Medal } from "lucide-react";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { PIXEL_ICONS } from "../constants/icons";
 
 // 개별 팀 카드를 별도 컴포넌트로 분리하여 메모이제이션
 const TeamResultCard = memo(
@@ -55,10 +56,10 @@ const TeamResultCard = memo(
             </span>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-50 border-2 border-black flex items-center justify-center shrink-0">
-                <Medal size={20} className="text-minion-blue" />
+                <PixelIcon icon={PIXEL_ICONS.MEDAL} size={20} color="text-minion-blue" />
               </div>
               <div>
-                <p className="text-[8px] font-heading text-gray-400 uppercase">
+                <p className="text-fluid-xs font-heading text-gray-400 uppercase">
                   팀장
                 </p>
                 <p className="text-fluid-xs font-black text-black leading-none">
@@ -157,7 +158,7 @@ export function AuctionResultModal({
 
           <div className="flex items-center gap-4 z-10">
             <div className="w-12 h-12 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
-              <Trophy size={24} className="text-black" />
+              <PixelIcon icon={PIXEL_ICONS.FINISH} size={24} color="text-black" />
             </div>
             <div className="flex flex-col">
               <h2 className="text-fluid-lg font-heading text-minion-yellow leading-none mb-1">
@@ -172,7 +173,7 @@ export function AuctionResultModal({
             onClick={onClose}
             className="bg-minion-red text-white p-2 pixel-box border-2 shadow-none hover:bg-minion-red-hover transition-colors z-10"
           >
-            <X size={20} className="text-black" />
+            <PixelIcon icon={PIXEL_ICONS.CLOSE} size={20} color="text-black" />
           </button>
         </div>
 

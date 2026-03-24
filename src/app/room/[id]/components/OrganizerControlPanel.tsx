@@ -174,7 +174,7 @@ export function OrganizerControlPanel({
               className="w-full h-full pixel-box bg-minion-red/10 border-minion-red flex items-center justify-center"
             >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-minion-red animate-pulse rounded-full" />
+                <div className="w-2 h-2 bg-minion-red animate-pulse" />
                 <span className="text-fluid-xs font-heading text-minion-red uppercase animate-pulse">
                   경매 진행 중
                 </span>
