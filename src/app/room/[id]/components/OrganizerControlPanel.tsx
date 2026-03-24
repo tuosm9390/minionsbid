@@ -1,8 +1,11 @@
 "use client";
 
-import { Player } from "@/features/auction/store/useAuctionStore";
+import { useState, useEffect } from "react";
+import { useAuctionStore, Player } from "@/features/auction/store/useAuctionStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 
 interface OrganizerControlPanelProps {
   noticeText: string;
@@ -37,6 +40,20 @@ export function OrganizerControlPanel({
   onDraw,
   onStart,
 }: OrganizerControlPanelProps) {
+  const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
+  const presences = useAuctionStore((s) => s.presences);
+  const sessionCount = presences.length;
+  const [showLoadWarning, setShowLoadWarning] = useState(false);
+
+  // 시스템 부하 경고 모니터링 (FR-007) - Hysteresis 적용
+  useEffect(() => {
+    if (sessionCount >= 80) {
+      setShowLoadWarning(true);
+    } else if (sessionCount <= 70) {
+      setShowLoadWarning(false);
+    }
+  }, [sessionCount]);
+
   return (
     <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
       {/* GM Panel Style Header */}
@@ -48,18 +65,35 @@ export function OrganizerControlPanel({
           </span>
         </div>
         <div className="flex gap-3">
-          <span className="text-[10px] font-bold text-minion-yellow">
+          <span className="text-fluid-xs font-bold text-minion-yellow">
             대기: {waitingPlayersCount} 명
           </span>
-          <span className="text-[10px] font-bold text-minion-blue">
+          <span className="text-fluid-xs font-bold text-minion-blue">
             낙찰: {soldPlayersCount} 명
           </span>
         </div>
       </div>
 
+      {/* 시스템 부하 경고 (FR-007) */}
+      <AnimatePresence>
+        {showLoadWarning && (
+          <motion.div
+            initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+            animate={{ height: "auto", opacity: 1, marginBottom: 16 }}
+            exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+            className="bg-minion-red/10 border-2 border-minion-red p-3 flex items-center gap-3 overflow-hidden"
+          >
+            <PixelIcon icon={PIXEL_ICONS.WARNING} size={20} color="text-minion-red" animation="urgent" />
+            <p className="text-fluid-xs font-bold text-minion-red uppercase tracking-tight">
+              시스템 부하 주의: 현재 접속자 {sessionCount}명
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Notice Input Section */}
       <div className="flex flex-col gap-1 mb-5">
-        <span className="text-[9px] font-heading text-gray-400 uppercase">
+        <span className="text-fluid-xs font-heading text-gray-400 uppercase">
           공지사항
         </span>
         <div className="flex gap-2 h-12">
@@ -73,7 +107,7 @@ export function OrganizerControlPanel({
           />
           <button
             onClick={onSendNotice}
-            className="pixel-button bg-black text-white h-full px-4 text-[10px] font-heading uppercase tracking-tight hover:bg-minion-blue transition-colors"
+            className="pixel-button bg-black text-white h-full px-4 text-fluid-xs font-heading uppercase tracking-tight hover:bg-minion-blue transition-colors"
           >
             전송
           </button>
@@ -124,7 +158,13 @@ export function OrganizerControlPanel({
               onClick={onStart}
               className="w-full h-full pixel-button bg-minion-yellow text-black font-heading text-fluid-xs px-6 uppercase tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-transform"
             >
-              경매 시작 🔥
+              경매 시작
+              <PixelIcon
+                icon={PIXEL_ICONS.SUCCESS}
+                size={20}
+                color="text-black"
+                animation="active"
+              />
             </motion.button>
           ) : (
             <motion.div
@@ -135,7 +175,7 @@ export function OrganizerControlPanel({
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-minion-red animate-pulse rounded-full" />
-                <span className="text-[10px] font-heading text-minion-red uppercase animate-pulse">
+                <span className="text-fluid-xs font-heading text-minion-red uppercase animate-pulse">
                   경매 진행 중
                 </span>
               </div>
@@ -145,10 +185,18 @@ export function OrganizerControlPanel({
       </div>
 
       {/* Connection Status Sub-hint */}
-      {!allConnected && !allDone && (
-        <p className="text-[9px] font-heading text-minion-red mt-4 text-center animate-pulse uppercase tracking-tight">
-          모든 팀장님들의 접속을 기다리는 중...
-        </p>
+      {!allDone && (
+        <div className="mt-4 text-center h-4 flex items-center justify-center">
+          {!isPresenceLoaded ? (
+            <p className="text-fluid-xs font-heading text-gray-400 animate-pulse uppercase tracking-tight">
+              접속 현황 확인 중...
+            </p>
+          ) : !allConnected ? (
+            <p className="text-fluid-xs font-heading text-minion-red animate-pulse uppercase tracking-tight">
+              모든 팀장님들의 접속을 기다리는 중...
+            </p>
+          ) : null}
+        </div>
       )}
     </div>
   );

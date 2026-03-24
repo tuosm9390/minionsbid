@@ -30,7 +30,7 @@ export function DraftPanel({
         </div>
         {phase === "DRAFT" && currentTurnTeam && (
           <div className="flex flex-col items-center gap-1">
-            <span className="text-[10px] font-bold text-gray-600">
+            <span className="text-fluid-xs font-bold text-gray-600">
               현재 차례
             </span>
             <div className="pixel-box bg-purple-100 px-6 py-2 font-black text-purple-700">
@@ -48,7 +48,7 @@ export function DraftPanel({
             <div>
               <p className="font-black">{p.name}</p>
               <p
-                className={`text-[10px] font-bold ${TIER_COLOR[p.tier] || "text-black"}`}
+                className={`text-fluid-xs font-bold ${TIER_COLOR[p.tier] || "text-black"}`}
               >
                 {p.tier} | {p.main_position}
               </p>
@@ -56,7 +56,7 @@ export function DraftPanel({
             {phase === "DRAFT" && role === "ORGANIZER" && (
               <button
                 onClick={() => onDraft(p.id)}
-                className="pixel-button bg-purple-600 text-white px-3 py-1 text-[10px]"
+                className="pixel-button bg-purple-600 text-white px-3 py-1 text-fluid-xs"
               >
                 배정
               </button>

@@ -47,7 +47,7 @@ export function EndRoomModal({
         <div className="px-4 py-3 border-b-4 border-black flex items-center justify-between bg-red-500 text-white">
           <div className="flex items-center gap-2.5">
             <Trash2 size={16} />
-            <h2 className="text-md font-black">방 종료</h2>
+            <h2 className="text-md font-black">경매 종료</h2>
           </div>
           {!isDeleting && (
             <button
@@ -63,10 +63,10 @@ export function EndRoomModal({
         <div className="px-4 py-4 space-y-4">
           <div className="bg-red-50 border-2 border-black p-3 flex gap-2">
             <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
-            <div className="text-[10px] font-bold text-red-700 space-y-1">
+            <div className="text-fluid-xs font-bold text-red-700 space-y-1">
               <p className="text-xs font-black uppercase">데이터 삭제 경고</p>
               <p className="leading-tight">
-                방을 종료하면 입찰 기록, 채팅 등 모든 데이터가 영구 삭제되며
+                경매를 종료하면 입찰 기록, 채팅 등 모든 데이터가 영구 삭제되며
                 복구할 수 없습니다.
               </p>
             </div>
@@ -80,17 +80,15 @@ export function EndRoomModal({
                 onChange={(e) => setConfirmed(e.target.checked)}
                 className="mt-0.5 w-4 h-4 accent-red-500 border-2 border-black rounded-none"
               />
-              <span className="text-[10px] font-bold text-gray-600 group-hover:text-black transition-colors leading-tight">
-                데이터 삭제 내용을 확인했으며 방을 종료하는 것에 동의합니다.
+              <span className="text-fluid-xs font-bold text-gray-600 group-hover:text-black transition-colors leading-tight">
+                데이터 삭제 내용을 확인했으며 경매를 종료하는 것에 동의합니다.
               </span>
             </label>
           )}
 
           {isCompleted && (
-            <div className="bg-green-50 border-2 border-black p-3 text-[10px] font-bold text-green-700">
-              <p className="text-xs font-black mb-1 uppercase">
-                경매 완료!
-              </p>
+            <div className="bg-green-50 border-2 border-black p-3 text-fluid-xs font-bold text-green-700">
+              <p className="text-xs font-black mb-1 uppercase">경매 완료!</p>
               <p>
                 결과를 저장하면 나중에 아카이브에서 다시 확인할 수 있습니다.
               </p>
@@ -105,14 +103,14 @@ export function EndRoomModal({
               <button
                 onClick={() => onConfirm(true)}
                 disabled={isDeleting}
-                className="pixel-button w-full py-3 bg-minion-blue text-white text-[10px]"
+                className="pixel-button w-full py-3 bg-minion-blue text-white text-fluid-xs"
               >
                 {isDeleting ? "저장하는중..." : "저장 & 종료"}
               </button>
               <button
                 onClick={() => onConfirm(false)}
                 disabled={isDeleting}
-                className="pixel-button w-full py-2 bg-white text-red-600 text-[10px]"
+                className="pixel-button w-full py-2 bg-white text-red-600 text-fluid-xs"
               >
                 저장하지 않고 종료
               </button>
@@ -121,7 +119,7 @@ export function EndRoomModal({
             <button
               onClick={() => onConfirm(false)}
               disabled={isDeleting || !confirmed}
-              className="pixel-button w-full py-3 bg-red-500 text-white text-[10px]"
+              className="pixel-button w-full py-3 bg-red-500 text-white text-fluid-xs"
             >
               {isDeleting ? "방 삭제중..." : "방 삭제"}
             </button>
@@ -129,7 +127,7 @@ export function EndRoomModal({
           {!isDeleting && (
             <button
               onClick={handleClose}
-              className="pixel-button w-full py-2 bg-white text-gray-500 text-[10px]"
+              className="pixel-button w-full py-2 bg-white text-gray-500 text-fluid-xs"
             >
               닫기
             </button>

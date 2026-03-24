@@ -1,43 +1,46 @@
+"use client";
+
 import { CreateRoomModal } from "@/components/CreateRoomModal";
 import { ArchiveModalWrapper } from "@/components/ArchiveModalWrapper";
 import Image from "next/image";
-
-export const metadata = {
-  title: "Minions Bid 🍌 - 실시간 드래프트 시작하기",
-  description:
-    "미니언즈 경매 시스템으로 공정한 팀 구성과 실시간 드래프트를 경험하세요.  bananas included! 🍌",
-};
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 const HOW_TO_USE = [
   {
     step: "01",
-    icon: "🍌",
+    icon: PIXEL_ICONS.CREATE,
     title: "경매방 만들기",
-    desc: "팀 수, 인원, 포인트를 설정하고 팀장과 선수를 등록하세요.",
+    desc: "팀 수, 인원, 포인트를 설정하고 팀장과 선수를 등록해 방을 생성합니다.",
+    color: "text-minion-blue",
   },
   {
     step: "02",
-    icon: "🔗",
+    icon: PIXEL_ICONS.LINKS,
     title: "링크 공유",
-    desc: "팀장 전용 링크를 복사하여 각 팀장에게 전달하세요.",
+    desc: "생성된 팀장별 링크를 각 팀장에게 공유합니다. 관전자 링크도 배포 가능합니다.",
+    color: "text-minion-blue",
   },
   {
     step: "03",
-    icon: "✅",
+    icon: PIXEL_ICONS.SUCCESS,
     title: "접속 확인",
-    desc: "팀장들이 입장하면 실시간으로 상태가 표시됩니다.",
+    desc: "경매 화면에서 팀장들의 실시간 접속 여부를 확인하고 경매를 시작하세요.",
+    color: "text-green-600",
   },
   {
     step: "04",
-    icon: "🔥",
-    title: "경매 시작",
-    desc: "주최자가 뽑기를 돌려 선수를 올리고 경매를 진행합니다.",
+    icon: PIXEL_ICONS.LEADING,
+    title: "경매 진행",
+    desc: "주최자가 선수를 추첨하면 각 팀장이 포인트로 입찰합니다. 최고 입찰 시 낙찰!",
+    color: "text-minion-yellow",
   },
   {
     step: "05",
-    icon: "🏆",
+    icon: PIXEL_ICONS.FINISH,
     title: "팀 확정",
-    desc: "최종 팀 구성을 확인하고 경기를 준비하세요!",
+    desc: "모든 선수가 낙찰되면 최종 팀 구성과 사용 포인트가 확정됩니다.",
+    color: "text-minion-blue",
   },
 ];
 
@@ -102,8 +105,10 @@ export default function Home() {
                 style={{ animationDelay: `${(index + 2) * 100}ms` }}
               >
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-3xl">{item.icon}</span>
-                  <span className="bg-minion-yellow border-2 border-black px-2 py-0.5 text-[10px] font-bold">
+                  <div className="shrink-0">
+                    <PixelIcon icon={item.icon} size={32} color={item.color} />
+                  </div>
+                  <span className="bg-minion-yellow border-2 border-black px-2 py-0.5 text-fluid-xs font-bold">
                     STAGE {item.step}
                   </span>
                 </div>
@@ -116,36 +121,16 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Tips Section */}
-        <div className="max-w-3xl w-full bg-black text-white border-4 border-minion-yellow p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] animate-slide-in-right delay-500">
-          <h3 className="text-xl font-bold text-minion-yellow mb-4 flex items-center gap-2">
-            <span className="animate-pulse">●</span> 알아두면 좋은 팁
-          </h3>
-          <ul className="text-sm space-y-3 font-bold text-gray-300">
-            <li className="flex gap-2 hover:text-white transition-colors">
-              <span>-</span>{" "}
-              <span>팀장 링크와 주최자 링크는 별개의 고유 주소입니다.</span>
-            </li>
-            <li className="flex gap-2 hover:text-white transition-colors">
-              <span>-</span>{" "}
-              <span>
-                모든 입찰은 실시간으로 동기화되며 취소가 불가능합니다.
-              </span>
-            </li>
-            <li className="flex gap-2 hover:text-white transition-colors">
-              <span>-</span>{" "}
-              <span>
-                방 페이지 상단의 [LINK] 버튼으로 언제든 주소를 재확인하세요.
-              </span>
-            </li>
-          </ul>
+        {/* Decorative Pixel Footer */}
+        <div className="flex flex-col items-center gap-4 opacity-40 animate-pulse">
+          <div className="flex gap-4">
+            <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
+            <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
+            <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
+          </div>
+          <p className="text-[10px] font-heading">Powered by Minions Bid Engine</p>
         </div>
       </div>
-
-      <footer className="py-10 text-center text-xs font-bold text-gray-500">
-        Copyright © {new Date().getFullYear()} MINIONS(소모임). All rights
-        reserved.
-      </footer>
     </div>
   );
 }

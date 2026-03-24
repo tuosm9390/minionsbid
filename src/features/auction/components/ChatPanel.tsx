@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { PIXEL_ICONS } from "@/features/auction/constants/icons";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import {
   useAuctionStore,
   Message,
@@ -30,11 +32,12 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "SYSTEM") {
     return (
-      <div className="flex items-center gap-2 my-2 px-3 py-1 bg-gray-100/50 border-l-4 border-gray-300">
-        <span className="text-[9px] text-gray-400 font-heading tracking-tighter shrink-0">
+      <div className="flex items-center gap-3 my-2 px-3 py-2 bg-minion-blue/5 border-l-4 border-minion-blue animate-slide-in-left">
+        <span className="text-fluid-xs text-minion-blue font-heading tracking-tighter shrink-0 flex items-center gap-1.5">
+          <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={10} color="text-minion-blue" strokeWidth={4} />
           [SYS]
         </span>
-        <span className="text-fluid-xs text-gray-600 font-body leading-tight">
+        <span className="text-fluid-xs text-gray-700 font-body leading-tight">
           {renderFormattedSystemMessage(msg.content)}
         </span>
       </div>
@@ -43,14 +46,14 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "NOTICE") {
     return (
-      <div className="bg-minion-yellow border-4 border-black p-3 my-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0">
+      <div className="bg-minion-yellow border-4 border-black p-3 my-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0 animate-bounce">
         <div className="absolute inset-0 opacity-5 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,black_5px,black_10px)]" />
         <div className="relative z-10 flex flex-col">
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-black text-minion-yellow text-[9px] px-2 py-0.5 font-heading uppercase">
-              공지사항
+            <span className="bg-black text-minion-yellow text-fluid-xs px-2 py-0.5 font-heading uppercase">
+              NOTICE
             </span>
-            <span className="text-[8px] text-black/40 ml-auto font-mono">
+            <span className="text-fluid-xs text-black/40 ml-auto font-mono">
               {new Date(msg.created_at).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -68,7 +71,7 @@ function MessageItem({ msg }: { msg: Message }) {
   const BADGE: Record<string, string> = {
     ORGANIZER: "bg-minion-red text-white",
     LEADER: "bg-minion-blue text-white",
-    VIEWER: "bg-gray-200 text-gray-600 border-gray-300",
+    VIEWER: "bg-gray-100 text-gray-500 border-gray-200",
   };
   const label: Record<string, string> = {
     ORGANIZER: "주최자",
@@ -77,26 +80,28 @@ function MessageItem({ msg }: { msg: Message }) {
   };
 
   return (
-    <div className="p-2 hover:bg-black/[0.02] transition-colors rounded-sm group">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="my-2 group animate-slide-up">
+      <div className="flex items-center gap-2 mb-1.5 px-1">
         <span
-          className={`text-[9px] font-heading px-1.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] leading-none ${BADGE[role] || ""}`}
+          className={`text-fluid-xs font-heading px-1.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] leading-none ${BADGE[role] || ""}`}
         >
           {label[role] || "NPC"}
         </span>
-        <span className="text-fluid-xs font-black text-black tracking-tight">
+        <span className="text-fluid-xs font-heading text-black tracking-tighter uppercase">
           {msg.sender_name}
         </span>
-        <span className="text-[8px] text-gray-400 ml-auto font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-fluid-xs text-gray-300 ml-auto font-mono opacity-0 group-hover:opacity-100 transition-opacity">
           {new Date(msg.created_at).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           })}
         </span>
       </div>
-      <p className="text-gray-700 font-body text-fluid-xs leading-relaxed break-words pl-2 border-l-2 border-black/10">
-        {msg.content}
-      </p>
+      <div className="pixel-box bg-white border-2 p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.1)] group-hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] transition-all">
+        <p className="text-gray-800 font-body text-fluid-sm leading-relaxed break-words">
+          {msg.content}
+        </p>
+      </div>
     </div>
   );
 }
@@ -145,7 +150,7 @@ export function ChatPanel() {
     <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white border-4 border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.05)]">
       {/* Chat Header */}
       {/* <div className="bg-black text-white px-4 py-2 flex items-center justify-between border-b-4 border-black">
-        <span className="text-[10px] font-heading tracking-widest">
+        <span className="text-fluid-xs font-heading tracking-widest">
           실시간 로그
         </span>
         <div className="flex gap-1">
@@ -172,10 +177,10 @@ export function ChatPanel() {
         className="p-4 bg-gray-50 border-t-4 border-black flex flex-col gap-3"
       >
         <div className="flex justify-between items-center px-1">
-          <span className="text-[9px] font-heading text-gray-400 uppercase tracking-tighter">
-            메시지 입력
+          <span className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter">
+            MESSAGE
           </span>
-          <span className="text-[8px] font-mono text-gray-400">
+          <span className="text-fluid-xs font-mono text-gray-400">
             {input.length}/{MAX_MESSAGE_LENGTH}
           </span>
         </div>
@@ -186,15 +191,15 @@ export function ChatPanel() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="메시지를 입력하세요..."
             maxLength={MAX_MESSAGE_LENGTH}
-            className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-xs font-body font-bold focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
+            className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-sm font-body font-bold focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
             disabled={isSending}
           />
           <button
             type="submit"
             disabled={isSending || !input.trim()}
-            className="pixel-button bg-black text-white h-full px-4 text-[10px] font-heading uppercase tracking-tight hover:bg-minion-blue transition-colors"
+            className="pixel-button bg-minion-yellow text-black h-full px-6 text-fluid-xs font-heading uppercase tracking-tight"
           >
-            전송
+            SEND
           </button>
         </div>
       </form>

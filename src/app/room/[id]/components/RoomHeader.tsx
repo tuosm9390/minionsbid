@@ -48,7 +48,7 @@ export function RoomHeader({
             onClick={onLeaveRoom}
             className="pixel-button bg-white/50 hover:bg-white/20 text-white px-4 h-10 text-fluid-xs font-heading uppercase tracking-tight border-white/20 shadow-none transition-all"
           >
-            EXIT
+            나가기
           </button>
         </div>
       </div>

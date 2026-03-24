@@ -6,6 +6,8 @@ import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
 import { Player } from "@/features/auction/store/useAuctionStore";
 import { getTierImage, getPositionImage } from "../utils/display";
 import { cn } from "@/lib/utils";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { PIXEL_ICONS } from "../constants/icons";
 
 interface LotteryAnimationProps {
   candidates: Player[];
@@ -27,7 +29,9 @@ export function LotteryAnimation({
   const [tick, setTick] = useState(0);
   const controls = useAnimationControls();
 
-  const [particles, setParticles] = useState<{x: number, y: number, rotate: number}[]>([]);
+  const [particles, setParticles] = useState<
+    { x: number; y: number; rotate: number }[]
+  >([]);
 
   // Generate a sequence of items that ends with the target player
   const trackItems = useMemo(() => {
@@ -59,7 +63,7 @@ export function LotteryAnimation({
     const startAnimation = async () => {
       // Small delay before starting to ensure Framer Motion is ready
       await new Promise((resolve) => setTimeout(resolve, 500));
-      
+
       if (!isMounted) return;
 
       try {
@@ -76,7 +80,7 @@ export function LotteryAnimation({
 
         setIsSpinning(false);
         setHasFinished(true);
-        
+
         // Additional delay for the winning moment
         setTimeout(() => {
           if (isMounted) onFinished?.();
@@ -118,7 +122,13 @@ export function LotteryAnimation({
             exit={{ opacity: 0, scale: 1.2 }}
             className="text-2xl font-heading tracking-widest text-minion-blue drop-shadow-[0_0_8px_rgba(50,150,250,0.5)]"
           >
-            🎰 추첨 중...
+            <PixelIcon
+              icon={PIXEL_ICONS.LEADING}
+              size={20}
+              color="text-minion-blue"
+              animation="active"
+            />
+            추첨 중...
           </motion.div>
         ) : (
           <motion.div
@@ -127,29 +137,46 @@ export function LotteryAnimation({
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             className="text-3xl font-heading tracking-tighter text-minion-yellow drop-shadow-[0_0_12px_rgba(255,220,0,0.8)]"
           >
-            🔥 추첨 완료!
+            <PixelIcon
+              icon={PIXEL_ICONS.SUCCESS}
+              size={20}
+              color="text-minion-yellow"
+            />
+            추첨 완료!
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.div
         layout
-        animate={hasFinished ? { 
-          scale: [1, 1.1, 1.05],
-          x: [0, -4, 4, -4, 4, 0],
-          transition: { 
-            scale: { duration: 0.5, ease: "easeOut" },
-            x: { duration: 0.4, ease: "linear", times: [0, 0.2, 0.4, 0.6, 0.8, 1] }
-          }
-        } : {}}
+        animate={
+          hasFinished
+            ? {
+                scale: [1, 1.1, 1.05],
+                x: [0, -4, 4, -4, 4, 0],
+                transition: {
+                  scale: { duration: 0.5, ease: "easeOut" },
+                  x: {
+                    duration: 0.4,
+                    ease: "linear",
+                    times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                  },
+                },
+              }
+            : {}
+        }
         className={cn(
           "w-full max-w-sm overflow-hidden bg-white border-[6px] border-black relative mx-auto rounded-none",
-          hasFinished ? "shadow-[0_0_40px_rgba(255,215,0,0.6)]" : "shadow-pixel",
-          "transition-all duration-700 ease-out-expo"
+          hasFinished
+            ? "shadow-[0_0_40px_rgba(255,215,0,0.6)]"
+            : "shadow-pixel",
+          "transition-all duration-700 ease-out-expo",
         )}
-        style={{ 
+        style={{
           height: `${ITEM_HEIGHT}px`,
-          boxShadow: hasFinished ? "0 0 40px oklch(85% 0.20 85 / 0.6), 8px 8px 0px 0px black" : "8px 8px 0px 0px black"
+          boxShadow: hasFinished
+            ? "0 0 40px oklch(85% 0.20 85 / 0.6), 8px 8px 0px 0px black"
+            : "8px 8px 0px 0px black",
         }}
       >
         {/* Success Particles Effect */}
@@ -159,12 +186,12 @@ export function LotteryAnimation({
               <motion.div
                 key={i}
                 initial={{ scale: 0, x: "50%", y: "50%", opacity: 1 }}
-                animate={{ 
+                animate={{
                   scale: [0, 1.5, 0],
                   x: `${particle.x}%`,
                   y: `${particle.y}%`,
                   rotate: particle.rotate,
-                  opacity: [1, 1, 0]
+                  opacity: [1, 1, 0],
                 }}
                 transition={{ duration: 1, ease: "easeOut", delay: i * 0.05 }}
                 className="absolute w-4 h-4 bg-minion-yellow border-2 border-black"
@@ -175,7 +202,7 @@ export function LotteryAnimation({
 
         {/* CRT Scanlines Effect */}
         <div className="absolute inset-0 pointer-events-none z-30 opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]" />
-        
+
         {/* Vignette */}
         <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_60px_rgba(0,0,0,0.2)]" />
 
@@ -200,16 +227,20 @@ export function LotteryAnimation({
               <span
                 className={cn(
                   "text-3xl font-heading w-full text-center truncate px-2 transition-all",
-                  !isSpinning && idx === VISIBLE_ITEMS ? "text-minion-yellow scale-110" : "text-black"
+                  !isSpinning && idx === VISIBLE_ITEMS
+                    ? "text-minion-yellow scale-110"
+                    : "text-black",
                 )}
               >
                 {p.name}
               </span>
-              
+
               <div className="flex items-center justify-center gap-6">
-                <motion.div 
+                <motion.div
                   className="w-16 h-16 relative"
-                  animate={isSpinning && tick === 0 ? { scale: [1, 1.1, 1] } : {}}
+                  animate={
+                    isSpinning && tick === 0 ? { scale: [1, 1.1, 1] } : {}
+                  }
                 >
                   <Image
                     src={getTierImage(p.tier)}

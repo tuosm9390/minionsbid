@@ -52,6 +52,8 @@ export function useAuctionBoard({
     playerName: string
     teamName: string
     price: number
+    tier?: string
+    position?: string
   } | null>(null)
 
   // ── 파생 데이터 ──
@@ -65,9 +67,7 @@ export function useAuctionBoard({
     ? undefined
     : players.find((p) => p.status === 'IN_AUCTION')
 
-  const latestNotice = [...messages]
-    .reverse()
-    .find((m) => m.sender_role === 'NOTICE')
+  const latestNotice = messages.findLast((m) => m.sender_role === 'NOTICE')
 
   const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id)
   const highestBid =
@@ -136,6 +136,8 @@ export function useAuctionBoard({
           playerName: justSold.name,
           teamName: team?.name ?? '팀 미정',
           price: justSold.sold_price ?? 0,
+          tier: justSold.tier,
+          position: justSold.main_position,
         })
       }
     }

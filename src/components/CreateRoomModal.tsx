@@ -84,7 +84,7 @@ export function CreateRoomModal() {
                     <h2 className="text-fluid-xs font-heading text-minion-yellow leading-none mb-1">
                       NEW MISSION
                     </h2>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                    <p className="text-fluid-xs font-bold text-gray-400 uppercase tracking-widest">
                       Step {step + 1}: {STEPS[step]}
                     </p>
                   </div>
@@ -125,13 +125,13 @@ export function CreateRoomModal() {
                       {i < step ? (
                         <Check size={14} strokeWidth={3} />
                       ) : (
-                        <span className="font-heading text-[10px]">
+                        <span className="font-heading text-fluid-xs">
                           {i + 1}
                         </span>
                       )}
                     </div>
                     <span
-                      className={`text-[9px] font-heading uppercase tracking-tighter transition-colors ${
+                      className={`text-fluid-xs font-heading uppercase tracking-tighter transition-colors ${
                         i === step ? "text-black" : "text-gray-400"
                       }`}
                     >

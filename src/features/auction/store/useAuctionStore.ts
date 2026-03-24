@@ -78,6 +78,8 @@ interface AuctionState {
 
   // Presence (실시간 접속 현황)
   presences: PresenceUser[]
+  isPresenceLoaded: boolean
+  isLocalConnected: boolean
 
   // 추첨 모달 상태 (Broadcast CLOSE_LOTTERY로 동기화)
   lotteryPlayer: Player | null
@@ -88,6 +90,8 @@ interface AuctionState {
   setRoomNotFound: () => void
   setReAuctionRound: (isRe: boolean) => void
   setLotteryPlayer: (player: Player | null) => void
+  setPresenceLoaded: (loaded: boolean) => void
+  setLocalConnected: (connected: boolean) => void
 }
 
 export const useAuctionStore = create<AuctionState>((set) => ({
@@ -112,6 +116,8 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   players: [],
   messages: [],
   presences: [],
+  isPresenceLoaded: false,
+  isLocalConnected: true,
   lotteryPlayer: null,
 
   setRoomContext: (roomId, role, teamId) => set({
@@ -123,4 +129,6 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   setRoomNotFound: () => set({ roomExists: false, isRoomLoaded: true }),
   setReAuctionRound: (isRe) => set({ isReAuctionRound: isRe }),
   setLotteryPlayer: (player) => set({ lotteryPlayer: player }),
+  setPresenceLoaded: (loaded) => set({ isPresenceLoaded: loaded }),
+  setLocalConnected: (connected) => set({ isLocalConnected: connected }),
 }))
