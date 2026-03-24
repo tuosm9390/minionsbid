@@ -154,7 +154,9 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
-- [ ] TXXX Security hardening
+- [ ] TXXX **Security**: Zod boundary validation audit across all entities/endpoints
+- [ ] TXXX **A11y**: Accessibility review for all interactive elements and modals
+- [ ] TXXX **Design**: Verify Cyber-Pixel styling compliance (fluid type, 4px borders)
 - [ ] TXXX Run quickstart.md validation
 
 ---

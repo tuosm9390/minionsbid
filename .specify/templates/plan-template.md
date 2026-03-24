@@ -31,11 +31,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [ ] **Cyber-Pixel Identity**: All UI follows `DESIGN.md` (OKLCH, fluid type, no rounded corners).
+- [ ] **Cyber-Pixel Identity**: All UI follows `DESIGN.md` (OKLCH, fluid type, no rounded corners, 4px solid borders).
 - [ ] **Real-time Integrity**: Firebase RTDB state is preserved as single source of truth.
-- [ ] **TDD Mandatory**: All functional tasks have corresponding test tasks.
-- [ ] **Mobile-First**: Touch targets >= 44px and Column-Priority layout confirmed.
-- [ ] **Security & Hygiene**: No `any` types, no `console.log`, strict RLS compliance.
+- [ ] **TDD Mandatory**: All functional tasks have corresponding test tasks. Red-Green-Refactor cycle followed.
+- [ ] **Mobile-First & A11y**: Touch targets >= 44px, Column-Priority layout, and Modal Portals for accessibility.
+- [ ] **Security & Hygiene**: Zod validation at boundaries, strict RLS/IDOR prevention, no `any`, no `console.log`.
 
 ## Project Structure
 

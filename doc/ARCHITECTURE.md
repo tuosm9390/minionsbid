@@ -56,5 +56,7 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 
 ## 5. 보안 모델
 - **Next.js Server Actions**: 클라이언트의 직접적인 DB 쓰기를 차단하고 모든 쓰기 요청은 서버를 경유합니다.
-- **Firebase Security Rules**: 읽기 권한은 열려있으나(Realtime용), 쓰기는 Admin SDK(서버)로만 가능하도록 제한합니다.
-- **React Portal**: 모달 시스템을 DOM 최상단에 배치하여 CSS 격리 및 보안성을 확보합니다.
+- **Zod Validation**: 모든 API 엔드포인트 및 Server Action의 경계에서 Zod 스키마를 사용하여 입력 데이터를 반드시 검증 및 살균합니다.
+- **Strict RLS & IDOR Prevention**: Firebase Security Rules를 통해 권한이 없는 리소스 접근을 차단하며, 서버 사이드에서 요청자의 권한을 매번 검증하여 IDOR 공격을 적극적으로 방지합니다.
+- **Zero Trust**: 클라이언트에서 전달된 데이터나 URL 파라미터를 절대 신뢰하지 않으며, 항상 서버의 상태(Session, DB 권한)를 기준으로 요청을 처리합니다.
+- **React Portal**: 모달 시스템을 `Portal`을 사용하여 DOM 최상단에 배치하며, 포커스 트래핑 및 키보드 접근성(A11y)을 보장합니다.
