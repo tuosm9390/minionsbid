@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { X, ExternalLink, Check } from "lucide-react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useCreateRoom } from "@/features/auction/hooks/useCreateRoom";
 import { BasicInfoStep } from "./create-room/BasicInfoStep";
 import { CaptainRegistrationStep } from "./create-room/CaptainRegistrationStep";
@@ -27,6 +27,9 @@ export function CreateRoomModal() {
     isCheckingRooms,
     basic,
     setBasic,
+    scheduleOptions,
+    isLoadingSchedules,
+    loadScheduleOptions,
     captains,
     setCaptains,
     players,
@@ -157,6 +160,9 @@ export function CreateRoomModal() {
                     <BasicInfoStep
                       basic={basic}
                       setBasic={setBasic}
+                      scheduleOptions={scheduleOptions}
+                      isLoadingSchedules={isLoadingSchedules}
+                      refreshScheduleOptions={loadScheduleOptions}
                       activeRooms={activeRooms}
                       isCheckingRooms={isCheckingRooms}
                       goToRoom={goToRoom}

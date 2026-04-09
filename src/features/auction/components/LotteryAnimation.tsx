@@ -29,10 +29,6 @@ export function LotteryAnimation({
   const [tick, setTick] = useState(0);
   const controls = useAnimationControls();
 
-  const [particles, setParticles] = useState<
-    { x: number; y: number; rotate: number }[]
-  >([]);
-
   // Generate a sequence of items that ends with the target player
   const trackItems = useMemo(() => {
     const cand = candidates.length > 0 ? candidates : [targetPlayer];
@@ -46,16 +42,15 @@ export function LotteryAnimation({
     return items;
   }, [candidates, targetPlayer]);
 
-  useEffect(() => {
-    if (hasFinished) {
-      const newParticles = Array.from({ length: 12 }).map(() => ({
-        x: 50 + (Math.random() - 0.5) * 150,
-        y: 50 + (Math.random() - 0.5) * 150,
-        rotate: Math.random() * 360,
-      }));
-      setParticles(newParticles);
-    }
-  }, [hasFinished]);
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, index) => ({
+        x: 10 + ((index * 17) % 80),
+        y: 12 + ((index * 29) % 76),
+        rotate: (index * 57) % 360,
+      })),
+    [],
+  );
 
   useEffect(() => {
     let isMounted = true;

@@ -1,4 +1,4 @@
-const xlsx = require('xlsx');
+import xlsx from 'xlsx';
 
 const teams = [];
 for (let i = 1; i <= 8; i++) {

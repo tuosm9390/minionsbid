@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Trash2, AlertTriangle, Save } from "lucide-react";
+import { X, Trash2, AlertTriangle } from "lucide-react";
 
 interface EndRoomModalProps {
   isOpen: boolean;
@@ -20,11 +20,6 @@ export function EndRoomModal({
   onConfirm,
 }: EndRoomModalProps) {
   const [confirmed, setConfirmed] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!isOpen) return null;
 
@@ -137,5 +132,5 @@ export function EndRoomModal({
     </div>
   );
 
-  return mounted ? createPortal(modalContent, document.body) : null;
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }

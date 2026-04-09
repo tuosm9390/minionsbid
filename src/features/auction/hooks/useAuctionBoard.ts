@@ -28,8 +28,6 @@ interface UseAuctionBoardProps {
 export function useAuctionBoard({
   isLotteryActive,
   lotteryPlayer,
-  role,
-  allConnected,
 }: UseAuctionBoardProps) {
   // ── Store 셀렉터 ──
   const players = useAuctionStore((s) => s.players)

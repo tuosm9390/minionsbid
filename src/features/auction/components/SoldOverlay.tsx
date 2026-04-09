@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -32,6 +32,21 @@ export function SoldOverlay({
 
   // 가격에 따라 파티클 밀도 조절 (고가 낙찰일수록 화려하게)
   const particleCount = price >= 500 ? 40 : 20;
+  const particles = useMemo(
+    () =>
+      Array.from({ length: particleCount }, (_, i) => {
+        const angle = (i / particleCount) * Math.PI * 2 + ((i % 5) * 0.08);
+        const velocity = 20 + ((i * 11) % 40);
+        return {
+          x: Math.cos(angle) * velocity,
+          y: Math.sin(angle) * velocity,
+          rotate: 360 * (i % 2 === 0 ? 1 : -1),
+          duration: 1.5 + ((i % 4) * 0.2),
+          delay: (i % 5) * 0.03,
+        };
+      }),
+    [particleCount],
+  );
 
   return (
     <motion.div
@@ -69,42 +84,35 @@ export function SoldOverlay({
 
       {/* Explosion Pixel Confetti */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        {Array.from({ length: particleCount }).map((_, i) => {
-          const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.5;
-          const velocity = 20 + Math.random() * 40;
-          const targetX = Math.cos(angle) * velocity;
-          const targetY = Math.sin(angle) * velocity;
-
-          return (
-            <motion.div
-              key={i}
-              initial={{
-                x: "50vw",
-                y: "50vh",
-                scale: 0,
-                rotate: 0,
-              }}
-              animate={{
-                x: `calc(50vw + ${targetX}vw)`,
-                y: `calc(50vh + ${targetY}vh)`,
-                scale: [0, 1.5, 0],
-                rotate: 360 * (Math.random() > 0.5 ? 1 : -1),
-              }}
-              transition={{
-                duration: 1.5 + Math.random() * 1,
-                ease: [0.1, 0.8, 0.3, 1], // 초기 속도가 빠르고 나중에 느려지는 효과
-                delay: Math.random() * 0.2,
-              }}
-              className={`absolute w-3 h-3 md:w-5 md:h-5 pixel-box border-2 border-black ${
-                i % 3 === 0
-                  ? "bg-minion-yellow"
-                  : i % 3 === 1
-                    ? "bg-minion-blue"
-                    : "bg-white"
-              }`}
-            />
-          );
-        })}
+        {particles.map((particle, i) => (
+          <motion.div
+            key={i}
+            initial={{
+              x: "50vw",
+              y: "50vh",
+              scale: 0,
+              rotate: 0,
+            }}
+            animate={{
+              x: `calc(50vw + ${particle.x}vw)`,
+              y: `calc(50vh + ${particle.y}vh)`,
+              scale: [0, 1.5, 0],
+              rotate: particle.rotate,
+            }}
+            transition={{
+              duration: particle.duration,
+              ease: [0.1, 0.8, 0.3, 1],
+              delay: particle.delay,
+            }}
+            className={`absolute w-3 h-3 md:w-5 md:h-5 pixel-box border-2 border-black ${
+              i % 3 === 0
+                ? "bg-minion-yellow"
+                : i % 3 === 1
+                  ? "bg-minion-blue"
+                  : "bg-white"
+            }`}
+          />
+        ))}
       </div>
 
       <motion.div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import {
   useAuctionStore,
@@ -14,11 +14,6 @@ import { LinkCard } from "@/components/ui/LinkCard";
 export function LinksModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const roomId = useAuctionStore((state) => state.roomId);
   const teams = useAuctionStore((state) => state.teams);
@@ -146,7 +141,7 @@ export function LinksModal() {
         링크
       </button>
 
-      {isOpen && mounted && createPortal(modalContent, document.body)}
+      {isOpen && typeof document !== "undefined" && createPortal(modalContent, document.body)}
     </>
   );
 }

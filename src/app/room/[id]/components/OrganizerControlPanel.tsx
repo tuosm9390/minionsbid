@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useAuctionStore, Player } from "@/features/auction/store/useAuctionStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -43,16 +43,7 @@ export function OrganizerControlPanel({
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const presences = useAuctionStore((s) => s.presences);
   const sessionCount = presences.length;
-  const [showLoadWarning, setShowLoadWarning] = useState(false);
-
-  // 시스템 부하 경고 모니터링 (FR-007) - Hysteresis 적용
-  useEffect(() => {
-    if (sessionCount >= 80) {
-      setShowLoadWarning(true);
-    } else if (sessionCount <= 70) {
-      setShowLoadWarning(false);
-    }
-  }, [sessionCount]);
+  const showLoadWarning = useMemo(() => sessionCount >= 80, [sessionCount]);
 
   return (
     <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">

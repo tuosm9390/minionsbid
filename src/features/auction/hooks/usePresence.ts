@@ -11,6 +11,13 @@ interface PresenceOptions {
   teamName?: string
 }
 
+type PresenceRecord = {
+  teamId: string | null
+  teamName: string
+  role: string | null
+  connectedAt: ReturnType<typeof serverTimestamp>
+}
+
 /**
  * Firebase RTDB 기반 Presence 훅.
  * onDisconnect를 활용하여 연결 끊김 시 자동으로 presence 정보를 제거한다.
@@ -34,18 +41,19 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
     unsubs.push(unsubConnected)
 
     // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
-    let myPresenceRef: any = null
+    let myPresenceRef: ReturnType<typeof ref> | null = null
     if (role === 'LEADER' || role === 'ORGANIZER') {
       const sessionId = `${teamId ?? 'organizer'}_${Date.now()}`
       myPresenceRef = ref(rtdb, `presence/${roomId}/${sessionId}`)
 
       // 연결 시 존재 기록
-      set(myPresenceRef, {
+      const record: PresenceRecord = {
         teamId: teamId ?? null,
         teamName: teamName ?? '',
         role,
         connectedAt: serverTimestamp(),
-      })
+      }
+      set(myPresenceRef, record)
 
       // 연결 끊기면 자동 삭제
       onDisconnect(myPresenceRef).remove()

@@ -1,10 +1,11 @@
 ﻿"use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { db as firebaseDb } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { createRoom as createRoomAction } from "@/features/auction/api/auctionActions";
+import { getLeagueScheduleCatalog } from "@/features/schedules/api/scheduleActions";
+import type { LeagueScheduleItem } from "@/features/schedules/types";
 import { buildTemplateData, CaptainInfo, PlayerInfo } from "../utils/roomGenerator";
 import { TIER_MAP, POSITION_HEADER_KEYWORDS } from "../constants/room";
 
@@ -15,6 +16,9 @@ export interface BasicInfo {
   teamCount: number;
   membersPerTeam: number;
   totalPoints: number;
+  scheduleId: string | null;
+  linkedAuctionId: string | null;
+  linkedLeagueName: string | null;
 }
 
 export interface GeneratedLinks {
@@ -33,7 +37,6 @@ export interface StoredRoom {
 }
 
 export function useCreateRoom() {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,12 +46,17 @@ export function useCreateRoom() {
 
   const [activeRooms, setActiveRooms] = useState<StoredRoom[]>([]);
   const [isCheckingRooms, setIsCheckingRooms] = useState(false);
+  const [scheduleOptions, setScheduleOptions] = useState<LeagueScheduleItem[]>([]);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
 
   const [basic, setBasic] = useState<BasicInfo>({
     title: "",
     teamCount: 2,
     membersPerTeam: 5,
     totalPoints: 1000,
+    scheduleId: null,
+    linkedAuctionId: null,
+    linkedLeagueName: null,
   });
   const [captains, setCaptains] = useState<CaptainInfo[]>([]);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -59,12 +67,19 @@ export function useCreateRoom() {
     players: PlayerInfo[];
   } | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    checkActiveRooms();
-  }, [isOpen]);
+  const loadScheduleOptions = useCallback(async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const catalog = await getLeagueScheduleCatalog();
+      setScheduleOptions(catalog.schedules);
+    } catch (err) {
+      console.error("loadScheduleOptions error:", err);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  }, []);
 
-  const checkActiveRooms = async () => {
+  const checkActiveRooms = useCallback(async () => {
     setIsCheckingRooms(true);
     try {
       const storedStr = localStorage.getItem(LS_KEY);
@@ -92,7 +107,13 @@ export function useCreateRoom() {
     } finally {
       setIsCheckingRooms(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void checkActiveRooms();
+    void loadScheduleOptions();
+  }, [checkActiveRooms, isOpen, loadScheduleOptions]);
 
   const syncCaptains = (count: number) => {
     setCaptains((prev) => {
@@ -130,6 +151,10 @@ export function useCreateRoom() {
   const createRoom = async () => {
     const result = await createRoomAction({
       name: basic.title,
+      scheduleId: basic.scheduleId,
+      scheduleName: basic.title,
+      linkedAuctionId: basic.linkedAuctionId,
+      linkedLeagueName: basic.linkedLeagueName,
       totalTeams: basic.teamCount,
       basePoint: basic.totalPoints,
       membersPerTeam: basic.membersPerTeam,
@@ -304,12 +329,21 @@ export function useCreateRoom() {
 
   const reset = () => {
     setStep(0);
-    setBasic({ title: "", teamCount: 5, membersPerTeam: 5, totalPoints: 1000 });
+    setBasic({
+      title: "",
+      teamCount: 5,
+      membersPerTeam: 5,
+      totalPoints: 1000,
+      scheduleId: null,
+      linkedAuctionId: null,
+      linkedLeagueName: null,
+    });
     setCaptains([]);
     setPlayers([]);
     setLinks(null);
     setCopied(null);
     setActiveRooms([]);
+    setScheduleOptions([]);
   };
 
   const close = () => {
@@ -338,6 +372,7 @@ export function useCreateRoom() {
     isOpen, setIsOpen,
     step, setStep, isLoading, isUploading, copied, fileInputRef,
     activeRooms, isCheckingRooms, basic, setBasic, captains, setCaptains,
+    scheduleOptions, isLoadingSchedules, loadScheduleOptions,
     players, setPlayers, links, isTemplateModalOpen, setIsTemplateModalOpen,
     templateData, setTemplateData, handleNext, handleExcelUpload,
     copyToClipboard, reset, close, goToRoom, openTemplateModal, applyTemplate, buildTemplateData

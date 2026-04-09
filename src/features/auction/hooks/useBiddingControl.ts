@@ -31,7 +31,6 @@ export function useBiddingControl({
   currentPlayer,
   myTeam,
   isAuctionActive,
-  timerEndsAt,
   minBid,
   isTeamFull,
 }: UseBiddingControlProps) {

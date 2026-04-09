@@ -1,7 +1,7 @@
 {
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"D:/development/league-auction/src/__tests__/useAuctionBoard.test.tsx\"}",
-  "error": "File does not exist. Note: your current working directory is D:\\development\\league-auction.",
-  "timestamp": "2026-03-23T15:11:47.139Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"rtk next build 2>&1\",\"timeout\":120000,\"description\":\"Next.js 프로덕션 빌드\"}",
+  "error": "Exit code 1\n[rtk] /!\\ No hook installed — run `rtk init -g` for automatic token savings\nNext.js Build\n═══════════════════════════════════════\nErrors: 0 | Warnings: 0",
+  "timestamp": "2026-04-09T07:10:06.057Z",
   "retry_count": 1
 }

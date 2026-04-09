@@ -26,6 +26,10 @@ export interface CreateRoomPayload {
   totalTeams: number
   basePoint: number
   membersPerTeam: number
+  scheduleId?: string | null
+  scheduleName?: string | null
+  linkedAuctionId?: string | null
+  linkedLeagueName?: string | null
   captains: CreateRoomCaptain[]
   players: CreateRoomPlayer[]
 }
@@ -43,7 +47,13 @@ export interface ArchiveTeam {
   name: string
   leader_name: string
   point_balance: number
-  players: { name: string; sold_price: number | null }[]
+  players: {
+    name: string
+    tier: string
+    main_position: string
+    sub_position: string
+    sold_price: number | null
+  }[]
 }
 
 export interface AuctionArchivePayload {
@@ -65,6 +75,10 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
     const roomRef = adminDb.collection('rooms').doc(roomId)
     await roomRef.set({
       name: payload.name,
+      schedule_id: payload.scheduleId ?? null,
+      schedule_name: payload.scheduleName ?? payload.name,
+      linked_auction_id: payload.linkedAuctionId ?? null,
+      linked_league_name: payload.linkedLeagueName ?? null,
       total_teams: payload.captains.length,
       base_point: payload.basePoint,
       members_per_team: payload.membersPerTeam,
@@ -133,13 +147,56 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
 /** 경매 결과를 auction_archives 컬렉션에 영구 저장 */
 export async function saveAuctionArchive(payload: AuctionArchivePayload): Promise<{ error?: string }> {
   try {
+    let roomData: Record<string, unknown> = {}
+    const roomCollection = adminDb.collection('rooms')
+    const roomDocRef =
+      typeof roomCollection.doc === 'function' ? roomCollection.doc(payload.roomId) : null
+
+    if (roomDocRef && typeof roomDocRef.get === 'function') {
+      const roomSnap = await roomDocRef.get()
+      roomData =
+        roomSnap && typeof roomSnap === 'object' && 'data' in roomSnap && typeof roomSnap.data === 'function'
+          ? roomSnap.data() ?? {}
+          : {}
+    }
+
     await adminDb.collection('auction_archives').add({
       room_id: payload.roomId,
       room_name: payload.roomName,
+      schedule_id: roomData.schedule_id ?? null,
+      schedule_name: roomData.schedule_name ?? payload.roomName,
+      linked_auction_id: roomData.linked_auction_id ?? null,
+      linked_league_name: roomData.linked_league_name ?? null,
       room_created_at: payload.roomCreatedAt,
       closed_at: admin.firestore.FieldValue.serverTimestamp(),
       result_snapshot: payload.teams,
     })
+    return {}
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '알 수 없는 오류'
+    return { error: message }
+  }
+}
+
+// ---------- 팀 이름 수정 ----------
+
+/** 팀 이름 변경 */
+export async function updateTeamName(
+  roomId: string,
+  teamId: string,
+  newName: string
+): Promise<{ error?: string }> {
+  const trimmed = newName.trim()
+  if (!trimmed) return { error: '팀 이름을 입력해주세요.' }
+  if (trimmed.length > 20) return { error: '팀 이름은 20자 이하여야 합니다.' }
+
+  try {
+    await adminDb
+      .collection('rooms')
+      .doc(roomId)
+      .collection('teams')
+      .doc(teamId)
+      .update({ name: trimmed })
     return {}
   } catch (err) {
     const message = err instanceof Error ? err.message : '알 수 없는 오류'

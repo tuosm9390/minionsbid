@@ -1,0 +1,785 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
+import { CalendarDays, Clock3, Flag, Trash2, X } from "lucide-react";
+import {
+  completeLeagueSchedule,
+  createLeagueSchedule,
+  deleteLeagueSchedule,
+  getLeagueScheduleCatalog,
+  getLeagueScheduleTimeline,
+  registerLeagueMatchResult,
+  saveLeagueScheduleDay,
+} from "@/features/schedules/api/scheduleActions";
+import type {
+  LeagueRosterTeam,
+  LeagueScheduleDay,
+  LeagueScheduleTimeline,
+} from "@/features/schedules/types";
+import { ScheduleCalendar, formatDateKey } from "@/components/ScheduleCalendar";
+import {
+  ScheduleMatchDayEditor,
+  type MatchEditorRow,
+} from "@/components/ScheduleMatchDayEditor";
+import { ScheduleRosterPanel } from "@/components/ScheduleRosterPanel";
+
+function startOfSelectedDay(date: Date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    0,
+    0,
+    0,
+    0,
+  );
+}
+
+function formatScheduleDate(startIso: string, endIso: string | null) {
+  const start = new Date(startIso);
+  const end = endIso ? new Date(endIso) : null;
+  const startText = start.toLocaleString("ko-KR", {
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (!end) return startText;
+  const sameDay = start.toDateString() === end.toDateString();
+  if (sameDay) {
+    return `${startText} - ${end.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`;
+  }
+  return `${startText} - ${end.toLocaleString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+}
+
+function formatTimelineDate(dateKey: string) {
+  const date = new Date(`${dateKey}T00:00:00`);
+  return date.toLocaleDateString("ko-KR", {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+}
+
+function isScheduleInProgress(startIso: string, endIso: string | null) {
+  const now = Date.now();
+  const start = new Date(startIso).getTime();
+  const end = endIso ? new Date(endIso).getTime() : Number.POSITIVE_INFINITY;
+
+  if (!Number.isFinite(start)) return false;
+  return now >= start && now <= end;
+}
+
+function getWinnerLabel(match: {
+  winner: string;
+  homeTeamName: string;
+  awayTeamName: string;
+}) {
+  if (match.winner === "HOME") return `${match.homeTeamName} 승`;
+  if (match.winner === "AWAY") return `${match.awayTeamName} 승`;
+  if (match.winner === "DRAW") return "무승부";
+  return "결과 대기";
+}
+
+function buildEditorRows(day: LeagueScheduleDay | null): MatchEditorRow[] {
+  if (!day || day.matches.length === 0) {
+    return [
+      {
+        startsAt: "19:00",
+        homeTeamName: "",
+        awayTeamName: "",
+        winner: "PENDING",
+        note: "",
+        isCompleted: false,
+      },
+    ];
+  }
+  return day.matches.map((match) => ({
+    id: match.id,
+    startsAt: match.startsAt,
+    homeTeamName: match.homeTeamName,
+    awayTeamName: match.awayTeamName,
+    winner: match.winner,
+    note: match.note,
+    isCompleted: match.isCompleted,
+  }));
+}
+
+function ActionModal({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[230] bg-black/80 p-4 flex items-center justify-center"
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+    >
+      <div className="w-full max-w-lg bg-[#fffdf6] border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)]">
+        <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-black text-white">
+          <h3 className="text-lg font-heading">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-minion-red text-black border-2 border-black p-1"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+export function LeagueScheduleManager() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingTimeline, setIsSavingTimeline] = useState(false);
+  const [isSubmittingResultId, setIsSubmittingResultId] = useState<
+    string | null
+  >(null);
+  const [error, setError] = useState("");
+  const [timelineError, setTimelineError] = useState("");
+  const [leagueOptions, setLeagueOptions] = useState<
+    Array<{ id: string; name: string; closedAt: string | null }>
+  >([]);
+  const [schedules, setSchedules] = useState<
+    LeagueScheduleTimeline["schedule"][]
+  >([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState("");
+  const [timeline, setTimeline] = useState<LeagueScheduleTimeline | null>(null);
+  const [selectedLinkedAuctionId, setSelectedLinkedAuctionId] = useState("");
+  const [customName, setCustomName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [startDate, setStartDate] = useState(() => new Date());
+  const [endDate, setEndDate] = useState(() => new Date());
+  const [selectedDateKey, setSelectedDateKey] = useState(() =>
+    formatDateKey(new Date()),
+  );
+  const [matchRows, setMatchRows] = useState<MatchEditorRow[]>(
+    buildEditorRows(null),
+  );
+  const [adminCode, setAdminCode] = useState("");
+  const [isDeletingSchedule, setIsDeletingSchedule] = useState(false);
+  const [isCompletingSchedule, setIsCompletingSchedule] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [selectedChampionName, setSelectedChampionName] = useState("");
+
+  const loadCatalog = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const catalog = await getLeagueScheduleCatalog();
+      setLeagueOptions(catalog.leagueOptions);
+      setSchedules(catalog.schedules);
+      setSelectedScheduleId((prev) => prev || catalog.schedules[0]?.id || "");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadTimeline = useCallback(async (scheduleId: string) => {
+    if (!scheduleId) {
+      setTimeline(null);
+      return;
+    }
+    const next = await getLeagueScheduleTimeline(scheduleId);
+    setTimeline(next);
+  }, []);
+
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
+
+  useEffect(() => {
+    if (selectedScheduleId) void loadTimeline(selectedScheduleId);
+  }, [loadTimeline, selectedScheduleId]);
+
+  useEffect(() => {
+    const schedule = timeline?.schedule;
+    if (!schedule) return;
+    setSelectedDateKey(
+      (prev) => prev || formatDateKey(new Date(schedule.startsAt)),
+    );
+  }, [timeline?.schedule?.id, timeline?.schedule?.startsAt]);
+
+  const selectedDay = useMemo(
+    () => timeline?.days.find((day) => day.dateKey === selectedDateKey) ?? null,
+    [selectedDateKey, timeline],
+  );
+
+  useEffect(() => {
+    setMatchRows(buildEditorRows(selectedDay));
+  }, [selectedDay]);
+
+  useEffect(() => {
+    setSelectedChampionName(timeline?.schedule?.championTeamName ?? "");
+  }, [timeline?.schedule?.championTeamName, selectedScheduleId]);
+
+  const daySummaries = useMemo(() => {
+    const map = new Map<string, { total: number; completed: number; labels?: string[] }>();
+    timeline?.days.forEach((day) => {
+      map.set(day.dateKey, {
+        total: day.matches.length,
+        completed: day.matches.filter((match) => match.isCompleted).length,
+        labels: day.matches.map((match) => `${match.homeTeamName} vs ${match.awayTeamName}`),
+      });
+    });
+    return map;
+  }, [timeline]);
+
+  const selectedRosterMatches = useMemo(() => {
+    const rosterMap = new Map<string, LeagueRosterTeam>();
+    timeline?.rosterTeams.forEach((team) => rosterMap.set(team.name, team));
+
+    return matchRows
+      .filter((row) => row.homeTeamName.trim() || row.awayTeamName.trim())
+      .map((row, index) => ({
+        id: row.id ?? `match-${selectedDateKey}-${index}`,
+        homeTeam: rosterMap.get(row.homeTeamName.trim()) ?? null,
+        awayTeam: rosterMap.get(row.awayTeamName.trim()) ?? null,
+        winner: row.winner,
+      }));
+  }, [matchRows, selectedDateKey, timeline]);
+
+  const handleCreate = async () => {
+    const linkedAuction =
+      leagueOptions.find((option) => option.id === selectedLinkedAuctionId) ??
+      null;
+    const linkedLeagueName = linkedAuction?.name ?? null;
+    const name = customName.trim() || linkedLeagueName?.trim() || "";
+    if (!name) {
+      setError("기존 리그를 선택하거나 새 일정 이름을 입력해주세요.");
+      return;
+    }
+    setIsSaving(true);
+    setError("");
+    const result = await createLeagueSchedule({
+      name,
+      linkedAuctionId: linkedAuction?.id ?? null,
+      linkedLeagueName,
+      startsAt: startOfSelectedDay(startDate).toISOString(),
+      endsAt: startOfSelectedDay(endDate).toISOString(),
+      notes,
+    });
+    setIsSaving(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    await loadCatalog();
+    if (result.schedule?.id) setSelectedScheduleId(result.schedule.id);
+    setIsOpen(false);
+    setSelectedLinkedAuctionId("");
+    setCustomName("");
+    setNotes("");
+  };
+
+  const handleSaveDay = async () => {
+    if (!selectedScheduleId) return;
+    setIsSavingTimeline(true);
+    setTimelineError("");
+    const result = await saveLeagueScheduleDay(selectedScheduleId, {
+      dateKey: selectedDateKey,
+      matches: matchRows.map((row) => ({
+        id: row.id,
+        startsAt: row.startsAt,
+        homeTeamName: row.homeTeamName,
+        awayTeamName: row.awayTeamName,
+      })),
+    });
+    setIsSavingTimeline(false);
+    if (result.error) return setTimelineError(result.error);
+    await loadTimeline(selectedScheduleId);
+  };
+
+  const handleSaveResult = async (row: MatchEditorRow) => {
+    if (!selectedScheduleId || !row.id) {
+      setTimelineError("먼저 날짜 경기를 저장한 뒤 결과를 등록해주세요.");
+      return;
+    }
+    setIsSubmittingResultId(row.id);
+    setTimelineError("");
+    const result = await registerLeagueMatchResult({
+      scheduleId: selectedScheduleId,
+      dateKey: selectedDateKey,
+      matchId: row.id,
+      winner: row.winner,
+      note: row.note,
+      adminCode: adminCode.trim() || undefined,
+    });
+    setIsSubmittingResultId(null);
+    if (result.error) return setTimelineError(result.error);
+    await loadTimeline(selectedScheduleId);
+  };
+
+  const handleDeleteSchedule = async () => {
+    if (!selectedScheduleId) return;
+    setIsDeletingSchedule(true);
+    setTimelineError("");
+    const result = await deleteLeagueSchedule(selectedScheduleId);
+    setIsDeletingSchedule(false);
+    if (result.error) return setTimelineError(result.error);
+    setIsDeleteModalOpen(false);
+    setSelectedScheduleId("");
+    setTimeline(null);
+    await loadCatalog();
+  };
+
+  const handleCompleteSchedule = async () => {
+    if (!selectedScheduleId) return;
+    setIsCompletingSchedule(true);
+    setTimelineError("");
+    const result = await completeLeagueSchedule({
+      scheduleId: selectedScheduleId,
+      championTeamName: selectedChampionName,
+    });
+    setIsCompletingSchedule(false);
+    if (result.error) return setTimelineError(result.error);
+    setIsCompleteModalOpen(false);
+    await loadCatalog();
+    await loadTimeline(selectedScheduleId);
+  };
+
+  return (
+    <>
+      <div className="w-full space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-minion-blue">
+              League Schedule
+            </p>
+            <h2 className="text-2xl lg:text-3xl font-heading">
+              리그전 일정 타임라인
+            </h2>
+            <p className="text-sm font-bold text-gray-600 mt-2">
+              날짜별 경기 시간, 참가 팀, 결과를 기록하고 클릭한 날짜 아래에서 팀
+              로스터를 바로 확인할 수 있습니다.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsOpen(true)}
+            className="pixel-button w-full lg:w-auto bg-minion-blue text-white py-4 px-8 text-lg font-heading shadow-[8px_8px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center gap-3"
+          >
+            <CalendarDays size={20} />
+            리그전 일정 생성
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 2xl:grid-cols-[340px_minmax(0,1fr)] gap-6">
+          <div className="bg-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                  Schedule List
+                </p>
+                <p className="text-lg font-black">리그전 일정</p>
+              </div>
+              <button
+                type="button"
+                onClick={loadCatalog}
+                className="border-2 border-black px-3 py-2 text-xs font-black bg-minion-yellow"
+              >
+                새로고침
+              </button>
+            </div>
+            <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+              {!isLoading && schedules.length === 0 && (
+                <div className="border-2 border-dashed border-black p-6 text-center text-sm font-black">
+                  등록된 일정이 없습니다.
+                </div>
+              )}
+              {schedules.map((schedule) =>
+                schedule ? (
+                  <button
+                    key={schedule.id}
+                    type="button"
+                    onClick={() => setSelectedScheduleId(schedule.id)}
+                    className={`w-full text-left border-4 p-4 ${selectedScheduleId === schedule.id ? "border-minion-blue bg-minion-blue text-white" : "border-black bg-[#fffdf8]"}`}
+                  >
+                    <p className="text-lg font-black">{schedule.name}</p>
+                    <p
+                      className={`text-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-500"}`}
+                    >
+                      {formatScheduleDate(schedule.startsAt, schedule.endsAt)}
+                    </p>
+                    <p
+                      className={`text-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-600"}`}
+                    >
+                      {schedule.linkedLeagueName
+                        ? `연결 경매: ${schedule.linkedLeagueName}`
+                        : "커스텀 일정"}
+                    </p>
+                  </button>
+                ) : null,
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            {timeline?.schedule ? (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="bg-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)] lg:col-span-2">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                      Current Schedule
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 mt-1">
+                      <h3 className="text-2xl font-black">
+                        {timeline.schedule.name}
+                      </h3>
+                      {(timeline.schedule.status === "COMPLETED" ||
+                        isScheduleInProgress(
+                          timeline.schedule.startsAt,
+                          timeline.schedule.endsAt,
+                        )) && (
+                        <span
+                          className={`border-2 border-black px-3 py-1 text-[11px] font-black ${timeline.schedule.status === "COMPLETED" ? "bg-green-600 text-white" : "bg-minion-yellow text-black"}`}
+                        >
+                          {timeline.schedule.status === "COMPLETED"
+                            ? "종료됨"
+                            : "진행중"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-gray-600 mt-2">
+                      {formatScheduleDate(
+                        timeline.schedule.startsAt,
+                        timeline.schedule.endsAt,
+                      )}
+                    </p>
+                    {timeline.schedule.championTeamName && (
+                      <p className="mt-3 text-sm font-black text-green-700">
+                        최종 우승팀: {timeline.schedule.championTeamName}
+                      </p>
+                    )}
+                    {timeline.schedule.notes && (
+                      <p className="mt-4 border-2 border-black bg-[#fffdf6] px-4 py-3 text-sm font-bold text-gray-700">
+                        {timeline.schedule.notes}
+                      </p>
+                    )}
+                    <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsCompleteModalOpen(true)}
+                        disabled={
+                          timeline.rosterTeams.length === 0 ||
+                          timeline.schedule.status === "COMPLETED"
+                        }
+                        className="border-2 border-black bg-green-600 text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        <Flag size={16} />
+                        일정 종료
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsDeleteModalOpen(true)}
+                        className="border-2 border-black bg-minion-red text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2"
+                      >
+                        <Trash2 size={16} />
+                        일정 삭제
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-black text-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-center gap-3">
+                      <Clock3 size={18} className="text-minion-yellow" />
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
+                          Next Match
+                        </p>
+                        <p className="text-lg font-black mt-1">
+                          {timeline.nextMatches.length > 0
+                            ? `${timeline.nextMatches.length}경기 예정`
+                            : "대기 중"}
+                        </p>
+                      </div>
+                    </div>
+                    {timeline.nextMatches.length > 0 ? (
+                      <div className="mt-4 space-y-2">
+                        {timeline.nextMatches.map((match) => (
+                          <div
+                            key={match.id}
+                            className="border-2 border-white/20 bg-white/5 px-3 py-2"
+                          >
+                            <p className="text-sm font-black">
+                              {match.homeTeamName} vs {match.awayTeamName}
+                            </p>
+                            <p className="text-xs font-bold text-white/70 mt-1">
+                              {match.startsAt} · {getWinnerLabel(match)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-bold text-white/80 mt-4">
+                        등록된 다음 경기가 없습니다.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5">
+                  <ScheduleCalendar
+                    label="Match Days"
+                    selectedDate={new Date(`${selectedDateKey}T00:00:00`)}
+                    onChange={(date) => setSelectedDateKey(formatDateKey(date))}
+                    daySummaries={daySummaries}
+                    minDate={new Date(timeline.schedule.startsAt)}
+                    maxDate={
+                      timeline.schedule.endsAt
+                        ? new Date(timeline.schedule.endsAt)
+                        : undefined
+                    }
+                  />
+                  <ScheduleMatchDayEditor
+                    selectedDateLabel={formatTimelineDate(selectedDateKey)}
+                    rows={matchRows}
+                    rosterTeams={timeline.rosterTeams}
+                    adminCode={adminCode}
+                    timelineError={timelineError}
+                    isSavingTimeline={isSavingTimeline}
+                    isSubmittingResultId={isSubmittingResultId}
+                    onAdminCodeChange={setAdminCode}
+                    onRowChange={(index, patch) =>
+                      setMatchRows((prev) =>
+                        prev.map((row, rowIndex) =>
+                          rowIndex === index ? { ...row, ...patch } : row,
+                        ),
+                      )
+                    }
+                    onAddRow={() =>
+                      setMatchRows((prev) => [
+                        ...prev,
+                        {
+                          startsAt: "19:00",
+                          homeTeamName: "",
+                          awayTeamName: "",
+                          winner: "PENDING",
+                          note: "",
+                          isCompleted: false,
+                        },
+                      ])
+                    }
+                    onRemoveRow={(index) =>
+                      setMatchRows((prev) =>
+                        prev.filter((_, rowIndex) => rowIndex !== index),
+                      )
+                    }
+                    onSaveDay={() => void handleSaveDay()}
+                    onSaveResult={(row) => void handleSaveResult(row)}
+                  />
+                </div>
+
+                <ScheduleRosterPanel matches={selectedRosterMatches} />
+              </>
+            ) : (
+              <div className="bg-white border-4 border-dashed border-black p-10 text-center">
+                <p className="text-lg font-black">선택된 일정이 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[220] bg-black/80 p-4 flex items-center justify-center"
+            onClick={(event) =>
+              event.target === event.currentTarget && setIsOpen(false)
+            }
+          >
+            <div className="w-full max-w-5xl max-h-[92vh] overflow-hidden bg-[#fffdf6] border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-black text-white">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-minion-yellow">
+                    Schedule Maker
+                  </p>
+                  <h3 className="text-xl font-heading mt-1">
+                    리그전 일정 생성
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="bg-minion-red text-black border-2 border-black p-1"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-[1fr_1.2fr] gap-6">
+                <div className="space-y-4">
+                  <select
+                    value={selectedLinkedAuctionId}
+                    onChange={(event) =>
+                      setSelectedLinkedAuctionId(event.target.value)
+                    }
+                    className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
+                  >
+                    <option value="">연결할 경매 선택 안 함</option>
+                    {leagueOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                        {option.closedAt
+                          ? ` · ${new Date(option.closedAt).toLocaleDateString("ko-KR")}`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={customName}
+                    onChange={(event) => setCustomName(event.target.value)}
+                    placeholder="새 일정 이름"
+                    className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
+                  />
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="메모"
+                    rows={4}
+                    className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold resize-none"
+                  />
+                  {error && (
+                    <div className="border-4 border-black bg-red-100 px-4 py-3 text-sm font-black text-red-700">
+                      {error}
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <ScheduleCalendar
+                      label="시작일"
+                      selectedDate={startDate}
+                      onChange={setStartDate}
+                      daySummaries={new Map()}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <ScheduleCalendar
+                      label="종료일"
+                      selectedDate={endDate}
+                      onChange={setEndDate}
+                      daySummaries={new Map()}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="border-t-4 border-black bg-white px-6 py-4 flex justify-between items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="pixel-button bg-white text-black px-6 py-3 text-sm font-bold"
+                >
+                  닫기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCreate()}
+                  disabled={isSaving}
+                  className="pixel-button bg-black text-minion-yellow px-8 py-3 text-sm font-heading disabled:opacity-50"
+                >
+                  {isSaving ? "저장 중..." : "일정 저장"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {isDeleteModalOpen && typeof document !== "undefined" && (
+        <ActionModal
+          title="일정 삭제"
+          onClose={() => setIsDeleteModalOpen(false)}
+        >
+          <div className="space-y-4">
+            <p className="text-sm font-bold text-gray-700 leading-relaxed">
+              선택한 일정과 날짜별 경기 데이터가 모두 삭제됩니다. 이 작업은
+              되돌릴 수 없습니다.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="pixel-button flex-1 bg-white text-black px-4 py-3 text-sm font-bold"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteSchedule()}
+                disabled={isDeletingSchedule}
+                className="pixel-button flex-1 bg-minion-red text-white px-4 py-3 text-sm font-bold disabled:opacity-50"
+              >
+                {isDeletingSchedule ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          </div>
+        </ActionModal>
+      )}
+
+      {isCompleteModalOpen &&
+        typeof document !== "undefined" &&
+        timeline?.schedule && (
+          <ActionModal
+            title="일정 종료"
+            onClose={() => setIsCompleteModalOpen(false)}
+          >
+            <div className="space-y-4">
+              <p className="text-sm font-bold text-gray-700 leading-relaxed">
+                최종 우승팀을 선택하면 일정이 종료되고 명예의 전당에 자동
+                등록됩니다.
+              </p>
+              <select
+                value={selectedChampionName}
+                onChange={(event) =>
+                  setSelectedChampionName(event.target.value)
+                }
+                className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
+              >
+                <option value="">최종 우승팀 선택</option>
+                {timeline.rosterTeams.map((team) => (
+                  <option key={`champion-${team.name}`} value={team.name}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCompleteModalOpen(false)}
+                  className="pixel-button flex-1 bg-white text-black px-4 py-3 text-sm font-bold"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCompleteSchedule()}
+                  disabled={isCompletingSchedule || !selectedChampionName}
+                  className="pixel-button flex-1 bg-green-600 text-white px-4 py-3 text-sm font-bold disabled:opacity-50"
+                >
+                  {isCompletingSchedule ? "종료 처리 중..." : "종료 및 등록"}
+                </button>
+              </div>
+            </div>
+          </ActionModal>
+        )}
+    </>
+  );
+}

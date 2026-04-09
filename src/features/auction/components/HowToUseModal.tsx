@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
@@ -56,11 +56,6 @@ export function HowToUseModal({
   variant?: "default" | "header";
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const renderTriggerButton = () => {
     if (variant === "header") {
@@ -185,7 +180,7 @@ export function HowToUseModal({
   return (
     <>
       {renderTriggerButton()}
-      {isOpen && mounted && createPortal(modalContent, document.body)}
+      {isOpen && typeof document !== "undefined" && createPortal(modalContent, document.body)}
     </>
   );
 }

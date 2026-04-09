@@ -1,8 +1,14 @@
 import { renderHook } from '@testing-library/react'
 import { useFirebasePresence } from './usePresence'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getDatabase, ref, onValue, set, onDisconnect } from 'firebase/database'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
+import { ref, onValue, set } from 'firebase/database'
 import { useAuctionStore } from '../store/useAuctionStore'
+
+type PresenceStoreShape = {
+  setRealtimeData: (data: unknown) => void
+  setPresenceLoaded: (loaded: boolean) => void
+  setLocalConnected: (connected: boolean) => void
+}
 
 // Mock Firebase Database
 vi.mock('firebase/database', () => ({
@@ -28,11 +34,14 @@ describe('useFirebasePresence', () => {
   
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(useAuctionStore as any).mockImplementation((selector: any) => selector({
-      setRealtimeData,
-      setPresenceLoaded,
-      setLocalConnected,
-    }))
+    ;(useAuctionStore as unknown as Mock).mockImplementation(
+      (selector: (state: PresenceStoreShape) => unknown) =>
+        selector({
+          setRealtimeData,
+          setPresenceLoaded,
+          setLocalConnected,
+        }),
+    )
   })
 
   it('should not register presence if role is VIEWER (FR-004)', () => {
@@ -44,8 +53,8 @@ describe('useFirebasePresence', () => {
 
     // We expect set to not be called for registering self presence
     // In current implementation it returns early, so we'll check if it's called with specific path
-    const setCalls = (set as any).mock.calls
-    const isRegisteringSelf = setCalls.some((call: any) => {
+    const setCalls = (set as unknown as Mock).mock.calls
+    const isRegisteringSelf = setCalls.some((call: unknown[]) => {
       const path = call[0]?.toString() || ''
       return path.includes('presence/room1/')
     })
@@ -71,7 +80,7 @@ describe('useFirebasePresence', () => {
 
     // Should call onValue for presence/room1
     expect(onValue).toHaveBeenCalled()
-    const onValuePaths = (ref as any).mock.calls.map((call: any) => call[1])
+    const onValuePaths = (ref as unknown as Mock).mock.calls.map((call: unknown[]) => call[1])
     expect(onValuePaths).toContain('presence/room1')
   })
 
@@ -82,7 +91,7 @@ describe('useFirebasePresence', () => {
       role: 'VIEWER',
     }))
 
-    const onValuePaths = (ref as any).mock.calls.map((call: any) => call[1])
+    const onValuePaths = (ref as unknown as Mock).mock.calls.map((call: unknown[]) => call[1])
     expect(onValuePaths).toContain('.info/connected')
   })
 })

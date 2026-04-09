@@ -191,9 +191,18 @@
     to { transform: translateX(0); opacity: 1; }
   }
 
+  @keyframes update-ticker-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
   .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .animate-slide-in-left { animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .animate-slide-in-right { animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .update-ticker-track {
+    animation: update-ticker-marquee 36s linear infinite;
+    will-change: transform;
+  }
 
   /* Delay utilities for staggered reveal */
   .delay-100 { animation-delay: 100ms; }
@@ -281,7 +290,8 @@
     .animate-glitch,
     .animate-slide-up,
     .animate-slide-in-left,
-    .animate-slide-in-right {
+    .animate-slide-in-right,
+    .update-ticker-track {
       animation: none;
     }
 

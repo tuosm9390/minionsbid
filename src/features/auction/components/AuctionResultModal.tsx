@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, memo } from "react";
+import { useMemo, memo } from "react";
 import { createPortal } from "react-dom";
 import {
   useAuctionStore,
@@ -120,12 +120,6 @@ export function AuctionResultModal({
   const players = useAuctionStore((state) => state.players);
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
 
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // 팀 정렬 결과 메모이제이션
   const sortedTeams = useMemo(
     () =>
@@ -211,5 +205,5 @@ export function AuctionResultModal({
     </div>
   );
 
-  return mounted ? createPortal(modalContent, document.body) : null;
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }

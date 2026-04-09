@@ -2,16 +2,14 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useState, useCallback } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore";
 import { Trophy, X, RefreshCw } from "lucide-react";
+import { getVisibleAuctionArchives } from "@/features/hall-of-fame/api/hallOfFameActions";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
 
 interface AuctionArchiveRow {
   id: string;
   room_id: string;
   room_name: string;
-  room_created_at: string;
   closed_at: string;
   result_snapshot: ArchiveTeam[];
 }
@@ -107,7 +105,13 @@ function ArchiveDetailModal({
                           <td
                             className={`w-2/3 text-fluid-sm py-2.5 px-4 font-bold text-gray-700 relative ${idx !== team.players.length - 1 ? "border-b border-gray-300" : ""}`}
                           >
-                            <div className="text-center w-full">{p.name}</div>
+                            <div className="text-center w-full px-10">
+                              <div>{p.name}</div>
+                              <div className="mt-1 text-[11px] font-bold text-gray-500">
+                                {p.tier || "티어 미기입"} · {p.main_position || "포지션 미기입"}
+                                {p.sub_position ? ` / ${p.sub_position}` : ""}
+                              </div>
+                            </div>
                             {p.sold_price != null && (
                               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-fluid-xs font-black text-red-500">
                                 {p.sold_price.toLocaleString()}P
@@ -157,26 +161,7 @@ export function AuctionArchiveSection({
   const fetchArchives = useCallback(async () => {
     setLoading(true);
     try {
-      const q = query(
-        collection(db, "auction_archives"),
-        orderBy("closed_at", "desc"),
-        limit(20),
-      );
-      const snap = await getDocs(q);
-      const data: AuctionArchiveRow[] = snap.docs.map((d) => {
-        const raw = d.data();
-        return {
-          id: d.id,
-          room_id: raw.room_id ?? "",
-          room_name: raw.room_name ?? "",
-          room_created_at: raw.room_created_at ?? "",
-          closed_at:
-            raw.closed_at instanceof Timestamp
-              ? raw.closed_at.toDate().toISOString()
-              : (raw.closed_at ?? ""),
-          result_snapshot: (raw.result_snapshot ?? []) as ArchiveTeam[],
-        };
-      });
+      const data = (await getVisibleAuctionArchives()) as AuctionArchiveRow[];
       setArchives(data);
     } finally {
       setLoading(false);

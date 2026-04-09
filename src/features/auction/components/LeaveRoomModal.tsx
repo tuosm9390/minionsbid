@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, LogOut, AlertCircle } from "lucide-react";
 
@@ -15,12 +14,6 @@ export function LeaveRoomModal({
   onClose,
   onConfirm,
 }: LeaveRoomModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   if (!isOpen) return null;
 
   const modalContent = (
@@ -83,5 +76,5 @@ export function LeaveRoomModal({
     </div>
   );
 
-  return mounted ? createPortal(modalContent, document.body) : null;
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }

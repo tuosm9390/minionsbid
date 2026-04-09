@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isServerWrite() {
+      return false;
+    }
+
+    match /league_schedules/{scheduleId} {
+      allow read: if true;
+
+      // 초안 정책:
+      // 1. 메인/방 생성 화면에서 일정 목록을 바로 읽을 수 있게 공개 read 허용
+      // 2. 생성/수정/삭제는 서버 액션 또는 admin custom claim 사용자만 허용하도록 설계
+      // 3. 현재 앱은 Admin SDK 서버 액션을 사용하므로 실제로는 rules를 우회함
+      allow create, update, delete: if isAdmin() || isServerWrite();
+    }
+
+    match /rooms/{roomId} {
+      allow read, write: if false;
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /auction_archives/{archiveId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isServerWrite();
+    }
+
+    match /hall_of_fame/{entryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isServerWrite();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

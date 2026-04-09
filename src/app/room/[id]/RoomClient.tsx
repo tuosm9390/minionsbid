@@ -184,7 +184,13 @@ export function RoomClient({
             point_balance: t.point_balance,
             players: players
               .filter((p) => p.team_id === t.id)
-              .map((p) => ({ name: p.name, sold_price: p.sold_price })),
+              .map((p) => ({
+                name: p.name,
+                tier: p.tier,
+                main_position: p.main_position,
+                sub_position: p.sub_position,
+                sold_price: p.sold_price,
+              })),
           })),
         });
       }

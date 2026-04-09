@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import {
   useAuctionStore,
   Team,
   Player,
 } from "@/features/auction/store/useAuctionStore";
+import { updateTeamName } from "@/features/auction/api/roomActions";
 
 const TIER_COLOR: Record<string, string> = {
   챌린저: "text-cyan-400",
@@ -57,6 +59,38 @@ export function TeamList() {
   const players = useAuctionStore((state) => state.players || []);
   const myTeamId = useAuctionStore((state) => state.teamId);
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
+  const role = useAuctionStore((state) => state.role);
+  const roomId = useAuctionStore((state) => state.roomId);
+
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  function startEdit(team: Team) {
+    setEditingTeamId(team.id);
+    setEditName(team.name);
+    setEditError("");
+  }
+
+  function cancelEdit() {
+    setEditingTeamId(null);
+    setEditName("");
+    setEditError("");
+  }
+
+  async function saveEdit(teamId: string) {
+    if (!roomId) return;
+    setIsSaving(true);
+    setEditError("");
+    const result = await updateTeamName(roomId, teamId, editName);
+    setIsSaving(false);
+    if (result.error) {
+      setEditError(result.error);
+      return;
+    }
+    setEditingTeamId(null);
+  }
 
   if (teams.length === 0)
     return (
@@ -71,6 +105,9 @@ export function TeamList() {
     return a.name.localeCompare(b.name, undefined, { numeric: true });
   });
 
+  const canEditTeam = (teamId: string) =>
+    role === "ORGANIZER" || (role === "LEADER" && teamId === myTeamId);
+
   return (
     <div className="flex flex-col gap-6">
       {sortedTeams.map((team: Team) => {
@@ -80,14 +117,15 @@ export function TeamList() {
         const isMyTeam = team.id === myTeamId;
         const totalSlots = membersPerTeam - 1;
         const isTeamComplete = teamPlayers.length === totalSlots;
+        const isEditing = editingTeamId === team.id;
 
-        // Point ratio for gauge (relative to 1000 or max balance)
         const pointRatio = Math.min(100, (team.point_balance / 1000) * 100);
-
-        const gaugeColor = 
-          pointRatio >= 60 ? "bg-minion-blue" :
-          pointRatio >= 30 ? "bg-minion-yellow" :
-          "bg-minion-red animate-pulse";
+        const gaugeColor =
+          pointRatio >= 60
+            ? "bg-minion-blue"
+            : pointRatio >= 30
+              ? "bg-minion-yellow"
+              : "bg-minion-red animate-pulse";
 
         return (
           <div
@@ -102,14 +140,70 @@ export function TeamList() {
           >
             {/* Team Header */}
             <div className="flex flex-col gap-2 mb-4 border-b-2 border-black pb-3">
-              <div className="flex justify-between items-center">
-                <h3
-                  className={`font-black text-fluid-sm flex items-center gap-2 ${isMyTeam ? "text-minion-blue" : "text-black"}`}
-                >
-                  {isMyTeam && <span className="animate-pulse text-minion-blue">▶</span>}
-                  {team.name}
-                </h3>
-                <span className="text-fluid-sm font-black tabular-nums">
+              <div className="flex justify-between items-center gap-2">
+                {isEditing ? (
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        maxLength={20}
+                        autoFocus
+                        className="flex-1 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue min-w-0"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit(team.id);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                      />
+                      <button
+                        onClick={() => saveEdit(team.id)}
+                        disabled={isSaving || !editName.trim()}
+                        className="pixel-button bg-minion-yellow px-2 py-1 text-fluid-xs font-heading disabled:opacity-50 shrink-0"
+                        aria-label="저장"
+                      >
+                        {isSaving ? "…" : "저장"}
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        disabled={isSaving}
+                        className="pixel-button bg-white px-2 py-1 text-fluid-xs font-heading shrink-0"
+                        aria-label="취소"
+                      >
+                        취소
+                      </button>
+                    </div>
+                    {editError && (
+                      <p className="text-fluid-xs text-minion-red font-bold">
+                        {editError}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h3
+                      className={`font-black text-fluid-sm flex items-center gap-2 truncate ${isMyTeam ? "text-minion-blue" : "text-black"}`}
+                    >
+                      {isMyTeam && (
+                        <span className="animate-pulse text-minion-blue shrink-0">
+                          ▶
+                        </span>
+                      )}
+                      {team.name}
+                    </h3>
+                    {canEditTeam(team.id) && (
+                      <button
+                        onClick={() => startEdit(team)}
+                        className="shrink-0 text-gray-400 hover:text-minion-blue transition-colors text-fluid-xs font-heading"
+                        aria-label="팀 이름 수정"
+                        title="팀 이름 수정"
+                      >
+                        ✎
+                      </button>
+                    )}
+                  </div>
+                )}
+                <span className="text-fluid-sm font-black tabular-nums shrink-0">
                   {team.point_balance.toLocaleString()}{" "}
                   <span className="text-fluid-xs">P</span>
                 </span>
