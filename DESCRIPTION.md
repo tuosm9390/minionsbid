@@ -1,153 +1,153 @@
 # Minions Bid
 
-## Overview
+## 프로젝트 개요
 
-Minions Bid is a League of Legends community operations tool that combines three workflows in one product:
+Minions Bid는 리그 오브 레전드 커뮤니티 운영을 위한 도구로, 하나의 제품 안에 다음 세 가지 흐름을 통합한 프로젝트입니다.
 
-1. Real-time player auction room creation and live bidding
-2. League schedule creation and match-day result management
-3. Hall of fame archiving for completed seasons and winning teams
+1. 실시간 선수 경매방 생성 및 라이브 입찰
+2. 리그 일정 생성 및 경기 결과 관리
+3. 시즌 종료 후 우승팀 명예의 전당 아카이빙
 
-The project is built as a Next.js App Router application and uses Firebase as its backend platform. The auction experience is optimized for low-latency synchronization between organizer, team leaders, and spectators, while the schedule and archive features extend the product from a one-off draft tool into a season management system.
+이 프로젝트는 Next.js App Router 기반으로 구축되어 있으며, 백엔드 플랫폼으로 Firebase를 사용합니다. 경매 기능은 주최자, 팀장, 관전자 사이의 저지연 실시간 동기화에 초점을 맞추고 있고, 일정 관리와 아카이브 기능은 단발성 드래프트 도구를 시즌 운영 시스템으로 확장하는 역할을 합니다.
 
-The UI intentionally avoids generic dashboard styling. The product uses a retro arcade-inspired "Cyber-Pixel" visual system with thick borders, CRT overlays, pixel iconography, and animated modal-heavy interactions.
+UI 역시 일반적인 대시보드 스타일을 그대로 따르지 않습니다. 두꺼운 테두리, CRT 오버레이, 픽셀 아이콘, 모달 중심 인터랙션을 조합한 레트로 아케이드 감성의 "Cyber-Pixel" 비주얼 시스템을 채택하고 있습니다.
 
-## Product Scope
+## 제품 범위
 
-### 1. Auction workflow
+### 1. 경매 워크플로우
 
-- Create a room with team count, members per team, and total points
-- Register captains and players manually or via Excel upload
-- Generate organizer, leader, and viewer access links
-- Run a live auction with draw, timer, bidding, awarding, and re-auction support
-- Persist completed room outcomes as `auction_archives`
+- 팀 수, 팀당 인원, 총 포인트를 기준으로 경매방 생성
+- 팀장과 선수 정보를 수동 입력 또는 Excel 업로드로 등록
+- 주최자, 팀장, 관전자 전용 입장 링크 생성
+- 추첨, 타이머, 입찰, 낙찰, 재경매를 포함한 실시간 경매 진행
+- 완료된 경매 결과를 `auction_archives`에 영구 저장
 
-### 2. League schedule workflow
+### 2. 리그 일정 워크플로우
 
-- Create named schedules linked to a prior auction or league name
-- Build match-day timelines by date
-- Assign team-vs-team fixtures and kickoff times
-- Record winners and notes for each match
-- Complete the schedule by selecting a champion team
+- 기존 경매 또는 리그 이름과 연결된 일정 생성
+- 날짜별 매치 타임라인 구성
+- 팀 간 대진과 경기 시간을 배정
+- 경기별 승자와 메모 기록
+- 최종 우승팀을 선택해 일정 종료 처리
 
-### 3. Hall of fame workflow
+### 3. 명예의 전당 워크플로우
 
-- View previously registered championship entries
-- Register winners from archived auctions
-- Auto-register winners when a linked league schedule is completed
+- 등록된 우승 기록 조회
+- 경매 아카이브를 기반으로 우승팀 수동 등록
+- 연결된 리그 일정 종료 시 우승팀 자동 등록
 
-## Architecture
+## 아키텍처
 
-### Application shell
+### 애플리케이션 구조
 
-- Framework: Next.js 16 App Router
-- Rendering model: server-rendered route entry points with client-heavy feature shells
-- State model: Zustand for client-side auction state, Firebase subscriptions for backend-driven updates
+- 프레임워크: Next.js 16 App Router
+- 렌더링 방식: 서버에서 진입 라우트를 렌더링하고, 기능 중심 UI는 클라이언트 컴포넌트로 구성
+- 상태 관리: 클라이언트 경매 상태는 Zustand, 백엔드 동기화는 Firebase 구독 기반으로 처리
 
-### Backend model
+### 백엔드 모델
 
-The codebase follows a server-authoritative model for all critical writes.
+이 코드베이스는 중요한 쓰기 작업 전반에서 서버 권한 중심(server-authoritative) 모델을 따릅니다.
 
-- Read and sync:
-  - Firestore `onSnapshot` subscriptions stream room, team, player, bid, and message state into the client store
-  - Firebase Realtime Database is used for presence and lightweight broadcast signals
-- Mutate:
-  - Next.js Server Actions call Firebase Admin SDK code
-  - Validation and authority checks happen on the server before state changes are committed
+- 읽기 및 동기화:
+  - Firestore `onSnapshot` 구독으로 방, 팀, 선수, 입찰, 메시지 상태를 클라이언트 스토어에 실시간 반영
+  - Firebase Realtime Database는 presence와 경량 broadcast signal 용도로 사용
+- 변경 작업:
+  - Next.js Server Actions가 Firebase Admin SDK 코드를 호출
+  - 실제 상태 변경 전 권한과 데이터 유효성을 서버에서 검증
 
-This is not a "fat client" auction app. The client renders live state, but business-critical transitions such as room creation, bid placement, player awarding, match result registration, and archive persistence are controlled on the server.
+즉, 이 프로젝트는 클라이언트가 모든 상태를 직접 주도하는 구조가 아닙니다. 클라이언트는 실시간 상태를 렌더링하지만, 방 생성, 입찰, 낙찰 처리, 경기 결과 등록, 아카이브 저장처럼 중요한 전환은 서버가 통제합니다.
 
-## Core Data Flow
+## 핵심 데이터 흐름
 
-### Room creation
+### 방 생성
 
-The room creation flow is driven by [`src/components/CreateRoomModal.tsx`](D:/development/league-auction/src/components/CreateRoomModal.tsx) and [`src/features/auction/hooks/useCreateRoom.ts`](D:/development/league-auction/src/features/auction/hooks/useCreateRoom.ts).
+방 생성 흐름은 [`src/components/CreateRoomModal.tsx`](D:/development/league-auction/src/components/CreateRoomModal.tsx)와 [`src/features/auction/hooks/useCreateRoom.ts`](D:/development/league-auction/src/features/auction/hooks/useCreateRoom.ts)가 담당합니다.
 
-Key behavior:
+주요 동작은 다음과 같습니다.
 
-- Multi-step modal collects base settings, captain data, and player pool data
-- Excel upload is parsed in-browser using `xlsx`
-- Existing active rooms are checked from local storage plus Firestore
-- Schedule options are loaded so a room can be linked to a league timeline
-- Final room creation is delegated to the server action in [`src/features/auction/api/roomActions.ts`](D:/development/league-auction/src/features/auction/api/roomActions.ts)
+- 여러 단계의 모달에서 기본 설정, 팀장 정보, 선수 풀 정보를 순차적으로 수집
+- `xlsx`를 사용해 브라우저에서 Excel 업로드 파싱
+- 로컬 스토리지와 Firestore를 함께 조회해 기존 활성 방 여부 확인
+- 일정 연결을 위해 스케줄 옵션을 함께 로드
+- 최종 방 생성은 [`src/features/auction/api/roomActions.ts`](D:/development/league-auction/src/features/auction/api/roomActions.ts)의 서버 액션으로 위임
 
-On creation, the server writes:
+생성 시 서버는 다음 데이터를 기록합니다.
 
-- a `rooms/{roomId}` document
-- a `teams` subcollection with per-leader tokens
-- a `players` subcollection initialized with `WAITING` status
-- organizer/viewer tokens for later link-based authentication
+- `rooms/{roomId}` 문서
+- 팀장별 토큰을 포함하는 `teams` 서브컬렉션
+- `WAITING` 상태로 초기화된 `players` 서브컬렉션
+- 이후 링크 인증에 사용할 organizer/viewer 토큰
 
-### Link-based role authentication
+### 링크 기반 역할 인증
 
-The product does not expose a generic user account system. Instead, room access is granted with role-specific tokens.
+이 제품은 일반적인 계정 시스템을 제공하지 않습니다. 대신 역할별 토큰을 통해 방 접근 권한을 부여합니다.
 
-[`src/app/api/room-auth/route.ts`](D:/development/league-auction/src/app/api/room-auth/route.ts):
+[`src/app/api/room-auth/route.ts`](D:/development/league-auction/src/app/api/room-auth/route.ts)는 다음을 수행합니다.
 
-- accepts `roomId`, `role`, `token`, and optional `teamId`
-- validates organizer/viewer tokens against the room document
-- validates leader tokens against the selected team document
-- writes an `httpOnly` cookie scoped to `/room/{roomId}`
-- redirects into the room page with normalized role context
+- `roomId`, `role`, `token`, 선택적 `teamId`를 입력으로 받음
+- organizer/viewer 토큰을 room 문서 기준으로 검증
+- leader 토큰을 선택된 team 문서 기준으로 검증
+- `/room/{roomId}` 범위의 `httpOnly` 쿠키를 기록
+- 정규화된 role 컨텍스트와 함께 실제 방 페이지로 리다이렉트
 
-This keeps room access simple for community operations while still enforcing server-side entry checks.
+이 방식은 커뮤니티 운영 도구에 맞게 접근 절차를 단순화하면서도, 서버 검증을 유지하는 구조입니다.
 
-### Auction synchronization
+### 경매 동기화
 
-The real-time auction screen is centered in [`src/app/room/[id]/RoomClient.tsx`](D:/development/league-auction/src/app/room/[id]/RoomClient.tsx).
+실시간 경매 화면의 중심은 [`src/app/room/[id]/RoomClient.tsx`](D:/development/league-auction/src/app/room/[id]/RoomClient.tsx)입니다.
 
-Its live state comes from:
+여기서 사용하는 실시간 상태는 다음 파일들에서 공급됩니다.
 
 - [`src/features/auction/hooks/useAuctionRealtime.ts`](D:/development/league-auction/src/features/auction/hooks/useAuctionRealtime.ts)
 - [`src/features/auction/hooks/usePresence.ts`](D:/development/league-auction/src/features/auction/hooks/usePresence.ts)
 - [`src/features/auction/store/useAuctionStore.ts`](D:/development/league-auction/src/features/auction/store/useAuctionStore.ts)
 
-The design pattern is:
+구조적으로는 다음과 같습니다.
 
-- Firestore snapshots hydrate and continuously update the Zustand store
-- RTDB presence tracks which leaders and organizers are currently connected
-- RTDB signal paths are used for low-friction one-off events like closing the lottery animation
-- UI derives actionable state such as:
-  - all leaders connected
-  - current player in auction
-  - current highest bid
-  - timer expiry
-  - whether a team is already full
+- Firestore snapshot이 Zustand 스토어를 초기화하고 지속적으로 갱신
+- RTDB presence로 현재 접속 중인 팀장과 주최자를 추적
+- RTDB signal path는 추첨 애니메이션 종료 같은 단발성 이벤트 전달에 사용
+- UI는 이 상태를 기반으로 다음과 같은 파생 조건을 계산
+  - 모든 팀장 접속 여부
+  - 현재 경매 중인 선수
+  - 현재 최고 입찰가
+  - 타이머 만료 여부
+  - 팀 정원 충족 여부
 
-### Auction mutation pipeline
+### 경매 변경 파이프라인
 
-Critical auction logic lives in [`src/features/auction/api/auctionFlowActions.ts`](D:/development/league-auction/src/features/auction/api/auctionFlowActions.ts).
+핵심 경매 로직은 [`src/features/auction/api/auctionFlowActions.ts`](D:/development/league-auction/src/features/auction/api/auctionFlowActions.ts)에 구현되어 있습니다.
 
-Important operations:
+주요 작업은 다음과 같습니다.
 
-- `drawNextPlayer`: randomly promotes one `WAITING` player to `IN_AUCTION`
-- `startAuction`: starts the timer with a server timestamp
-- `pauseAuction` / `resumeAuction`: handles interruption from disconnected leaders
-- `placeBid`: validates integer bids, 10-point increments, max cap, team balance, duplicate leadership, team capacity, and anti-sniping timer extensions
-- `awardPlayer`: finalizes winner assignment inside a Firestore transaction
-- `draftPlayer`: manually signs an unsold or waiting player at zero cost
-- `restartAuctionWithUnsold`: converts all `UNSOLD` players back to `WAITING`
+- `drawNextPlayer`: `WAITING` 상태 선수 한 명을 무작위로 `IN_AUCTION`으로 전환
+- `startAuction`: 서버 기준 타이머 시작
+- `pauseAuction` / `resumeAuction`: 팀장 연결 끊김에 따른 경매 중단 및 재개 처리
+- `placeBid`: 정수 금액, 10포인트 단위, 최대 금액, 팀 잔액, 중복 선두 입찰, 팀 정원, 타이머 연장 조건 검증
+- `awardPlayer`: Firestore transaction 안에서 낙찰 상태 확정
+- `draftPlayer`: 유찰 또는 대기 선수를 0포인트로 수동 영입
+- `restartAuctionWithUnsold`: 모든 `UNSOLD` 선수를 다시 `WAITING`으로 전환
 
-The important engineering choice here is consistency over optimistic illusion. Bid state is not trusted from the client alone; it is accepted, validated, persisted, and then reflected back to every participant through Firebase subscriptions.
+여기서 중요한 설계 선택은 "빠른 착시"보다 "정합성"을 우선했다는 점입니다. 입찰 상태는 클라이언트에서 바로 확정하지 않고, 서버에서 검증과 저장을 마친 뒤 Firebase 구독을 통해 전체 참가자에게 동일하게 반영됩니다.
 
-### Archive persistence
+### 아카이브 저장
 
-When an auction is completed, [`saveAuctionArchive`](D:/development/league-auction/src/features/auction/api/roomActions.ts) writes a normalized snapshot into `auction_archives`.
+경매가 완료되면 [`saveAuctionArchive`](D:/development/league-auction/src/features/auction/api/roomActions.ts)가 결과 스냅샷을 `auction_archives`에 저장합니다.
 
-The archive stores:
+이 아카이브에는 다음 정보가 포함됩니다.
 
-- room metadata
-- linked schedule metadata
-- final team snapshots
-- per-player sold prices and positions
+- 방 메타데이터
+- 연결된 일정 메타데이터
+- 최종 팀 스냅샷
+- 선수별 낙찰가와 포지션 정보
 
-This archive then becomes an input source for league scheduling and hall-of-fame registration.
+이후 이 데이터는 리그 일정 생성과 명예의 전당 등록의 입력 소스로 재사용됩니다.
 
-## League Schedule System
+## 리그 일정 시스템
 
-The league scheduling feature is implemented as a standalone domain rather than a thin add-on page.
+리그 일정 기능은 단순 보조 페이지가 아니라 독립된 도메인으로 구현되어 있습니다.
 
-Primary files:
+주요 파일은 다음과 같습니다.
 
 - [`src/components/LeagueScheduleManager.tsx`](D:/development/league-auction/src/components/LeagueScheduleManager.tsx)
 - [`src/features/schedules/api/scheduleActions.ts`](D:/development/league-auction/src/features/schedules/api/scheduleActions.ts)
@@ -155,73 +155,73 @@ Primary files:
 - [`src/components/ScheduleMatchDayEditor.tsx`](D:/development/league-auction/src/components/ScheduleMatchDayEditor.tsx)
 - [`src/components/ScheduleRosterPanel.tsx`](D:/development/league-auction/src/components/ScheduleRosterPanel.tsx)
 
-Core responsibilities:
+핵심 책임은 다음과 같습니다.
 
-- create schedule records in `league_schedules`
-- manage `match_days` subcollections keyed by date
-- transform archived room or auction roster data into reusable schedule roster teams
-- compute "next matches" from incomplete fixtures
-- validate and save match results
-- complete a schedule and promote the champion into the hall of fame
+- `league_schedules`에 일정 레코드 생성
+- 날짜 키 기반의 `match_days` 서브컬렉션 관리
+- 방 또는 경매 아카이브 데이터를 일정용 로스터 팀 구조로 변환
+- 미완료 경기 기준으로 "다음 경기" 계산
+- 경기 결과 검증 및 저장
+- 일정 종료와 함께 우승팀을 명예의 전당에 반영
 
-One of the stronger pieces of this feature is roster recovery. The schedule layer can reconstruct teams from:
+이 기능에서 특히 중요한 부분은 로스터 복원입니다. 일정 레이어는 다음 데이터 원본을 이용해 팀 정보를 재구성할 수 있습니다.
 
-- currently stored `rooms`
-- historical `auction_archives`
-- existing hall-of-fame exclusions to prevent duplicate usage
+- 현재 저장된 `rooms`
+- 과거 `auction_archives`
+- 중복 사용을 막기 위한 hall-of-fame 제외 목록
 
-That lets the scheduling workflow remain useful even after the original live auction room is gone.
+덕분에 원래의 실시간 경매방이 사라진 이후에도 일정 관리 기능은 계속 유효하게 동작할 수 있습니다.
 
-## Hall of Fame System
+## 명예의 전당 시스템
 
-The hall-of-fame feature is implemented in [`src/features/hall-of-fame/api/hallOfFameActions.ts`](D:/development/league-auction/src/features/hall-of-fame/api/hallOfFameActions.ts) and exposed through the App Router page at [`src/app/hall-of-fame/page.tsx`](D:/development/league-auction/src/app/hall-of-fame/page.tsx).
+명예의 전당 기능은 [`src/features/hall-of-fame/api/hallOfFameActions.ts`](D:/development/league-auction/src/features/hall-of-fame/api/hallOfFameActions.ts)에 구현되어 있고, App Router 진입 페이지는 [`src/app/hall-of-fame/page.tsx`](D:/development/league-auction/src/app/hall-of-fame/page.tsx)입니다.
 
-It supports:
+지원하는 기능은 다음과 같습니다.
 
-- listing hall-of-fame entries
-- listing available archives that are not already registered
-- protected registration and deletion using an admin code
-- automatic insertion when a league schedule is completed
+- 명예의 전당 엔트리 목록 조회
+- 아직 등록되지 않은 아카이브 목록 조회
+- 관리자 코드 기반 수동 등록 및 삭제
+- 리그 일정 종료 시 우승팀 자동 삽입
 
-This ties together the auction and schedule domains into a durable community record instead of leaving the application as an ephemeral live-event tool.
+이 구조 덕분에 경매와 일정 도메인이 단순한 이벤트 처리에서 끝나지 않고, 장기적으로 축적되는 커뮤니티 기록으로 이어집니다.
 
-## Project Structure
+## 프로젝트 구조
 
 ```text
 src/
   app/
-    api/room-auth/            Token validation and cookie bootstrap
-    hall-of-fame/             Hall of fame pages and client shell
-    league-schedule/          League schedule route
-    room/[id]/                Live auction room route
-    page.tsx                  Home / launcher experience
+    api/room-auth/            토큰 검증 및 쿠키 부트스트랩
+    hall-of-fame/             명예의 전당 페이지와 클라이언트 셸
+    league-schedule/          리그 일정 라우트
+    room/[id]/                실시간 경매방 라우트
+    page.tsx                  홈 / 런처 화면
   components/
-    create-room/              Multi-step room creation flow
-    ui/                       Shared presentational primitives
-    LeagueScheduleManager.tsx Schedule management shell
+    create-room/              다단계 방 생성 플로우
+    ui/                       공용 프리미티브 컴포넌트
+    LeagueScheduleManager.tsx 일정 관리 셸
   content/
-    updateFeed.ts             Home ticker / update feed content
+    updateFeed.ts             홈 화면 티커 / 업데이트 피드
   features/
     auction/
-      api/                    Server actions for room, chat, and auction flow
-      components/             Auction-specific UI
-      hooks/                  Firebase sync and room control hooks
-      store/                  Zustand auction state
-      utils/                  Room generation and display helpers
+      api/                    방, 채팅, 경매 흐름용 서버 액션
+      components/             경매 전용 UI
+      hooks/                  Firebase 동기화 및 방 제어 훅
+      store/                  Zustand 경매 상태
+      utils/                  방 생성 및 표시용 유틸리티
     hall-of-fame/
-      api/                    Archive and winner registration logic
-      components/             Hall of fame cards and modal UI
+      api/                    아카이브 및 우승팀 등록 로직
+      components/             명예의 전당 카드 및 모달 UI
     schedules/
-      api/                    Schedule CRUD and timeline logic
-      types.ts                Shared schedule domain types
+      api/                    일정 CRUD 및 타임라인 로직
+      types.ts                공용 일정 도메인 타입
   lib/
-    firebase.ts               Client Firebase bootstrap
-    firebaseAdmin.ts          Admin SDK bootstrap and lazy Firestore proxy
+    firebase.ts               클라이언트 Firebase 초기화
+    firebaseAdmin.ts          Admin SDK 초기화와 lazy Firestore proxy
 ```
 
-## Tech Stack
+## 기술 스택
 
-### Frontend
+### 프론트엔드
 
 - Next.js 16.1.6
 - React 19.2.3
@@ -231,64 +231,64 @@ src/
 - Lucide React
 - Zustand
 
-### Backend and data
+### 백엔드 및 데이터
 
 - Firebase Firestore
 - Firebase Realtime Database
 - Firebase Admin SDK
 
-### Tooling and testing
+### 툴링 및 테스트
 
 - ESLint 9
 - Vitest
 - Testing Library
 - Playwright
-- `xlsx` for spreadsheet import
+- `xlsx` 기반 스프레드시트 업로드 파싱
 
-## Key Implementation Decisions
+## 주요 구현 결정
 
-### 1. Server actions over direct client writes
+### 1. 클라이언트 직접 쓰기 대신 서버 액션 사용
 
-Critical mutations are intentionally centralized in server actions. This reduces trust in the browser, keeps domain rules in one place, and makes race-sensitive auction transitions safer.
+중요한 변경 작업을 서버 액션에 집중시켜 브라우저 신뢰도를 낮추고, 도메인 규칙을 한 곳에 모으며, 경합이 발생할 수 있는 경매 전환을 더 안전하게 처리합니다.
 
-### 2. Firestore plus RTDB instead of one database for everything
+### 2. 하나의 데이터베이스가 아니라 Firestore와 RTDB를 역할 분리해 사용
 
-The project uses each Firebase product for a different job:
+이 프로젝트는 Firebase의 두 저장소를 용도에 맞게 분리해서 사용합니다.
 
-- Firestore for durable, queryable, structured domain state
-- RTDB for connection presence and lightweight signal broadcasts
+- Firestore: 구조화되고 조회 가능한 영속 도메인 상태
+- RTDB: 연결 상태 추적과 경량 signal broadcast
 
-That split is pragmatic and visible in the code.
+이 분리는 단순한 이론이 아니라 실제 코드 구조에 그대로 드러나는 실용적 선택입니다.
 
-### 3. Tokenized room access instead of full user accounts
+### 3. 전체 계정 시스템 대신 토큰 기반 방 접근
 
-For a temporary event-driven product like a community draft room, link-based role entry is simpler than building full authentication flows. The implementation still preserves server validation and httpOnly cookies.
+커뮤니티 이벤트성 도구라는 특성상, 링크 기반 역할 입장은 완전한 인증 시스템보다 훨씬 단순합니다. 동시에 구현은 서버 검증과 `httpOnly` 쿠키를 유지해 최소한의 보안 통제를 확보합니다.
 
-### 4. Archive-first extension of the product lifecycle
+### 4. 경매 완료 이후를 고려한 아카이브 중심 확장
 
-The system does not stop at "auction done." By normalizing completed room data into archives, the codebase enables downstream scheduling and season history features without requiring the original live room to stay active.
+이 시스템은 "경매가 끝나면 종료"되지 않습니다. 완료된 방 데이터를 아카이브로 정규화해 저장함으로써, 이후 일정 관리와 시즌 기록 기능으로 자연스럽게 연결됩니다.
 
-### 5. Feature-oriented organization
+### 5. 기능 단위 중심의 저장소 구성
 
-The repository is largely organized by domain:
+저장소는 다음과 같이 도메인 중심으로 정리되어 있습니다.
 
 - `auction`
 - `schedules`
 - `hall-of-fame`
 
-That keeps server actions, hooks, components, and types close to the business workflow they belong to.
+덕분에 서버 액션, 훅, 컴포넌트, 타입이 각 비즈니스 흐름 가까이에 배치되어 있습니다.
 
-## Why This Project Is Technically Interesting
+## 이 프로젝트가 기술적으로 흥미로운 이유
 
-- It solves a genuinely stateful multi-user interaction problem rather than a static CRUD dashboard
-- It uses role-based deep links and scoped cookies to simplify event access without losing server-side control
-- It balances real-time UX with transactional safety in bidding and awarding logic
-- It extends the live event into scheduling and long-term archival workflows
-- It maintains a distinct visual identity instead of defaulting to commodity SaaS UI conventions
+- 정적인 CRUD 대시보드가 아니라, 다수 사용자가 동시에 참여하는 상태 중심 상호작용 문제를 다룹니다.
+- 역할 기반 딥링크와 범위 제한 쿠키를 사용해 접근 절차를 단순화하면서도 서버 통제를 유지합니다.
+- 실시간 UX와 낙찰 처리의 정합성을 동시에 고려한 입찰 구조를 가집니다.
+- 라이브 이벤트를 일정 관리와 장기 아카이브 흐름으로 확장합니다.
+- 흔한 SaaS UI가 아니라 제품 정체성이 분명한 시각 언어를 유지합니다.
 
-## Reference Files
+## 참고 파일
 
-For deeper technical context, these files are the most useful entry points:
+기술 맥락을 빠르게 파악하기 좋은 핵심 진입 파일은 다음과 같습니다.
 
 - [`package.json`](D:/development/league-auction/package.json)
 - [`README.md`](D:/development/league-auction/README.md)
