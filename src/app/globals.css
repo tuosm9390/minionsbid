@@ -279,7 +279,8 @@
 
   .animate-shimmer { animation: shimmer 2s infinite; }
 
-  /* 움직임 감소 선호 사용자 대응 */
+  /* 움직임 감소 선호 사용자 대응
+     모바일에서 모션이 완전히 사라지지 않도록, 반복적이거나 강한 효과만 낮춘다. */
   @media (prefers-reduced-motion: reduce) {
     .animate-shimmer,
     .animate-bounce,
@@ -288,15 +289,17 @@
     .animate-shake,
     .animate-minion-bounce,
     .animate-glitch,
-    .animate-slide-up,
-    .animate-slide-in-left,
-    .animate-slide-in-right,
-    .update-ticker-track {
-      animation: none;
+    .update-ticker-track,
+    .animate-timer-tick,
+    .animate-urgent-shake,
+    .animate-shine {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
     }
 
     * {
-      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.12s !important;
     }
   }
 }

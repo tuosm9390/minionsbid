@@ -1,24 +1,129 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Plus, Save, Shield, Swords, X } from "lucide-react";
 import type {
   LeagueMatchWinner,
   LeagueRosterTeam,
+  LeagueSetWinner,
 } from "@/features/schedules/types";
+import {
+  deriveLeagueMatchWinner,
+  getLeagueMatchFormatLabel,
+  normalizeLeagueMatchFormat,
+  summarizeLeagueSetLogs,
+} from "@/features/schedules/utils/leagueMatchRules";
+
+export interface MatchEditorSetLog {
+  winner: LeagueSetWinner;
+  note: string;
+}
 
 export interface MatchEditorRow {
   id?: string;
   startsAt: string;
   homeTeamName: string;
   awayTeamName: string;
+  stageLabel: string;
+  winsToClinch: number;
+  maxGames: number;
+  setLogs: MatchEditorSetLog[];
+  homeScore: number;
+  awayScore: number;
   winner: LeagueMatchWinner;
   note: string;
   isCompleted: boolean;
 }
 
+function BufferedTextInput({
+  value,
+  onCommit,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) onCommit(draft);
+      }}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
+
+function BufferedTextarea({
+  value,
+  onCommit,
+  placeholder,
+  rows = 3,
+  className,
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  return (
+    <textarea
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) onCommit(draft);
+      }}
+      placeholder={placeholder}
+      rows={rows}
+      className={className}
+    />
+  );
+}
+
 function getWinnerLabel(row: MatchEditorRow) {
-  if (row.winner === "HOME") return `${row.homeTeamName || "홈팀"} 승`;
-  if (row.winner === "AWAY") return `${row.awayTeamName || "원정팀"} 승`;
+  const scoreFromLogs = summarizeLeagueSetLogs(
+    row.setLogs.map((setLog, index) => ({
+      setNumber: index + 1,
+      winner: setLog.winner,
+      note: setLog.note,
+    })),
+  );
+  const homeScore =
+    row.setLogs.length > 0 ? scoreFromLogs.homeScore : row.homeScore;
+  const awayScore =
+    row.setLogs.length > 0 ? scoreFromLogs.awayScore : row.awayScore;
+  const winner = deriveLeagueMatchWinner({
+    homeScore,
+    awayScore,
+    format: {
+      winsToClinch: row.winsToClinch,
+      maxGames: row.maxGames,
+    },
+  });
+
+  if (winner === "HOME" || winner === "AWAY") {
+    return `${row.homeTeamName || "홈팀"} ${homeScore}:${awayScore} ${row.awayTeamName || "원정팀"}`;
+  }
+
   return "결과 대기";
 }
 
@@ -189,6 +294,25 @@ export function ScheduleMatchDayEditor({
                 const awayAuction = row.awayTeamName
                   ? (teamMap.get(row.awayTeamName)?.auctionName ?? null)
                   : null;
+                const format = normalizeLeagueMatchFormat({
+                  winsToClinch: row.winsToClinch,
+                  maxGames: row.maxGames,
+                });
+                const scoreFromLogs = summarizeLeagueSetLogs(
+                  row.setLogs.map((setLog, setIndex) => ({
+                    setNumber: setIndex + 1,
+                    winner: setLog.winner,
+                    note: setLog.note,
+                  })),
+                );
+                const displayHomeScore =
+                  row.setLogs.length > 0
+                    ? scoreFromLogs.homeScore
+                    : row.homeScore;
+                const displayAwayScore =
+                  row.setLogs.length > 0
+                    ? scoreFromLogs.awayScore
+                    : row.awayScore;
 
                 return (
                   <div
@@ -224,6 +348,7 @@ export function ScheduleMatchDayEditor({
                             </span>
                             <input
                               type="time"
+                              step={60}
                               value={row.startsAt}
                               onChange={(event) =>
                                 onRowChange(index, {
@@ -331,6 +456,99 @@ export function ScheduleMatchDayEditor({
                           </div>
                         </div>
 
+                        <div className="grid grid-cols-1 gap-3 border-2 border-black bg-[#eef4ff] px-4 py-4">
+                          <div>
+                            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-minion-blue">
+                              경기 방식
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {[
+                                { label: "단판", winsToClinch: 1, maxGames: 1 },
+                                {
+                                  label: "3판 2선",
+                                  winsToClinch: 2,
+                                  maxGames: 3,
+                                },
+                                {
+                                  label: "5판 3선",
+                                  winsToClinch: 3,
+                                  maxGames: 5,
+                                },
+                              ].map((preset) => {
+                                const isActive =
+                                  row.winsToClinch === preset.winsToClinch &&
+                                  row.maxGames === preset.maxGames;
+
+                                return (
+                                  <button
+                                    key={`${row.id ?? index}-${preset.label}`}
+                                    type="button"
+                                    onClick={() =>
+                                      onRowChange(index, {
+                                        winsToClinch: preset.winsToClinch,
+                                        maxGames: preset.maxGames,
+                                      })
+                                    }
+                                    className={`border-2 border-black px-3 py-2 text-xs font-black ${isActive ? "bg-minion-yellow text-black" : "bg-white text-gray-700"}`}
+                                  >
+                                    {preset.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="mt-2 text-xs font-bold text-gray-600">
+                              현재 설정: {getLeagueMatchFormatLabel(format)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 border-2 border-black bg-white px-4 py-4 lg:grid-cols-[minmax(0,1fr)_180px]">
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-minion-blue">
+                              경기 단계
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                "조별리그",
+                                "플레이오프",
+                                "8강",
+                                "4강",
+                                "결승",
+                              ].map((stagePreset) => (
+                                <button
+                                  key={`${row.id ?? index}-${stagePreset}`}
+                                  type="button"
+                                  onClick={() =>
+                                    onRowChange(index, {
+                                      stageLabel: stagePreset,
+                                    })
+                                  }
+                                  className={`border-2 border-black px-3 py-2 text-xs font-black ${row.stageLabel === stagePreset ? "bg-minion-yellow text-black" : "bg-[#fffdf8] text-gray-700"}`}
+                                >
+                                  {stagePreset}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <label className="space-y-1 min-w-0">
+                            <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                              커스텀 라벨
+                            </span>
+                            <input
+                              type="text"
+                              value={row.stageLabel}
+                              onChange={(event) =>
+                                onRowChange(index, {
+                                  stageLabel: event.target.value,
+                                })
+                              }
+                              placeholder="예: 승자조 결승"
+                              className="w-full border-2 border-black px-3 py-3 bg-white text-sm font-bold min-w-0"
+                            />
+                          </label>
+                        </div>
+
                         <div className="border-2 border-black bg-white px-4 py-3">
                           <div className="flex items-start gap-2 text-sm font-black min-w-0">
                             <Swords
@@ -338,50 +556,206 @@ export function ScheduleMatchDayEditor({
                               className="text-minion-blue shrink-0 mt-0.5"
                             />
                             <span className="leading-relaxed break-words">
+                              {row.stageLabel ? `[${row.stageLabel}] ` : ""}
                               {row.homeTeamName || "홈팀"} vs{" "}
                               {row.awayTeamName || "원정팀"} ·{" "}
-                              {getWinnerLabel(row)}
+                              {getLeagueMatchFormatLabel(format)}
+                              {/* ·{" "} {getWinnerLabel(row)} */}
                             </span>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_200px] gap-3">
+                        <div className="space-y-3 min-w-0">
+                          <div>
+                            <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                              세트 스코어
+                            </span>
+                            <div className="mt-1 grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] gap-3 items-end">
+                              <label className="space-y-1 min-w-0">
+                                <span className="block text-[11px] font-bold text-gray-500 truncate">
+                                  {row.homeTeamName || "홈팀"}
+                                </span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={row.maxGames}
+                                  value={displayHomeScore}
+                                  onChange={(event) =>
+                                    onRowChange(index, {
+                                      setLogs: [],
+                                      homeScore: Math.min(
+                                        row.maxGames,
+                                        Math.max(
+                                          0,
+                                          Number(event.target.value) || 0,
+                                        ),
+                                      ),
+                                    })
+                                  }
+                                  className="w-full min-h-[50px] border-2 border-black px-3 py-3 bg-white text-sm font-bold text-center min-w-0"
+                                />
+                              </label>
+
+                              <div className="min-h-[50px] border-2 border-black bg-black text-minion-yellow flex items-center justify-center text-sm font-black">
+                                :
+                              </div>
+
+                              <label className="space-y-1 min-w-0">
+                                <span className="block text-[11px] font-bold text-gray-500 truncate">
+                                  {row.awayTeamName || "원정팀"}
+                                </span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={row.maxGames}
+                                  value={displayAwayScore}
+                                  onChange={(event) =>
+                                    onRowChange(index, {
+                                      setLogs: [],
+                                      awayScore: Math.min(
+                                        row.maxGames,
+                                        Math.max(
+                                          0,
+                                          Number(event.target.value) || 0,
+                                        ),
+                                      ),
+                                    })
+                                  }
+                                  className="w-full min-h-[50px] border-2 border-black px-3 py-3 bg-white text-sm font-bold text-center min-w-0"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="border-2 border-black bg-[#fffdf8] px-3 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-minion-blue">
+                                  세트 로그
+                                </p>
+                                <p className="text-xs font-bold text-gray-600 mt-1">
+                                  세트별 승자와 메모를 남기면 스코어가 자동으로
+                                  반영됩니다.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onRowChange(index, {
+                                    setLogs: [
+                                      ...row.setLogs,
+                                      {
+                                        winner: "HOME" as LeagueSetWinner,
+                                        note: "",
+                                      },
+                                    ].slice(0, row.maxGames),
+                                  })
+                                }
+                                disabled={row.setLogs.length >= row.maxGames}
+                                className="border-2 border-black bg-white px-3 py-2 text-[11px] font-black disabled:opacity-50"
+                              >
+                                세트 추가
+                              </button>
+                            </div>
+
+                            <div className="mt-3 space-y-2">
+                              {row.setLogs.length === 0 && (
+                                <p className="text-xs font-bold text-gray-500">
+                                  빠른 입력만 쓰려면 위 스코어를 직접 입력하고,
+                                  상세 로그가 필요하면 세트를 추가하세요.
+                                </p>
+                              )}
+                              {row.setLogs.map((setLog, setIndex) => (
+                                <div
+                                  key={`${row.id ?? index}-set-${setIndex}`}
+                                  className="border-2 border-black bg-white px-3 py-3"
+                                >
+                                  <div className="text-xs font-black text-gray-700">
+                                    SET {setIndex + 1}
+                                  </div>
+                                  <div className="mt-2 space-y-2">
+                                    <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-2 items-center">
+                                      <select
+                                        value={setLog.winner}
+                                        onChange={(event) =>
+                                          onRowChange(index, {
+                                            setLogs: row.setLogs.map(
+                                              (currentLog, currentIndex) =>
+                                                currentIndex === setIndex
+                                                  ? {
+                                                      ...currentLog,
+                                                      winner: event.target
+                                                        .value as LeagueSetWinner,
+                                                    }
+                                                  : currentLog,
+                                            ),
+                                          })
+                                        }
+                                        className="w-full min-w-0 border-2 border-black px-3 py-2 bg-white text-sm font-bold"
+                                      >
+                                        <option value="HOME">
+                                          {row.homeTeamName || "홈팀"} 승
+                                        </option>
+                                        <option value="AWAY">
+                                          {row.awayTeamName || "원정팀"} 승
+                                        </option>
+                                      </select>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onRowChange(index, {
+                                            setLogs: row.setLogs.filter(
+                                              (_, currentIndex) =>
+                                                currentIndex !== setIndex,
+                                            ),
+                                          })
+                                        }
+                                        className="border-2 border-black bg-white px-3 py-2 text-[11px] font-black hover:bg-minion-red hover:text-white transition-colors"
+                                      >
+                                        삭제
+                                      </button>
+                                    </div>
+                                    <BufferedTextInput
+                                      value={setLog.note}
+                                      onCommit={(nextValue) =>
+                                        onRowChange(index, {
+                                          setLogs: row.setLogs.map(
+                                            (currentLog, currentIndex) =>
+                                              currentIndex === setIndex
+                                                ? {
+                                                    ...currentLog,
+                                                    note: nextValue,
+                                                  }
+                                                : currentLog,
+                                          ),
+                                        })
+                                      }
+                                      placeholder="예: 바론 한타 승리"
+                                      className="w-full border-2 border-black px-3 py-2 bg-white text-sm font-bold min-w-0"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="border-2 border-black bg-white px-3 py-3 text-sm font-black">
+                            {getWinnerLabel(row)}
+                          </div>
+
                           <label className="space-y-1 min-w-0">
                             <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
                               결과 메모
                             </span>
-                            <textarea
+                            <BufferedTextarea
                               value={row.note}
-                              onChange={(event) =>
-                                onRowChange(index, { note: event.target.value })
+                              onCommit={(nextValue) =>
+                                onRowChange(index, { note: nextValue })
                               }
                               placeholder="결과 메모 또는 비고"
                               rows={3}
                               className="w-full border-2 border-black px-3 py-3 bg-white text-sm font-bold resize-none min-w-0"
                             />
-                          </label>
-                          <label className="space-y-1 min-w-0">
-                            <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
-                              경기 결과
-                            </span>
-                            <select
-                              value={row.winner}
-                              onChange={(event) =>
-                                onRowChange(index, {
-                                  winner: event.target
-                                    .value as LeagueMatchWinner,
-                                })
-                              }
-                              className="w-full border-2 border-black px-3 py-3 bg-white text-sm font-bold min-w-0"
-                            >
-                              <option value="PENDING">결과 대기</option>
-                              <option value="HOME">
-                                {row.homeTeamName || "홈팀"} 승
-                              </option>
-                              <option value="AWAY">
-                                {row.awayTeamName || "원정팀"} 승
-                              </option>
-                            </select>
                           </label>
                         </div>
                       </div>
@@ -392,7 +766,8 @@ export function ScheduleMatchDayEditor({
                             Match Action
                           </p>
                           <p className="text-sm font-bold text-gray-700 mt-2 leading-relaxed">
-                            결과 등록은 날짜 경기 저장 이후에 활성화됩니다.
+                            결과 등록은 날짜 경기 저장 이후에 활성화됩니다. 최종
+                            스코어는 경기 방식과 일치해야 합니다.
                           </p>
                         </div>
 

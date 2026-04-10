@@ -80,6 +80,34 @@ const sceneVariants: Record<SceneName, Variants> = {
   },
 };
 
+const reducedSceneVariants: Record<SceneName, Variants> = {
+  waiting: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
+  lottery: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
+  bidding: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
+  draft: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
+  finished: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.25 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
+};
+
 export function AuctionBoard(props: AuctionBoardProps) {
   const shouldReduceMotion = useReducedMotion();
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
@@ -128,6 +156,9 @@ export function AuctionBoard(props: AuctionBoardProps) {
           : "waiting";
 
   const bgStyle = currentScene === "bidding" ? "bg-white" : "bg-gray-50";
+  const activeSceneVariants = shouldReduceMotion
+    ? reducedSceneVariants[currentScene]
+    : sceneVariants[currentScene];
 
   return (
     <div
@@ -212,10 +243,10 @@ export function AuctionBoard(props: AuctionBoardProps) {
         <AnimatePresence mode="wait">
           <motion.div
             key={currentScene}
-            variants={sceneVariants[currentScene]}
-            initial={shouldReduceMotion ? false : "initial"}
+            variants={activeSceneVariants}
+            initial="initial"
             animate="animate"
-            exit={shouldReduceMotion ? {} : "exit"}
+            exit="exit"
             className="flex-1 flex flex-col"
           >
             {currentScene === "lottery" && (

@@ -1,8 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PwaRegistration } from "@/components/PwaRegistration";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://minionsbid.vercel.app"),
+  applicationName: "Minions Bid",
+  manifest: "/manifest.webmanifest",
   title: {
     default: "Minions Bid 🍌",
     template: "%s | Minions Bid",
@@ -43,14 +46,23 @@ export const metadata: Metadata = {
     description: "미니언즈(소모임) 전용 실시간 경매 드래프트 플랫폼",
     images: ["/thumbnail_2.png"],
   },
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/favicon.png", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Minions Bid",
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#FDE047",
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({
@@ -80,7 +92,10 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={"antialiased min-h-screen"}>{children}</body>
+      <body className={"antialiased min-h-screen bg-background"}>
+        <PwaRegistration />
+        {children}
+      </body>
     </html>
   );
 }

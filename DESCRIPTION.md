@@ -8,7 +8,7 @@ Minions Bid는 리그 오브 레전드 커뮤니티 운영을 위한 도구로, 
 2. 리그 일정 생성 및 경기 결과 관리
 3. 시즌 종료 후 우승팀 명예의 전당 아카이빙
 
-이 프로젝트는 Next.js App Router 기반으로 구축되어 있으며, 백엔드 플랫폼으로 Firebase를 사용합니다. 경매 기능은 주최자, 팀장, 관전자 사이의 저지연 실시간 동기화에 초점을 맞추고 있고, 일정 관리와 아카이브 기능은 단발성 드래프트 도구를 시즌 운영 시스템으로 확장하는 역할을 합니다.
+이 프로젝트는 Next.js App Router 기반으로 구축되어 있으며, 백엔드 플랫폼으로 Firebase를 사용합니다. 경매 기능은 주최자, 팀장, 관전자 사이의 저지연 실시간 동기화에 초점을 맞추고 있고, 일정 관리와 아카이브 기능은 단발성 드래프트 도구를 시즌 운영 시스템으로 확장하는 역할을 합니다. 최근에는 설치 가능한 PWA 셸을 추가해 모바일 홈 화면 진입과 기본 오프라인 캐시까지 고려한 구조로 확장되었습니다.
 
 UI 역시 일반적인 대시보드 스타일을 그대로 따르지 않습니다. 두꺼운 테두리, CRT 오버레이, 픽셀 아이콘, 모달 중심 인터랙션을 조합한 레트로 아케이드 감성의 "Cyber-Pixel" 비주얼 시스템을 채택하고 있습니다.
 
@@ -28,6 +28,7 @@ UI 역시 일반적인 대시보드 스타일을 그대로 따르지 않습니�
 - 날짜별 매치 타임라인 구성
 - 팀 간 대진과 경기 시간을 배정
 - 경기별 승자와 메모 기록
+- 경기 단계와 상태 기준으로 전적/점수/경기 목록 필터링
 - 최종 우승팀을 선택해 일정 종료 처리
 
 ### 3. 명예의 전당 워크플로우
@@ -43,6 +44,7 @@ UI 역시 일반적인 대시보드 스타일을 그대로 따르지 않습니�
 - 프레임워크: Next.js 16 App Router
 - 렌더링 방식: 서버에서 진입 라우트를 렌더링하고, 기능 중심 UI는 클라이언트 컴포넌트로 구성
 - 상태 관리: 클라이언트 경매 상태는 Zustand, 백엔드 동기화는 Firebase 구독 기반으로 처리
+- PWA 구성: Web App Manifest, 서비스 워커 등록 컴포넌트, 정적 자산 캐시를 포함한 설치형 웹앱 셸
 
 ### 백엔드 모델
 
@@ -154,6 +156,8 @@ UI 역시 일반적인 대시보드 스타일을 그대로 따르지 않습니�
 - [`src/components/ScheduleCalendar.tsx`](D:/development/league-auction/src/components/ScheduleCalendar.tsx)
 - [`src/components/ScheduleMatchDayEditor.tsx`](D:/development/league-auction/src/components/ScheduleMatchDayEditor.tsx)
 - [`src/components/ScheduleRosterPanel.tsx`](D:/development/league-auction/src/components/ScheduleRosterPanel.tsx)
+- [`src/components/LeagueRecordSummaryPanel.tsx`](D:/development/league-auction/src/components/LeagueRecordSummaryPanel.tsx)
+- [`src/features/schedules/utils/leagueRecords.ts`](D:/development/league-auction/src/features/schedules/utils/leagueRecords.ts)
 
 핵심 책임은 다음과 같습니다.
 
@@ -163,6 +167,7 @@ UI 역시 일반적인 대시보드 스타일을 그대로 따르지 않습니�
 - 미완료 경기 기준으로 "다음 경기" 계산
 - 경기 결과 검증 및 저장
 - 일정 종료와 함께 우승팀을 명예의 전당에 반영
+- 단계별 참가 팀만 추려서 순위표를 다시 계산하고, 상태 필터 기준으로 경기 수/완료 수/점수 합계를 재집계
 
 이 기능에서 특히 중요한 부분은 로스터 복원입니다. 일정 레이어는 다음 데이터 원본을 이용해 팀 정보를 재구성할 수 있습니다.
 
@@ -193,12 +198,15 @@ src/
     api/room-auth/            토큰 검증 및 쿠키 부트스트랩
     hall-of-fame/             명예의 전당 페이지와 클라이언트 셸
     league-schedule/          리그 일정 라우트
+    manifest.ts               PWA manifest 정의
     room/[id]/                실시간 경매방 라우트
     page.tsx                  홈 / 런처 화면
   components/
     create-room/              다단계 방 생성 플로우
     ui/                       공용 프리미티브 컴포넌트
     LeagueScheduleManager.tsx 일정 관리 셸
+    LeagueRecordSummaryPanel.tsx 전적 요약, 필터, 경기 목록 UI
+    PwaRegistration.tsx       프로덕션 서비스 워커 등록
   content/
     updateFeed.ts             홈 화면 티커 / 업데이트 피드
   features/
@@ -214,9 +222,12 @@ src/
     schedules/
       api/                    일정 CRUD 및 타임라인 로직
       types.ts                공용 일정 도메인 타입
+      utils/                  경기 규칙, 전적 계산, 다음 경기 도출
   lib/
     firebase.ts               클라이언트 Firebase 초기화
     firebaseAdmin.ts          Admin SDK 초기화와 lazy Firestore proxy
+public/
+  sw.js                       PWA 서비스 워커
 ```
 
 ## 기술 스택
@@ -278,6 +289,17 @@ src/
 
 덕분에 서버 액션, 훅, 컴포넌트, 타입이 각 비즈니스 흐름 가까이에 배치되어 있습니다.
 
+### 6. 설치형 웹앱 레이어를 별도 기능으로 얹은 구조
+
+PWA 기능은 기존 비즈니스 로직을 흔들지 않도록 얇은 셸로 추가되어 있습니다.
+
+- [`src/app/layout.tsx`](D:/development/league-auction/src/app/layout.tsx)에서 메타데이터, manifest, apple web app 옵션, 구조화 데이터를 설정
+- [`src/app/manifest.ts`](D:/development/league-auction/src/app/manifest.ts)에서 웹앱 메타데이터를 생성
+- [`src/components/PwaRegistration.tsx`](D:/development/league-auction/src/components/PwaRegistration.tsx)가 프로덕션에서만 서비스 워커를 등록
+- [`public/sw.js`](D:/development/league-auction/public/sw.js)가 기본 정적 자산과 네비게이션 요청을 캐시
+
+이 방식은 경매/일정/아카이브 도메인 코드와 설치형 셸을 분리해 유지보수 부담을 줄입니다.
+
 ## 이 프로젝트가 기술적으로 흥미로운 이유
 
 - 정적인 CRUD 대시보드가 아니라, 다수 사용자가 동시에 참여하는 상태 중심 상호작용 문제를 다룹니다.
@@ -293,10 +315,14 @@ src/
 - [`package.json`](D:/development/league-auction/package.json)
 - [`README.md`](D:/development/league-auction/README.md)
 - [`src/app/page.tsx`](D:/development/league-auction/src/app/page.tsx)
+- [`src/app/layout.tsx`](D:/development/league-auction/src/app/layout.tsx)
+- [`src/app/manifest.ts`](D:/development/league-auction/src/app/manifest.ts)
 - [`src/app/room/[id]/RoomClient.tsx`](D:/development/league-auction/src/app/room/[id]/RoomClient.tsx)
 - [`src/features/auction/api/auctionFlowActions.ts`](D:/development/league-auction/src/features/auction/api/auctionFlowActions.ts)
 - [`src/features/auction/api/roomActions.ts`](D:/development/league-auction/src/features/auction/api/roomActions.ts)
 - [`src/features/auction/hooks/useAuctionRealtime.ts`](D:/development/league-auction/src/features/auction/hooks/useAuctionRealtime.ts)
 - [`src/features/auction/hooks/usePresence.ts`](D:/development/league-auction/src/features/auction/hooks/usePresence.ts)
 - [`src/features/schedules/api/scheduleActions.ts`](D:/development/league-auction/src/features/schedules/api/scheduleActions.ts)
+- [`src/components/LeagueRecordSummaryPanel.tsx`](D:/development/league-auction/src/components/LeagueRecordSummaryPanel.tsx)
+- [`src/features/schedules/utils/leagueRecords.ts`](D:/development/league-auction/src/features/schedules/utils/leagueRecords.ts)
 - [`src/features/hall-of-fame/api/hallOfFameActions.ts`](D:/development/league-auction/src/features/hall-of-fame/api/hallOfFameActions.ts)

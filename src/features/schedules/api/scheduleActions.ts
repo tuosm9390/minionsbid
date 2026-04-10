@@ -4,7 +4,6 @@ import * as admin from 'firebase-admin'
 import { adminDb } from '@/lib/firebaseAdmin'
 import type {
   CreateLeagueSchedulePayload,
-  LeagueMatchWinner,
   LeagueRosterPlayer,
   LeagueRosterTeam,
   LeagueScheduleCatalog,
@@ -14,6 +13,18 @@ import type {
   LeagueScheduleTimeline,
   SaveLeagueScheduleDayPayload,
 } from '../types'
+import {
+  DEFAULT_LEAGUE_MATCH_FORMAT,
+  deriveLeagueMatchWinner,
+  isCompletedLeagueMatch,
+  normalizeLeagueMatchFormat,
+  normalizeLeagueSetLogs,
+  normalizeLeagueSetScore,
+  normalizeLeagueStageLabel,
+  summarizeLeagueSetLogs,
+} from '../utils/leagueMatchRules'
+import { normalizeLeagueMatchStartTime } from '../utils/leagueMatchTime'
+import { buildNextMatches, sortLeagueMatches } from '../utils/leagueNextMatches'
 
 function toIsoString(value: unknown): string | null {
   if (!value) return null
@@ -87,67 +98,66 @@ function verifyTimelineAdminCode(code?: string): { error?: string } {
 }
 
 function matchToClient(match: Record<string, unknown>): LeagueScheduleMatch {
-  const winner = normalizeText(match.winner) as LeagueMatchWinner
+  const format = normalizeLeagueMatchFormat({
+    winsToClinch:
+      typeof match.wins_to_clinch === 'number'
+        ? match.wins_to_clinch
+        : DEFAULT_LEAGUE_MATCH_FORMAT.winsToClinch,
+    maxGames:
+      typeof match.max_games === 'number'
+        ? match.max_games
+        : DEFAULT_LEAGUE_MATCH_FORMAT.maxGames,
+  })
+  const setLogs = normalizeLeagueSetLogs(match.set_logs, format.maxGames)
+  const scoreFromLogs = summarizeLeagueSetLogs(setLogs)
+  const rawWinner = normalizeText(match.winner)
+  const fallbackHomeScore =
+    setLogs.length > 0
+      ? scoreFromLogs.homeScore
+      : rawWinner === 'HOME'
+        ? format.winsToClinch
+        : 0
+  const fallbackAwayScore =
+    setLogs.length > 0
+      ? scoreFromLogs.awayScore
+      : rawWinner === 'AWAY'
+        ? format.winsToClinch
+        : 0
+  const homeScore =
+    setLogs.length > 0
+      ? scoreFromLogs.homeScore
+      : normalizeLeagueSetScore(match.home_score ?? fallbackHomeScore)
+  const awayScore =
+    setLogs.length > 0
+      ? scoreFromLogs.awayScore
+      : normalizeLeagueSetScore(match.away_score ?? fallbackAwayScore)
+  const winner = deriveLeagueMatchWinner({
+    homeScore,
+    awayScore,
+    format,
+  })
+  const isCompleted =
+    winner !== 'PENDING' &&
+    (typeof match.is_completed === 'boolean'
+      ? match.is_completed
+      : isCompletedLeagueMatch({ homeScore, awayScore, format }))
+
   return {
     id: normalizeText(match.id) || crypto.randomUUID(),
-    startsAt: normalizeText(match.starts_at),
+    startsAt: normalizeLeagueMatchStartTime(match.starts_at),
     homeTeamName: normalizeText(match.home_team_name),
     awayTeamName: normalizeText(match.away_team_name),
-    winner: ['HOME', 'AWAY', 'DRAW', 'PENDING'].includes(winner) ? winner : 'PENDING',
-    isCompleted: Boolean(match.is_completed),
+    stageLabel: normalizeLeagueStageLabel(match.stage_label),
+    format,
+    setLogs,
+    homeScore,
+    awayScore,
+    winner,
+    isCompleted,
     note: normalizeText(match.note),
     createdAt: toIsoString(match.created_at),
     updatedAt: toIsoString(match.updated_at),
   }
-}
-
-function sortMatches(matches: LeagueScheduleMatch[]) {
-  return [...matches].sort((left, right) => {
-    const leftTime = left.startsAt || '99:99'
-    const rightTime = right.startsAt || '99:99'
-    return leftTime.localeCompare(rightTime, 'ko-KR')
-  })
-}
-
-function buildNextMatches(days: LeagueScheduleDay[]): LeagueScheduleMatch[] {
-  const now = Date.now()
-  const candidates = days.flatMap((day) =>
-    day.matches
-      .filter((match) => !match.isCompleted)
-      .map((match) => ({
-        day,
-        match,
-        timestamp: new Date(`${day.dateKey}T${match.startsAt || '23:59'}:00`).getTime(),
-      }))
-  )
-
-  const futureMatches = candidates
-    .filter((entry) => Number.isFinite(entry.timestamp) && entry.timestamp >= now)
-    .sort((a, b) => a.timestamp - b.timestamp)
-
-  if (futureMatches.length > 0) {
-    const nextDateKey = futureMatches[0].day.dateKey
-    return sortMatches(
-      futureMatches
-        .filter((entry) => entry.day.dateKey === nextDateKey)
-        .map((entry) => entry.match)
-    )
-  }
-
-  const pending = candidates
-    .filter((entry) => Number.isFinite(entry.timestamp))
-    .sort((a, b) => a.timestamp - b.timestamp)
-
-  if (pending.length > 0) {
-    const nextDateKey = pending[0].day.dateKey
-    return sortMatches(
-      pending
-        .filter((entry) => entry.day.dateKey === nextDateKey)
-        .map((entry) => entry.match)
-    )
-  }
-
-  return []
 }
 
 async function getScheduleById(scheduleId: string): Promise<LeagueScheduleItem | null> {
@@ -424,7 +434,7 @@ export async function getLeagueScheduleTimeline(
     const days: LeagueScheduleDay[] = daysSnapshot.docs.map((doc) => {
       const data = doc.data()
       const rawMatches = Array.isArray(data.matches) ? data.matches : []
-      const matches = sortMatches(
+      const matches = sortLeagueMatches(
         rawMatches.map((match) => matchToClient(match as Record<string, unknown>))
       )
       const dateKey = normalizeText(data.date_key)
@@ -467,9 +477,14 @@ export async function saveLeagueScheduleDay(
   const sanitizedMatches = payload.matches
     .map((match) => ({
       id: normalizeText(match.id) || crypto.randomUUID(),
-      startsAt: normalizeText(match.startsAt),
+      startsAt: normalizeLeagueMatchStartTime(match.startsAt),
       homeTeamName: normalizeText(match.homeTeamName),
       awayTeamName: normalizeText(match.awayTeamName),
+      stageLabel: normalizeLeagueStageLabel(match.stageLabel),
+      format: normalizeLeagueMatchFormat({
+        winsToClinch: match.winsToClinch,
+        maxGames: match.maxGames,
+      }),
     }))
     .filter((match) => match.startsAt && match.homeTeamName && match.awayTeamName)
 
@@ -497,14 +512,46 @@ export async function saveLeagueScheduleDay(
       .map((match) => {
         const prev = existingMap.get(match.id)
         const prevClient = prev ? matchToClient(prev) : null
+        const canPreserveResult =
+          prevClient &&
+          prevClient.homeTeamName === match.homeTeamName &&
+          prevClient.awayTeamName === match.awayTeamName &&
+          prevClient.format.winsToClinch === match.format.winsToClinch &&
+          prevClient.format.maxGames === match.format.maxGames &&
+          isCompletedLeagueMatch({
+            homeScore: prevClient.homeScore,
+            awayScore: prevClient.awayScore,
+            format: match.format,
+          })
+
+        const homeScore = canPreserveResult ? prevClient.homeScore : 0
+        const awayScore = canPreserveResult ? prevClient.awayScore : 0
+        const winner = deriveLeagueMatchWinner({
+          homeScore,
+          awayScore,
+          format: match.format,
+        })
+
         return {
           id: match.id,
           starts_at: match.startsAt,
           home_team_name: match.homeTeamName,
           away_team_name: match.awayTeamName,
-          winner: prevClient?.winner ?? 'PENDING',
-          is_completed: prevClient?.isCompleted ?? false,
-          note: prevClient?.note ?? '',
+          stage_label: match.stageLabel,
+          wins_to_clinch: match.format.winsToClinch,
+          max_games: match.format.maxGames,
+          set_logs: canPreserveResult
+            ? prevClient.setLogs.map((setLog) => ({
+                set_number: setLog.setNumber,
+                winner: setLog.winner,
+                note: setLog.note,
+              }))
+            : [],
+          home_score: homeScore,
+          away_score: awayScore,
+          winner,
+          is_completed: winner !== 'PENDING',
+          note: canPreserveResult ? prevClient.note : '',
           created_at: prev?.created_at ?? now,
           updated_at: now,
         }
@@ -531,18 +578,15 @@ export async function registerLeagueMatchResult(args: {
   scheduleId: string
   dateKey: string
   matchId: string
-  winner: LeagueMatchWinner
+  homeScore: number
+  awayScore: number
+  setLogs?: Array<{ winner: 'HOME' | 'AWAY'; note?: string }>
   note?: string
   adminCode?: string
 }): Promise<{ error?: string }> {
   const dateKey = toDateKey(args.dateKey)
   if (!dateKey) return { error: '날짜를 다시 확인해주세요.' }
   if (!args.matchId.trim()) return { error: '경기를 선택해주세요.' }
-
-  const winner = args.winner
-  if (!['HOME', 'AWAY', 'DRAW', 'PENDING'].includes(winner)) {
-    return { error: '결과 값을 다시 확인해주세요.' }
-  }
 
   try {
     const now = admin.firestore.Timestamp.now()
@@ -566,9 +610,54 @@ export async function registerLeagueMatchResult(args: {
 
     const currentMatch = matchToClient(rawMatches[matchIndex])
     const nextNote = normalizeText(args.note)
+    const setLogs = normalizeLeagueSetLogs(
+      args.setLogs?.map((setLog) => ({
+        winner: setLog.winner,
+        note: setLog.note,
+      })) ?? [],
+      currentMatch.format.maxGames
+    )
+    const derivedScoreFromLogs = summarizeLeagueSetLogs(setLogs)
+    const hasSetLogs = setLogs.length > 0
+    const homeScore = hasSetLogs
+      ? derivedScoreFromLogs.homeScore
+      : normalizeLeagueSetScore(args.homeScore)
+    const awayScore = hasSetLogs
+      ? derivedScoreFromLogs.awayScore
+      : normalizeLeagueSetScore(args.awayScore)
+
+    if (homeScore > currentMatch.format.maxGames || awayScore > currentMatch.format.maxGames) {
+      return {
+        error: `세트 스코어는 최대 ${currentMatch.format.maxGames}세트를 넘길 수 없습니다.`,
+      }
+    }
+
+    const winner = deriveLeagueMatchWinner({
+      homeScore,
+      awayScore,
+      format: currentMatch.format,
+    })
+
+    if (winner === 'PENDING') {
+      return {
+        error: `${currentMatch.format.maxGames}판 ${currentMatch.format.winsToClinch}선승 규칙에 맞는 최종 세트 스코어를 입력해주세요.`,
+      }
+    }
+
     const resultChanged =
       currentMatch.winner !== winner ||
-      currentMatch.isCompleted !== (winner !== 'PENDING') ||
+      currentMatch.setLogs.length !== setLogs.length ||
+      currentMatch.setLogs.some((setLog, index) => {
+        const nextSetLog = setLogs[index]
+        return (
+          !nextSetLog ||
+          setLog.winner !== nextSetLog.winner ||
+          setLog.note !== nextSetLog.note
+        )
+      }) ||
+      currentMatch.homeScore !== homeScore ||
+      currentMatch.awayScore !== awayScore ||
+      currentMatch.isCompleted !== true ||
       currentMatch.note !== nextNote
 
     if (currentMatch.isCompleted && resultChanged) {
@@ -578,8 +667,17 @@ export async function registerLeagueMatchResult(args: {
 
     rawMatches[matchIndex] = {
       ...rawMatches[matchIndex],
+      wins_to_clinch: currentMatch.format.winsToClinch,
+      max_games: currentMatch.format.maxGames,
+      set_logs: setLogs.map((setLog) => ({
+        set_number: setLog.setNumber,
+        winner: setLog.winner,
+        note: setLog.note,
+      })),
+      home_score: homeScore,
+      away_score: awayScore,
       winner,
-      is_completed: winner !== 'PENDING',
+      is_completed: true,
       note: nextNote,
       updated_at: now,
     }

@@ -30,13 +30,30 @@ export interface CreateLeagueSchedulePayload {
   notes?: string;
 }
 
-export type LeagueMatchWinner = 'HOME' | 'AWAY' | 'DRAW' | 'PENDING';
+export type LeagueMatchWinner = 'HOME' | 'AWAY' | 'PENDING';
+export type LeagueSetWinner = 'HOME' | 'AWAY';
+
+export interface LeagueMatchFormat {
+  winsToClinch: number;
+  maxGames: number;
+}
+
+export interface LeagueScheduleSetLog {
+  setNumber: number;
+  winner: LeagueSetWinner;
+  note: string;
+}
 
 export interface LeagueScheduleMatch {
   id: string;
   startsAt: string;
   homeTeamName: string;
   awayTeamName: string;
+  stageLabel: string;
+  format: LeagueMatchFormat;
+  setLogs: LeagueScheduleSetLog[];
+  homeScore: number;
+  awayScore: number;
   winner: LeagueMatchWinner;
   isCompleted: boolean;
   note: string;
@@ -85,5 +102,8 @@ export interface SaveLeagueScheduleDayPayload {
     startsAt: string;
     homeTeamName: string;
     awayTeamName: string;
+    stageLabel?: string;
+    winsToClinch?: number;
+    maxGames?: number;
   }>;
 }

@@ -19,16 +19,26 @@ import {
   saveLeagueScheduleDay,
 } from "@/features/schedules/api/scheduleActions";
 import type {
+  LeagueMatchWinner,
   LeagueRosterTeam,
   LeagueScheduleDay,
   LeagueScheduleTimeline,
 } from "@/features/schedules/types";
+import {
+  DEFAULT_LEAGUE_MATCH_FORMAT,
+  deriveLeagueMatchWinner,
+  getLeagueMatchFormatLabel,
+  isCompletedLeagueMatch,
+  summarizeLeagueSetLogs,
+} from "@/features/schedules/utils/leagueMatchRules";
+import { buildNextMatchesPreview } from "@/features/schedules/utils/leagueNextMatches";
 import { ScheduleCalendar, formatDateKey } from "@/components/ScheduleCalendar";
 import {
   ScheduleMatchDayEditor,
   type MatchEditorRow,
 } from "@/components/ScheduleMatchDayEditor";
 import { ScheduleRosterPanel } from "@/components/ScheduleRosterPanel";
+import { LeagueRecordSummaryPanel } from "@/components/LeagueRecordSummaryPanel";
 
 function startOfSelectedDay(date: Date) {
   return new Date(
@@ -78,34 +88,59 @@ function isScheduleInProgress(startIso: string, endIso: string | null) {
 }
 
 function getWinnerLabel(match: {
-  winner: string;
+  winner: LeagueMatchWinner;
   homeTeamName: string;
   awayTeamName: string;
+  stageLabel: string;
+  homeScore: number;
+  awayScore: number;
+  format: {
+    winsToClinch: number;
+    maxGames: number;
+  };
 }) {
-  if (match.winner === "HOME") return `${match.homeTeamName} 승`;
-  if (match.winner === "AWAY") return `${match.awayTeamName} 승`;
-  if (match.winner === "DRAW") return "무승부";
-  return "결과 대기";
+  const prefix = match.stageLabel ? `[${match.stageLabel}] ` : "";
+  if (match.winner === "HOME" || match.winner === "AWAY") {
+    return `${prefix}${match.homeTeamName} ${match.homeScore}:${match.awayScore} ${match.awayTeamName}`;
+  }
+  return `${prefix}${getLeagueMatchFormatLabel(match.format)}`;
+}
+
+function createEmptyMatchRow(): MatchEditorRow {
+  return {
+    startsAt: "21:30",
+    homeTeamName: "",
+    awayTeamName: "",
+    stageLabel: "",
+    winsToClinch: DEFAULT_LEAGUE_MATCH_FORMAT.winsToClinch,
+    maxGames: DEFAULT_LEAGUE_MATCH_FORMAT.maxGames,
+    setLogs: [],
+    homeScore: 0,
+    awayScore: 0,
+    winner: "PENDING",
+    note: "",
+    isCompleted: false,
+  };
 }
 
 function buildEditorRows(day: LeagueScheduleDay | null): MatchEditorRow[] {
   if (!day || day.matches.length === 0) {
-    return [
-      {
-        startsAt: "19:00",
-        homeTeamName: "",
-        awayTeamName: "",
-        winner: "PENDING",
-        note: "",
-        isCompleted: false,
-      },
-    ];
+    return [createEmptyMatchRow()];
   }
   return day.matches.map((match) => ({
     id: match.id,
     startsAt: match.startsAt,
     homeTeamName: match.homeTeamName,
     awayTeamName: match.awayTeamName,
+    stageLabel: match.stageLabel,
+    winsToClinch: match.format.winsToClinch,
+    maxGames: match.format.maxGames,
+    setLogs: match.setLogs.map((setLog) => ({
+      winner: setLog.winner,
+      note: setLog.note,
+    })),
+    homeScore: match.homeScore,
+    awayScore: match.awayScore,
     winner: match.winner,
     note: match.note,
     isCompleted: match.isCompleted,
@@ -252,8 +287,66 @@ export function LeagueScheduleManager() {
         id: row.id ?? `match-${selectedDateKey}-${index}`,
         homeTeam: rosterMap.get(row.homeTeamName.trim()) ?? null,
         awayTeam: rosterMap.get(row.awayTeamName.trim()) ?? null,
-        winner: row.winner,
+        winner: deriveLeagueMatchWinner({
+          homeScore: row.homeScore,
+          awayScore: row.awayScore,
+          format: {
+            winsToClinch: row.winsToClinch,
+            maxGames: row.maxGames,
+          },
+        }),
+        homeScore: row.homeScore,
+        awayScore: row.awayScore,
       }));
+  }, [matchRows, selectedDateKey, timeline]);
+
+  const nextMatchesPreview = useMemo(() => {
+    if (!timeline) return [];
+
+    const previewMatchRows = matchRows
+      .filter((row) => row.homeTeamName.trim() && row.awayTeamName.trim())
+      .map((row, index) => {
+        const format = {
+          winsToClinch: row.winsToClinch,
+          maxGames: row.maxGames,
+        };
+        const winner = deriveLeagueMatchWinner({
+          homeScore: row.homeScore,
+          awayScore: row.awayScore,
+          format,
+        });
+
+        return {
+          id: row.id ?? `preview-${selectedDateKey}-${index}`,
+          startsAt: row.startsAt.trim(),
+          homeTeamName: row.homeTeamName.trim(),
+          awayTeamName: row.awayTeamName.trim(),
+          stageLabel: row.stageLabel.trim(),
+          format,
+          setLogs: row.setLogs.map((setLog, setIndex) => ({
+            setNumber: setIndex + 1,
+            winner: setLog.winner,
+            note: setLog.note,
+          })),
+          homeScore: row.homeScore,
+          awayScore: row.awayScore,
+          winner,
+          isCompleted: isCompletedLeagueMatch({
+            homeScore: row.homeScore,
+            awayScore: row.awayScore,
+            format,
+          }),
+          note: row.note,
+          createdAt: null,
+          updatedAt: null,
+        };
+      });
+
+    return buildNextMatchesPreview({
+      days: timeline.days,
+      selectedDateKey,
+      previewMatches: previewMatchRows,
+    });
   }, [matchRows, selectedDateKey, timeline]);
 
   const handleCreate = async () => {
@@ -300,6 +393,9 @@ export function LeagueScheduleManager() {
         startsAt: row.startsAt,
         homeTeamName: row.homeTeamName,
         awayTeamName: row.awayTeamName,
+        stageLabel: row.stageLabel,
+        winsToClinch: row.winsToClinch,
+        maxGames: row.maxGames,
       })),
     });
     setIsSavingTimeline(false);
@@ -318,7 +414,12 @@ export function LeagueScheduleManager() {
       scheduleId: selectedScheduleId,
       dateKey: selectedDateKey,
       matchId: row.id,
-      winner: row.winner,
+      homeScore: row.homeScore,
+      awayScore: row.awayScore,
+      setLogs: row.setLogs.map((setLog) => ({
+        winner: setLog.winner,
+        note: setLog.note,
+      })),
       note: row.note,
       adminCode: adminCode.trim() || undefined,
     });
@@ -503,22 +604,29 @@ export function LeagueScheduleManager() {
                           Next Match
                         </p>
                         <p className="text-lg font-black mt-1">
-                          {timeline.nextMatches.length > 0
-                            ? `${timeline.nextMatches.length}경기 예정`
+                          {nextMatchesPreview.length > 0
+                            ? `${nextMatchesPreview.length}경기 예정`
                             : "대기 중"}
                         </p>
                       </div>
                     </div>
-                    {timeline.nextMatches.length > 0 ? (
+                    {nextMatchesPreview.length > 0 ? (
                       <div className="mt-4 space-y-2">
-                        {timeline.nextMatches.map((match) => (
+                        {nextMatchesPreview.map((match) => (
                           <div
                             key={match.id}
                             className="border-2 border-white/20 bg-white/5 px-3 py-2"
                           >
-                            <p className="text-sm font-black">
-                              {match.homeTeamName} vs {match.awayTeamName}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {match.stageLabel && (
+                                <span className="border border-white/50 bg-white/10 px-2 py-0.5 text-[10px] font-black">
+                                  {match.stageLabel}
+                                </span>
+                              )}
+                              <p className="text-sm font-black">
+                                {match.homeTeamName} vs {match.awayTeamName}
+                              </p>
+                            </div>
                             <p className="text-xs font-bold text-white/70 mt-1">
                               {match.startsAt} · {getWinnerLabel(match)}
                             </p>
@@ -557,22 +665,54 @@ export function LeagueScheduleManager() {
                     onAdminCodeChange={setAdminCode}
                     onRowChange={(index, patch) =>
                       setMatchRows((prev) =>
-                        prev.map((row, rowIndex) =>
-                          rowIndex === index ? { ...row, ...patch } : row,
-                        ),
+                        prev.map((row, rowIndex) => {
+                          if (rowIndex !== index) return row;
+
+                          const nextWinsToClinch =
+                            patch.winsToClinch ?? row.winsToClinch;
+                          const nextMaxGames = Math.max(
+                            patch.maxGames ?? row.maxGames,
+                            nextWinsToClinch,
+                          );
+                          const nextSetLogs = (patch.setLogs ?? row.setLogs).slice(
+                            0,
+                            nextMaxGames,
+                          );
+                          const derivedScoreFromLogs = summarizeLeagueSetLogs(
+                            nextSetLogs.map((setLog, setIndex) => ({
+                              setNumber: setIndex + 1,
+                              winner: setLog.winner,
+                              note: setLog.note,
+                            })),
+                          );
+                          const usesSetLogs = nextSetLogs.length > 0;
+
+                          return {
+                            ...row,
+                            ...patch,
+                            winsToClinch: nextWinsToClinch,
+                            maxGames: nextMaxGames,
+                            setLogs: nextSetLogs,
+                            homeScore: usesSetLogs
+                              ? derivedScoreFromLogs.homeScore
+                              : Math.min(
+                                  nextMaxGames,
+                                  patch.homeScore ?? row.homeScore,
+                                ),
+                            awayScore: usesSetLogs
+                              ? derivedScoreFromLogs.awayScore
+                              : Math.min(
+                                  nextMaxGames,
+                                  patch.awayScore ?? row.awayScore,
+                                ),
+                          };
+                        }),
                       )
                     }
                     onAddRow={() =>
                       setMatchRows((prev) => [
                         ...prev,
-                        {
-                          startsAt: "19:00",
-                          homeTeamName: "",
-                          awayTeamName: "",
-                          winner: "PENDING",
-                          note: "",
-                          isCompleted: false,
-                        },
+                        createEmptyMatchRow(),
                       ])
                     }
                     onRemoveRow={(index) =>
@@ -586,6 +726,12 @@ export function LeagueScheduleManager() {
                 </div>
 
                 <ScheduleRosterPanel matches={selectedRosterMatches} />
+                <LeagueRecordSummaryPanel
+                  scheduleName={timeline.schedule.name}
+                  championTeamName={timeline.schedule.championTeamName}
+                  rosterTeams={timeline.rosterTeams}
+                  days={timeline.days}
+                />
               </>
             ) : (
               <div className="bg-white border-4 border-dashed border-black p-10 text-center">
