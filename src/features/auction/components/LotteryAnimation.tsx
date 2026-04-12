@@ -2,7 +2,12 @@
 
 import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useAnimationControls,
+  useReducedMotion,
+} from "framer-motion";
 import { Player } from "@/features/auction/store/useAuctionStore";
 import { getTierImage, getPositionImage } from "../utils/display";
 import { cn } from "@/lib/utils";
@@ -16,7 +21,6 @@ interface LotteryAnimationProps {
 }
 
 const ITEM_HEIGHT = 160;
-const SPIN_DURATION = 4.5;
 const VISIBLE_ITEMS = 40;
 
 export function LotteryAnimation({
@@ -24,32 +28,36 @@ export function LotteryAnimation({
   targetPlayer,
   onFinished,
 }: LotteryAnimationProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [isSpinning, setIsSpinning] = useState(true);
   const [hasFinished, setHasFinished] = useState(false);
   const [tick, setTick] = useState(0);
   const controls = useAnimationControls();
+  const spinItemCount = shouldReduceMotion ? 8 : VISIBLE_ITEMS;
+  const spinDuration = shouldReduceMotion ? 1.15 : 4.5;
+  const revealDelay = shouldReduceMotion ? 250 : 1000;
 
   // Generate a sequence of items that ends with the target player
   const trackItems = useMemo(() => {
     const cand = candidates.length > 0 ? candidates : [targetPlayer];
     const items: Player[] = [];
     // Use a deterministic sequence for the track to satisfy purity
-    for (let i = 0; i < VISIBLE_ITEMS; i++) {
+    for (let i = 0; i < spinItemCount; i++) {
       const pseudoRandomIndex = (i * 13) % cand.length;
       items.push(cand[pseudoRandomIndex]);
     }
     items.push(targetPlayer);
     return items;
-  }, [candidates, targetPlayer]);
+  }, [candidates, spinItemCount, targetPlayer]);
 
   const particles = useMemo(
     () =>
-      Array.from({ length: 12 }, (_, index) => ({
+      Array.from({ length: shouldReduceMotion ? 4 : 12 }, (_, index) => ({
         x: 10 + ((index * 17) % 80),
         y: 12 + ((index * 29) % 76),
         rotate: (index * 57) % 360,
       })),
-    [],
+    [shouldReduceMotion],
   );
 
   useEffect(() => {
@@ -57,16 +65,18 @@ export function LotteryAnimation({
 
     const startAnimation = async () => {
       // Small delay before starting to ensure Framer Motion is ready
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) =>
+        setTimeout(resolve, shouldReduceMotion ? 180 : 500),
+      );
 
       if (!isMounted) return;
 
       try {
         // Animate the track
         await controls.start({
-          y: -(VISIBLE_ITEMS * ITEM_HEIGHT),
+          y: -(spinItemCount * ITEM_HEIGHT),
           transition: {
-            duration: SPIN_DURATION,
+            duration: spinDuration,
             ease: [0.16, 1, 0.3, 1] as const, // easeOutExpo-like
           },
         });
@@ -79,7 +89,7 @@ export function LotteryAnimation({
         // Additional delay for the winning moment
         setTimeout(() => {
           if (isMounted) onFinished?.();
-        }, 1000);
+        }, revealDelay);
       } catch (error) {
         console.error("Animation failed:", error);
       }
@@ -91,7 +101,14 @@ export function LotteryAnimation({
       isMounted = false;
       controls.stop();
     };
-  }, [controls, onFinished]);
+  }, [
+    controls,
+    onFinished,
+    revealDelay,
+    shouldReduceMotion,
+    spinDuration,
+    spinItemCount,
+  ]);
 
   // Handle "Tick" effect as items scroll
   useEffect(() => {
@@ -101,10 +118,10 @@ export function LotteryAnimation({
       // This is a simplified tick simulation based on timing
       // In a real scenario, we could use useScroll and useTransform to be more precise
       setTick((t) => (t + 1) % 2);
-    }, 100);
+    }, shouldReduceMotion ? 220 : 100);
 
     return () => clearInterval(interval);
-  }, [isSpinning]);
+  }, [isSpinning, shouldReduceMotion]);
 
   return (
     <div className="w-full flex flex-col items-center justify-center gap-8 py-8 perspective-1000">
@@ -146,18 +163,26 @@ export function LotteryAnimation({
         layout
         animate={
           hasFinished
-            ? {
-                scale: [1, 1.1, 1.05],
-                x: [0, -4, 4, -4, 4, 0],
-                transition: {
-                  scale: { duration: 0.5, ease: "easeOut" },
-                  x: {
-                    duration: 0.4,
-                    ease: "linear",
-                    times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+            ? shouldReduceMotion
+              ? {
+                  scale: [1, 1.04, 1],
+                  transition: {
+                    duration: 0.35,
+                    ease: "easeOut",
                   },
-                },
-              }
+                }
+              : {
+                  scale: [1, 1.1, 1.05],
+                  x: [0, -4, 4, -4, 4, 0],
+                  transition: {
+                    scale: { duration: 0.5, ease: "easeOut" },
+                    x: {
+                      duration: 0.4,
+                      ease: "linear",
+                      times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                    },
+                  },
+                }
             : {}
         }
         className={cn(
@@ -175,7 +200,7 @@ export function LotteryAnimation({
         }}
       >
         {/* Success Particles Effect */}
-        {hasFinished && (
+        {hasFinished && !shouldReduceMotion && (
           <div className="absolute inset-0 z-40 pointer-events-none">
             {particles.map((particle, i) => (
               <motion.div
@@ -222,7 +247,7 @@ export function LotteryAnimation({
               <span
                 className={cn(
                   "text-3xl font-heading w-full text-center truncate px-2 transition-all",
-                  !isSpinning && idx === VISIBLE_ITEMS
+                  !isSpinning && idx === spinItemCount
                     ? "text-minion-yellow scale-110"
                     : "text-black",
                 )}
@@ -234,7 +259,11 @@ export function LotteryAnimation({
                 <motion.div
                   className="w-16 h-16 relative"
                   animate={
-                    isSpinning && tick === 0 ? { scale: [1, 1.1, 1] } : {}
+                    isSpinning && tick === 0
+                      ? shouldReduceMotion
+                        ? { opacity: [1, 0.9, 1] }
+                        : { scale: [1, 1.1, 1] }
+                      : {}
                   }
                 >
                   <Image
@@ -268,7 +297,7 @@ export function LotteryAnimation({
       </motion.div>
 
       {/* Shine effect overlay when finished */}
-      {hasFinished && (
+      {hasFinished && !shouldReduceMotion && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}

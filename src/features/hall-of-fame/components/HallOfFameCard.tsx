@@ -21,6 +21,7 @@ export function HallOfFameCard({ entry, onDeleted }: HallOfFameCardProps) {
         year: "numeric",
         month: "long",
         day: "numeric",
+        timeZone: "Asia/Seoul",
       })
     : "-";
 

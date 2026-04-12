@@ -2,6 +2,8 @@ import { getHallOfFameEntries } from "@/features/hall-of-fame/api/hallOfFameActi
 import { HallOfFameClient } from "./HallOfFameClient";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "명예의 전당 | Minions Bid",
   description: "미니언즈 리그 역대 우승팀 기록",

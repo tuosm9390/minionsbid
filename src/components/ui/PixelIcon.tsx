@@ -2,7 +2,7 @@
 
 import React from "react";
 import { LucideIcon } from "lucide-react";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export type IconAnimation = "idle" | "urgent" | "success" | "active";
@@ -58,6 +58,38 @@ const animationVariants: Variants = {
   },
 };
 
+const reducedAnimationVariants: Variants = {
+  idle: {
+    x: 0,
+    y: 0,
+    scale: 1,
+    opacity: 1,
+  },
+  urgent: {
+    opacity: [1, 0.72, 1],
+    transition: {
+      duration: 1.4,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+  success: {
+    scale: [1, 1.08, 1],
+    transition: {
+      duration: 0.3,
+      ease: "easeOut",
+    },
+  },
+  active: {
+    opacity: [1, 0.82, 1],
+    transition: {
+      duration: 2.2,
+      repeat: Infinity,
+      ease: "linear",
+    },
+  },
+};
+
 /**
  * PixelIcon - A standardized icon component for the Cyber-Pixel theme.
  * Uses Lucide icons with custom pixel-art styling and Framer Motion animations.
@@ -72,7 +104,11 @@ export function PixelIcon({
   label,
   isInteractive = false,
 }: PixelIconProps) {
+  const shouldReduceMotion = useReducedMotion();
   const isDecorative = !label;
+  const variants = shouldReduceMotion
+    ? reducedAnimationVariants
+    : animationVariants;
 
   return (
     <motion.div
@@ -81,7 +117,7 @@ export function PixelIcon({
         isInteractive && "min-w-[44px] min-h-[44px]",
         className
       )}
-      variants={animationVariants}
+      variants={variants}
       animate={animation}
       initial="idle"
       role={isDecorative ? undefined : "img"}

@@ -451,9 +451,22 @@ export function LeagueScheduleManager() {
     });
     setIsCompletingSchedule(false);
     if (result.error) return setTimelineError(result.error);
+
+    setTimeline((prev) => {
+      if (!prev?.schedule || prev.schedule.id !== selectedScheduleId) return prev;
+      return {
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          status: "COMPLETED",
+          championTeamName: selectedChampionName,
+          completedAt: new Date().toISOString(),
+        },
+      };
+    });
+
     setIsCompleteModalOpen(false);
     await loadCatalog();
-    await loadTimeline(selectedScheduleId);
   };
 
   return (

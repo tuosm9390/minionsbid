@@ -282,14 +282,34 @@
   /* 움직임 감소 선호 사용자 대응
      모바일에서 모션이 완전히 사라지지 않도록, 반복적이거나 강한 효과만 낮춘다. */
   @media (prefers-reduced-motion: reduce) {
-    .animate-shimmer,
+    @keyframes reduced-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes reduced-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.82; }
+    }
+
     .animate-bounce,
-    .animate-pulse,
+    .animate-minion-bounce {
+      animation: reduced-float 2.4s ease-in-out infinite !important;
+    }
+
+    .animate-pulse {
+      animation: reduced-pulse 2.8s ease-in-out infinite !important;
+    }
+
+    .update-ticker-track {
+      animation-duration: 72s !important;
+      animation-timing-function: linear !important;
+    }
+
+    .animate-shimmer,
     .animate-ping,
     .animate-shake,
-    .animate-minion-bounce,
     .animate-glitch,
-    .update-ticker-track,
     .animate-timer-tick,
     .animate-urgent-shake,
     .animate-shine {
