@@ -17,6 +17,7 @@ import {
   getLeagueScheduleTimeline,
   registerLeagueMatchResult,
   saveLeagueScheduleDay,
+  verifyScheduleAdminCode,
 } from "@/features/schedules/api/scheduleActions";
 import type {
   LeagueMatchWinner,
@@ -182,6 +183,7 @@ function ActionModal({
 export function LeagueScheduleManager() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingTimeline, setIsSavingTimeline] = useState(false);
   const [isSubmittingResultId, setIsSubmittingResultId] = useState<
@@ -209,6 +211,7 @@ export function LeagueScheduleManager() {
     buildEditorRows(null),
   );
   const [adminCode, setAdminCode] = useState("");
+  const [isAdminVerified, setIsAdminVerified] = useState(false);
   const [isDeletingSchedule, setIsDeletingSchedule] = useState(false);
   const [isCompletingSchedule, setIsCompletingSchedule] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -232,8 +235,13 @@ export function LeagueScheduleManager() {
       setTimeline(null);
       return;
     }
-    const next = await getLeagueScheduleTimeline(scheduleId);
-    setTimeline(next);
+    setIsLoadingTimeline(true);
+    try {
+      const next = await getLeagueScheduleTimeline(scheduleId);
+      setTimeline(next);
+    } finally {
+      setIsLoadingTimeline(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -512,12 +520,25 @@ export function LeagueScheduleManager() {
               </button>
             </div>
             <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+              {isLoading && (
+                <div className="space-y-3">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="border-4 border-black p-4 bg-gray-100 animate-pulse"
+                    >
+                      <div className="h-5 bg-gray-300 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              )}
               {!isLoading && schedules.length === 0 && (
                 <div className="border-2 border-dashed border-black p-6 text-center text-sm font-black">
                   등록된 일정이 없습니다.
                 </div>
               )}
-              {schedules.map((schedule) =>
+              {!isLoading && schedules.map((schedule) =>
                 schedule ? (
                   <button
                     key={schedule.id}
@@ -547,6 +568,15 @@ export function LeagueScheduleManager() {
           <div className="space-y-5">
             {timeline?.schedule ? (
               <>
+                {isLoadingTimeline && (
+                  <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_rgba(0,0,0,1)] flex items-center gap-4 animate-pulse">
+                    <div className="border-4 border-black border-t-minion-yellow w-8 h-8 rounded-full animate-spin shrink-0" />
+                    <div>
+                      <p className="text-sm font-black tracking-widest uppercase text-gray-500">타임라인 불러오는 중...</p>
+                      <p className="text-xs font-bold text-gray-400 mt-1">잠시만 기다려주세요.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div className="bg-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)] lg:col-span-2">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
@@ -602,7 +632,11 @@ export function LeagueScheduleManager() {
                       <button
                         type="button"
                         onClick={() => setIsDeleteModalOpen(true)}
-                        className="border-2 border-black bg-minion-red text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2"
+                        disabled={
+                          timeline.schedule.status === "COMPLETED" &&
+                          !isAdminVerified
+                        }
+                        className="border-2 border-black bg-minion-red text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Trash2 size={16} />
                         일정 삭제
@@ -672,10 +706,20 @@ export function LeagueScheduleManager() {
                     rows={matchRows}
                     rosterTeams={timeline.rosterTeams}
                     adminCode={adminCode}
+                    isAdminVerified={isAdminVerified}
                     timelineError={timelineError}
                     isSavingTimeline={isSavingTimeline}
                     isSubmittingResultId={isSubmittingResultId}
-                    onAdminCodeChange={setAdminCode}
+                    isScheduleCompleted={timeline.schedule.status === "COMPLETED"}
+                    onAdminCodeChange={async (value: string) => {
+                      setAdminCode(value);
+                      if (!value.trim()) {
+                        setIsAdminVerified(false);
+                        return;
+                      }
+                      const result = await verifyScheduleAdminCode(value.trim());
+                      setIsAdminVerified(result.valid);
+                    }}
                     onRowChange={(index, patch) =>
                       setMatchRows((prev) =>
                         prev.map((row, rowIndex) => {
@@ -746,6 +790,13 @@ export function LeagueScheduleManager() {
                   days={timeline.days}
                 />
               </>
+            ) : isLoadingTimeline ? (
+              <div className="bg-white border-4 border-black p-10 text-center space-y-4 animate-pulse">
+                <div className="flex justify-center">
+                  <div className="border-4 border-black border-t-minion-yellow w-10 h-10 rounded-full animate-spin" />
+                </div>
+                <p className="text-sm font-black tracking-widest uppercase text-gray-500">일정 불러오는 중...</p>
+              </div>
             ) : (
               <div className="bg-white border-4 border-dashed border-black p-10 text-center">
                 <p className="text-lg font-black">선택된 일정이 없습니다.</p>

@@ -97,6 +97,16 @@ function verifyTimelineAdminCode(code?: string): { error?: string } {
   return {}
 }
 
+export async function verifyScheduleAdminCode(
+  code: string
+): Promise<{ valid: boolean }> {
+  const adminCode = process.env.HALL_OF_FAME_ADMIN_CODE
+  if (!adminCode || code !== adminCode) {
+    return { valid: false }
+  }
+  return { valid: true }
+}
+
 function matchToClient(match: Record<string, unknown>): LeagueScheduleMatch {
   const format = normalizeLeagueMatchFormat({
     winsToClinch:

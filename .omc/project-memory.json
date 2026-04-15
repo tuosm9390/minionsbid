@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1775710770068,
+  "lastScanned": 1776170680180,
   "projectRoot": "D:\\development\\league-auction",
   "techStack": {
     "languages": [
@@ -72,8 +72,8 @@
     }
   },
   "conventions": {
-    "namingStyle": "camelCase",
-    "importStyle": "ES modules",
+    "namingStyle": null,
+    "importStyle": null,
     "testPattern": "*.test.ts",
     "fileOrganization": "feature-based"
   },
@@ -82,6 +82,7 @@
     "workspaces": [],
     "mainDirectories": [
       "public",
+      "scripts",
       "src",
       "__tests__"
     ],
@@ -96,7 +97,7 @@
       "path": "coverage",
       "purpose": null,
       "fileCount": 9,
-      "lastAccessed": 1775710770000,
+      "lastAccessed": 1776170680065,
       "keyFiles": [
         "auctionActions.ts.html",
         "base.css",
@@ -109,7 +110,7 @@
       "path": "doc",
       "purpose": null,
       "fileCount": 9,
-      "lastAccessed": 1775710770018,
+      "lastAccessed": 1776170680097,
       "keyFiles": [
         "ARCHITECTURE.md",
         "AUCTION_LOGIC.md",
@@ -121,8 +122,8 @@
     "public": {
       "path": "public",
       "purpose": "Public files",
-      "fileCount": 19,
-      "lastAccessed": 1775710770020,
+      "fileCount": 20,
+      "lastAccessed": 1776170680098,
       "keyFiles": [
         "favicon.png",
         "main_position_bot.webp",
@@ -135,7 +136,7 @@
       "path": "results",
       "purpose": null,
       "fileCount": 49,
-      "lastAccessed": 1775710770022,
+      "lastAccessed": 1776170680100,
       "keyFiles": [
         "260224_ImplementationPlan.md",
         "260225_E2E_TestScenario.md",
@@ -144,18 +145,27 @@
         "260225_ImplementationPlan_FrontendOptimization.md"
       ]
     },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1776170680101,
+      "keyFiles": [
+        "seed_closed_auction.js"
+      ]
+    },
     "specs": {
       "path": "specs",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1775710770023,
+      "lastAccessed": 1776170680102,
       "keyFiles": []
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 1,
-      "lastAccessed": 1775710770024,
+      "lastAccessed": 1776170680103,
       "keyFiles": [
         "proxy.ts"
       ]
@@ -164,7 +174,7 @@
       "path": "__tests__",
       "purpose": "Test files",
       "fileCount": 6,
-      "lastAccessed": 1775710770024,
+      "lastAccessed": 1776170680105,
       "keyFiles": [
         "auctionActions.test.ts",
         "CreateRoomModal.test.tsx",
@@ -176,8 +186,8 @@
     "src\\app": {
       "path": "src\\app",
       "purpose": "Application code",
-      "fileCount": 6,
-      "lastAccessed": 1775710770028,
+      "fileCount": 7,
+      "lastAccessed": 1776170680117,
       "keyFiles": [
         "favicon.ico",
         "globals.css",
@@ -187,8 +197,8 @@
     "src\\components": {
       "path": "src\\components",
       "purpose": "UI components",
-      "fileCount": 3,
-      "lastAccessed": 1775710770028,
+      "fileCount": 10,
+      "lastAccessed": 1776170680118,
       "keyFiles": [
         "ArchiveModalWrapper.tsx",
         "AuctionArchiveSection.tsx",
@@ -199,7 +209,7 @@
       "path": "src\\lib",
       "purpose": "Library code",
       "fileCount": 3,
-      "lastAccessed": 1775710770029,
+      "lastAccessed": 1776170680119,
       "keyFiles": [
         "firebase.ts",
         "firebaseAdmin.ts",
@@ -207,241 +217,6 @@
       ]
     }
   },
-  "hotPaths": [
-    {
-      "path": "src\\features\\hall-of-fame\\api\\__tests__\\hallOfFameActions.test.ts",
-      "accessCount": 6,
-      "lastAccessed": 1775718574522,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\api\\roomActions.ts",
-      "accessCount": 6,
-      "lastAccessed": 1775719251603,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\page.tsx",
-      "accessCount": 5,
-      "lastAccessed": 1775718163071,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\components\\TeamList.tsx",
-      "accessCount": 3,
-      "lastAccessed": 1775719288927,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\store\\useAuctionStore.ts",
-      "accessCount": 2,
-      "lastAccessed": 1775717025282,
-      "type": "file"
-    },
-    {
-      "path": "C:\\Users\\tuosm\\.claude\\plans\\giggly-tinkering-reddy.md",
-      "accessCount": 2,
-      "lastAccessed": 1775717093808,
-      "type": "file"
-    },
-    {
-      "path": "src\\lib\\firebaseAdmin.ts",
-      "accessCount": 2,
-      "lastAccessed": 1775717301697,
-      "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 2,
-      "lastAccessed": 1775717313142,
-      "type": "directory"
-    },
-    {
-      "path": "src\\features\\hall-of-fame\\api\\hallOfFameActions.ts",
-      "accessCount": 2,
-      "lastAccessed": 1775717366732,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ArchiveModalWrapper.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1775718058679,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\room\\[id]\\RoomClient.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1775719186717,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\api\\auctionActions.ts",
-      "accessCount": 2,
-      "lastAccessed": 1775719192400,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\api\\auctionFlowActions.ts",
-      "accessCount": 2,
-      "lastAccessed": 1775719192932,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 1,
-      "lastAccessed": 1775716396560,
-      "type": "file"
-    },
-    {
-      "path": "src\\lib\\firebase.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716412091,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\api\\serverActionUtils.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716412578,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\useRoomAuth.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716415739,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\api\\chatActions.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716415759,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\room\\[id]\\page.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775716420870,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\layout.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775716425838,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\api\\room-auth\\route.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716426112,
-      "type": "file"
-    },
-    {
-      "path": "next.config.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716426446,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\globals.css",
-      "accessCount": 1,
-      "lastAccessed": 1775716429185,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\useAuctionRealtime.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716429415,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\components\\AuctionBoard.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775716429713,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\usePresence.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716432983,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\components\\BiddingControl.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775716433357,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\constants\\icons.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716438439,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\constants\\room.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716439007,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\utils\\roomGenerator.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716441503,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\useAuctionControl.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775716441991,
-      "type": "file"
-    },
-    {
-      "path": "tsconfig.json",
-      "accessCount": 1,
-      "lastAccessed": 1775716442009,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\usePresence.test.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775717315671,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\hall-of-fame\\types.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775717325764,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\hall-of-fame\\components\\HallOfFameCard.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775718082265,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\hall-of-fame\\components\\RegistrationModal.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775718113862,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\hall-of-fame\\page.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775718128227,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\hall-of-fame\\HallOfFameClient.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775718144977,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\room\\[id]\\components\\OrganizerControlPanel.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1775719186549,
-      "type": "file"
-    }
-  ],
+  "hotPaths": [],
   "userDirectives": []
 }

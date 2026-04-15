@@ -43,24 +43,65 @@
   --animate-glitch: glitch 1s linear infinite;
 
   @keyframes shake {
-    10%, 90% { transform: translate3d(-1px, 0, 0); }
-    20%, 80% { transform: translate3d(2px, 0, 0); }
-    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-    40%, 60% { transform: translate3d(4px, 0, 0); }
+
+    10%,
+    90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+      transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+      transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+      transform: translate3d(4px, 0, 0);
+    }
   }
 
   @keyframes minion-bounce {
-    0%, 100% { transform: translateY(0) scaleX(1.1) scaleY(0.9); }
-    50% { transform: translateY(-20px) scaleX(0.9) scaleY(1.1); }
+
+    0%,
+    100% {
+      transform: translateY(0) scaleX(1.1) scaleY(0.9);
+    }
+
+    50% {
+      transform: translateY(-20px) scaleX(0.9) scaleY(1.1);
+    }
   }
 
   @keyframes glitch {
-    0% { transform: translate(0); }
-    20% { transform: translate(-2px, 2px); }
-    40% { transform: translate(-2px, -2px); }
-    60% { transform: translate(2px, 2px); }
-    80% { transform: translate(2px, -2px); }
-    100% { transform: translate(0); }
+    0% {
+      transform: translate(0);
+    }
+
+    20% {
+      transform: translate(-2px, 2px);
+    }
+
+    40% {
+      transform: translate(-2px, -2px);
+    }
+
+    60% {
+      transform: translate(2px, 2px);
+    }
+
+    80% {
+      transform: translate(2px, -2px);
+    }
+
+    100% {
+      transform: translate(0);
+    }
   }
 }
 
@@ -69,26 +110,26 @@
     /* Refined Neutral Palette */
     --background: oklch(92% 0.01 250);
     --foreground: oklch(15% 0.02 250);
-    
+
     --card: oklch(100% 0 0);
     --card-foreground: var(--foreground);
-    
+
     --primary: var(--color-minion-yellow);
     --primary-foreground: oklch(10% 0.02 250);
-    
+
     --secondary: var(--color-minion-blue);
     --secondary-foreground: oklch(98% 0.01 250);
-    
+
     --accent: oklch(95% 0.04 90);
     --accent-foreground: var(--foreground);
-    
+
     --destructive: var(--color-minion-red);
     --destructive-foreground: oklch(98% 0.01 250);
-    
+
     --border: oklch(0% 0 0);
     --input: oklch(98% 0.01 250);
     --ring: var(--color-minion-blue);
-    
+
     --radius: 0rem;
     --pixel-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
     --pixel-shadow-sm: 4px 4px 0px 0px rgba(0, 0, 0, 1);
@@ -98,9 +139,10 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-body); /* Default to High-readability body font */
+    font-family: var(--font-body);
+    /* Default to High-readability body font */
     overflow-x: hidden;
-    background-image: 
+    background-image:
       radial-gradient(oklch(0% 0 0 / 0.05) 1px, transparent 1px),
       linear-gradient(to bottom, oklch(0% 0 0 / 0.02) 1px, transparent 1px);
     background-size: 20px 20px, 100% 40px;
@@ -108,9 +150,17 @@
   }
 
   /* Utility font classes */
-  .font-pixel { font-family: var(--font-pixel); }
-  .font-heading { font-family: var(--font-heading); }
-  .font-body { font-family: var(--font-body); }
+  .font-pixel {
+    font-family: var(--font-pixel);
+  }
+
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
 }
 
 @layer utilities {
@@ -153,11 +203,25 @@
   }
 
   /* Text Clamp Scales for Responsive Typography */
-  .text-fluid-xs { font-size: clamp(0.7rem, 0.6rem + 0.5vw, 0.85rem); }
-  .text-fluid-sm { font-size: clamp(0.85rem, 0.75rem + 0.5vw, 1rem); }
-  .text-fluid-base { font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem); }
-  .text-fluid-lg { font-size: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem); }
-  .text-fluid-xl { font-size: clamp(1.75rem, 1.5rem + 1.25vw, 2.5rem); }
+  .text-fluid-xs {
+    font-size: clamp(0.7rem, 0.6rem + 0.5vw, 0.85rem);
+  }
+
+  .text-fluid-sm {
+    font-size: clamp(0.85rem, 0.75rem + 0.5vw, 1rem);
+  }
+
+  .text-fluid-base {
+    font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  }
+
+  .text-fluid-lg {
+    font-size: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem);
+  }
+
+  .text-fluid-xl {
+    font-size: clamp(1.75rem, 1.5rem + 1.25vw, 2.5rem);
+  }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 16px;
@@ -177,51 +241,116 @@
 
   /* --- Entry Animations --- */
   @keyframes slide-up {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   @keyframes slide-in-left {
-    from { transform: translateX(-20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 
   @keyframes slide-in-right {
-    from { transform: translateX(20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+      transform: translateX(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 
   @keyframes update-ticker-marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(-50%);
+    }
   }
 
-  .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .animate-slide-in-left { animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .animate-slide-in-right { animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   .update-ticker-track {
-    animation: update-ticker-marquee 36s linear infinite;
+    animation: update-ticker-marquee 200s linear infinite;
     will-change: transform;
   }
 
   /* Delay utilities for staggered reveal */
-  .delay-100 { animation-delay: 100ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-400 { animation-delay: 400ms; }
-  .delay-500 { animation-delay: 500ms; }
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .delay-500 {
+    animation-delay: 500ms;
+  }
 
   @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   /* 타이머 틱 흔들림 - transform만 사용, GPU 합성 레이어 활용 */
   @keyframes timer-tick-shake {
-    0%, 100% { transform: translate3d(0, 0, 0); }
-    25%       { transform: translate3d(-3px, 0, 0); }
-    75%       { transform: translate3d(3px, 0, 0); }
+
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+
+    25% {
+      transform: translate3d(-3px, 0, 0);
+    }
+
+    75% {
+      transform: translate3d(3px, 0, 0);
+    }
   }
+
   .animate-timer-tick {
     animation: timer-tick-shake 0.15s ease-out;
     will-change: transform;
@@ -229,23 +358,52 @@
 
   /* 긴급 타이머 위험 신호 - 매 초 단발 발화, 무한 반복 없음 */
   @keyframes urgent-shake {
-    0%   { transform: translate3d(0, 0, 0) scale(1); }
-    15%  { transform: translate3d(-5px, 0, 0) scale(1.04); }
-    30%  { transform: translate3d(5px, 0, 0) scale(1.04); }
-    45%  { transform: translate3d(-4px, 0, 0) scale(1.02); }
-    60%  { transform: translate3d(4px, 0, 0) scale(1.02); }
-    75%  { transform: translate3d(-2px, 0, 0) scale(1.01); }
-    90%  { transform: translate3d(2px, 0, 0) scale(1.01); }
-    100% { transform: translate3d(0, 0, 0) scale(1); }
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    15% {
+      transform: translate3d(-5px, 0, 0) scale(1.04);
+    }
+
+    30% {
+      transform: translate3d(5px, 0, 0) scale(1.04);
+    }
+
+    45% {
+      transform: translate3d(-4px, 0, 0) scale(1.02);
+    }
+
+    60% {
+      transform: translate3d(4px, 0, 0) scale(1.02);
+    }
+
+    75% {
+      transform: translate3d(-2px, 0, 0) scale(1.01);
+    }
+
+    90% {
+      transform: translate3d(2px, 0, 0) scale(1.01);
+    }
+
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
   }
+
   .animate-urgent-shake {
     animation: urgent-shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97);
     will-change: transform;
   }
 
   @keyframes shine {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   .animate-shine {
@@ -264,12 +422,10 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 255, 255, 0.4),
-      transparent
-    );
+    background: linear-gradient(to right,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent);
     transform: translateX(-100%);
   }
 
@@ -277,19 +433,35 @@
     animation: shine 0.7s ease-in-out;
   }
 
-  .animate-shimmer { animation: shimmer 2s infinite; }
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
 
   /* 움직임 감소 선호 사용자 대응
      모바일에서 모션이 완전히 사라지지 않도록, 반복적이거나 강한 효과만 낮춘다. */
   @media (prefers-reduced-motion: reduce) {
     @keyframes reduced-float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
     }
 
     @keyframes reduced-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.82; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.82;
+      }
     }
 
     .animate-bounce,
@@ -302,7 +474,7 @@
     }
 
     .update-ticker-track {
-      animation-duration: 72s !important;
+      animation-duration: 100s !important;
       animation-timing-function: linear !important;
     }
 
