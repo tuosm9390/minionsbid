@@ -3,7 +3,7 @@
 
 # Components & State
 
-이 문서는 League Auction 프로젝트의 핵심 React 컴포넌트와 Zustand 전역 상태, 그리고 실시간 구독(Realtime) 전략에 대해 설명합니다.
+이 문서는 Minions Bid 프로젝트의 핵심 React 컴포넌트와 Zustand 전역 상태, 그리고 실시간 구독(Realtime) 전략에 대해 설명합니다.
 
 ## UI Components
 

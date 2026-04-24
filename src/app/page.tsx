@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { CreateRoomModal } from "@/components/CreateRoomModal";
 import { ArchiveModalWrapper } from "@/components/ArchiveModalWrapper";
 import { UpdateTicker } from "@/components/UpdateTicker";
+import { LegalInfoModal } from "@/components/LegalInfoModal";
 import Image from "next/image";
 import Link from "next/link";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
@@ -47,6 +49,10 @@ const HOW_TO_USE = [
 ];
 
 export default function Home() {
+  const [legalDocument, setLegalDocument] = useState<"terms" | "privacy" | null>(
+    null,
+  );
+
   return (
     <div className="min-h-screen relative crt-overlay">
       <div className="relative z-10 flex flex-col items-center px-4 py-20 gap-20">
@@ -190,15 +196,37 @@ export default function Home() {
         </div>
 
         {/* Decorative Pixel Footer */}
-        <div className="flex flex-col items-center gap-4 opacity-40 animate-pulse">
+        <div className="flex flex-col items-center gap-4 opacity-60">
           <div className="flex gap-4">
             <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
             <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
             <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
           </div>
           <p className="text-fluid-xs font-heading">Powered by Minions Bid Engine</p>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-black">
+            <button
+              type="button"
+              onClick={() => setLegalDocument("terms")}
+              className="border-2 border-black bg-white/90 px-3 py-2 text-black hover:bg-minion-yellow transition-colors"
+            >
+              Terms of Service
+            </button>
+            <button
+              type="button"
+              onClick={() => setLegalDocument("privacy")}
+              className="border-2 border-black bg-white/90 px-3 py-2 text-black hover:bg-minion-yellow transition-colors"
+            >
+              Privacy Policy
+            </button>
+          </div>
         </div>
       </div>
+
+      <LegalInfoModal
+        isOpen={legalDocument !== null}
+        documentType={legalDocument ?? "terms"}
+        onClose={() => setLegalDocument(null)}
+      />
     </div>
   );
 }
