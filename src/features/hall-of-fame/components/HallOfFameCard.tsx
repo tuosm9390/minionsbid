@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { deleteHallOfFameEntry } from "../api/hallOfFameActions";
 import type { HallOfFameEntry } from "../types";
 
@@ -15,15 +16,8 @@ export function HallOfFameCard({ entry, onDeleted }: HallOfFameCardProps) {
   const [deleteCode, setDeleteCode] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const wonDate = entry.won_at
-    ? new Date(entry.won_at).toLocaleDateString("ko-KR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "Asia/Seoul",
-      })
-    : "-";
+  const hasRoster = entry.winning_team_players.length > 0;
+  const rosterId = `hof-roster-${entry.id}`;
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -38,73 +32,87 @@ export function HallOfFameCard({ entry, onDeleted }: HallOfFameCardProps) {
   }
 
   return (
-    <div className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6 space-y-4">
-      {/* 시즌명 */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="bg-black text-white px-3 py-1 text-xs font-heading tracking-widest uppercase">
-          {entry.season_name}
-        </span>
-        <span className="text-xs font-bold text-gray-500">{wonDate}</span>
-      </div>
+    <div className="hof-trophy-card">
+      <div className="hof-exhibit-title">{entry.season_name}</div>
+      <div className="hof-trophy-wrap">
+        <div className="hof-trophy-illustration">
+          <Image
+            src="/hall-of-fame-trophy.png"
+            alt=""
+            width={1086}
+            height={1448}
+            className="hof-trophy-image"
+            priority={false}
+          />
+          <div className="hof-trophy-team-name">
+            <span className="hof-trophy-team-name-text">{entry.winning_team_name}</span>
+          </div>
+          <div className="hof-trophy-league-name">
+            <span className="hof-trophy-league-name-text">{entry.season_name}</span>
+          </div>
+        </div>
 
-      {/* 우승팀명 */}
-      <div className="border-2 border-black p-4 bg-minion-yellow/20">
-        <p className="text-xs font-heading text-gray-500 uppercase tracking-widest mb-1">
-          Champion
-        </p>
-        <p className="text-2xl font-heading font-black text-minion-blue">
-          {entry.winning_team_name}
-        </p>
-        <p className="text-sm font-bold text-gray-700 mt-1">
-          팀장: {entry.winning_team_leader}
-        </p>
-      </div>
+        <div className="hof-info-shell">
+          <div className={`hof-nameplate ${showRoster ? "hof-nameplate-open" : ""}`}>
+            {entry.season_label && (
+              <p className="hof-nameplate-season">시즌 {entry.season_label}</p>
+            )}
+            {entry.winning_team_leader && (
+              <p className="hof-nameplate-leader">
+                팀장 <span>{entry.winning_team_leader}</span>
+              </p>
+            )}
 
-      {/* 로스터 토글 */}
-      {entry.winning_team_players.length > 0 && (
-        <div>
-          <button
-            onClick={() => setShowRoster((v) => !v)}
-            className="w-full border-2 border-black py-2 px-4 text-xs font-heading uppercase tracking-wide hover:bg-black hover:text-white transition-colors"
-          >
-            {showRoster ? "▲ ROSTER 접기" : "▼ ROSTER 보기"} (
-            {entry.winning_team_players.length}명)
-          </button>
-          {showRoster && (
-            <ul className="mt-2 border-2 border-black divide-y-2 divide-black">
+            {hasRoster ? (
+              <button
+                type="button"
+                aria-expanded={showRoster}
+                aria-controls={rosterId}
+                onClick={() => setShowRoster((v) => !v)}
+                className="hof-nameplate-toggle"
+              >
+                구성원 보기 <span className={`hof-toggle-icon ${showRoster ? "hof-toggle-icon-open" : ""}`}>▼</span>
+              </button>
+            ) : (
+              <div className="hof-nameplate-badge">특수 기록</div>
+            )}
+          </div>
+
+          {hasRoster && (
+            <ul
+              id={rosterId}
+              className={`hof-roster-panel ${showRoster ? "hof-roster-panel-open" : "hof-roster-panel-closed"}`}
+              aria-hidden={!showRoster}
+            >
               {entry.winning_team_players.map((p, i) => (
-                <li
-                  key={i}
-                  className="flex justify-between items-center px-4 py-2 text-sm font-bold"
-                >
-                  <span>{p.name}</span>
-                  <span className="text-minion-blue text-xs">
-                    {p.sold_price !== null ? `${p.sold_price}P` : "자유계약"}
-                  </span>
+                <li key={i} className="hof-roster-row">
+                  <span className="hof-roster-name">{p.name}</span>
+                  {p.sold_price !== null && (
+                    <span className="hof-roster-price">{p.sold_price}P</span>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </div>
-      )}
+      </div>
 
-      {/* 삭제 */}
       {!showDeletePrompt ? (
         <button
           onClick={() => setShowDeletePrompt(true)}
-          className="text-xs text-gray-400 hover:text-minion-red underline font-bold transition-colors"
+          className="hof-delete-link"
         >
           삭제
         </button>
       ) : (
-        <div className="border-2 border-black p-3 space-y-2 bg-red-50">
+        <div className="hof-delete-panel">
           <p className="text-xs font-bold text-gray-700">관리자 코드를 입력하세요</p>
           <input
             type="password"
             value={deleteCode}
             onChange={(e) => setDeleteCode(e.target.value)}
             placeholder="관리자 코드"
-            className="w-full border-2 border-black px-3 py-2 text-sm font-bold focus:outline-none focus:border-minion-red"
+            className="w-full border-2 border-black px-3 py-2 text-sm font-bold focus:outline-none focus:border-minion-red bg-white"
             onKeyDown={(e) => e.key === "Enter" && handleDelete()}
           />
           {deleteError && (
