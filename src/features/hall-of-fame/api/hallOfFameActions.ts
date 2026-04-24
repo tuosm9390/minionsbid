@@ -56,6 +56,10 @@ export async function getHallOfFameEntries(): Promise<HallOfFameEntry[]> {
         archive_id: data.archive_id,
         room_id: data.room_id,
         season_name: data.season_name,
+        season_label:
+          typeof data.season_label === 'string' && data.season_label.trim().length > 0
+            ? data.season_label
+            : null,
         winning_team_name: data.winning_team_name,
         winning_team_leader: data.winning_team_leader,
         winning_team_players: data.winning_team_players ?? [],
@@ -111,6 +115,7 @@ export async function registerHallOfFameEntry(
       archive_id: payload.archive_id,
       room_id: payload.room_id,
       season_name: payload.season_name,
+      season_label: payload.season_label ?? null,
       winning_team_name: payload.winning_team_name,
       winning_team_leader: payload.winning_team_leader,
       winning_team_players: payload.winning_team_players,

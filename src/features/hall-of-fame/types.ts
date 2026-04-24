@@ -3,6 +3,7 @@ export interface HallOfFameEntry {
   archive_id: string
   room_id: string
   season_name: string
+  season_label?: string | null
   winning_team_name: string
   winning_team_leader: string
   winning_team_players: { name: string; sold_price: number | null }[]
@@ -14,6 +15,7 @@ export interface HallOfFameRegistrationPayload {
   archive_id: string
   room_id: string
   season_name: string
+  season_label?: string | null
   winning_team_name: string
   winning_team_leader: string
   winning_team_players: { name: string; sold_price: number | null }[]

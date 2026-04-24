@@ -3,7 +3,7 @@ Author: Antigravity
 
 # Firebase Migration Design: Supabase ➔ Firestore
 
-이 문서는 League Auction 프로젝트의 데이터베이스를 Supabase(PostgreSQL)에서 Firebase(Firestore)로 이전하기 위한 데이터 구조 및 실시간 통신 설계를 정의합니다.
+이 문서는 Minions Bid 프로젝트의 데이터베이스를 Supabase(PostgreSQL)에서 Firebase(Firestore)로 이전하기 위한 데이터 구조 및 실시간 통신 설계를 정의합니다.
 
 ## 1. 컬렉션 구조 (Collection Structure)
 

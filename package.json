@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "seed:archive-json": "node scripts/seed_archive_from_json.js",
+    "seed:hof-json": "node scripts/seed_hall_of_fame_from_json.js",
+    "delete:hof-entry": "node scripts/delete_hall_of_fame_entry.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",

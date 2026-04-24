@@ -26,6 +26,7 @@ export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps
     useState<AuctionArchiveForHof | null>(null);
   const [selectedTeamIdx, setSelectedTeamIdx] = useState<number | null>(null);
   const [seasonName, setSeasonName] = useState("");
+  const [seasonLabel, setSeasonLabel] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -51,6 +52,7 @@ export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps
   function handleArchiveSelect(archive: AuctionArchiveForHof) {
     setSelectedArchive(archive);
     setSeasonName(archive.room_name);
+    setSeasonLabel("");
     setSelectedTeamIdx(null);
     setStep("team");
   }
@@ -68,6 +70,7 @@ export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps
         archive_id: selectedArchive.id,
         room_id: selectedArchive.room_id,
         season_name: seasonName.trim() || selectedArchive.room_name,
+        season_label: seasonLabel.trim() || null,
         winning_team_name: team.name,
         winning_team_leader: team.leader_name,
         winning_team_players: team.players,
@@ -196,6 +199,20 @@ export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps
                   maxLength={40}
                   className="w-full border-4 border-black px-4 py-2 text-sm font-bold focus:outline-none focus:border-minion-blue"
                   placeholder="예: 제1회 미니언즈 리그"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-heading uppercase tracking-wide mb-1">
+                  시즌 정보
+                </label>
+                <input
+                  type="text"
+                  value={seasonLabel}
+                  onChange={(e) => setSeasonLabel(e.target.value)}
+                  maxLength={40}
+                  className="w-full border-4 border-black px-4 py-2 text-sm font-bold focus:outline-none focus:border-minion-blue"
+                  placeholder="예: 26년 상반기"
                 />
               </div>
 
