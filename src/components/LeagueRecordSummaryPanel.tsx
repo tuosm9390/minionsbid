@@ -96,29 +96,29 @@ export function LeagueRecordSummaryPanel({
         <div className="flex items-center gap-3">
           <BarChart3 size={18} className="text-minion-blue" />
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+            <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
               League Record
             </p>
-            <h3 className="text-xl font-black mt-1">현재 리그 전적</h3>
+            <h3 className="text-fluid-lg font-black mt-1">현재 리그 전적</h3>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className="border-2 border-black bg-[#eef4ff] px-3 py-2 text-xs font-black text-minion-blue">
+          <span className="border-2 border-black bg-[#eef4ff] px-3 py-2 text-fluid-xs font-black text-minion-blue">
             팀 {recordRows.length}
           </span>
-          <span className="border-2 border-black bg-[#fff4a8] px-3 py-2 text-xs font-black">
+          <span className="border-2 border-black bg-[#fff4a8] px-3 py-2 text-fluid-xs font-black">
             완료 {matchSummary.completedMatches}
           </span>
-          <span className="border-2 border-black bg-[#eaf7ee] px-3 py-2 text-xs font-black text-green-700">
+          <span className="border-2 border-black bg-[#eaf7ee] px-3 py-2 text-fluid-xs font-black text-green-700">
             진행 {matchSummary.inProgressMatches}
           </span>
-          <span className="border-2 border-black bg-[#fffdf8] px-3 py-2 text-xs font-black text-gray-700">
+          <span className="border-2 border-black bg-[#fffdf8] px-3 py-2 text-fluid-xs font-black text-gray-700">
             대기 {matchSummary.pendingMatches}
           </span>
         </div>
 
-        <p className="text-sm font-bold text-gray-600">
+        <p className="text-fluid-sm font-bold text-gray-600">
           {scheduleName}의 경기 중 선택한 단계와 상태를 기준으로 팀별 승패와
           세트득실을 다시 집계합니다.
         </p>
@@ -126,7 +126,7 @@ export function LeagueRecordSummaryPanel({
 
       <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,220px)_1fr]">
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.14em] text-minion-blue">
+          <span className="text-fluid-xs font-black uppercase tracking-[0.14em] text-minion-blue">
             Stage Filter
           </span>
           <select
@@ -144,7 +144,7 @@ export function LeagueRecordSummaryPanel({
         </label>
 
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.14em] text-minion-blue">
+          <span className="text-fluid-xs font-black uppercase tracking-[0.14em] text-minion-blue">
             Status Filter
           </span>
           <select
@@ -164,32 +164,32 @@ export function LeagueRecordSummaryPanel({
 
       <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <div className="border-4 border-black bg-black text-white p-5 shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
+          <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
             Current Leader
           </p>
           {leader ? (
             <>
               <div className="mt-3 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-2xl font-black">{leader.teamName}</p>
-                  <p className="text-sm font-bold text-white/75 mt-2">
+                  <p className="text-fluid-lg font-black">{leader.teamName}</p>
+                  <p className="text-fluid-sm font-bold text-white/75 mt-2">
                     {leader.wins}승 {leader.losses}패 · 세트득실{" "}
                     {leader.setDiff >= 0 ? "+" : ""}
                     {leader.setDiff}
                   </p>
                 </div>
-                <div className="border-2 border-white bg-minion-yellow px-3 py-1 text-xs font-black text-black">
+                <div className="border-2 border-white bg-minion-yellow px-3 py-1 text-fluid-xs font-black text-black">
                   #{leader.rank}
                 </div>
               </div>
-              <p className="text-xs font-bold text-white/70 mt-4">
+              <p className="text-fluid-xs font-bold text-white/70 mt-4">
                 {hasCompletedMatch
                   ? "현재 필터에서 완료 처리된 경기만 순위에 반영됩니다."
                   : "현재 필터에서 완료된 경기가 없어 모든 팀 전적은 0으로 표시됩니다."}
               </p>
             </>
           ) : (
-            <p className="text-sm font-bold text-white/75 mt-3">
+            <p className="text-fluid-sm font-bold text-white/75 mt-3">
               전적을 집계할 팀 데이터가 없습니다.
             </p>
           )}
@@ -199,10 +199,10 @@ export function LeagueRecordSummaryPanel({
           <div className="flex items-center gap-3">
             <Swords size={16} className="text-minion-blue" />
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-minion-blue">
+              <p className="text-fluid-xs font-black uppercase tracking-[0.16em] text-minion-blue">
                 Record Rule
               </p>
-              <p className="text-sm font-black mt-1">
+              <p className="text-fluid-sm font-black mt-1">
                 다승 우선, 동률 시 세트득실과 세트득점 순서로 비교
               </p>
             </div>
@@ -234,10 +234,10 @@ export function LeagueRecordSummaryPanel({
             </div>
           </div>
           <div className="mt-3 border-2 border-black bg-white px-3 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.14em] text-minion-blue">
+            <p className="text-fluid-xs font-black uppercase tracking-[0.14em] text-minion-blue">
               Tie Break
             </p>
-            <p className="mt-1 text-xs font-bold text-gray-700">
+            <p className="mt-1 text-fluid-xs font-bold text-gray-700">
               1. 다승 2. 세트득실 3. 세트득점 4. 팀명 순
             </p>
           </div>
@@ -246,8 +246,8 @@ export function LeagueRecordSummaryPanel({
 
       {recordRows.length === 0 ? (
         <div className="mt-5 border-2 border-dashed border-black p-8 text-center">
-          <p className="text-sm font-black">표시할 팀 전적이 없습니다.</p>
-          <p className="text-xs font-bold text-gray-500 mt-2">
+          <p className="text-fluid-sm font-black">표시할 팀 전적이 없습니다.</p>
+          <p className="text-fluid-xs font-bold text-gray-500 mt-2">
             현재 필터에서 완료된 경기가 없거나 리그에 팀이 연결되지 않았습니다.
           </p>
         </div>
@@ -307,12 +307,12 @@ export function LeagueRecordSummaryPanel({
                           {row.teamName}
                         </span>
                         {isLeader && (
-                          <span className="border-2 border-black bg-minion-yellow px-2 py-0.5 text-[10px] font-black">
+                          <span className="border-2 border-black bg-minion-yellow px-2 py-0.5 text-fluid-xs font-black">
                             LEADER
                           </span>
                         )}
                         {isChampion && (
-                          <span className="inline-flex items-center gap-1 border-2 border-black bg-green-600 px-2 py-0.5 text-[10px] font-black text-white">
+                          <span className="inline-flex items-center gap-1 border-2 border-black bg-green-600 px-2 py-0.5 text-fluid-xs font-black text-white">
                             <Crown size={10} />
                             CHAMPION
                           </span>
@@ -348,21 +348,21 @@ export function LeagueRecordSummaryPanel({
 
       <div className="mt-5 border-4 border-black bg-[#fffdf8] shadow-[6px_6px_0px_rgba(0,0,0,1)]">
         <div className="border-b-4 border-black bg-black px-4 py-3 text-white">
-          <div className="flex items-center gap-3">
-            <Swords size={16} className="text-minion-yellow" />
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-minion-yellow">
-                Match List
-              </p>
-              <p className="text-sm font-black mt-1">필터된 경기 목록</p>
+              <div className="flex items-center gap-3">
+                <Swords size={16} className="text-minion-yellow" />
+                <div>
+                  <p className="text-fluid-xs font-black uppercase tracking-[0.16em] text-minion-yellow">
+                    Match List
+                  </p>
+                  <p className="text-fluid-sm font-black mt-1">필터된 경기 목록</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
         {filteredMatches.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm font-black">조건에 맞는 경기가 없습니다.</p>
-            <p className="text-xs font-bold text-gray-500 mt-2">
+            <p className="text-fluid-sm font-black">조건에 맞는 경기가 없습니다.</p>
+            <p className="text-fluid-xs font-bold text-gray-500 mt-2">
               단계 또는 상태 필터를 조정하면 목록이 갱신됩니다.
             </p>
           </div>
@@ -402,12 +402,12 @@ export function LeagueRecordSummaryPanel({
                     <p className="text-xs text-gray-500">{match.startsAt}</p>
                     <div className="flex flex-wrap items-center gap-2">
                       {match.stageLabel && (
-                        <span className="border-2 border-black bg-[#eef4ff] px-2 py-1 text-[10px] font-black text-minion-blue">
+                        <span className="border-2 border-black bg-[#eef4ff] px-2 py-1 text-fluid-xs font-black text-minion-blue">
                           {match.stageLabel}
                         </span>
                       )}
                       <span
-                        className={`border-2 border-black px-2 py-1 text-[10px] font-black ${statusClassName}`}
+                        className={`border-2 border-black px-2 py-1 text-fluid-xs font-black ${statusClassName}`}
                       >
                         {match.status === "COMPLETED"
                           ? "완료"
@@ -421,7 +421,7 @@ export function LeagueRecordSummaryPanel({
                   <div className="min-w-0">
                     <div className="grid grid-cols-[minmax(0,1fr)_52px_minmax(0,1fr)] gap-2 items-stretch">
                       <div className="min-h-[84px] border-2 border-black bg-white px-3 py-3 flex items-center justify-end text-right">
-                        <p className="text-[13px] sm:text-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                        <p className="text-fluid-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                           {match.homeTeamName}
                         </p>
                       </div>
@@ -431,7 +431,7 @@ export function LeagueRecordSummaryPanel({
                       </div>
 
                       <div className="min-h-[84px] border-2 border-black bg-white px-3 py-3 flex items-center justify-start text-left">
-                        <p className="text-[13px] sm:text-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                        <p className="text-fluid-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                           {match.awayTeamName}
                         </p>
                       </div>
@@ -442,15 +442,15 @@ export function LeagueRecordSummaryPanel({
                     <div
                       className={`w-44 min-h-[84px] shrink-0 border-2 border-black px-3 py-3 text-center ${winnerBoxClassName}`}
                     >
-                      <p className={`text-[10px] font-black uppercase tracking-[0.12em] ${winnerLabelClassName}`}>
+                      <p className={`text-fluid-xs font-black uppercase tracking-[0.12em] ${winnerLabelClassName}`}>
                         Winner
                       </p>
-                      <p className="mt-1 text-[13px] sm:text-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                      <p className="mt-1 text-fluid-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                         {winnerLabel}
                       </p>
                     </div>
                     <div className="w-24 min-h-[84px] shrink-0 border-2 border-black bg-white px-3 py-3 text-center text-sm font-black tabular-nums">
-                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500">
+                      <p className="text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                         Score
                       </p>
                       <p className="mt-1 text-lg font-black">

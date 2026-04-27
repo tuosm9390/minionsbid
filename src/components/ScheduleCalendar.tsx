@@ -83,8 +83,8 @@ export function ScheduleCalendar({
     <div className="border-2 border-black bg-white">
       <div className="flex items-center justify-between border-b-2 border-black px-3 py-2 bg-minion-yellow">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em]">{label}</p>
-          <p className="text-sm font-black">
+          <p className="text-fluid-xs font-black uppercase tracking-[0.18em]">{label}</p>
+          <p className="text-fluid-sm font-black">
             {viewMonth.toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
           </p>
         </div>
@@ -110,7 +110,7 @@ export function ScheduleCalendar({
 
       <div className="grid grid-cols-7 border-b-2 border-black bg-black text-white">
         {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-          <div key={day} className="py-2 text-center text-[11px] font-black">
+          <div key={day} className="py-2 text-center text-fluid-xs font-black">
             {day}
           </div>
         ))}
@@ -127,7 +127,7 @@ export function ScheduleCalendar({
               type="button"
               onClick={() => cell && !disabledByRange && onChange(cell)}
               disabled={disabledByRange}
-              className={`aspect-square border-r border-b border-black/15 text-sm font-bold transition-colors relative ${
+              className={`aspect-square border-r border-b border-black/15 text-fluid-sm font-bold transition-colors relative ${
                 !cell
                   ? "bg-neutral-100 cursor-default"
                   : disabledByRange
@@ -146,7 +146,7 @@ export function ScheduleCalendar({
                   ).map((labelText, labelIndex) => (
                     <span
                       key={`${dateKey}-${labelIndex}-${labelText}`}
-                      className={`block truncate rounded-full px-1.5 py-0.5 text-[9px] leading-none border border-black ${
+                      className={`block truncate px-1.5 py-0.5 text-fluid-xs leading-none border border-black ${
                         summary.completed === summary.total
                           ? "bg-green-500 text-white"
                           : "bg-minion-yellow text-black"

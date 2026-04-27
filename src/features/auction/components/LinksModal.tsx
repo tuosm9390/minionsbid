@@ -1,24 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  useAuctionStore,
-  Team,
-} from "@/features/auction/store/useAuctionStore";
+import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
 import { X } from "lucide-react";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { LinkCard } from "@/components/ui/LinkCard";
 
+interface OrganizerLinksPayload {
+  organizerToken: string | null;
+  viewerToken: string | null;
+  captainLinks: Array<{
+    teamId: string;
+    teamName: string;
+    leaderName: string;
+    token: string;
+  }>;
+}
+
 export function LinksModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [links, setLinks] = useState<OrganizerLinksPayload | null>(null);
+  const [isLoadingLinks, setIsLoadingLinks] = useState(false);
+  const [linksError, setLinksError] = useState<string | null>(null);
 
   const roomId = useAuctionStore((state) => state.roomId);
-  const teams = useAuctionStore((state) => state.teams);
-  const organizerToken = useAuctionStore((state) => state.organizerToken);
-  const viewerToken = useAuctionStore((state) => state.viewerToken);
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
@@ -35,14 +43,61 @@ export function LinksModal() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  useEffect(() => {
+    if (!isOpen || !roomId) return;
+
+    let cancelled = false;
+    const loadLinks = async () => {
+      setIsLoadingLinks(true);
+      setLinksError(null);
+
+      try {
+        const response = await fetch(`/api/room-links?roomId=${encodeURIComponent(roomId)}`, {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as
+          | OrganizerLinksPayload
+          | { error?: string };
+
+        if (!response.ok) {
+          throw new Error(
+            "error" in payload && typeof payload.error === "string"
+              ? payload.error
+              : "링크 정보를 불러오지 못했습니다.",
+          );
+        }
+
+        if (!cancelled) {
+          setLinks(payload as OrganizerLinksPayload);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLinks(null);
+          setLinksError(err instanceof Error ? err.message : "링크 정보를 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingLinks(false);
+        }
+      }
+    };
+
+    void loadLinks();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, roomId]);
+
   if (!roomId) return null;
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const organizerLink = organizerToken
-    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=ORGANIZER&token=${organizerToken}`
+  const organizerLink = links?.organizerToken
+    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=ORGANIZER&token=${links.organizerToken}`
     : null;
-  const viewerLink = viewerToken
-    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=VIEWER&token=${viewerToken}`
+  const viewerLink = links?.viewerToken
+    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=VIEWER&token=${links.viewerToken}`
     : null;
 
   const modalContent = (
@@ -65,6 +120,18 @@ export function LinksModal() {
         </div>
 
         <div className="p-5 space-y-2 overflow-y-auto custom-scrollbar bg-gray-50">
+          {isLoadingLinks && (
+            <div className="rounded border-2 border-black bg-white px-3 py-4 text-fluid-xs font-heading text-gray-600">
+              링크 정보를 불러오는 중입니다...
+            </div>
+          )}
+
+          {linksError && (
+            <div className="rounded border-2 border-black bg-red-50 px-3 py-4 text-fluid-xs font-heading text-red-700">
+              {linksError}
+            </div>
+          )}
+
           {organizerLink && (
             <div>
               <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
@@ -85,17 +152,17 @@ export function LinksModal() {
               팀장 링크
             </div>
             <div className="space-y-1">
-              {[...teams]
-                .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                .map((team: Team, i: number) => {
-                  const link = team.leader_token
-                    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=LEADER&teamId=${team.id}&token=${team.leader_token}`
+              {[...(links?.captainLinks ?? [])]
+                .sort((a, b) => a.teamName.localeCompare(b.teamName, undefined, { numeric: true }))
+                .map((team, i: number) => {
+                  const link = team.token
+                    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=LEADER&teamId=${team.teamId}&token=${team.token}`
                     : null;
                   if (!link) return null;
                   return (
                     <LinkCard
-                      key={team.id} label={team.name}
-                      desc={`팀장: ${team.leader_name || "(미설정)"}`}
+                      key={team.teamId} label={team.teamName}
+                      desc={`팀장: ${team.leaderName || "(미설정)"}`}
                       link={link} linkKey={`captain-${i}`} variant="compact"
                       copied={copied} onCopy={copyToClipboard}
                     />

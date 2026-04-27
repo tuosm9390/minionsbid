@@ -70,7 +70,67 @@ npm run build
 npm run start
 npm run lint
 npm run test
+npm run audit:room-auth-secrets
+npm run smoke:room-rules
+npm run migrate:room-auth-secrets:dry-run
+npm run migrate:room-auth-secrets
 ```
+
+## 운영 스크립트
+
+### legacy room token 정리
+
+신규 방은 `room_auth_secrets`에 역할 토큰을 저장하지만, 예전 방 문서에는 `rooms` / `teams` 공개 문서에 legacy token 필드가 남아 있을 수 있습니다.
+
+먼저 dry-run으로 대상 개수를 확인합니다.
+
+```bash
+npm run migrate:room-auth-secrets:dry-run
+```
+
+실제 반영은 아래 명령으로 수행합니다.
+
+```bash
+npm run migrate:room-auth-secrets
+```
+
+이 스크립트는 다음을 수행합니다.
+- `rooms.organizer_token`, `rooms.viewer_token`을 `room_auth_secrets/{roomId}`로 이동
+- `rooms/{roomId}/teams/{teamId}.leader_token`을 `room_auth_secrets/{roomId}/team_tokens/{teamId}`로 이동
+- 이동이 끝난 legacy public token 필드는 삭제
+
+### room auth 감사
+
+현재 방 데이터가 private auth 구조를 잘 따르는지 확인합니다.
+
+```bash
+npm run audit:room-auth-secrets
+```
+
+이 스크립트는 다음을 검사합니다.
+- 모든 room에 `room_auth_secrets/{roomId}`가 존재하는지
+- organizer/viewer token이 private auth 문서에 있는지
+- 각 team에 `team_tokens/{teamId}`가 존재하는지
+- public `rooms` / `teams` 문서에 legacy token 필드가 다시 생기지 않았는지
+
+### Firestore rules 스모크 검증
+
+배포된 rules가 의도대로 동작하는지 확인합니다.
+
+```bash
+npm run smoke:room-rules
+```
+
+이 스크립트는 다음을 검증합니다.
+- 클라이언트 SDK로 `rooms/{roomId}` 단건 조회 허용
+- `teams`, `players`, `messages`, `bids` 하위 컬렉션 read 허용
+- top-level `rooms` collection list 차단
+- `room_auth_secrets` 및 `team_tokens` client read 차단
+
+참고:
+- 이 프로젝트는 named Firestore database `minionsbid`를 사용합니다.
+- rules 배포 시 `(default)`뿐 아니라 `minionsbid`에도 반영되어야 합니다.
+- 저장소의 `.firebaserc`는 placeholder로 유지하고, 실제 배포는 `--project <firebase-project-id>`를 명시해 수행합니다.
 
 ## 프로젝트 구조
 

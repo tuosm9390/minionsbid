@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Save, Shield, Swords, X } from "lucide-react";
+import { Lock, LockOpen, Plus, Save, Shield, Swords, X } from "lucide-react";
 import type {
   LeagueMatchWinner,
   LeagueRosterTeam,
@@ -133,11 +133,13 @@ export function ScheduleMatchDayEditor({
   rosterTeams,
   adminCode,
   isAdminVerified = false,
+  isVerifyingAdmin = false,
   timelineError,
   isSavingTimeline,
   isSubmittingResultId,
   isScheduleCompleted = false,
   onAdminCodeChange,
+  onVerifyAdminCode,
   onRowChange,
   onAddRow,
   onRemoveRow,
@@ -149,11 +151,13 @@ export function ScheduleMatchDayEditor({
   rosterTeams: LeagueRosterTeam[];
   adminCode: string;
   isAdminVerified?: boolean;
+  isVerifyingAdmin?: boolean;
   timelineError: string;
   isSavingTimeline: boolean;
   isSubmittingResultId: string | null;
   isScheduleCompleted?: boolean;
   onAdminCodeChange: (value: string) => void;
+  onVerifyAdminCode: () => void;
   onRowChange: (index: number, patch: Partial<MatchEditorRow>) => void;
   onAddRow: () => void;
   onRemoveRow: (index: number) => void;
@@ -193,30 +197,71 @@ export function ScheduleMatchDayEditor({
 
   return (
     <div className="space-y-5">
+      {isScheduleCompleted && (
+        <div
+          className={`border-4 border-black p-4 shadow-[8px_8px_0px_rgba(0,0,0,1)] space-y-3 ${
+            isAdminVerified
+              ? "bg-green-50"
+              : "bg-red-50"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            {isAdminVerified ? (
+              <LockOpen size={18} className="text-green-700 mt-1 shrink-0" />
+            ) : (
+              <Lock size={18} className="text-minion-red mt-1 shrink-0" />
+            )}
+            <div className="space-y-1">
+              <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                Completed Schedule
+              </p>
+              <p className="text-fluid-sm font-black text-black">
+                {isAdminVerified
+                  ? "완료된 일정이 관리자 검증으로 해제되었습니다."
+                  : "완료된 일정입니다. 결과와 경기 편집은 잠겨 있습니다."}
+              </p>
+              <p className="text-fluid-xs font-bold text-gray-700">
+                {isAdminVerified
+                  ? "지금은 수정 가능하지만, 변경 내용은 즉시 운영 기록에 영향을 줍니다."
+                  : "관리자 코드 검증 전에는 경기 추가, 결과 수정, 일정 저장이 모두 비활성화됩니다."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border-4 border-black p-4 shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-3">
         <div className="flex items-center gap-3">
           <Shield size={16} className="text-minion-blue" />
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
-              Result Lock
+            <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+              Admin Control
             </p>
-            <p className="text-sm font-black">결과 수정 관리자 코드</p>
+            <p className="text-fluid-sm font-black">일정 관리 관리자 코드</p>
           </div>
         </div>
-        <input
-          type="password"
-          value={adminCode}
-          onChange={(event) => onAdminCodeChange(event.target.value)}
-          placeholder={
-            isScheduleCompleted
-              ? "확정된 일정: 모든 수정에 관리자 코드 필요"
-              : "이미 저장된 결과 수정 시에만 필요"
-          }
-          className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
-        />
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <input
+            type="password"
+            data-testid="schedule-editor-admin-code"
+            value={adminCode}
+            onChange={(event) => onAdminCodeChange(event.target.value)}
+            placeholder="일정 저장, 결과 등록, 종료, 삭제에 필요"
+            className="w-full border-2 border-black px-4 py-3 bg-white text-fluid-sm font-bold"
+          />
+          <button
+            type="button"
+            data-testid="schedule-editor-admin-verify"
+            onClick={onVerifyAdminCode}
+            disabled={isVerifyingAdmin || !adminCode.trim()}
+            className="border-2 border-black bg-black px-4 py-3 text-fluid-xs font-black text-minion-yellow disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isVerifyingAdmin ? "확인 중..." : "코드 확인"}
+          </button>
+        </div>
         {isScheduleCompleted && (
           <div
-            className={`border-2 px-4 py-3 text-sm font-black flex items-center gap-2 ${
+            className={`border-2 px-4 py-3 text-fluid-sm font-black flex items-center gap-2 ${
               isAdminVerified
                 ? "border-green-600 bg-green-50 text-green-700"
                 : adminCode.trim() && !isAdminVerified
@@ -224,13 +269,22 @@ export function ScheduleMatchDayEditor({
                   : "border-minion-red bg-red-50 text-minion-red"
             }`}
           >
-            <span className="text-lg">{isAdminVerified ? "🔓" : "🔒"}</span>
+            {isAdminVerified ? (
+              <LockOpen size={16} className="shrink-0" />
+            ) : (
+              <Lock size={16} className="shrink-0" />
+            )}
             {isAdminVerified
-              ? "관리자 코드 확인됨 — 편집 가능"
+              ? "관리자 코드 확인됨. 완료 일정 편집이 열렸습니다."
               : adminCode.trim()
                 ? "관리자 코드가 일치하지 않습니다."
                 : "일정이 종료되었습니다. 관리자 코드를 입력하면 수정할 수 있습니다."}
           </div>
+        )}
+        {!isScheduleCompleted && (
+          <p className="text-fluid-xs font-bold text-gray-600">
+            공개 일정 화면이지만 실제 저장, 결과 등록, 종료, 삭제는 모두 관리자 코드가 필요합니다.
+          </p>
         )}
       </div>
 
@@ -239,21 +293,21 @@ export function ScheduleMatchDayEditor({
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px_auto] xl:items-start">
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
+                <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
                   Selected Day
                 </p>
-                <h3 className="text-lg sm:text-xl lg:text-2xl font-black mt-1 break-keep whitespace-normal">
+                <h3 className="text-fluid-lg font-black mt-1 break-keep whitespace-normal">
                   {selectedDateLabel}
                 </h3>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
-                <span className="border-2 border-white bg-minion-yellow px-3 py-1 text-[11px] font-black text-black">
+                <span className="border-2 border-white bg-minion-yellow px-3 py-1 text-fluid-xs font-black text-black">
                   TOTAL {rows.length}
                 </span>
-                <span className="border-2 border-white bg-[#143e7a] px-3 py-1 text-[11px] font-black">
+                <span className="border-2 border-white bg-[#143e7a] px-3 py-1 text-fluid-xs font-black">
                   PENDING {pendingCount}
                 </span>
-                <span className="border-2 border-white bg-green-600 px-3 py-1 text-[11px] font-black">
+                <span className="border-2 border-white bg-green-600 px-3 py-1 text-fluid-xs font-black">
                   SAVED {completedCount}
                 </span>
               </div>
@@ -261,12 +315,12 @@ export function ScheduleMatchDayEditor({
 
             <div className="grid grid-cols-1 gap-3 w-full self-stretch sm:grid-cols-[minmax(0,1fr)_auto] xl:contents">
               <div className="border-2 border-white/80 bg-white/8 px-4 py-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-minion-yellow mb-1">
+                <p className="text-fluid-xs font-black uppercase tracking-[0.14em] text-minion-yellow mb-1">
                   Workflow
                 </p>
-                <p className="text-sm font-bold leading-relaxed text-white break-keep whitespace-normal">
-                  날짜 경기 저장 후 각 경기 결과를 등록하세요. 저장된 결과
-                  수정에는 관리자 코드가 필요합니다.
+                <p className="text-fluid-sm font-bold leading-relaxed text-white break-keep whitespace-normal">
+                  날짜 경기 저장, 결과 등록, 일정 종료까지 모두 관리자 코드로
+                  보호됩니다. 완료 일정은 검증 전까지 편집이 잠깁니다.
                 </p>
               </div>
               <button
@@ -286,15 +340,15 @@ export function ScheduleMatchDayEditor({
       <div className="p-5 space-y-4">
         <div className="grid grid-cols-1 gap-3 border-4 border-black bg-white px-4 py-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.14em] text-minion-blue">
+            <p className="text-fluid-xs font-black uppercase tracking-[0.14em] text-minion-blue">
               Day Summary
             </p>
-            <p className="text-sm font-bold text-gray-700 mt-1 leading-relaxed break-keep whitespace-normal">
+            <p className="text-fluid-sm font-bold text-gray-700 mt-1 leading-relaxed break-keep whitespace-normal">
               팀 선택 후 날짜 경기를 먼저 저장하면 아래 로스터 패널과 결과 등록
               액션이 연결됩니다.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-2 text-[11px] font-black sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
+          <div className="grid grid-cols-1 gap-2 text-fluid-xs font-black sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
             <span className="border-2 border-black bg-[#fff4a8] px-3 py-1 whitespace-nowrap">
               MATCH ORDER AUTO
             </span>
@@ -352,7 +406,7 @@ export function ScheduleMatchDayEditor({
                     <div className="p-4 lg:p-5 space-y-4 bg-[#fffdf8]">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="border-2 border-black bg-minion-yellow px-2 py-1 text-[10px] font-black shrink-0">
+                          <span className="border-2 border-black bg-minion-yellow px-2 py-1 text-fluid-xs font-black shrink-0">
                             MATCH {index + 1}
                           </span>
                           <span className="text-xs font-bold text-gray-500 leading-none">
@@ -360,7 +414,7 @@ export function ScheduleMatchDayEditor({
                           </span>
                         </div>
                         <span
-                          className={`border-2 border-black px-2 py-1 text-[10px] font-black self-start ${
+                          className={`border-2 border-black px-2 py-1 text-fluid-xs font-black self-start ${
                             row.isCompleted
                               ? "bg-green-500 text-white"
                               : "bg-white text-gray-700"
@@ -372,7 +426,7 @@ export function ScheduleMatchDayEditor({
 
                       <div className="grid grid-cols-1 lg:grid-cols-[132px_minmax(0,1fr)] gap-4">
                         <label className="space-y-1 min-w-0">
-                          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                          <span className="block text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                             경기 시간
                           </span>
                           <input
@@ -391,10 +445,11 @@ export function ScheduleMatchDayEditor({
 
                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] gap-3 lg:items-start">
                           <label className="space-y-1 min-w-0">
-                            <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                            <span className="block text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                               홈팀
                             </span>
                             <select
+                              data-testid={`schedule-row-home-${index}`}
                               value={row.homeTeamName}
                               onChange={(event) => {
                                 const nextHomeTeamName = event.target.value;
@@ -436,10 +491,11 @@ export function ScheduleMatchDayEditor({
                           </div>
 
                           <label className="space-y-1 min-w-0">
-                            <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                            <span className="block text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                               원정팀
                             </span>
                             <select
+                              data-testid={`schedule-row-away-${index}`}
                               value={row.awayTeamName}
                               onChange={(event) => {
                                 const nextAwayTeamName = event.target.value;
@@ -480,7 +536,7 @@ export function ScheduleMatchDayEditor({
 
                       <div className="grid grid-cols-1 gap-3 border-2 border-black bg-[#eef4ff] px-4 py-4">
                         <div>
-                          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-minion-blue">
+                          <p className="text-fluid-xs font-black uppercase tracking-[0.12em] text-minion-blue">
                             경기 방식
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
@@ -527,7 +583,7 @@ export function ScheduleMatchDayEditor({
 
                       <div className="grid grid-cols-1 gap-3 border-2 border-black bg-white px-4 py-4 lg:grid-cols-[minmax(0,1fr)_180px]">
                         <div className="space-y-2">
-                          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-minion-blue">
+                          <p className="text-fluid-xs font-black uppercase tracking-[0.12em] text-minion-blue">
                             경기 단계
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -556,7 +612,7 @@ export function ScheduleMatchDayEditor({
                         </div>
 
                         <label className="space-y-1 min-w-0">
-                          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                          <span className="block text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                             커스텀 라벨
                           </span>
                           <input
@@ -591,16 +647,17 @@ export function ScheduleMatchDayEditor({
 
                       <div className="space-y-3 min-w-0">
                         <div>
-                          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                          <span className="block text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                             세트 스코어
                           </span>
                           <div className="grid grid-cols-[minmax(0,1fr)_50px_minmax(0,1fr)] gap-2 mt-2 items-end">
                             <label className="space-y-1 min-w-0">
-                              <span className="block text-[10px] font-black text-gray-500 text-center">
+                              <span className="block text-fluid-xs font-black text-gray-500 text-center">
                                 {row.homeTeamName || "홈팀"}
                               </span>
                               <input
                                 type="number"
+                                data-testid={`schedule-row-home-score-${index}`}
                                 min={0}
                                 max={row.maxGames}
                                 value={displayHomeScore}
@@ -626,11 +683,12 @@ export function ScheduleMatchDayEditor({
                             </div>
 
                             <label className="space-y-1 min-w-0">
-                              <span className="block text-[10px] font-black text-gray-500 text-center">
+                              <span className="block text-fluid-xs font-black text-gray-500 text-center">
                                 {row.awayTeamName || "원정팀"}
                               </span>
                               <input
                                 type="number"
+                                data-testid={`schedule-row-away-score-${index}`}
                                 min={0}
                                 max={row.maxGames}
                                 value={displayAwayScore}
@@ -656,7 +714,7 @@ export function ScheduleMatchDayEditor({
                         <div className="border-2 border-black bg-[#fffdf8] px-3 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-minion-blue">
+                              <p className="text-fluid-xs font-black uppercase tracking-[0.12em] text-minion-blue">
                                 세트 로그
                               </p>
                               <p className="text-xs font-bold text-gray-600 mt-1">
@@ -681,7 +739,7 @@ export function ScheduleMatchDayEditor({
                                 isEditLocked ||
                                 row.setLogs.length >= row.maxGames
                               }
-                              className="border-2 border-black bg-white px-3 py-2 text-[11px] font-black disabled:opacity-50"
+                              className="border-2 border-black bg-white px-3 py-2 text-fluid-xs font-black disabled:opacity-50"
                             >
                               세트 추가
                             </button>
@@ -741,7 +799,7 @@ export function ScheduleMatchDayEditor({
                                         })
                                       }
                                       disabled={isEditLocked}
-                                      className="border-2 border-black bg-white px-3 py-2 text-[11px] font-black hover:bg-minion-red hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="border-2 border-black bg-white px-3 py-2 text-fluid-xs font-black hover:bg-minion-red hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       삭제
                                     </button>
@@ -775,7 +833,7 @@ export function ScheduleMatchDayEditor({
                         </div>
 
                         <label className="space-y-1 min-w-0">
-                          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+                          <span className="block text-fluid-xs font-black uppercase tracking-[0.12em] text-gray-500">
                             결과 메모
                           </span>
                           <BufferedTextarea
@@ -797,10 +855,10 @@ export function ScheduleMatchDayEditor({
 
                     <div className="border-t-4 xl:border-t-0 xl:border-l-4 border-black bg-[linear-gradient(180deg,#eef4ff_0%,#ffffff_100%)] p-4 lg:p-5 flex flex-col gap-3">
                       <div className="border-2 border-black bg-white px-3 py-3">
-                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-minion-blue">
+                        <p className="text-fluid-xs font-black uppercase tracking-[0.14em] text-minion-blue">
                           Match Action
                         </p>
-                        <p className="text-sm font-bold text-gray-700 mt-2 leading-relaxed">
+                        <p className="text-fluid-sm font-bold text-gray-700 mt-2 leading-relaxed">
                           결과 등록은 날짜 경기 저장 이후에 활성화됩니다. 최종
                           스코어는 경기 방식과 일치해야 합니다.
                         </p>
@@ -808,6 +866,7 @@ export function ScheduleMatchDayEditor({
 
                       <button
                         type="button"
+                        data-testid={`schedule-row-save-result-${index}`}
                         onClick={() => onSaveResult(row)}
                         disabled={
                           !row.id ||
@@ -842,12 +901,13 @@ export function ScheduleMatchDayEditor({
         </div>
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-t-4 border-black pt-5">
-          <p className="text-xs font-bold text-gray-600">
-            날짜 경기부터 저장한 뒤 각 경기 결과를 등록하세요. 저장된 결과는
-            관리자 코드 없이 덮어쓸 수 없습니다.
+          <p className="text-fluid-xs font-bold text-gray-600">
+            공개 일정 화면이지만 실제 저장과 결과 등록은 모두 관리자 코드가
+            필요합니다.
           </p>
           <button
             type="button"
+            data-testid="schedule-save-day"
             onClick={onSaveDay}
             disabled={isSavingTimeline || isEditLocked}
             className="pixel-button bg-minion-blue text-white px-6 py-3 text-sm font-heading inline-flex items-center justify-center gap-2 disabled:opacity-50"

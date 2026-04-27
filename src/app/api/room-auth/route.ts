@@ -4,6 +4,8 @@ import { adminDb } from '@/lib/firebaseAdmin'
 
 const VALID_ROLES = ['ORGANIZER', 'LEADER', 'VIEWER'] as const
 type ValidRole = typeof VALID_ROLES[number]
+const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
+const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -29,19 +31,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  const roomDoc = await adminDb.collection('rooms').doc(roomId).get()
+  const [roomDoc, roomAuthDoc] = await Promise.all([
+    adminDb.collection('rooms').doc(roomId).get(),
+    adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
+  ])
   if (!roomDoc.exists) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
   const roomData = roomDoc.data()!
+  const roomAuthData = roomAuthDoc.data() ?? {}
+  const organizerToken =
+    typeof roomAuthData.organizer_token === 'string'
+      ? roomAuthData.organizer_token
+      : roomData.organizer_token
+  const viewerToken =
+    typeof roomAuthData.viewer_token === 'string'
+      ? roomAuthData.viewer_token
+      : roomData.viewer_token
 
   if (role === 'ORGANIZER') {
-    if (roomData.organizer_token !== token) {
+    if (organizerToken !== token) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else if (role === 'VIEWER') {
-    if (roomData.viewer_token !== token) {
+    if (viewerToken !== token) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else if (role === 'LEADER' && teamId) {
@@ -51,7 +65,16 @@ export async function GET(request: NextRequest) {
       .collection('teams')
       .doc(teamId)
       .get()
-    if (!teamDoc.exists || teamDoc.data()?.leader_token !== token) {
+    const teamTokenDoc = await adminDb
+      .collection(ROOM_AUTH_COLLECTION)
+      .doc(roomId)
+      .collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION)
+      .doc(teamId)
+      .get()
+    const leaderToken = teamTokenDoc.exists
+      ? teamTokenDoc.data()?.leader_token
+      : teamDoc.data()?.leader_token
+    if (!leaderToken || leaderToken !== token) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else {
@@ -63,14 +86,14 @@ export async function GET(request: NextRequest) {
   const cookieSuffix = role === 'LEADER' && teamId ? `LEADER_${teamId}` : role.toUpperCase()
   const cookieName = `room_auth_${roomId}_${cookieSuffix}`
 
-  const authData = JSON.stringify({ role, teamId: teamId || null })
+  const authData = JSON.stringify({ role, teamId: teamId || null, token })
 
   const cookieStore = await cookies()
   cookieStore.set(cookieName, authData, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    path: `/room/${roomId}`,
+    path: '/',
     maxAge: 60 * 60 * 8, // 8시간
   })
 

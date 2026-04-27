@@ -3,6 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 function initializeFirebaseAdmin() {
   if (admin.apps.length) return;
+  if (process.env.E2E_SCHEDULE_FIXTURE === '1') return;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;

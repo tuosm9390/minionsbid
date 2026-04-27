@@ -25,8 +25,6 @@ interface FirestoreRoomData {
   total_teams?: number
   timer_ends_at?: Timestamp | null
   current_player_id?: string | null
-  organizer_token?: string
-  viewer_token?: string
   created_at?: Timestamp | null
   roomDeleted?: boolean
 }
@@ -34,7 +32,6 @@ interface FirestoreRoomData {
 interface FirestoreTeamData {
   name?: string
   point_balance?: number
-  leader_token?: string
   leader_name?: string
   leader_position?: string
   leader_description?: string
@@ -115,8 +112,6 @@ export function useFirebaseRealtime(roomId: string) {
         membersPerTeam: data.members_per_team ?? 5,
         totalTeams: data.total_teams ?? 0,
         timerEndsAt: timestampToISO(data.timer_ends_at),
-        organizerToken: data.organizer_token ?? null,
-        viewerToken: data.viewer_token ?? null,
         createdAt: timestampToISO(data.created_at),
       })
 
@@ -165,7 +160,6 @@ export function useFirebaseRealtime(roomId: string) {
             room_id: roomId,
             name: td.name ?? '',
             point_balance: td.point_balance ?? 0,
-            leader_token: td.leader_token ?? '',
             leader_name: td.leader_name ?? '',
             leader_position: td.leader_position ?? '',
             leader_description: td.leader_description ?? '',

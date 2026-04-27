@@ -16,15 +16,47 @@ service cloud.firestore {
 
     match /league_schedules/{scheduleId} {
       allow read: if true;
-
-      // 초안 정책:
-      // 1. 메인/방 생성 화면에서 일정 목록을 바로 읽을 수 있게 공개 read 허용
-      // 2. 생성/수정/삭제는 서버 액션 또는 admin custom claim 사용자만 허용하도록 설계
-      // 3. 현재 앱은 Admin SDK 서버 액션을 사용하므로 실제로는 rules를 우회함
       allow create, update, delete: if isAdmin() || isServerWrite();
+
+      match /match_days/{dateKey} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin() || isServerWrite();
+      }
     }
 
     match /rooms/{roomId} {
+      // room 문서는 클라이언트가 단건 구독한다.
+      // 전체 rooms 컬렉션 나열은 막고, 개별 room id를 아는 경우에만 get 허용.
+      allow get: if true;
+      allow list: if false;
+      allow create, update, delete: if isAdmin() || isServerWrite();
+
+      match /teams/{teamId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin() || isServerWrite();
+      }
+
+      match /players/{playerId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin() || isServerWrite();
+      }
+
+      match /messages/{messageId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin() || isServerWrite();
+      }
+
+      match /bids/{bidId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin() || isServerWrite();
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /room_auth_secrets/{roomId} {
       allow read, write: if false;
 
       match /{document=**} {

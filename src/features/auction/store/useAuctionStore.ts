@@ -14,7 +14,6 @@ export interface Team {
   room_id: string
   name: string
   point_balance: number
-  leader_token: string
   leader_name: string
   leader_position: string
   leader_description: string
@@ -58,10 +57,6 @@ interface AuctionState {
   role: Role
   teamId: string | null
 
-  // Room tokens (for link regeneration)
-  organizerToken: string | null
-  viewerToken: string | null
-
   // Realtime Data sync
   basePoint: number
   totalTeams: number
@@ -99,9 +94,6 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomName: null,
   role: null,
   teamId: null,
-
-  organizerToken: null,
-  viewerToken: null,
 
   basePoint: 1000,
   totalTeams: 5,

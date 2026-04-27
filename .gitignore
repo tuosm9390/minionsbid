@@ -42,9 +42,8 @@ next-env.d.ts
 
 # results
 /results
-
-# test
-/__tests__/
+/test-results
+/playwright-report
 
 # skills
 /skills

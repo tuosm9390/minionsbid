@@ -23,6 +23,13 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 4. **Broadcast**: Firebase RTDB가 연결된 모든 클라이언트에게 변경된 상태를 즉시 푸시.
 5. **UI Update**: `useAuctionRealtime` 훅이 새로운 상태를 감지하고 Zustand 스토어 업데이트 → UI 리렌더링.
 
+### 일정 관리 서브시스템
+- **스토리지**: `league_schedules`, `match_days`, `hall_of_fame`는 Firestore를 사용한다.
+- **권한 경계**: `/league-schedule`은 공개 경로를 유지하지만 일정 생성/저장/결과 등록/삭제/종료는 모두 Server Action의 관리자 가드를 통과해야 한다.
+- **쓰기 일관성**: `saveLeagueScheduleDay`, `registerLeagueMatchResult`, `completeLeagueSchedule`는 transaction과 `revision`을 사용한다.
+- **로스터 연결**: 스케줄 문서는 `rosterSourceType` / `rosterSourceId`를 저장하고, 로스터 조회는 전체 스캔보다 직접 조회를 우선한다.
+- **결정 기록**: 현재 채택안과 재검토 트리거는 `doc/results/260427_LeagueScheduleArchitectureDecision.md`를 기준으로 본다.
+
 ---
 
 ## 3. 프론트엔드 아키텍처

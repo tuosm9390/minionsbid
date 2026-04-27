@@ -42,6 +42,9 @@ export interface CreateRoomResult {
   teams?: { id: string; name: string; leader_token: string }[]
 }
 
+const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
+const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
+
 export interface ArchiveTeam {
   id: string
   name: string
@@ -73,7 +76,10 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
     const viewerToken = crypto.randomUUID()
 
     const roomRef = adminDb.collection('rooms').doc(roomId)
-    await roomRef.set({
+    const roomAuthRef = adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId)
+    const batch = adminDb.batch()
+
+    batch.set(roomRef, {
       name: payload.name,
       schedule_id: payload.scheduleId ?? null,
       schedule_name: payload.scheduleName ?? payload.name,
@@ -82,10 +88,14 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
       total_teams: payload.captains.length,
       base_point: payload.basePoint,
       members_per_team: payload.membersPerTeam,
-      organizer_token: organizerToken,
-      viewer_token: viewerToken,
       current_player_id: null,
       timer_ends_at: null,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+    })
+
+    batch.set(roomAuthRef, {
+      organizer_token: organizerToken,
+      viewer_token: viewerToken,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     })
 
@@ -94,14 +104,18 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
     for (const captain of payload.captains) {
       const teamRef = roomRef.collection('teams').doc()
       const leaderToken = crypto.randomUUID()
-      await teamRef.set({
+      batch.set(teamRef, {
         name: captain.teamName,
         point_balance: payload.basePoint - captain.captainPoints,
-        leader_token: leaderToken,
         leader_name: captain.name,
         leader_position: captain.position,
         leader_description: captain.description || '',
         captain_points: captain.captainPoints || 0,
+      })
+      batch.set(roomAuthRef.collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION).doc(teamRef.id), {
+        leader_token: leaderToken,
+        team_name: captain.teamName,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
       })
       teamsResult.push({
         id: teamRef.id,
@@ -111,24 +125,22 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
     }
 
     // players 서브컬렉션 생성
-    if (payload.players.length > 0) {
-      const batch = adminDb.batch()
-      for (const player of payload.players) {
-        const playerRef = roomRef.collection('players').doc()
-        batch.set(playerRef, {
-          name: player.name,
-          tier: player.tier,
-          main_position: player.mainPosition,
-          sub_position: player.subPosition || '',
-          description: player.description || '',
-          status: 'WAITING',
-          team_id: null,
-          sold_price: null,
-          room_id: roomId,
-        })
-      }
-      await batch.commit()
+    for (const player of payload.players) {
+      const playerRef = roomRef.collection('players').doc()
+      batch.set(playerRef, {
+        name: player.name,
+        tier: player.tier,
+        main_position: player.mainPosition,
+        sub_position: player.subPosition || '',
+        description: player.description || '',
+        status: 'WAITING',
+        team_id: null,
+        sold_price: null,
+        room_id: roomId,
+      })
     }
+
+    await batch.commit()
 
     return {
       roomId,
@@ -216,13 +228,14 @@ export async function deleteRoom(roomId: string): Promise<{ error?: string }> {
     // 토큰 무효화 + roomDeleted 플래그 (클라이언트가 onSnapshot으로 감지)
     await roomRef.update({
       name: `[종료된 경매] ${currentName}`,
-      organizer_token: crypto.randomUUID(),
-      viewer_token: crypto.randomUUID(),
       roomDeleted: true,
     })
 
+    const roomAuthRef = adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId)
+
     // 서브컬렉션 포함 재귀 삭제
     await adminDb.recursiveDelete(roomRef)
+    await adminDb.recursiveDelete(roomAuthRef)
 
     return {}
   } catch (err) {

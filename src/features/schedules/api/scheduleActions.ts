@@ -5,6 +5,7 @@ import { adminDb } from '@/lib/firebaseAdmin'
 import type {
   CreateLeagueSchedulePayload,
   LeagueRosterPlayer,
+  LeagueRosterSourceType,
   LeagueRosterTeam,
   LeagueScheduleCatalog,
   LeagueScheduleDay,
@@ -25,6 +26,17 @@ import {
 } from '../utils/leagueMatchRules'
 import { normalizeLeagueMatchStartTime } from '../utils/leagueMatchTime'
 import { buildNextMatches, sortLeagueMatches } from '../utils/leagueNextMatches'
+import {
+  completeFixtureLeagueSchedule,
+  createFixtureLeagueSchedule,
+  deleteFixtureLeagueSchedule,
+  getFixtureLeagueScheduleCatalog,
+  getFixtureLeagueScheduleTimeline,
+  isE2EScheduleFixtureEnabled,
+  registerFixtureLeagueMatchResult,
+  saveFixtureLeagueScheduleDay,
+  verifyFixtureScheduleAdminCode,
+} from './e2eScheduleFixture'
 
 function toIsoString(value: unknown): string | null {
   if (!value) return null
@@ -49,6 +61,10 @@ function normalizeText(value: unknown): string {
 function normalizeLeagueName(value: unknown): string | null {
   const trimmed = normalizeText(value)
   return trimmed ? trimmed : null
+}
+
+function normalizeRosterSourceType(value: unknown): LeagueRosterSourceType | null {
+  return value === 'room' || value === 'archive' ? value : null
 }
 
 function toDateKey(value: string) {
@@ -76,6 +92,8 @@ function mapScheduleDoc(
     name: normalizeText(data.name),
     linkedAuctionId: normalizeText(data.linked_auction_id) || null,
     linkedLeagueName: normalizeLeagueName(data.linked_league_name),
+    rosterSourceType: normalizeRosterSourceType(data.roster_source_type),
+    rosterSourceId: normalizeText(data.roster_source_id) || null,
     startsAt: toIsoString(data.starts_at) ?? new Date().toISOString(),
     endsAt: toIsoString(data.ends_at),
     notes: normalizeText(data.notes),
@@ -89,10 +107,13 @@ function mapScheduleDoc(
   }
 }
 
-function verifyTimelineAdminCode(code?: string): { error?: string } {
+function requireScheduleAdmin(
+  code?: string,
+  message = '일정을 변경하려면 관리자 코드가 필요합니다.'
+): { error?: string } {
   const adminCode = process.env.HALL_OF_FAME_ADMIN_CODE
   if (!adminCode || code !== adminCode) {
-    return { error: '등록된 경기 결과를 수정하려면 관리자 코드가 필요합니다.' }
+    return { error: message }
   }
   return {}
 }
@@ -100,6 +121,9 @@ function verifyTimelineAdminCode(code?: string): { error?: string } {
 export async function verifyScheduleAdminCode(
   code: string
 ): Promise<{ valid: boolean }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return verifyFixtureScheduleAdminCode(code)
+  }
   const adminCode = process.env.HALL_OF_FAME_ADMIN_CODE
   if (!adminCode || code !== adminCode) {
     return { valid: false }
@@ -194,7 +218,7 @@ function rosterPlayersFromArchive(players: unknown[]): LeagueRosterPlayer[] {
 }
 
 async function getHallOfFameArchiveIdSet(): Promise<Set<string>> {
-  const snapshot = await adminDb.collection('hall_of_fame').limit(200).get()
+  const snapshot = await adminDb.collection('hall_of_fame').get()
   return new Set(
     snapshot.docs
       .map((doc) => doc.data().archive_id)
@@ -205,12 +229,133 @@ async function getHallOfFameArchiveIdSet(): Promise<Set<string>> {
   )
 }
 
+function mapArchiveRosterTeam(
+  archiveId: string,
+  scheduleName: string,
+  record: Record<string, unknown>
+): LeagueRosterTeam | null {
+  const name = normalizeText(record.name)
+  if (!name) return null
+
+  return {
+    id: normalizeText(record.id) || archiveId,
+    name,
+    leaderName: normalizeText(record.leader_name),
+    pointBalance: typeof record.point_balance === 'number' ? record.point_balance : 0,
+    players: rosterPlayersFromArchive(
+      Array.isArray(record.players) ? (record.players as unknown[]) : []
+    ).sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')),
+    source: 'archive',
+    auctionKey: `archive:${archiveId}`,
+    auctionName: scheduleName,
+  }
+}
+
+async function loadRosterTeamsFromRoomDoc(
+  roomDoc: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>,
+  fallbackName: string
+): Promise<LeagueRosterTeam[]> {
+  if (!roomDoc.exists) return []
+
+  const roomData = roomDoc.data() ?? {}
+  const [teamsSnap, playersSnap] = await Promise.all([
+    roomDoc.ref.collection('teams').get(),
+    roomDoc.ref.collection('players').get(),
+  ])
+
+  const playersByTeam = new Map<string, LeagueRosterPlayer[]>()
+  playersSnap.docs.forEach((playerDoc) => {
+    const data = playerDoc.data()
+    const teamId = normalizeText(data.team_id)
+    if (!teamId || data.status !== 'SOLD') return
+
+    const next = playersByTeam.get(teamId) ?? []
+    next.push({
+      name: normalizeText(data.name),
+      tier: normalizeText(data.tier),
+      mainPosition: normalizeText(data.main_position),
+      subPosition: normalizeText(data.sub_position),
+      soldPrice: typeof data.sold_price === 'number' ? data.sold_price : null,
+    })
+    playersByTeam.set(teamId, next)
+  })
+
+  const roomName =
+    normalizeText(roomData.schedule_name) || normalizeText(roomData.name) || fallbackName
+
+  const teams: LeagueRosterTeam[] = []
+
+  teamsSnap.docs.forEach((teamDoc) => {
+    const data = teamDoc.data()
+    const name = normalizeText(data.name)
+    if (!name) return
+
+    teams.push({
+      id: teamDoc.id,
+      name,
+      leaderName: normalizeText(data.leader_name),
+      pointBalance: typeof data.point_balance === 'number' ? data.point_balance : 0,
+      players: (playersByTeam.get(teamDoc.id) ?? []).sort((a, b) =>
+        a.name.localeCompare(b.name, 'ko-KR')
+      ),
+      source: 'room',
+      auctionKey: `room:${roomDoc.id}`,
+      auctionName: roomName,
+    })
+  })
+
+  return teams
+}
+
+function loadRosterTeamsFromArchiveDoc(
+  archiveDoc: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>,
+  fallbackName: string
+): LeagueRosterTeam[] {
+  if (!archiveDoc.exists) return []
+
+  const data = archiveDoc.data() ?? {}
+  const scheduleName =
+    normalizeText(data.schedule_name || data.room_name) || fallbackName
+  const resultSnapshot = Array.isArray(data.result_snapshot) ? data.result_snapshot : []
+
+  return resultSnapshot
+    .map((team) => {
+      const teamData = typeof team === 'object' && team !== null ? team : {}
+      return mapArchiveRosterTeam(archiveDoc.id, scheduleName, teamData as Record<string, unknown>)
+    })
+    .filter((team): team is LeagueRosterTeam => team !== null)
+}
+
 async function loadRosterTeams(schedule: LeagueScheduleItem): Promise<LeagueRosterTeam[]> {
+  if (schedule.rosterSourceType === 'room' && schedule.rosterSourceId) {
+    const roomDoc = await adminDb.collection('rooms').doc(schedule.rosterSourceId).get()
+    const roomTeams = await loadRosterTeamsFromRoomDoc(roomDoc, schedule.name)
+    if (roomTeams.length > 0) return roomTeams
+  }
+
+  if (schedule.rosterSourceType === 'archive' && schedule.rosterSourceId) {
+    const archiveDoc = await adminDb
+      .collection('auction_archives')
+      .doc(schedule.rosterSourceId)
+      .get()
+    const archiveTeams = loadRosterTeamsFromArchiveDoc(archiveDoc, schedule.name)
+    if (archiveTeams.length > 0) return archiveTeams
+  }
+
+  if (schedule.linkedAuctionId) {
+    const legacyArchiveDoc = await adminDb
+      .collection('auction_archives')
+      .doc(schedule.linkedAuctionId)
+      .get()
+    const legacyArchiveTeams = loadRosterTeamsFromArchiveDoc(legacyArchiveDoc, schedule.name)
+    if (legacyArchiveTeams.length > 0) return legacyArchiveTeams
+  }
+
   const rosterMap = new Map<string, LeagueRosterTeam>()
   const [rooms, excludedArchiveIds, archiveSnapshot] = await Promise.all([
     adminDb.collection('rooms').get(),
     getHallOfFameArchiveIdSet(),
-    adminDb.collection('auction_archives').limit(100).get(),
+    adminDb.collection('auction_archives').get(),
   ])
   const hasLinkedAuction = Boolean(schedule.linkedAuctionId)
   const hasLinkedLeague = Boolean(schedule.linkedLeagueName)
@@ -229,49 +374,9 @@ async function loadRosterTeams(schedule: LeagueScheduleItem): Promise<LeagueRost
       : scheduleId === schedule.id || scheduleName === schedule.name
 
     if (!matchesSchedule) continue
-
-    const [teamsSnap, playersSnap] = await Promise.all([
-      roomDoc.ref.collection('teams').get(),
-      roomDoc.ref.collection('players').get(),
-    ])
-
-    const playersByTeam = new Map<string, LeagueRosterPlayer[]>()
-    playersSnap.docs.forEach((playerDoc) => {
-      const data = playerDoc.data()
-      const teamId = normalizeText(data.team_id)
-      if (!teamId || data.status !== 'SOLD') return
-      const next = playersByTeam.get(teamId) ?? []
-      next.push({
-        name: normalizeText(data.name),
-        tier: normalizeText(data.tier),
-        mainPosition: normalizeText(data.main_position),
-        subPosition: normalizeText(data.sub_position),
-        soldPrice: typeof data.sold_price === 'number' ? data.sold_price : null,
-      })
-      playersByTeam.set(teamId, next)
-    })
-
-    teamsSnap.docs.forEach((teamDoc) => {
-      const data = teamDoc.data()
-      const name = normalizeText(data.name)
-      if (!name) return
-      const roomName =
-        normalizeText(roomData.schedule_name) ||
-        normalizeText(roomData.name) ||
-        schedule.name
-
-      rosterMap.set(name, {
-        id: teamDoc.id,
-        name,
-        leaderName: normalizeText(data.leader_name),
-        pointBalance: typeof data.point_balance === 'number' ? data.point_balance : 0,
-        players: (playersByTeam.get(teamDoc.id) ?? []).sort((a, b) =>
-          a.name.localeCompare(b.name, 'ko-KR')
-        ),
-        source: 'room',
-        auctionKey: `room:${roomDoc.id}`,
-        auctionName: roomName,
-      })
+    const roomTeams = await loadRosterTeamsFromRoomDoc(roomDoc, schedule.name)
+    roomTeams.forEach((team) => {
+      rosterMap.set(team.name, team)
     })
   }
 
@@ -292,24 +397,9 @@ async function loadRosterTeams(schedule: LeagueScheduleItem): Promise<LeagueRost
 
     if (!matchesSchedule) return
 
-    const resultSnapshot = Array.isArray(data.result_snapshot) ? data.result_snapshot : []
-    resultSnapshot.forEach((team) => {
-      const teamData = typeof team === 'object' && team !== null ? team : {}
-      const record = teamData as Record<string, unknown>
-      const name = normalizeText(record.name)
-      if (!name || rosterMap.has(name)) return
-      rosterMap.set(name, {
-        id: normalizeText(record.id) || archiveDoc.id,
-        name,
-        leaderName: normalizeText(record.leader_name),
-        pointBalance: typeof record.point_balance === 'number' ? record.point_balance : 0,
-        players: rosterPlayersFromArchive(
-          Array.isArray(record.players) ? (record.players as unknown[]) : []
-        ).sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')),
-        source: 'archive',
-        auctionKey: `archive:${archiveDoc.id}`,
-        auctionName: scheduleName || schedule.name,
-      })
+    loadRosterTeamsFromArchiveDoc(archiveDoc, scheduleName || schedule.name).forEach((team) => {
+      if (rosterMap.has(team.name)) return
+      rosterMap.set(team.name, team)
     })
   })
 
@@ -317,11 +407,14 @@ async function loadRosterTeams(schedule: LeagueScheduleItem): Promise<LeagueRost
 }
 
 export async function getLeagueScheduleCatalog(): Promise<LeagueScheduleCatalog> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return getFixtureLeagueScheduleCatalog()
+  }
   try {
     const [scheduleSnapshot, excludedArchiveIds, archiveSnapshot] = await Promise.all([
       adminDb.collection('league_schedules').orderBy('starts_at', 'asc').limit(50).get(),
       getHallOfFameArchiveIdSet(),
-      adminDb.collection('auction_archives').orderBy('closed_at', 'desc').limit(100).get(),
+      adminDb.collection('auction_archives').orderBy('closed_at', 'desc').get(),
     ])
 
     const leagueOptions = archiveSnapshot.docs
@@ -356,10 +449,22 @@ export async function getLeagueScheduleCatalog(): Promise<LeagueScheduleCatalog>
 }
 
 export async function createLeagueSchedule(
-  payload: CreateLeagueSchedulePayload
+  payload: CreateLeagueSchedulePayload,
+  adminCode?: string
 ): Promise<{ error?: string; schedule?: LeagueScheduleItem }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return createFixtureLeagueSchedule(payload, adminCode)
+  }
+  const { error: adminError } = requireScheduleAdmin(
+    adminCode,
+    '일정을 생성하려면 관리자 코드가 필요합니다.'
+  )
+  if (adminError) return { error: adminError }
+
   const linkedAuctionId = payload.linkedAuctionId?.trim() || null
   const linkedLeagueName = payload.linkedLeagueName?.trim() || null
+  const rosterSourceType = payload.rosterSourceType ?? (linkedAuctionId ? 'archive' : null)
+  const rosterSourceId = payload.rosterSourceId?.trim() || linkedAuctionId
   const name = payload.name.trim()
   const notes = payload.notes?.trim() || ''
 
@@ -386,6 +491,8 @@ export async function createLeagueSchedule(
       name,
       linked_auction_id: linkedAuctionId,
       linked_league_name: linkedLeagueName,
+      roster_source_type: rosterSourceType,
+      roster_source_id: rosterSourceId,
       starts_at: admin.firestore.Timestamp.fromDate(startDate),
       ends_at: endDate ? admin.firestore.Timestamp.fromDate(endDate) : null,
       notes,
@@ -401,6 +508,8 @@ export async function createLeagueSchedule(
         name,
         linkedAuctionId,
         linkedLeagueName,
+        rosterSourceType,
+        rosterSourceId,
         startsAt: startDate.toISOString(),
         endsAt: endDate ? endDate.toISOString() : null,
         notes,
@@ -419,6 +528,9 @@ export async function createLeagueSchedule(
 export async function getLeagueScheduleTimeline(
   scheduleId: string
 ): Promise<LeagueScheduleTimeline> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return getFixtureLeagueScheduleTimeline(scheduleId)
+  }
   try {
     const schedule = await getScheduleById(scheduleId)
     if (!schedule) {
@@ -479,8 +591,18 @@ export async function getLeagueScheduleTimeline(
 
 export async function saveLeagueScheduleDay(
   scheduleId: string,
-  payload: SaveLeagueScheduleDayPayload
+  payload: SaveLeagueScheduleDayPayload,
+  adminCode?: string
 ): Promise<{ error?: string }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return saveFixtureLeagueScheduleDay(scheduleId, payload, adminCode)
+  }
+  const { error: adminError } = requireScheduleAdmin(
+    adminCode,
+    '일정을 저장하려면 관리자 코드가 필요합니다.'
+  )
+  if (adminError) return { error: adminError }
+
   const dateKey = toDateKey(payload.dateKey)
   if (!dateKey) return { error: '날짜를 다시 확인해주세요.' }
 
@@ -504,78 +626,95 @@ export async function saveLeagueScheduleDay(
 
   try {
     const now = admin.firestore.Timestamp.now()
+    const scheduleRef = adminDb.collection('league_schedules').doc(scheduleId)
     const dayRef = adminDb
       .collection('league_schedules')
       .doc(scheduleId)
       .collection('match_days')
       .doc(dateKey)
 
-    const existingSnap = await dayRef.get()
-    const existingMatches = Array.isArray(existingSnap.data()?.matches)
-      ? (existingSnap.data()?.matches as Record<string, unknown>[])
-      : []
-    const existingMap = new Map(
-      existingMatches.map((match) => [normalizeText(match.id), match] as const)
-    )
+    await adminDb.runTransaction(async (transaction) => {
+      const [scheduleSnap, existingSnap] = await Promise.all([
+        transaction.get(scheduleRef),
+        transaction.get(dayRef),
+      ])
 
-    const nextMatches = sanitizedMatches
-      .map((match) => {
-        const prev = existingMap.get(match.id)
-        const prevClient = prev ? matchToClient(prev) : null
-        const canPreserveResult =
-          prevClient &&
-          prevClient.homeTeamName === match.homeTeamName &&
-          prevClient.awayTeamName === match.awayTeamName &&
-          prevClient.format.winsToClinch === match.format.winsToClinch &&
-          prevClient.format.maxGames === match.format.maxGames &&
-          isCompletedLeagueMatch({
-            homeScore: prevClient.homeScore,
-            awayScore: prevClient.awayScore,
+      if (!scheduleSnap.exists) {
+        throw new Error('일정을 찾을 수 없습니다.')
+      }
+
+      const existingMatches = Array.isArray(existingSnap.data()?.matches)
+        ? (existingSnap.data()?.matches as Record<string, unknown>[])
+        : []
+      const existingMap = new Map(
+        existingMatches.map((match) => [normalizeText(match.id), match] as const)
+      )
+
+      const nextMatches = sanitizedMatches
+        .map((match) => {
+          const prev = existingMap.get(match.id)
+          const prevClient = prev ? matchToClient(prev) : null
+          const canPreserveResult =
+            prevClient &&
+            prevClient.homeTeamName === match.homeTeamName &&
+            prevClient.awayTeamName === match.awayTeamName &&
+            prevClient.format.winsToClinch === match.format.winsToClinch &&
+            prevClient.format.maxGames === match.format.maxGames &&
+            isCompletedLeagueMatch({
+              homeScore: prevClient.homeScore,
+              awayScore: prevClient.awayScore,
+              format: match.format,
+            })
+
+          const homeScore = canPreserveResult ? prevClient.homeScore : 0
+          const awayScore = canPreserveResult ? prevClient.awayScore : 0
+          const winner = deriveLeagueMatchWinner({
+            homeScore,
+            awayScore,
             format: match.format,
           })
 
-        const homeScore = canPreserveResult ? prevClient.homeScore : 0
-        const awayScore = canPreserveResult ? prevClient.awayScore : 0
-        const winner = deriveLeagueMatchWinner({
-          homeScore,
-          awayScore,
-          format: match.format,
+          return {
+            id: match.id,
+            starts_at: match.startsAt,
+            home_team_name: match.homeTeamName,
+            away_team_name: match.awayTeamName,
+            stage_label: match.stageLabel,
+            wins_to_clinch: match.format.winsToClinch,
+            max_games: match.format.maxGames,
+            set_logs: canPreserveResult
+              ? prevClient.setLogs.map((setLog) => ({
+                  set_number: setLog.setNumber,
+                  winner: setLog.winner,
+                  note: setLog.note,
+                }))
+              : [],
+            home_score: homeScore,
+            away_score: awayScore,
+            winner,
+            is_completed: winner !== 'PENDING',
+            note: canPreserveResult ? prevClient.note : '',
+            created_at: prev?.created_at ?? now,
+            updated_at: now,
+          }
         })
+        .sort((left, right) =>
+          String(left.starts_at).localeCompare(String(right.starts_at), 'ko-KR')
+        )
 
-        return {
-          id: match.id,
-          starts_at: match.startsAt,
-          home_team_name: match.homeTeamName,
-          away_team_name: match.awayTeamName,
-          stage_label: match.stageLabel,
-          wins_to_clinch: match.format.winsToClinch,
-          max_games: match.format.maxGames,
-          set_logs: canPreserveResult
-            ? prevClient.setLogs.map((setLog) => ({
-                set_number: setLog.setNumber,
-                winner: setLog.winner,
-                note: setLog.note,
-              }))
-            : [],
-          home_score: homeScore,
-          away_score: awayScore,
-          winner,
-          is_completed: winner !== 'PENDING',
-          note: canPreserveResult ? prevClient.note : '',
-          created_at: prev?.created_at ?? now,
-          updated_at: now,
-        }
-      })
-      .sort((left, right) => String(left.starts_at).localeCompare(String(right.starts_at), 'ko-KR'))
-
-    await dayRef.set(
-      {
-        date_key: dateKey,
-        matches: nextMatches,
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    )
+      transaction.set(
+        dayRef,
+        {
+          date_key: dateKey,
+          matches: nextMatches,
+          revision: (typeof existingSnap.data()?.revision === 'number'
+            ? existingSnap.data()?.revision
+            : 0) + 1,
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+    })
 
     return {}
   } catch (err) {
@@ -594,107 +733,110 @@ export async function registerLeagueMatchResult(args: {
   note?: string
   adminCode?: string
 }): Promise<{ error?: string }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return registerFixtureLeagueMatchResult(args)
+  }
+  const { error: adminError } = requireScheduleAdmin(
+    args.adminCode,
+    '경기 결과를 등록하려면 관리자 코드가 필요합니다.'
+  )
+  if (adminError) return { error: adminError }
+
   const dateKey = toDateKey(args.dateKey)
   if (!dateKey) return { error: '날짜를 다시 확인해주세요.' }
   if (!args.matchId.trim()) return { error: '경기를 선택해주세요.' }
 
   try {
     const now = admin.firestore.Timestamp.now()
+    const scheduleRef = adminDb.collection('league_schedules').doc(args.scheduleId)
     const dayRef = adminDb
       .collection('league_schedules')
       .doc(args.scheduleId)
       .collection('match_days')
       .doc(dateKey)
 
-    const daySnap = await dayRef.get()
-    if (!daySnap.exists) return { error: '해당 날짜의 경기를 찾을 수 없습니다.' }
+    await adminDb.runTransaction(async (transaction) => {
+      const [scheduleSnap, daySnap] = await Promise.all([
+        transaction.get(scheduleRef),
+        transaction.get(dayRef),
+      ])
 
-    const rawMatches = Array.isArray(daySnap.data()?.matches)
-      ? (daySnap.data()?.matches as Record<string, unknown>[])
-      : []
-    const matchIndex = rawMatches.findIndex(
-      (match) => normalizeText(match.id) === args.matchId.trim()
-    )
-
-    if (matchIndex < 0) return { error: '해당 경기를 찾을 수 없습니다.' }
-
-    const currentMatch = matchToClient(rawMatches[matchIndex])
-    const nextNote = normalizeText(args.note)
-    const setLogs = normalizeLeagueSetLogs(
-      args.setLogs?.map((setLog) => ({
-        winner: setLog.winner,
-        note: setLog.note,
-      })) ?? [],
-      currentMatch.format.maxGames
-    )
-    const derivedScoreFromLogs = summarizeLeagueSetLogs(setLogs)
-    const hasSetLogs = setLogs.length > 0
-    const homeScore = hasSetLogs
-      ? derivedScoreFromLogs.homeScore
-      : normalizeLeagueSetScore(args.homeScore)
-    const awayScore = hasSetLogs
-      ? derivedScoreFromLogs.awayScore
-      : normalizeLeagueSetScore(args.awayScore)
-
-    if (homeScore > currentMatch.format.maxGames || awayScore > currentMatch.format.maxGames) {
-      return {
-        error: `세트 스코어는 최대 ${currentMatch.format.maxGames}세트를 넘길 수 없습니다.`,
+      if (!scheduleSnap.exists) {
+        throw new Error('일정을 찾을 수 없습니다.')
       }
-    }
-
-    const winner = deriveLeagueMatchWinner({
-      homeScore,
-      awayScore,
-      format: currentMatch.format,
-    })
-
-    if (winner === 'PENDING') {
-      return {
-        error: `${currentMatch.format.maxGames}판 ${currentMatch.format.winsToClinch}선승 규칙에 맞는 최종 세트 스코어를 입력해주세요.`,
+      if (!daySnap.exists) {
+        throw new Error('해당 날짜의 경기를 찾을 수 없습니다.')
       }
-    }
 
-    const resultChanged =
-      currentMatch.winner !== winner ||
-      currentMatch.setLogs.length !== setLogs.length ||
-      currentMatch.setLogs.some((setLog, index) => {
-        const nextSetLog = setLogs[index]
-        return (
-          !nextSetLog ||
-          setLog.winner !== nextSetLog.winner ||
-          setLog.note !== nextSetLog.note
+      const rawMatches = Array.isArray(daySnap.data()?.matches)
+        ? (daySnap.data()?.matches as Record<string, unknown>[])
+        : []
+      const matchIndex = rawMatches.findIndex(
+        (match) => normalizeText(match.id) === args.matchId.trim()
+      )
+
+      if (matchIndex < 0) {
+        throw new Error('해당 경기를 찾을 수 없습니다.')
+      }
+
+      const currentMatch = matchToClient(rawMatches[matchIndex])
+      const nextNote = normalizeText(args.note)
+      const setLogs = normalizeLeagueSetLogs(
+        args.setLogs?.map((setLog) => ({
+          winner: setLog.winner,
+          note: setLog.note,
+        })) ?? [],
+        currentMatch.format.maxGames
+      )
+      const derivedScoreFromLogs = summarizeLeagueSetLogs(setLogs)
+      const hasSetLogs = setLogs.length > 0
+      const homeScore = hasSetLogs
+        ? derivedScoreFromLogs.homeScore
+        : normalizeLeagueSetScore(args.homeScore)
+      const awayScore = hasSetLogs
+        ? derivedScoreFromLogs.awayScore
+        : normalizeLeagueSetScore(args.awayScore)
+
+      if (homeScore > currentMatch.format.maxGames || awayScore > currentMatch.format.maxGames) {
+        throw new Error(
+          `세트 스코어는 최대 ${currentMatch.format.maxGames}세트를 넘길 수 없습니다.`
         )
-      }) ||
-      currentMatch.homeScore !== homeScore ||
-      currentMatch.awayScore !== awayScore ||
-      currentMatch.isCompleted !== true ||
-      currentMatch.note !== nextNote
+      }
 
-    if (currentMatch.isCompleted && resultChanged) {
-      const { error } = verifyTimelineAdminCode(args.adminCode)
-      if (error) return { error }
-    }
+      const winner = deriveLeagueMatchWinner({
+        homeScore,
+        awayScore,
+        format: currentMatch.format,
+      })
 
-    rawMatches[matchIndex] = {
-      ...rawMatches[matchIndex],
-      wins_to_clinch: currentMatch.format.winsToClinch,
-      max_games: currentMatch.format.maxGames,
-      set_logs: setLogs.map((setLog) => ({
-        set_number: setLog.setNumber,
-        winner: setLog.winner,
-        note: setLog.note,
-      })),
-      home_score: homeScore,
-      away_score: awayScore,
-      winner,
-      is_completed: true,
-      note: nextNote,
-      updated_at: now,
-    }
+      if (winner === 'PENDING') {
+        throw new Error(
+          `${currentMatch.format.maxGames}판 ${currentMatch.format.winsToClinch}선승 규칙에 맞는 최종 세트 스코어를 입력해주세요.`
+        )
+      }
 
-    await dayRef.update({
-      matches: rawMatches,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      rawMatches[matchIndex] = {
+        ...rawMatches[matchIndex],
+        wins_to_clinch: currentMatch.format.winsToClinch,
+        max_games: currentMatch.format.maxGames,
+        set_logs: setLogs.map((setLog) => ({
+          set_number: setLog.setNumber,
+          winner: setLog.winner,
+          note: setLog.note,
+        })),
+        home_score: homeScore,
+        away_score: awayScore,
+        winner,
+        is_completed: true,
+        note: nextNote,
+        updated_at: now,
+      }
+
+      transaction.update(dayRef, {
+        matches: rawMatches,
+        revision: (typeof daySnap.data()?.revision === 'number' ? daySnap.data()?.revision : 0) + 1,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      })
     })
 
     return {}
@@ -705,13 +847,24 @@ export async function registerLeagueMatchResult(args: {
 }
 
 export async function deleteLeagueSchedule(
-  scheduleId: string
+  scheduleId: string,
+  adminCode?: string
 ): Promise<{ error?: string }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return deleteFixtureLeagueSchedule(scheduleId, adminCode)
+  }
   if (!scheduleId.trim()) return { error: '일정을 선택해주세요.' }
+  const { error: adminError } = requireScheduleAdmin(
+    adminCode,
+    '일정을 삭제하려면 관리자 코드가 필요합니다.'
+  )
+  if (adminError) return { error: adminError }
 
   try {
-    const scheduleRef = adminDb.collection('league_schedules').doc(scheduleId.trim())
+    const normalizedScheduleId = scheduleId.trim()
+    const scheduleRef = adminDb.collection('league_schedules').doc(normalizedScheduleId)
     await adminDb.recursiveDelete(scheduleRef)
+    await adminDb.collection('hall_of_fame').doc(`schedule:${normalizedScheduleId}`).delete()
     return {}
   } catch (err) {
     const message = err instanceof Error ? err.message : '알 수 없는 오류'
@@ -722,9 +875,18 @@ export async function deleteLeagueSchedule(
 export async function completeLeagueSchedule(args: {
   scheduleId: string
   championTeamName: string
+  adminCode?: string
 }): Promise<{ error?: string }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return completeFixtureLeagueSchedule(args)
+  }
   const scheduleId = args.scheduleId.trim()
   const championTeamName = normalizeText(args.championTeamName)
+  const { error: adminError } = requireScheduleAdmin(
+    args.adminCode,
+    '일정을 종료하려면 관리자 코드가 필요합니다.'
+  )
+  if (adminError) return { error: adminError }
 
   if (!scheduleId) return { error: '일정을 선택해주세요.' }
   if (!championTeamName) return { error: '최종 우승팀을 선택해주세요.' }
@@ -745,17 +907,23 @@ export async function completeLeagueSchedule(args: {
 
     const wonAt = new Date().toISOString()
     const hallOfFameArchiveId = `schedule:${scheduleId}`
-    const hallOfFameRef = adminDb.collection('hall_of_fame')
-    const existingHallOfFame = await hallOfFameRef
-      .where('archive_id', '==', hallOfFameArchiveId)
-      .limit(1)
-      .get()
+    const hallOfFameDocRef = adminDb.collection('hall_of_fame').doc(hallOfFameArchiveId)
 
-    if (existingHallOfFame.empty) {
-      await hallOfFameRef.add({
+    await adminDb.runTransaction(async (transaction) => {
+      const scheduleSnap = await transaction.get(scheduleRef)
+      if (!scheduleSnap.exists) {
+        throw new Error('일정을 찾을 수 없습니다.')
+      }
+
+      const latestSchedule = mapScheduleDoc(scheduleSnap)
+      if (latestSchedule.status === 'COMPLETED') {
+        throw new Error('이미 종료된 일정입니다.')
+      }
+
+      transaction.set(hallOfFameDocRef, {
         archive_id: hallOfFameArchiveId,
         room_id: `schedule:${scheduleId}`,
-        season_name: schedule.name,
+        season_name: latestSchedule.name,
         winning_team_name: championTeam.name,
         winning_team_leader: championTeam.leaderName,
         winning_team_players: championTeam.players.map((player) => ({
@@ -765,13 +933,13 @@ export async function completeLeagueSchedule(args: {
         won_at: wonAt,
         registered_at: admin.firestore.FieldValue.serverTimestamp(),
       })
-    }
 
-    await scheduleRef.update({
-      status: 'COMPLETED',
-      champion_team_name: championTeam.name,
-      completed_at: admin.firestore.FieldValue.serverTimestamp(),
-      archived_at: admin.firestore.FieldValue.serverTimestamp(),
+      transaction.update(scheduleRef, {
+        status: 'COMPLETED',
+        champion_team_name: championTeam.name,
+        completed_at: admin.firestore.FieldValue.serverTimestamp(),
+        archived_at: admin.firestore.FieldValue.serverTimestamp(),
+      })
     })
 
     return {}

@@ -9,7 +9,11 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "audit:room-auth-secrets": "node scripts/audit_room_auth_secrets.js",
+    "smoke:room-rules": "node scripts/smoke_room_rules.js",
+    "migrate:room-auth-secrets:dry-run": "node scripts/migrate_room_auth_secrets.js",
+    "migrate:room-auth-secrets": "node scripts/migrate_room_auth_secrets.js --write"
   },
   "dependencies": {
     "clsx": "^2.1.1",

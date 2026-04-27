@@ -1,8 +1,12 @@
+export type LeagueRosterSourceType = "room" | "archive";
+
 export interface LeagueScheduleItem {
   id: string;
   name: string;
   linkedAuctionId: string | null;
   linkedLeagueName: string | null;
+  rosterSourceType?: LeagueRosterSourceType | null;
+  rosterSourceId?: string | null;
   startsAt: string;
   endsAt: string | null;
   notes: string;
@@ -25,6 +29,8 @@ export interface CreateLeagueSchedulePayload {
   name: string;
   linkedAuctionId?: string | null;
   linkedLeagueName?: string | null;
+  rosterSourceType?: LeagueRosterSourceType | null;
+  rosterSourceId?: string | null;
   startsAt: string;
   endsAt?: string | null;
   notes?: string;

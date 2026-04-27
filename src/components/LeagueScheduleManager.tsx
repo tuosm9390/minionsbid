@@ -212,6 +212,7 @@ export function LeagueScheduleManager() {
   );
   const [adminCode, setAdminCode] = useState("");
   const [isAdminVerified, setIsAdminVerified] = useState(false);
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
   const [isDeletingSchedule, setIsDeletingSchedule] = useState(false);
   const [isCompletingSchedule, setIsCompletingSchedule] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -274,16 +275,41 @@ export function LeagueScheduleManager() {
   }, [timeline?.schedule?.championTeamName, selectedScheduleId]);
 
   const daySummaries = useMemo(() => {
-    const map = new Map<string, { total: number; completed: number; labels?: string[] }>();
+    const map = new Map<
+      string,
+      { total: number; completed: number; labels?: string[] }
+    >();
     timeline?.days.forEach((day) => {
       map.set(day.dateKey, {
         total: day.matches.length,
         completed: day.matches.filter((match) => match.isCompleted).length,
-        labels: day.matches.map((match) => `${match.homeTeamName} vs ${match.awayTeamName}`),
+        labels: day.matches
+          .slice(0, 2)
+          .map((match) => `${match.homeTeamName} vs ${match.awayTeamName}`),
       });
     });
     return map;
   }, [timeline]);
+
+  const handleAdminCodeChange = useCallback((value: string) => {
+    setAdminCode(value);
+    setIsAdminVerified(false);
+  }, []);
+
+  const handleVerifyAdminCode = useCallback(async () => {
+    if (!adminCode.trim()) {
+      setIsAdminVerified(false);
+      return;
+    }
+
+    setIsVerifyingAdmin(true);
+    try {
+      const result = await verifyScheduleAdminCode(adminCode.trim());
+      setIsAdminVerified(result.valid);
+    } finally {
+      setIsVerifyingAdmin(false);
+    }
+  }, [adminCode]);
 
   const selectedRosterMatches = useMemo(() => {
     const rosterMap = new Map<string, LeagueRosterTeam>();
@@ -369,46 +395,68 @@ export function LeagueScheduleManager() {
     }
     setIsSaving(true);
     setError("");
-    const result = await createLeagueSchedule({
-      name,
-      linkedAuctionId: linkedAuction?.id ?? null,
-      linkedLeagueName,
-      startsAt: startOfSelectedDay(startDate).toISOString(),
-      endsAt: startOfSelectedDay(endDate).toISOString(),
-      notes,
-    });
-    setIsSaving(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await createLeagueSchedule(
+        {
+          name,
+          linkedAuctionId: linkedAuction?.id ?? null,
+          linkedLeagueName,
+          rosterSourceType: linkedAuction ? "archive" : null,
+          rosterSourceId: linkedAuction?.id ?? null,
+          startsAt: startOfSelectedDay(startDate).toISOString(),
+          endsAt: startOfSelectedDay(endDate).toISOString(),
+          notes,
+        },
+        adminCode.trim() || undefined,
+      );
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      await loadCatalog();
+      if (result.schedule?.id) setSelectedScheduleId(result.schedule.id);
+      setIsOpen(false);
+      setSelectedLinkedAuctionId("");
+      setCustomName("");
+      setNotes("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setIsSaving(false);
     }
-    await loadCatalog();
-    if (result.schedule?.id) setSelectedScheduleId(result.schedule.id);
-    setIsOpen(false);
-    setSelectedLinkedAuctionId("");
-    setCustomName("");
-    setNotes("");
   };
 
   const handleSaveDay = async () => {
     if (!selectedScheduleId) return;
     setIsSavingTimeline(true);
     setTimelineError("");
-    const result = await saveLeagueScheduleDay(selectedScheduleId, {
-      dateKey: selectedDateKey,
-      matches: matchRows.map((row) => ({
-        id: row.id,
-        startsAt: row.startsAt,
-        homeTeamName: row.homeTeamName,
-        awayTeamName: row.awayTeamName,
-        stageLabel: row.stageLabel,
-        winsToClinch: row.winsToClinch,
-        maxGames: row.maxGames,
-      })),
-    });
-    setIsSavingTimeline(false);
-    if (result.error) return setTimelineError(result.error);
-    await loadTimeline(selectedScheduleId);
+    try {
+      const result = await saveLeagueScheduleDay(
+        selectedScheduleId,
+        {
+          dateKey: selectedDateKey,
+          matches: matchRows.map((row) => ({
+            id: row.id,
+            startsAt: row.startsAt,
+            homeTeamName: row.homeTeamName,
+            awayTeamName: row.awayTeamName,
+            stageLabel: row.stageLabel,
+            winsToClinch: row.winsToClinch,
+            maxGames: row.maxGames,
+          })),
+        },
+        adminCode.trim() || undefined,
+      );
+      if (result.error) {
+        setTimelineError(result.error);
+        return;
+      }
+      await loadTimeline(selectedScheduleId);
+    } catch (err) {
+      setTimelineError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setIsSavingTimeline(false);
+    }
   };
 
   const handleSaveResult = async (row: MatchEditorRow) => {
@@ -418,63 +466,78 @@ export function LeagueScheduleManager() {
     }
     setIsSubmittingResultId(row.id);
     setTimelineError("");
-    const result = await registerLeagueMatchResult({
-      scheduleId: selectedScheduleId,
-      dateKey: selectedDateKey,
-      matchId: row.id,
-      homeScore: row.homeScore,
-      awayScore: row.awayScore,
-      setLogs: row.setLogs.map((setLog) => ({
-        winner: setLog.winner,
-        note: setLog.note,
-      })),
-      note: row.note,
-      adminCode: adminCode.trim() || undefined,
-    });
-    setIsSubmittingResultId(null);
-    if (result.error) return setTimelineError(result.error);
-    await loadTimeline(selectedScheduleId);
+    try {
+      const result = await registerLeagueMatchResult({
+        scheduleId: selectedScheduleId,
+        dateKey: selectedDateKey,
+        matchId: row.id,
+        homeScore: row.homeScore,
+        awayScore: row.awayScore,
+        setLogs: row.setLogs.map((setLog) => ({
+          winner: setLog.winner,
+          note: setLog.note,
+        })),
+        note: row.note,
+        adminCode: adminCode.trim() || undefined,
+      });
+      if (result.error) {
+        setTimelineError(result.error);
+        return;
+      }
+      await loadTimeline(selectedScheduleId);
+    } catch (err) {
+      setTimelineError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setIsSubmittingResultId(null);
+    }
   };
 
   const handleDeleteSchedule = async () => {
     if (!selectedScheduleId) return;
     setIsDeletingSchedule(true);
     setTimelineError("");
-    const result = await deleteLeagueSchedule(selectedScheduleId);
-    setIsDeletingSchedule(false);
-    if (result.error) return setTimelineError(result.error);
-    setIsDeleteModalOpen(false);
-    setSelectedScheduleId("");
-    setTimeline(null);
-    await loadCatalog();
+    try {
+      const result = await deleteLeagueSchedule(
+        selectedScheduleId,
+        adminCode.trim() || undefined,
+      );
+      if (result.error) {
+        setTimelineError(result.error);
+        return;
+      }
+      setIsDeleteModalOpen(false);
+      setSelectedScheduleId("");
+      setTimeline(null);
+      await loadCatalog();
+    } catch (err) {
+      setTimelineError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setIsDeletingSchedule(false);
+    }
   };
 
   const handleCompleteSchedule = async () => {
     if (!selectedScheduleId) return;
     setIsCompletingSchedule(true);
     setTimelineError("");
-    const result = await completeLeagueSchedule({
-      scheduleId: selectedScheduleId,
-      championTeamName: selectedChampionName,
-    });
-    setIsCompletingSchedule(false);
-    if (result.error) return setTimelineError(result.error);
+    try {
+      const result = await completeLeagueSchedule({
+        scheduleId: selectedScheduleId,
+        championTeamName: selectedChampionName,
+        adminCode: adminCode.trim() || undefined,
+      });
+      if (result.error) {
+        setTimelineError(result.error);
+        return;
+      }
 
-    setTimeline((prev) => {
-      if (!prev?.schedule || prev.schedule.id !== selectedScheduleId) return prev;
-      return {
-        ...prev,
-        schedule: {
-          ...prev.schedule,
-          status: "COMPLETED",
-          championTeamName: selectedChampionName,
-          completedAt: new Date().toISOString(),
-        },
-      };
-    });
-
-    setIsCompleteModalOpen(false);
-    await loadCatalog();
+      setIsCompleteModalOpen(false);
+      await Promise.all([loadCatalog(), loadTimeline(selectedScheduleId)]);
+    } catch (err) {
+      setTimelineError(err instanceof Error ? err.message : "알 수 없는 오류");
+    } finally {
+      setIsCompletingSchedule(false);
+    }
   };
 
   return (
@@ -482,19 +545,20 @@ export function LeagueScheduleManager() {
       <div className="w-full space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.24em] text-minion-blue">
+            <p className="text-fluid-sm font-black uppercase tracking-[0.24em] text-minion-blue">
               League Schedule
             </p>
-            <h2 className="text-2xl lg:text-3xl font-heading">
+            <h2 className="text-fluid-xl font-heading">
               리그전 일정 타임라인
             </h2>
-            <p className="text-sm font-bold text-gray-600 mt-2">
+            <p className="text-fluid-sm font-bold text-gray-600 mt-2">
               날짜별 경기 시간, 참가 팀, 결과를 기록하고 클릭한 날짜 아래에서 팀
               로스터를 바로 확인할 수 있습니다.
             </p>
           </div>
           <button
             onClick={() => setIsOpen(true)}
+            data-testid="schedule-create-open"
             className="pixel-button w-full lg:w-auto bg-minion-blue text-white py-4 px-8 text-lg font-heading shadow-[8px_8px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center gap-3"
           >
             <CalendarDays size={20} />
@@ -503,13 +567,13 @@ export function LeagueScheduleManager() {
         </div>
 
         <div className="grid grid-cols-1 2xl:grid-cols-[340px_minmax(0,1fr)] gap-6">
-          <div className="bg-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+          <div className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
                   Schedule List
                 </p>
-                <p className="text-lg font-black">리그전 일정</p>
+                <p className="text-fluid-lg font-black">리그전 일정</p>
               </div>
               <button
                 type="button"
@@ -542,18 +606,19 @@ export function LeagueScheduleManager() {
                 schedule ? (
                   <button
                     key={schedule.id}
+                    data-testid={`schedule-card-${schedule.id}`}
                     type="button"
                     onClick={() => setSelectedScheduleId(schedule.id)}
                     className={`w-full text-left border-4 p-4 ${selectedScheduleId === schedule.id ? "border-minion-blue bg-minion-blue text-white" : "border-black bg-[#fffdf8]"}`}
                   >
-                    <p className="text-lg font-black">{schedule.name}</p>
+                    <p className="text-fluid-lg font-black">{schedule.name}</p>
                     <p
-                      className={`text-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-500"}`}
+                      className={`text-fluid-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-500"}`}
                     >
                       {formatScheduleDate(schedule.startsAt, schedule.endsAt)}
                     </p>
                     <p
-                      className={`text-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-600"}`}
+                      className={`text-fluid-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-600"}`}
                     >
                       {schedule.linkedLeagueName
                         ? `연결 경매: ${schedule.linkedLeagueName}`
@@ -572,18 +637,18 @@ export function LeagueScheduleManager() {
                   <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_rgba(0,0,0,1)] flex items-center gap-4 animate-pulse">
                     <div className="border-4 border-black border-t-minion-yellow w-8 h-8 rounded-full animate-spin shrink-0" />
                     <div>
-                      <p className="text-sm font-black tracking-widest uppercase text-gray-500">타임라인 불러오는 중...</p>
-                      <p className="text-xs font-bold text-gray-400 mt-1">잠시만 기다려주세요.</p>
+                      <p className="text-fluid-sm font-black tracking-widest uppercase text-gray-500">타임라인 불러오는 중...</p>
+                      <p className="text-fluid-xs font-bold text-gray-400 mt-1">잠시만 기다려주세요.</p>
                     </div>
                   </div>
                 )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="bg-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)] lg:col-span-2">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                  <div className="bg-[linear-gradient(180deg,#fffef8_0%,#fff5c5_100%)] border-4 border-black p-5 shadow-[10px_10px_0px_rgba(0,0,0,1)] lg:col-span-2">
+                    <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
                       Current Schedule
                     </p>
                     <div className="flex flex-wrap items-center gap-3 mt-1">
-                      <h3 className="text-2xl font-black">
+                      <h3 className="text-fluid-lg font-black">
                         {timeline.schedule.name}
                       </h3>
                       {(timeline.schedule.status === "COMPLETED" ||
@@ -592,7 +657,7 @@ export function LeagueScheduleManager() {
                           timeline.schedule.endsAt,
                         )) && (
                         <span
-                          className={`border-2 border-black px-3 py-1 text-[11px] font-black ${timeline.schedule.status === "COMPLETED" ? "bg-green-600 text-white" : "bg-minion-yellow text-black"}`}
+                          className={`border-2 border-black px-3 py-1 text-fluid-xs font-black ${timeline.schedule.status === "COMPLETED" ? "bg-green-600 text-white" : "bg-minion-yellow text-black"}`}
                         >
                           {timeline.schedule.status === "COMPLETED"
                             ? "종료됨"
@@ -600,19 +665,29 @@ export function LeagueScheduleManager() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-bold text-gray-600 mt-2">
+                    <p className="text-fluid-sm font-bold text-gray-700 mt-2">
                       {formatScheduleDate(
                         timeline.schedule.startsAt,
                         timeline.schedule.endsAt,
                       )}
                     </p>
+                    {timeline.schedule.status === "COMPLETED" && !isAdminVerified && (
+                      <div className="mt-4 border-4 border-black bg-red-50 px-4 py-3">
+                        <p className="text-fluid-xs font-black uppercase tracking-[0.16em] text-minion-red">
+                          Read-Only Mode
+                        </p>
+                        <p className="mt-1 text-fluid-sm font-bold text-gray-800">
+                          완료된 일정입니다. 관리자 코드 검증 전에는 결과 수정과 일정 편집이 잠겨 있습니다.
+                        </p>
+                      </div>
+                    )}
                     {timeline.schedule.championTeamName && (
-                      <p className="mt-3 text-sm font-black text-green-700">
+                      <p className="mt-3 text-fluid-sm font-black text-green-700">
                         최종 우승팀: {timeline.schedule.championTeamName}
                       </p>
                     )}
                     {timeline.schedule.notes && (
-                      <p className="mt-4 border-2 border-black bg-[#fffdf6] px-4 py-3 text-sm font-bold text-gray-700">
+                      <p className="mt-4 border-2 border-black bg-[#fffdf6] px-4 py-3 text-fluid-sm font-bold text-gray-700">
                         {timeline.schedule.notes}
                       </p>
                     )}
@@ -620,6 +695,7 @@ export function LeagueScheduleManager() {
                       <button
                         type="button"
                         onClick={() => setIsCompleteModalOpen(true)}
+                        data-testid="schedule-current-complete"
                         disabled={
                           timeline.rosterTeams.length === 0 ||
                           timeline.schedule.status === "COMPLETED"
@@ -632,6 +708,7 @@ export function LeagueScheduleManager() {
                       <button
                         type="button"
                         onClick={() => setIsDeleteModalOpen(true)}
+                        data-testid="schedule-current-delete"
                         disabled={
                           timeline.schedule.status === "COMPLETED" &&
                           !isAdminVerified
@@ -647,10 +724,10 @@ export function LeagueScheduleManager() {
                     <div className="flex items-center gap-3">
                       <Clock3 size={18} className="text-minion-yellow" />
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
+                        <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
                           Next Match
                         </p>
-                        <p className="text-lg font-black mt-1">
+                        <p className="text-fluid-lg font-black mt-1">
                           {nextMatchesPreview.length > 0
                             ? `${nextMatchesPreview.length}경기 예정`
                             : "대기 중"}
@@ -666,7 +743,7 @@ export function LeagueScheduleManager() {
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               {match.stageLabel && (
-                                <span className="border border-white/50 bg-white/10 px-2 py-0.5 text-[10px] font-black">
+                                <span className="border border-white/50 bg-white/10 px-2 py-0.5 text-fluid-xs font-black">
                                   {match.stageLabel}
                                 </span>
                               )}
@@ -674,7 +751,7 @@ export function LeagueScheduleManager() {
                                 {match.homeTeamName} vs {match.awayTeamName}
                               </p>
                             </div>
-                            <p className="text-xs font-bold text-white/70 mt-1">
+                            <p className="text-fluid-xs font-bold text-white/70 mt-1">
                               {match.startsAt} · {getWinnerLabel(match)}
                             </p>
                           </div>
@@ -707,19 +784,13 @@ export function LeagueScheduleManager() {
                     rosterTeams={timeline.rosterTeams}
                     adminCode={adminCode}
                     isAdminVerified={isAdminVerified}
+                    isVerifyingAdmin={isVerifyingAdmin}
                     timelineError={timelineError}
                     isSavingTimeline={isSavingTimeline}
                     isSubmittingResultId={isSubmittingResultId}
                     isScheduleCompleted={timeline.schedule.status === "COMPLETED"}
-                    onAdminCodeChange={async (value: string) => {
-                      setAdminCode(value);
-                      if (!value.trim()) {
-                        setIsAdminVerified(false);
-                        return;
-                      }
-                      const result = await verifyScheduleAdminCode(value.trim());
-                      setIsAdminVerified(result.valid);
-                    }}
+                    onAdminCodeChange={handleAdminCodeChange}
+                    onVerifyAdminCode={() => void handleVerifyAdminCode()}
                     onRowChange={(index, patch) =>
                       setMatchRows((prev) =>
                         prev.map((row, rowIndex) => {
@@ -835,7 +906,48 @@ export function LeagueScheduleManager() {
               </div>
               <div className="overflow-y-auto p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-[1fr_1.2fr] gap-6">
                 <div className="space-y-4">
+                  <div className="border-2 border-black bg-[#eef4ff] px-4 py-4 space-y-3">
+                    <div>
+                      <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                        Admin Access
+                      </p>
+                      <p className="text-fluid-sm font-black mt-1">
+                        일정 생성 관리자 코드
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <input
+                        type="password"
+                        data-testid="schedule-create-admin-code"
+                        value={adminCode}
+                        onChange={(event) =>
+                          handleAdminCodeChange(event.target.value)
+                        }
+                        placeholder="일정 생성/저장/종료/삭제에 필요"
+                        className="w-full border-2 border-black px-4 py-3 bg-white text-fluid-sm font-bold"
+                      />
+                      <button
+                        type="button"
+                        data-testid="schedule-create-admin-verify"
+                        onClick={() => void handleVerifyAdminCode()}
+                        disabled={isVerifyingAdmin || !adminCode.trim()}
+                        className="pixel-button shrink-0 bg-black text-minion-yellow px-5 py-3 text-sm font-black disabled:opacity-50"
+                      >
+                        {isVerifyingAdmin ? "확인 중..." : "코드 확인"}
+                      </button>
+                    </div>
+                    <p
+                      className={`text-fluid-xs font-bold ${
+                        isAdminVerified ? "text-green-700" : "text-gray-600"
+                      }`}
+                    >
+                      {isAdminVerified
+                        ? "관리자 코드가 확인되었습니다."
+                        : "이 코드가 없으면 서버에서 일정 변경이 거부됩니다."}
+                    </p>
+                  </div>
                   <select
+                    data-testid="schedule-create-linked-auction"
                     value={selectedLinkedAuctionId}
                     onChange={(event) =>
                       setSelectedLinkedAuctionId(event.target.value)
@@ -854,6 +966,7 @@ export function LeagueScheduleManager() {
                   </select>
                   <input
                     type="text"
+                    data-testid="schedule-create-name"
                     value={customName}
                     onChange={(event) => setCustomName(event.target.value)}
                     placeholder="새 일정 이름"
@@ -901,6 +1014,7 @@ export function LeagueScheduleManager() {
                 </button>
                 <button
                   type="button"
+                  data-testid="schedule-create-save"
                   onClick={() => void handleCreate()}
                   disabled={isSaving}
                   className="pixel-button bg-black text-minion-yellow px-8 py-3 text-sm font-heading disabled:opacity-50"
@@ -957,6 +1071,7 @@ export function LeagueScheduleManager() {
                 등록됩니다.
               </p>
               <select
+                data-testid="schedule-complete-champion"
                 value={selectedChampionName}
                 onChange={(event) =>
                   setSelectedChampionName(event.target.value)
@@ -980,6 +1095,7 @@ export function LeagueScheduleManager() {
                 </button>
                 <button
                   type="button"
+                  data-testid="schedule-complete-submit"
                   onClick={() => void handleCompleteSchedule()}
                   disabled={isCompletingSchedule || !selectedChampionName}
                   className="pixel-button flex-1 bg-green-600 text-white px-4 py-3 text-sm font-bold disabled:opacity-50"

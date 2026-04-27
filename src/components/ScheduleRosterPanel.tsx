@@ -17,17 +17,17 @@ function RosterCard({
     <div className="border-4 border-black bg-white p-4 shadow-[6px_6px_0px_rgba(0,0,0,1)]">
       <div className="flex items-start justify-between gap-3 border-b-2 border-black pb-3">
         <div>
-          <p className="text-lg font-black">{team.name}</p>
-          <p className="text-xs font-bold text-gray-500 mt-1">
+          <p className="text-fluid-lg font-black">{team.name}</p>
+          <p className="text-fluid-xs font-bold text-gray-500 mt-1">
             팀장: {team.leaderName || "미등록"}
           </p>
-          {/* <p className="text-[11px] font-bold text-gray-400 mt-1">
+          {/* <p className="text-fluid-xs font-bold text-gray-400 mt-1">
             경매: {team.auctionName}
           </p> */}
         </div>
         <div className="flex flex-col items-end gap-2">
           {isWinner && (
-            <div className="border-2 border-black bg-green-600 px-2 py-1 text-[10px] font-black text-white">
+            <div className="border-2 border-black bg-green-600 px-2 py-1 text-fluid-xs font-black text-white">
               WIN
             </div>
           )}
@@ -36,7 +36,7 @@ function RosterCard({
 
       <div className="mt-4 space-y-2">
         {team.players.length === 0 && (
-          <div className="border-2 border-dashed border-black/40 bg-gray-50 px-3 py-4 text-center text-sm font-bold text-gray-400">
+          <div className="border-2 border-dashed border-black/40 bg-gray-50 px-3 py-4 text-center text-fluid-sm font-bold text-gray-400">
             등록된 로스터가 없습니다.
           </div>
         )}
@@ -46,8 +46,8 @@ function RosterCard({
             className="flex items-center justify-between border-2 border-black bg-[#fffdf8] px-3 py-2"
           >
             <div>
-              <p className="text-sm font-black">{player.name}</p>
-              <p className="text-[11px] font-bold text-gray-500">
+              <p className="text-fluid-sm font-black">{player.name}</p>
+              <p className="text-fluid-xs font-bold text-gray-500">
                 {player.tier || "티어 미기입"} ·{" "}
                 {player.mainPosition || "포지션 미기입"}
                 {player.subPosition ? ` / ${player.subPosition}` : ""}
@@ -78,17 +78,17 @@ export function ScheduleRosterPanel({
       <div className="flex items-center gap-3 mb-4">
         <Trophy size={18} className="text-minion-blue" />
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+          <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
             Team Rosters
           </p>
-          <h3 className="text-xl font-black mt-1">경기 예정 팀 로스터</h3>
+          <h3 className="text-fluid-lg font-black mt-1">경기 예정 팀 로스터</h3>
         </div>
       </div>
 
       {matches.length === 0 ? (
         <div className="border-2 border-dashed border-black p-8 text-center">
-          <p className="text-sm font-black">표시할 로스터가 없습니다.</p>
-          <p className="text-xs font-bold text-gray-500 mt-2">
+          <p className="text-fluid-sm font-black">표시할 로스터가 없습니다.</p>
+          <p className="text-fluid-xs font-bold text-gray-500 mt-2">
             해당 날짜에 팀 이름을 입력하고 저장하면 경기 예정 팀 로스터가 아래에
             표시됩니다.
           </p>
@@ -107,7 +107,7 @@ export function ScheduleRosterPanel({
                     isWinner={match.winner === "HOME"}
                   />
                 ) : (
-                  <div className="border-4 border-dashed border-black/40 bg-gray-50 p-8 text-center text-sm font-black text-gray-400">
+                  <div className="border-4 border-dashed border-black/40 bg-gray-50 p-8 text-center text-fluid-sm font-black text-gray-400">
                     홈팀 로스터 없음
                   </div>
                 )}
@@ -124,7 +124,7 @@ export function ScheduleRosterPanel({
                     isWinner={match.winner === "AWAY"}
                   />
                 ) : (
-                  <div className="border-4 border-dashed border-black/40 bg-gray-50 p-8 text-center text-sm font-black text-gray-400">
+                  <div className="border-4 border-dashed border-black/40 bg-gray-50 p-8 text-center text-fluid-sm font-black text-gray-400">
                     원정팀 로스터 없음
                   </div>
                 )}
