@@ -566,206 +566,207 @@ export function LeagueScheduleManager() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 2xl:grid-cols-[340px_minmax(0,1fr)] gap-6">
-          <div className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
-                  Schedule List
-                </p>
-                <p className="text-fluid-lg font-black">리그전 일정</p>
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 2xl:grid-cols-[340px_minmax(0,1fr)] gap-6 items-stretch">
+            <div className="bg-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)] h-full min-h-0 flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                    Schedule List
+                  </p>
+                  <p className="text-fluid-lg font-black">리그전 일정</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadCatalog}
+                  className="border-2 border-black px-3 py-2 text-xs font-black bg-minion-yellow"
+                >
+                  새로고침
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={loadCatalog}
-                className="border-2 border-black px-3 py-2 text-xs font-black bg-minion-yellow"
-              >
-                새로고침
-              </button>
-            </div>
-            <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
-              {isLoading && (
-                <div className="space-y-3">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="border-4 border-black p-4 bg-gray-100 animate-pulse"
-                    >
-                      <div className="h-5 bg-gray-300 rounded w-3/4 mb-2" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!isLoading && schedules.length === 0 && (
-                <div className="border-2 border-dashed border-black p-6 text-center text-sm font-black">
-                  등록된 일정이 없습니다.
-                </div>
-              )}
-              {!isLoading && schedules.map((schedule) =>
-                schedule ? (
-                  <button
-                    key={schedule.id}
-                    data-testid={`schedule-card-${schedule.id}`}
-                    type="button"
-                    onClick={() => setSelectedScheduleId(schedule.id)}
-                    className={`w-full text-left border-4 p-4 ${selectedScheduleId === schedule.id ? "border-minion-blue bg-minion-blue text-white" : "border-black bg-[#fffdf8]"}`}
-                  >
-                    <p className="text-fluid-lg font-black">{schedule.name}</p>
-                    <p
-                      className={`text-fluid-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-500"}`}
-                    >
-                      {formatScheduleDate(schedule.startsAt, schedule.endsAt)}
-                    </p>
-                    <p
-                      className={`text-fluid-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-600"}`}
-                    >
-                      {schedule.linkedLeagueName
-                        ? `연결 경매: ${schedule.linkedLeagueName}`
-                        : "커스텀 일정"}
-                    </p>
-                  </button>
-                ) : null,
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            {timeline?.schedule ? (
-              <>
-                {isLoadingTimeline && (
-                  <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_rgba(0,0,0,1)] flex items-center gap-4 animate-pulse">
-                    <div className="border-4 border-black border-t-minion-yellow w-8 h-8 rounded-full animate-spin shrink-0" />
-                    <div>
-                      <p className="text-fluid-sm font-black tracking-widest uppercase text-gray-500">타임라인 불러오는 중...</p>
-                      <p className="text-fluid-xs font-bold text-gray-400 mt-1">잠시만 기다려주세요.</p>
-                    </div>
+              <div className="space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
+                {isLoading && (
+                  <div className="space-y-3">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="border-4 border-black p-4 bg-gray-100 animate-pulse"
+                      >
+                        <div className="h-5 bg-gray-300 rounded w-3/4 mb-2" />
+                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                      </div>
+                    ))}
                   </div>
                 )}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="bg-[linear-gradient(180deg,#fffef8_0%,#fff5c5_100%)] border-4 border-black p-5 shadow-[10px_10px_0px_rgba(0,0,0,1)] lg:col-span-2">
-                    <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
-                      Current Schedule
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 mt-1">
-                      <h3 className="text-fluid-lg font-black">
-                        {timeline.schedule.name}
-                      </h3>
-                      {(timeline.schedule.status === "COMPLETED" ||
-                        isScheduleInProgress(
+                {!isLoading && schedules.length === 0 && (
+                  <div className="border-2 border-dashed border-black p-6 text-center text-sm font-black">
+                    등록된 일정이 없습니다.
+                  </div>
+                )}
+                {!isLoading && schedules.map((schedule) =>
+                  schedule ? (
+                    <button
+                      key={schedule.id}
+                      data-testid={`schedule-card-${schedule.id}`}
+                      type="button"
+                      onClick={() => setSelectedScheduleId(schedule.id)}
+                      className={`w-full text-left border-4 p-4 ${selectedScheduleId === schedule.id ? "border-minion-blue bg-minion-blue text-white" : "border-black bg-[#fffdf8]"}`}
+                    >
+                      <p className="text-fluid-lg font-black">{schedule.name}</p>
+                      <p
+                        className={`text-fluid-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-500"}`}
+                      >
+                        {formatScheduleDate(schedule.startsAt, schedule.endsAt)}
+                      </p>
+                      <p
+                        className={`text-fluid-xs font-bold mt-2 ${selectedScheduleId === schedule.id ? "text-blue-100" : "text-gray-600"}`}
+                      >
+                        {schedule.linkedLeagueName
+                          ? `연결 경매: ${schedule.linkedLeagueName}`
+                          : "커스텀 일정"}
+                      </p>
+                    </button>
+                  ) : null,
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              {timeline?.schedule ? (
+                <>
+                  {isLoadingTimeline && (
+                    <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_rgba(0,0,0,1)] flex items-center gap-4 animate-pulse">
+                      <div className="border-4 border-black border-t-minion-yellow w-8 h-8 rounded-full animate-spin shrink-0" />
+                      <div>
+                        <p className="text-fluid-sm font-black tracking-widest uppercase text-gray-500">타임라인 불러오는 중...</p>
+                        <p className="text-fluid-xs font-bold text-gray-400 mt-1">잠시만 기다려주세요.</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="bg-[linear-gradient(180deg,#fffef8_0%,#fff5c5_100%)] border-4 border-black p-5 shadow-[10px_10px_0px_rgba(0,0,0,1)] lg:col-span-2">
+                      <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                        Current Schedule
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 mt-1">
+                        <h3 className="text-fluid-xl font-black">
+                          {timeline.schedule.name}
+                        </h3>
+                        {(timeline.schedule.status === "COMPLETED" ||
+                          isScheduleInProgress(
+                            timeline.schedule.startsAt,
+                            timeline.schedule.endsAt,
+                          )) && (
+                          <span
+                            className={`border-2 border-black px-3 py-1 text-fluid-xs font-black ${timeline.schedule.status === "COMPLETED" ? "bg-green-600 text-white" : "bg-minion-yellow text-black"}`}
+                          >
+                            {timeline.schedule.status === "COMPLETED"
+                              ? "종료됨"
+                              : "진행중"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-fluid-sm font-bold text-gray-700 mt-2">
+                        {formatScheduleDate(
                           timeline.schedule.startsAt,
                           timeline.schedule.endsAt,
-                        )) && (
-                        <span
-                          className={`border-2 border-black px-3 py-1 text-fluid-xs font-black ${timeline.schedule.status === "COMPLETED" ? "bg-green-600 text-white" : "bg-minion-yellow text-black"}`}
-                        >
-                          {timeline.schedule.status === "COMPLETED"
-                            ? "종료됨"
-                            : "진행중"}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-fluid-sm font-bold text-gray-700 mt-2">
-                      {formatScheduleDate(
-                        timeline.schedule.startsAt,
-                        timeline.schedule.endsAt,
-                      )}
-                    </p>
-                    {timeline.schedule.status === "COMPLETED" && !isAdminVerified && (
-                      <div className="mt-4 border-4 border-black bg-red-50 px-4 py-3">
-                        <p className="text-fluid-xs font-black uppercase tracking-[0.16em] text-minion-red">
-                          Read-Only Mode
-                        </p>
-                        <p className="mt-1 text-fluid-sm font-bold text-gray-800">
-                          완료된 일정입니다. 관리자 코드 검증 전에는 결과 수정과 일정 편집이 잠겨 있습니다.
-                        </p>
-                      </div>
-                    )}
-                    {timeline.schedule.championTeamName && (
-                      <p className="mt-3 text-fluid-sm font-black text-green-700">
-                        최종 우승팀: {timeline.schedule.championTeamName}
+                        )}
                       </p>
-                    )}
-                    {timeline.schedule.notes && (
-                      <p className="mt-4 border-2 border-black bg-[#fffdf6] px-4 py-3 text-fluid-sm font-bold text-gray-700">
-                        {timeline.schedule.notes}
-                      </p>
-                    )}
-                    <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIsCompleteModalOpen(true)}
-                        data-testid="schedule-current-complete"
-                        disabled={
-                          timeline.rosterTeams.length === 0 ||
-                          timeline.schedule.status === "COMPLETED"
-                        }
-                        className="border-2 border-black bg-green-600 text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        <Flag size={16} />
-                        일정 종료
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsDeleteModalOpen(true)}
-                        data-testid="schedule-current-delete"
-                        disabled={
-                          timeline.schedule.status === "COMPLETED" &&
-                          !isAdminVerified
-                        }
-                        className="border-2 border-black bg-minion-red text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Trash2 size={16} />
-                        일정 삭제
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-black text-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-                    <div className="flex items-center gap-3">
-                      <Clock3 size={18} className="text-minion-yellow" />
-                      <div>
-                        <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
-                          Next Match
-                        </p>
-                        <p className="text-fluid-lg font-black mt-1">
-                          {nextMatchesPreview.length > 0
-                            ? `${nextMatchesPreview.length}경기 예정`
-                            : "대기 중"}
-                        </p>
-                      </div>
-                    </div>
-                    {nextMatchesPreview.length > 0 ? (
-                      <div className="mt-4 space-y-2">
-                        {nextMatchesPreview.map((match) => (
-                          <div
-                            key={match.id}
-                            className="border-2 border-white/20 bg-white/5 px-3 py-2"
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              {match.stageLabel && (
-                                <span className="border border-white/50 bg-white/10 px-2 py-0.5 text-fluid-xs font-black">
-                                  {match.stageLabel}
-                                </span>
-                              )}
-                              <p className="text-sm font-black">
-                                {match.homeTeamName} vs {match.awayTeamName}
-                              </p>
-                            </div>
-                            <p className="text-fluid-xs font-bold text-white/70 mt-1">
-                              {match.startsAt} · {getWinnerLabel(match)}
+                      {timeline.schedule.status === "COMPLETED" &&
+                        !isAdminVerified && (
+                          <div className="mt-4 border-4 border-black bg-red-50 px-4 py-3">
+                            <p className="text-fluid-xs font-black uppercase tracking-[0.16em] text-minion-red">
+                              Read-Only Mode
+                            </p>
+                            <p className="mt-1 text-fluid-sm font-bold text-gray-800">
+                              완료된 일정입니다. 관리자 코드 검증 전에는 결과 수정과 일정 편집이 잠겨 있습니다.
                             </p>
                           </div>
-                        ))}
+                        )}
+                      {timeline.schedule.championTeamName && (
+                        <p className="mt-3 text-fluid-sm font-black text-green-700">
+                          최종 우승팀: {timeline.schedule.championTeamName}
+                        </p>
+                      )}
+                      {timeline.schedule.notes && (
+                        <p className="mt-4 border-2 border-black bg-[#fffdf6] px-4 py-3 text-fluid-sm font-bold text-gray-700">
+                          {timeline.schedule.notes}
+                        </p>
+                      )}
+                      <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setIsCompleteModalOpen(true)}
+                          data-testid="schedule-current-complete"
+                          disabled={
+                            timeline.rosterTeams.length === 0 ||
+                            timeline.schedule.status === "COMPLETED"
+                          }
+                          className="border-2 border-black bg-green-600 text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          <Flag size={16} />
+                          일정 종료
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsDeleteModalOpen(true)}
+                          data-testid="schedule-current-delete"
+                          disabled={
+                            timeline.schedule.status === "COMPLETED" &&
+                            !isAdminVerified
+                          }
+                          className="border-2 border-black bg-minion-red text-white px-4 py-3 text-sm font-black inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 size={16} />
+                          일정 삭제
+                        </button>
                       </div>
-                    ) : (
-                      <p className="text-sm font-bold text-white/80 mt-4">
-                        등록된 다음 경기가 없습니다.
-                      </p>
-                    )}
+                    </div>
+                    <div className="bg-black text-white border-4 border-black p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+                      <div className="flex items-center gap-3">
+                        <Clock3 size={18} className="text-minion-yellow" />
+                        <div>
+                          <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-yellow">
+                            Next Match
+                          </p>
+                          <p className="text-fluid-lg font-black mt-1">
+                            {nextMatchesPreview.length > 0
+                              ? `${nextMatchesPreview.length}경기 예정`
+                              : "대기 중"}
+                          </p>
+                        </div>
+                      </div>
+                      {nextMatchesPreview.length > 0 ? (
+                        <div className="mt-4 space-y-2">
+                          {nextMatchesPreview.map((match) => (
+                            <div
+                              key={match.id}
+                              className="border-2 border-white/20 bg-white/5 px-3 py-2"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                {match.stageLabel && (
+                                  <span className="border border-white/50 bg-white/10 px-2 py-0.5 text-fluid-xs font-black">
+                                    {match.stageLabel}
+                                  </span>
+                                )}
+                                <p className="text-sm font-black">
+                                  {match.homeTeamName} vs {match.awayTeamName}
+                                </p>
+                              </div>
+                              <p className="text-fluid-xs font-bold text-white/70 mt-1">
+                                {match.startsAt} · {getWinnerLabel(match)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm font-bold text-white/80 mt-4">
+                          등록된 다음 경기가 없습니다.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-5">
                   <ScheduleCalendar
                     label="Match Days"
                     selectedDate={new Date(`${selectedDateKey}T00:00:00`)}
@@ -778,6 +779,26 @@ export function LeagueScheduleManager() {
                         : undefined
                     }
                   />
+                </>
+              ) : isLoadingTimeline ? (
+                <div className="bg-white border-4 border-black p-10 text-center space-y-4 animate-pulse">
+                  <div className="flex justify-center">
+                    <div className="border-4 border-black border-t-minion-yellow w-10 h-10 rounded-full animate-spin" />
+                  </div>
+                  <p className="text-sm font-black tracking-widest uppercase text-gray-500">일정 불러오는 중...</p>
+                </div>
+              ) : (
+                <div className="bg-white border-4 border-dashed border-black p-10 text-center">
+                  <p className="text-lg font-black">선택된 일정이 없습니다.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            {timeline?.schedule ? (
+              <>
+                <div className="space-y-5">
                   <ScheduleMatchDayEditor
                     selectedDateLabel={formatTimelineDate(selectedDateKey)}
                     rows={matchRows}
@@ -851,28 +872,17 @@ export function LeagueScheduleManager() {
                     onSaveDay={() => void handleSaveDay()}
                     onSaveResult={(row) => void handleSaveResult(row)}
                   />
-                </div>
 
-                <ScheduleRosterPanel matches={selectedRosterMatches} />
-                <LeagueRecordSummaryPanel
-                  scheduleName={timeline.schedule.name}
-                  championTeamName={timeline.schedule.championTeamName}
-                  rosterTeams={timeline.rosterTeams}
-                  days={timeline.days}
-                />
-              </>
-            ) : isLoadingTimeline ? (
-              <div className="bg-white border-4 border-black p-10 text-center space-y-4 animate-pulse">
-                <div className="flex justify-center">
-                  <div className="border-4 border-black border-t-minion-yellow w-10 h-10 rounded-full animate-spin" />
+                  <ScheduleRosterPanel matches={selectedRosterMatches} />
+                  <LeagueRecordSummaryPanel
+                    scheduleName={timeline.schedule.name}
+                    championTeamName={timeline.schedule.championTeamName}
+                    rosterTeams={timeline.rosterTeams}
+                    days={timeline.days}
+                  />
                 </div>
-                <p className="text-sm font-black tracking-widest uppercase text-gray-500">일정 불러오는 중...</p>
-              </div>
-            ) : (
-              <div className="bg-white border-4 border-dashed border-black p-10 text-center">
-                <p className="text-lg font-black">선택된 일정이 없습니다.</p>
-              </div>
-            )}
+              </>
+            ) : null}
           </div>
         </div>
       </div>

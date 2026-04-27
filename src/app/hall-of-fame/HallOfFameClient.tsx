@@ -24,19 +24,23 @@ export function HallOfFameClient({ initialEntries }: HallOfFameClientProps) {
   }
 
   return (
-    <div className="min-h-screen relative crt-overlay">
-      <div className="relative z-10 flex flex-col items-center px-4 py-20 gap-12">
-        {/* 헤더 */}
-        <div className="bg-white p-10 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-3xl w-full text-center space-y-6 animate-slide-up">
-          <div className="inline-block px-4 py-1 bg-black text-white text-sm font-bold tracking-widest uppercase animate-pulse">
-            Legendary Records
+    <div className="min-h-screen relative crt-overlay hof-page">
+      <div className="relative z-10 flex flex-col items-center px-4 py-16 lg:py-20 gap-10">
+        <div className="hof-archive-header animate-slide-up">
+          <div className="hof-archive-header-top">
+            <div className="hof-archive-eyebrow">Legendary Records</div>
+            <div className="hof-archive-stamp">Archive Wing</div>
           </div>
-          <h1 className="text-3xl lg:text-5xl font-heading text-minion-blue">
-            HALL OF FAME
-          </h1>
-          <p className="text-base font-bold border-y-2 border-black py-3 border-dashed text-gray-600">
-            미니언즈 리그 역대 우승팀 명예의 전당
+          <h1 className="hof-archive-title">HALL OF FAME</h1>
+          <p className="hof-archive-subtitle">
+            미니언즈 리그 역대 우승팀이 보관된 공식 기록 전시 구역
           </p>
+          <div className="hof-archive-rule" aria-hidden="true" />
+          <div className="hof-archive-meta">
+            <span>Champion Trophies</span>
+            <span>Season Records</span>
+            <span>Roster Archive</span>
+          </div>
           <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
             <button
               onClick={() => setIsRegisterOpen(true)}
@@ -53,10 +57,9 @@ export function HallOfFameClient({ initialEntries }: HallOfFameClientProps) {
           </div>
         </div>
 
-        {/* 목록 */}
-        <div className="max-w-3xl w-full">
+        <div className="hof-archive-stage">
           {initialEntries.length === 0 ? (
-            <div className="bg-white border-4 border-black p-12 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] animate-slide-up">
+            <div className="hof-empty-state animate-slide-up">
               <p className="font-heading text-2xl text-gray-400 mb-3">
                 [ EMPTY ]
               </p>
@@ -68,11 +71,11 @@ export function HallOfFameClient({ initialEntries }: HallOfFameClientProps) {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="hof-gallery-grid">
               {initialEntries.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="animate-slide-up"
+                  className="hof-gallery-item animate-slide-up"
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
                   <HallOfFameCard entry={entry} onDeleted={handleDeleted} />
@@ -82,7 +85,6 @@ export function HallOfFameClient({ initialEntries }: HallOfFameClientProps) {
           )}
         </div>
 
-        {/* 픽셀 장식 */}
         <div className="flex gap-2 opacity-30 animate-pulse">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="w-3 h-3 bg-black" />

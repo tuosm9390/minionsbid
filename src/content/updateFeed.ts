@@ -6,6 +6,11 @@ export interface UpdateFeedItem {
 
 export const updateFeedItems: UpdateFeedItem[] = [
   {
+    id: "2026-04-24-01",
+    date: "2026-04-24",
+    text: "명예의 전당 페이지를 기록 전시 벽 콘셉트로 개편하고 트로피 중심 배치, 시즌/팀장 정보 정리, 전시 라벨과 리그별 트로피 표현을 강화했습니다.",
+  },
+  {
     id: "2026-04-13-01",
     date: "2026-04-13",
     text: "배포 환경에서 클라이언트 스크립트가 막히던 CSP 설정을 정리해 모바일 포함 주요 기능과 애니메이션이 다시 정상 동작합니다.",

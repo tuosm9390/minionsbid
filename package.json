@@ -13,7 +13,10 @@
     "audit:room-auth-secrets": "node scripts/audit_room_auth_secrets.js",
     "smoke:room-rules": "node scripts/smoke_room_rules.js",
     "migrate:room-auth-secrets:dry-run": "node scripts/migrate_room_auth_secrets.js",
-    "migrate:room-auth-secrets": "node scripts/migrate_room_auth_secrets.js --write"
+    "migrate:room-auth-secrets": "node scripts/migrate_room_auth_secrets.js --write",
+    "seed:archive-json": "node scripts/seed_archive_from_json.js",
+    "seed:hof-json": "node scripts/seed_hall_of_fame_from_json.js",
+    "delete:hof-entry": "node scripts/delete_hall_of_fame_entry.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",
