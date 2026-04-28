@@ -294,10 +294,9 @@ describe('placeBid', () => {
 
   it('GREEN: 남은 시간 ≤ 5초이면 타이머 연장', async () => {
     mockDocGet
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 10000), current_player_id: playerId }))
+      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 3000), current_player_id: playerId }))
       .mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' }))
       .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'IN_ROSTER' }))
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 3000) })) // 3초 남음 → 연장
     mockQueryGet
       .mockResolvedValueOnce(makeQuerySnap([]))
       .mockResolvedValueOnce(makeQuerySnap([]))
@@ -458,8 +457,10 @@ describe('draftPlayer', () => {
   it('GREEN: UNSOLD 선수를 0P로 팀에 영입', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'UNSOLD', room_id: roomId }))
-      .mockResolvedValueOnce(makeSnap({ name: '팀A' }))
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
       .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'IN_ROSTER' }))
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
+      .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'UNSOLD', room_id: roomId }))
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap(new Array(2).fill({ status: 'SOLD' })))
     const result = await draftPlayer(roomId, playerId, teamId)
     expect(result.error).toBeUndefined()
@@ -468,18 +469,45 @@ describe('draftPlayer', () => {
   it('GREEN: WAITING 선수도 0P 영입 가능 (자유계약)', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'WAITING', room_id: roomId }))
-      .mockResolvedValueOnce(makeSnap({ name: '팀A' }))
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
       .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'IN_ROSTER' }))
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
+      .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'WAITING', room_id: roomId }))
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap([]))
     const result = await draftPlayer(roomId, playerId, teamId)
     expect(result.error).toBeUndefined()
   })
 
+  it('GREEN: 마지막 슬롯 드래프트면 남은 포인트 전액을 사용한다', async () => {
+    mockDocGet
+      .mockResolvedValueOnce(
+        makeSnap({ name: '홍길동', status: 'UNSOLD', room_id: roomId }),
+      )
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 100 }))
+      .mockResolvedValueOnce(
+        makeSnap({ members_per_team: 5, captain_mode: 'COACH_ONLY' }),
+      )
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 100 }))
+      .mockResolvedValueOnce(
+        makeSnap({ name: '홍길동', status: 'UNSOLD', room_id: roomId }),
+      )
+    mockQueryGet.mockResolvedValueOnce(
+      makeQuerySnap(new Array(4).fill({ status: 'SOLD' })),
+    )
+
+    const result = await draftPlayer(roomId, playerId, teamId)
+
+    expect(result.error).toBeUndefined()
+    expect(mockRunTransaction).toHaveBeenCalled()
+  })
+
   it('COACH_ONLY면 팀장이 슬롯을 차지하지 않는다', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'WAITING', room_id: roomId }))
-      .mockResolvedValueOnce(makeSnap({ name: '팀A' }))
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
       .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'COACH_ONLY' }))
+      .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
+      .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'WAITING', room_id: roomId }))
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap(new Array(4).fill({ status: 'SOLD' })))
     const result = await draftPlayer(roomId, playerId, teamId)
     expect(result.error).toBeUndefined()

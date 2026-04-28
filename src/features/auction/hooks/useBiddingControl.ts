@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getDatabase, ref, set } from 'firebase/database'
 import {
   useAuctionStore,
   type LiveBidState,
@@ -9,6 +8,7 @@ import {
   type Team,
 } from '@/features/auction/store/useAuctionStore'
 import { placeBid } from '@/features/auction/api/auctionActions'
+import { getAuctionDerivedState } from '@/features/auction/utils/auctionRealtime'
 
 interface UseBiddingControlProps {
   roomId: string
@@ -54,17 +54,12 @@ export function useBiddingControl({
   const players = useAuctionStore((s) => s.players)
 
   // ── 파생 데이터 ──
-  const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id)
-  const firestoreHighestBid =
-    playerBids.length > 0 ? Math.max(...playerBids.map((b) => b.amount)) : 0
-  const activeLiveBid =
-    liveBid?.player_id === currentPlayer?.id ? liveBid : null
-  const highestBid = Math.max(firestoreHighestBid, activeLiveBid?.amount ?? 0)
-  const topBid =
-    activeLiveBid && activeLiveBid.amount >= firestoreHighestBid
-      ? activeLiveBid
-      : playerBids.find((b) => b.amount === firestoreHighestBid)
-  const isLeading = topBid?.team_id === teamId
+  const { activeLiveBid, isLeading } = getAuctionDerivedState({
+    bids,
+    currentPlayerId: currentPlayer?.id,
+    liveBid,
+    teamId,
+  })
 
   const numericBidAmount =
     typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
@@ -115,24 +110,12 @@ export function useBiddingControl({
     setIsBidding(true)
 
     setLiveBid(optimisticLiveBid)
-    void set(ref(getDatabase(), `signals/${roomId}/latestBid`), {
-      ...optimisticLiveBid,
-      at: Date.now(),
-    }).catch(() => {
-      // RTDB 신호 실패 시에도 로컬 optimistic update는 유지한다.
-    })
 
     if (shouldOptimisticallyExtend) {
       const optimisticTimerEndsAt = new Date(
         Date.now() + EXTEND_DURATION_MS,
       ).toISOString()
       setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
-      void set(
-        ref(getDatabase(), `signals/${roomId}/timerExtended`),
-        { timerEndsAt: optimisticTimerEndsAt, at: Date.now() },
-      ).catch(() => {
-        // RTDB 신호 실패 시에도 로컬 optimistic update는 유지한다.
-      })
     }
 
     appendBid({
@@ -148,12 +131,6 @@ export function useBiddingControl({
       if (res.error) {
         removeBid(optimisticBidId)
         setLiveBid(previousLiveBid ?? null)
-        void set(
-          ref(getDatabase(), `signals/${roomId}/latestBid`),
-          previousLiveBid ? { ...previousLiveBid, at: Date.now() } : null,
-        ).catch(() => {
-          // 롤백 신호 실패는 무시하고 Firestore snapshot에 맡긴다.
-        })
         if (shouldOptimisticallyExtend) {
           setRealtimeData({ timerEndsAt: previousTimerEndsAt })
         }

@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { db as firebaseDb } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { createRoom as createRoomAction } from "@/features/auction/api/auctionActions";
 import { getLeagueScheduleCatalog } from "@/features/schedules/api/scheduleActions";
@@ -12,6 +11,7 @@ import {
   type CaptainMode,
   getAuctionSlotsPerTeam,
 } from "../utils/roster";
+import { getAuctionClientServices } from "../realtime/clientAdapter";
 
 const LS_KEY = "league_auction_rooms";
 
@@ -88,19 +88,20 @@ export function useCreateRoom() {
   const checkActiveRooms = useCallback(async () => {
     setIsCheckingRooms(true);
     try {
+      const { firestore } = getAuctionClientServices();
       const storedStr = localStorage.getItem(LS_KEY);
       const stored: StoredRoom[] = JSON.parse(storedStr || "[]");
       if (stored.length === 0) return;
 
       const active: StoredRoom[] = [];
       for (const room of stored) {
-        const roomDoc = await getDoc(doc(firebaseDb, "rooms", room.id));
+        const roomDoc = await getDoc(doc(firestore, "rooms", room.id));
         if (!roomDoc.exists()) {
           const prev: StoredRoom[] = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
           localStorage.setItem(LS_KEY, JSON.stringify(prev.filter((r) => r.id !== room.id)));
           continue;
         }
-        const playersSnap = await getDocs(collection(firebaseDb, "rooms", room.id, "players"));
+        const playersSnap = await getDocs(collection(firestore, "rooms", room.id, "players"));
         const playerDocs = playersSnap.docs.map((d) => d.data());
         const allSold =
           playerDocs.length > 0 &&

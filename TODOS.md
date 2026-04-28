@@ -50,6 +50,15 @@
 - **Cons**: 계정/세션/토큰 발급 흐름이 복잡해지고 기존 링크 입장 모델과의 조율이 필요하다.
 - **Context**: 2026-04-27 기준 private auth 문서 분리, legacy cleanup, named database `minionsbid` rules 배포, live smoke 검증은 끝났다. 다음 단계는 “누가 읽는가”를 rules가 더 정확히 알게 하는 것이다.
 
+### [ ] 경매 실시간 contract 문서화
+- **What**: 경매 실시간 상태 동기화 규칙을 별도 문서로 정리한다. Firestore 정본, RTDB auction envelope, `eventId` / `revision` / `serverCreatedAt`, 클라이언트 optimistic local-only 원칙, organizer-only 만료 트리거를 명시한다.
+- **Why**: 이번 경매 안정화의 핵심은 “빠르게 보이는 것”이 아니라 “모든 클라이언트가 같은 진실을 빠르게 본다”는 contract에 있다. 이 규칙이 문서화되지 않으면 다음 수정에서 다시 클라이언트 RTDB write나 중복 파생 계산이 들어올 가능성이 높다.
+- **Pros**: 실시간 동기화 변경 시 판단 기준이 생기고, split-brain 회귀를 예방할 수 있다. 테스트 작성 기준도 함께 선명해진다.
+- **Cons**: envelope 구조나 상태 전이 규칙이 바뀔 때 문서도 같이 관리해야 한다.
+- **Context**: 현재 방향은 Firestore를 canonical state로 유지하고, RTDB는 서버가 발행하는 저지연 auction event bus로 사용한다. 클라이언트는 local optimistic UI만 수행하고, 서버 ack와 Firestore snapshot으로 수렴한다. `highestBid`, `leadingTeam`, `minBid` 같은 파생 상태도 단일 규칙으로 계산되어야 한다.
+- **Status update (2026-04-29)**: 기본 계약 문서를 [`doc/AUCTION_REALTIME_CONTRACT.md`](D:\development\league-auction\doc\AUCTION_REALTIME_CONTRACT.md:1)에 추가했다. 이후 envelope 타입이나 recovery 정책이 바뀌면 이 문서를 함께 갱신해야 한다.
+- **Depends on / blocked by**: auction envelope 설계 확정, 공통 selector/helper 정리, organizer-only recover path 반영 후 문서화하는 것이 가장 정확하다.
+
 ### [ ] 사운드 효과 (Sound System)
 - **What**: 입찰, 낙찰, 경매 시작 시 8-bit 스타일 효과음 추가.
 - **Why**: 경매의 몰입감과 피드백 강화.

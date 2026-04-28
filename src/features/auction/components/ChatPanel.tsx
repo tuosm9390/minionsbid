@@ -131,8 +131,9 @@ const MessageList = memo(function MessageList({
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg) return;
-    if (lastMsg.id !== lastMsgIdRef.current) {
-      lastMsgIdRef.current = lastMsg.id;
+    const lastMsgKey = lastMsg.event_id ?? lastMsg.id;
+    if (lastMsgKey !== lastMsgIdRef.current) {
+      lastMsgIdRef.current = lastMsgKey;
       const el = scrollContainerRef.current;
       if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
@@ -154,7 +155,9 @@ const MessageList = memo(function MessageList({
           --- WAITING FOR LOGS ---
         </div>
       ) : (
-        messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
+        messages.map((msg) => (
+          <MessageItem key={msg.event_id ?? msg.id} msg={msg} />
+        ))
       )}
     </div>
   );
@@ -165,6 +168,8 @@ const ChatComposer = memo(function ChatComposer() {
   const role = useAuctionStore((s) => s.role);
   const teams = useAuctionStore((s) => s.teams);
   const teamId = useAuctionStore((s) => s.teamId);
+  const appendMessage = useAuctionStore((s) => s.appendMessage);
+  const removeMessage = useAuctionStore((s) => s.removeMessage);
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -174,6 +179,7 @@ const ChatComposer = memo(function ChatComposer() {
     if (!input.trim() || !roomId || isSending) return;
     setIsSending(true);
     const content = input.trim();
+    let optimisticEventId: string | null = null;
     try {
       let senderName = "관전자";
       if (role === "ORGANIZER") senderName = "주최자";
@@ -181,17 +187,35 @@ const ChatComposer = memo(function ChatComposer() {
         const myTeam = teams.find((t) => t.id === teamId);
         senderName = myTeam?.leader_name || myTeam?.name || "팀장";
       }
+
+      const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      optimisticEventId = eventId;
+      appendMessage({
+        id: eventId,
+        event_id: eventId,
+        room_id: roomId,
+        sender_name: senderName,
+        sender_role: (role || "VIEWER") as Message["sender_role"],
+        content,
+        created_at: new Date().toISOString(),
+      });
+
       const result = await sendChatMessage(
         roomId,
         senderName,
         role || "VIEWER",
         content,
+        eventId,
       );
       if (result.error) {
+        removeMessage(eventId);
         return;
       }
       setInput("");
     } catch {
+      if (optimisticEventId) {
+        removeMessage(optimisticEventId);
+      }
       return;
     } finally {
       setIsSending(false);

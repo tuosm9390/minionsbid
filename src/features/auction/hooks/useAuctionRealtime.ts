@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { db } from '@/lib/firebase'
 import {
   collection,
   doc,
@@ -13,11 +12,13 @@ import {
   Unsubscribe,
   Timestamp,
 } from 'firebase/firestore'
-import { getDatabase, ref, onValue } from 'firebase/database'
+import { ref, onValue } from 'firebase/database'
 import { useAuctionStore } from '../store/useAuctionStore'
-import type { Bid, Team, Player, Message } from '../store/useAuctionStore'
+import type { Bid, Team, Player, Message, Role, PresenceUser, LiveBidState } from '../store/useAuctionStore'
 import { normalizeCaptainMode } from '../utils/roster'
 import { recoverExpiredAuction } from '../api/auctionActions'
+import { applyAuctionEventToState, type AuctionEventEnvelope } from '../utils/auctionRealtime'
+import { getAuctionClientServices } from '../realtime/clientAdapter'
 
 // Firestore 문서 데이터 → Store 타입 변환 헬퍼
 interface FirestoreRoomData {
@@ -69,6 +70,7 @@ interface FirestoreMessageData {
 }
 
 const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
+const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
 function timestampToISO(ts: Timestamp | null | undefined): string | null {
   if (!ts) return null
@@ -84,30 +86,112 @@ function timestampToISO(ts: Timestamp | null | undefined): string | null {
  *
  * onSnapshot이 초기 데이터 + 실시간 변경을 자동 제공하므로 fetchAll 불필요.
  */
-export function useFirebaseRealtime(roomId: string) {
+export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setRoomNotFound = useAuctionStore(s => s.setRoomNotFound)
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
   const setLiveBid = useAuctionStore(s => s.setLiveBid)
   const appendMessage = useAuctionStore(s => s.appendMessage)
+  const setAuctionEventRevision = useAuctionStore(s => s.setAuctionEventRevision)
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
   const lastRecoveryKeyRef = useRef<string | null>(null)
   // CLOSE_LOTTERY 초기값 무시를 위한 ref
-  const closeLotteryInitRef = useRef(true)
-  const timerExtendedInitRef = useRef(true)
-  const latestBidInitRef = useRef(true)
+  const auctionEventInitRef = useRef(true)
   const latestMessageInitRef = useRef(true)
   const lastLiveMessageIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!roomId) return
 
+    if (E2E_AUCTION_FIXTURE) {
+      let cancelled = false
+      const sync = async () => {
+        try {
+          const response = await fetch(
+            `/api/e2e/auction-fixture/state?roomId=${encodeURIComponent(roomId)}`,
+            { cache: 'no-store' },
+          )
+          if (!response.ok) {
+            if (response.status === 404) setRoomNotFound()
+            return
+          }
+
+          const data = (await response.json()) as {
+            roomName: string
+            basePoint: number
+            totalTeams: number
+            membersPerTeam: number
+            captainMode: string
+            timerEndsAt: string | null
+            createdAt: string
+            teams: Team[]
+            players: Player[]
+            bids: Bid[]
+            messages: Message[]
+            presences: PresenceUser[]
+            lotteryPlayer: Player | null
+            liveBid: LiveBidState | null
+            revision: number
+          }
+          if (cancelled) return
+
+          setAuctionEventRevision(data.revision)
+          setLiveBid(data.liveBid ?? null)
+          setLotteryPlayer(data.lotteryPlayer ?? null)
+          setRealtimeData({
+            roomName: data.roomName,
+            basePoint: data.basePoint,
+            totalTeams: data.totalTeams,
+            membersPerTeam: data.membersPerTeam,
+            captainMode: normalizeCaptainMode(data.captainMode),
+            timerEndsAt: data.timerEndsAt,
+            createdAt: data.createdAt,
+            teams: data.teams,
+            players: data.players,
+            bids: data.bids,
+            messages: data.messages,
+            presences: data.presences,
+          })
+
+          const currentPlayerId =
+            data.players.find((player) => player.status === 'IN_AUCTION')?.id ?? null
+          if (data.timerEndsAt && currentPlayerId) {
+            const recoveryKey = `${currentPlayerId}:${data.timerEndsAt}`
+            const isExpired = new Date(data.timerEndsAt).getTime() <= Date.now()
+            if (
+              effectiveRole === 'ORGANIZER' &&
+              isExpired &&
+              lastRecoveryKeyRef.current !== recoveryKey
+            ) {
+              lastRecoveryKeyRef.current = recoveryKey
+              void recoverExpiredAuction(roomId)
+            }
+          } else {
+            lastRecoveryKeyRef.current = null
+          }
+        } catch {
+          // polling retry on next tick
+        }
+      }
+
+      void sync()
+      const intervalId = window.setInterval(() => {
+        void sync()
+      }, 200)
+      return () => {
+        cancelled = true
+        window.clearInterval(intervalId)
+      }
+    }
+
+    const { firestore, rtdb } = getAuctionClientServices()
+
     const unsubs: Unsubscribe[] = []
 
     // 1. Room 문서 구독
-    const roomUnsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
+    const roomUnsub = onSnapshot(doc(firestore, 'rooms', roomId), (snap) => {
       if (!snap.exists()) {
         setRoomNotFound()
         return
@@ -142,7 +226,11 @@ export function useFirebaseRealtime(roomId: string) {
       if (timerEndsAtIso && currentPlayerId) {
         const recoveryKey = `${currentPlayerId}:${timerEndsAtIso}`
         const isExpired = new Date(timerEndsAtIso).getTime() <= Date.now()
-        if (isExpired && lastRecoveryKeyRef.current !== recoveryKey) {
+        if (
+          effectiveRole === 'ORGANIZER' &&
+          isExpired &&
+          lastRecoveryKeyRef.current !== recoveryKey
+        ) {
           lastRecoveryKeyRef.current = recoveryKey
           void recoverExpiredAuction(roomId)
         }
@@ -159,7 +247,7 @@ export function useFirebaseRealtime(roomId: string) {
 
         if (newPlayerId) {
           const bidsQuery = query(
-            collection(db, 'rooms', roomId, 'bids'),
+            collection(firestore, 'rooms', roomId, 'bids'),
             where('player_id', '==', newPlayerId),
             orderBy('amount', 'desc'),
           )
@@ -187,7 +275,7 @@ export function useFirebaseRealtime(roomId: string) {
 
     // 2. Teams 구독
     const teamsUnsub = onSnapshot(
-      collection(db, 'rooms', roomId, 'teams'),
+      collection(firestore, 'rooms', roomId, 'teams'),
       (snap) => {
         const teams: Team[] = snap.docs.map((d) => {
           const td = d.data() as FirestoreTeamData
@@ -209,7 +297,7 @@ export function useFirebaseRealtime(roomId: string) {
 
     // 3. Players 구독
     const playersUnsub = onSnapshot(
-      collection(db, 'rooms', roomId, 'players'),
+      collection(firestore, 'rooms', roomId, 'players'),
       (snap) => {
         const players: Player[] = snap.docs.map((d) => {
           const pd = d.data() as FirestorePlayerData
@@ -233,7 +321,7 @@ export function useFirebaseRealtime(roomId: string) {
 
     // 4. Messages 구독 (최근 200개)
     const messagesQuery = query(
-      collection(db, 'rooms', roomId, 'messages'),
+      collection(firestore, 'rooms', roomId, 'messages'),
       orderBy('created_at'),
       limitToLast(200),
     )
@@ -254,74 +342,39 @@ export function useFirebaseRealtime(roomId: string) {
     })
     unsubs.push(messagesUnsub)
 
-    // 5. RTDB: CLOSE_LOTTERY 신호 감시
-    const rtdb = getDatabase()
-    const signalRef = ref(rtdb, `signals/${roomId}/closeLottery`)
-    closeLotteryInitRef.current = true
-    const signalUnsub = onValue(signalRef, (snapshot) => {
-      // 초기 로드 시 이미 존재하는 값은 무시
-      if (closeLotteryInitRef.current) {
-        closeLotteryInitRef.current = false
+    const applyAuctionEvent = (event: AuctionEventEnvelope) => {
+      const state = useAuctionStore.getState()
+      const next = applyAuctionEventToState(state, event)
+      if (!next.applied) {
         return
       }
-      if (snapshot.exists()) {
-        setLotteryPlayer(null)
-      }
-    })
-    unsubs.push(() => signalUnsub())
-
-    // 6. RTDB: 타이머 연장 신호 감시
-    const timerExtendedRef = ref(rtdb, `signals/${roomId}/timerExtended`)
-    timerExtendedInitRef.current = true
-    const timerExtendedUnsub = onValue(timerExtendedRef, (snapshot) => {
-      if (timerExtendedInitRef.current) {
-        timerExtendedInitRef.current = false
-        return
-      }
-
-      const data = snapshot.val() as { timerEndsAt?: string } | null
-      if (data?.timerEndsAt) {
-        if (LATENCY_DEBUG) {
-          console.info('[latency][client] RTDB timerExtended signal', {
-            roomId,
-            timerEndsAt: data.timerEndsAt,
-            receivedAt: Date.now(),
-          })
-        }
-        setRealtimeData({ timerEndsAt: data.timerEndsAt })
-      }
-    })
-    unsubs.push(() => timerExtendedUnsub())
-
-    // 7. RTDB: 실시간 최고 입찰 신호 감시
-    const latestBidRef = ref(rtdb, `signals/${roomId}/latestBid`)
-    latestBidInitRef.current = true
-    const latestBidUnsub = onValue(latestBidRef, (snapshot) => {
-      if (latestBidInitRef.current) {
-        latestBidInitRef.current = false
-        return
-      }
-
-      const data = snapshot.val() as Bid | null
-      if (!data || !currentPlayerIdRef.current) {
-        setLiveBid(null)
-        return
-      }
-
-      if (data.player_id !== currentPlayerIdRef.current) {
-        return
-      }
-
-      setLiveBid({
-        player_id: data.player_id,
-        team_id: data.team_id,
-        amount: data.amount,
-        created_at: data.created_at,
+      setLiveBid(next.liveBid)
+      setLotteryPlayer(next.lotteryPlayer)
+      setAuctionEventRevision(next.revision)
+      setRealtimeData({
+        players: next.players,
+        teams: next.teams,
+        timerEndsAt: next.timerEndsAt,
       })
-    })
-    unsubs.push(() => latestBidUnsub())
+    }
 
-    // 8. RTDB: 실시간 시스템 메시지 감시
+    // 5. RTDB: 단일 경매 이벤트 감시
+    const auctionEventRef = ref(rtdb, `signals/${roomId}/auctionEvent`)
+    auctionEventInitRef.current = true
+    const auctionEventUnsub = onValue(auctionEventRef, (snapshot) => {
+      if (auctionEventInitRef.current) {
+        auctionEventInitRef.current = false
+        return
+      }
+      const data = snapshot.val() as AuctionEventEnvelope | null
+      if (!data?.eventId) {
+        return
+      }
+      applyAuctionEvent(data)
+    })
+    unsubs.push(() => auctionEventUnsub())
+
+    // 6. RTDB: 실시간 시스템 메시지 감시
     const latestMessageRef = ref(rtdb, `signals/${roomId}/latestMessage`)
     latestMessageInitRef.current = true
     const latestMessageUnsub = onValue(latestMessageRef, (snapshot) => {
@@ -358,5 +411,14 @@ export function useFirebaseRealtime(roomId: string) {
       unsubs.forEach((unsub) => unsub())
       bidsUnsubRef.current?.()
     }
-  }, [roomId, setRealtimeData, setRoomNotFound, setLotteryPlayer, setLiveBid, appendMessage])
+  }, [
+    roomId,
+    effectiveRole,
+    setRealtimeData,
+    setRoomNotFound,
+    setLotteryPlayer,
+    setLiveBid,
+    appendMessage,
+    setAuctionEventRevision,
+  ])
 }

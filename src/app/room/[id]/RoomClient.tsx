@@ -30,6 +30,7 @@ import {
   buildRosterWithCaptain,
   getAuctionSlotsPerTeam,
 } from "@/features/auction/utils/roster";
+import { getAuctionDerivedState } from "@/features/auction/utils/auctionRealtime";
 
 export function RoomClient({
   roomId,
@@ -40,7 +41,6 @@ export function RoomClient({
   roleParam: Role;
   teamIdParam: string | null;
 }) {
-  useFirebaseRealtime(roomId);
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
   const roomName = useAuctionStore((s) => s.roomName);
@@ -74,6 +74,7 @@ export function RoomClient({
     roomId,
     setRoomContext,
   });
+  useFirebaseRealtime(roomId, effectiveRole);
 
   // Firebase RTDB Presence (팀장/주최자 접속 현황)
   const myTeamForPresence = teams.find((t) => t.id === storeTeamId);
@@ -96,15 +97,11 @@ export function RoomClient({
 
   const bids = useAuctionStore((s) => s.bids);
   const liveBid = useAuctionStore((s) => s.liveBid);
-  const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id);
-  const firestoreHighestBid =
-    playerBids.length > 0 ? Math.max(...playerBids.map((b) => b.amount)) : 0;
-  const activeLiveBid =
-    liveBid?.player_id === currentPlayer?.id ? liveBid : null;
-  const highestBid = Math.max(
-    firestoreHighestBid,
-    activeLiveBid?.amount ?? 0,
-  );
+  const { highestBid } = getAuctionDerivedState({
+    bids,
+    currentPlayerId: currentPlayer?.id,
+    liveBid,
+  });
   const minBid = highestBid > 0 ? highestBid + 10 : 10;
 
   useEffect(() => {

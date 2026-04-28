@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { getDatabase, ref, set, onDisconnect, onValue, serverTimestamp } from 'firebase/database'
+import { ref, set, onDisconnect, onValue, serverTimestamp } from 'firebase/database'
 import { useAuctionStore, type PresenceUser } from '../store/useAuctionStore'
+import { getAuctionClientServices } from '../realtime/clientAdapter'
+const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
 interface PresenceOptions {
   roomId: string
@@ -29,8 +31,13 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
 
   useEffect(() => {
     if (!roomId) return
+    if (E2E_AUCTION_FIXTURE) {
+      setPresenceLoaded(true)
+      setLocalConnected(true)
+      return
+    }
 
-    const rtdb = getDatabase()
+    const { rtdb } = getAuctionClientServices()
     const unsubs: (() => void)[] = []
 
     // 1. 로컬 연결 상태 모니터링 (FR-006)
