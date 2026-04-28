@@ -28,12 +28,27 @@ function logLatency(label: string, data: Record<string, unknown>) {
 // ---------- 내부 헬퍼 ----------
 
 async function sysMsg(roomId: string, content: string): Promise<void> {
-  await adminDb.collection("rooms").doc(roomId).collection("messages").add({
-    sender_name: "시스템",
-    sender_role: "SYSTEM",
-    content,
-    created_at: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  const createdAt = new Date().toISOString();
+  const db = admin.database();
+  const signalId = `sys-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  await Promise.all([
+    adminDb.collection("rooms").doc(roomId).collection("messages").add({
+      sender_name: "시스템",
+      sender_role: "SYSTEM",
+      content,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+    }),
+    db.ref(`signals/${roomId}/latestMessage`).set({
+      id: signalId,
+      room_id: roomId,
+      sender_name: "시스템",
+      sender_role: "SYSTEM",
+      content,
+      created_at: createdAt,
+      at: Date.now(),
+    }),
+  ]);
 }
 
 async function publishTimerExtendedSignal(

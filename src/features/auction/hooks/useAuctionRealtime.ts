@@ -88,6 +88,7 @@ export function useFirebaseRealtime(roomId: string) {
   const setRoomNotFound = useAuctionStore(s => s.setRoomNotFound)
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
   const setLiveBid = useAuctionStore(s => s.setLiveBid)
+  const appendMessage = useAuctionStore(s => s.appendMessage)
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
@@ -96,6 +97,8 @@ export function useFirebaseRealtime(roomId: string) {
   const closeLotteryInitRef = useRef(true)
   const timerExtendedInitRef = useRef(true)
   const latestBidInitRef = useRef(true)
+  const latestMessageInitRef = useRef(true)
+  const lastLiveMessageIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!roomId) return
@@ -316,9 +319,32 @@ export function useFirebaseRealtime(roomId: string) {
     })
     unsubs.push(() => latestBidUnsub())
 
+    // 8. RTDB: 실시간 시스템 메시지 감시
+    const latestMessageRef = ref(rtdb, `signals/${roomId}/latestMessage`)
+    latestMessageInitRef.current = true
+    const latestMessageUnsub = onValue(latestMessageRef, (snapshot) => {
+      if (latestMessageInitRef.current) {
+        latestMessageInitRef.current = false
+        return
+      }
+
+      const data = snapshot.val() as Message | null
+      if (!data?.id) {
+        return
+      }
+
+      if (lastLiveMessageIdRef.current === data.id) {
+        return
+      }
+
+      lastLiveMessageIdRef.current = data.id
+      appendMessage(data)
+    })
+    unsubs.push(() => latestMessageUnsub())
+
     return () => {
       unsubs.forEach((unsub) => unsub())
       bidsUnsubRef.current?.()
     }
-  }, [roomId, setRealtimeData, setRoomNotFound, setLotteryPlayer])
+  }, [roomId, setRealtimeData, setRoomNotFound, setLotteryPlayer, setLiveBid, appendMessage])
 }
