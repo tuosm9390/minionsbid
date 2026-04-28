@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export function proxy(request: NextRequest) {
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    process.env.NODE_ENV === 'production' ? '' : "'unsafe-eval'",
+    // Firebase/Google 런타임이 동적으로 로드하는 스크립트 허용
+    'https://www.gstatic.com',
+    'https://www.google.com',
+    'https://apis.google.com',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"};
+    script-src ${scriptSrc};
     style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
     connect-src 'self' https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firestore.googleapis.com https://*.firebasedatabase.app wss://*.firebasedatabase.app;
     img-src 'self' data:;
