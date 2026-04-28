@@ -5,7 +5,7 @@ import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import {
   useAuctionStore,
-  Message,
+  type Message,
 } from "@/features/auction/store/useAuctionStore";
 import { sendChatMessage } from "@/features/auction/api/auctionActions";
 
@@ -126,8 +126,6 @@ export function ChatPanel() {
   const messages = useAuctionStore((s) => s.messages);
   const teams = useAuctionStore((s) => s.teams);
   const teamId = useAuctionStore((s) => s.teamId);
-  const appendMessage = useAuctionStore((s) => s.appendMessage);
-  const removeMessage = useAuctionStore((s) => s.removeMessage);
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -149,7 +147,6 @@ export function ChatPanel() {
     if (!input.trim() || !roomId || isSending) return;
     setIsSending(true);
     const content = input.trim();
-    const optimisticMessageId = `temp-msg-${Date.now()}`;
     try {
       let senderName = "관전자";
       if (role === "ORGANIZER") senderName = "주최자";
@@ -157,14 +154,6 @@ export function ChatPanel() {
         const myTeam = teams.find((t) => t.id === teamId);
         senderName = myTeam?.leader_name || myTeam?.name || "팀장";
       }
-      appendMessage({
-        id: optimisticMessageId,
-        room_id: roomId,
-        sender_name: senderName,
-        sender_role: (role || "VIEWER") as Message["sender_role"],
-        content,
-        created_at: new Date().toISOString(),
-      });
       const result = await sendChatMessage(
         roomId,
         senderName,
@@ -172,12 +161,11 @@ export function ChatPanel() {
         content,
       );
       if (result.error) {
-        removeMessage(optimisticMessageId);
         return;
       }
       setInput("");
     } catch {
-      removeMessage(optimisticMessageId);
+      return;
     } finally {
       setIsSending(false);
     }
