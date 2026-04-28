@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+function getFirebaseOrigins() {
+  const databaseUrl =
+    process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ?? process.env.FIREBASE_DATABASE_URL
+
+  if (!databaseUrl) {
+    return { httpsOrigin: null, wssOrigin: null }
+  }
+
+  try {
+    const { origin, host } = new URL(databaseUrl)
+    return {
+      httpsOrigin: origin,
+      wssOrigin: `wss://${host}`,
+    }
+  } catch {
+    return { httpsOrigin: null, wssOrigin: null }
+  }
+}
+
 export function proxy(request: NextRequest) {
+  const { httpsOrigin: firebaseRtdbHttpsOrigin, wssOrigin: firebaseRtdbWssOrigin } =
+    getFirebaseOrigins()
+
   const scriptSrc = [
     "'self'",
     "'unsafe-inline'",
@@ -9,6 +31,23 @@ export function proxy(request: NextRequest) {
     'https://www.gstatic.com',
     'https://www.google.com',
     'https://apis.google.com',
+    // Firebase RTDB long-polling fallback은 script 로드로 동작할 수 있다.
+    firebaseRtdbHttpsOrigin,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const connectSrc = [
+    "'self'",
+    'https://cdn.jsdelivr.net',
+    'https://*.googleapis.com',
+    'https://*.firestore.googleapis.com',
+    'https://*.firebaseio.com',
+    'wss://*.firebaseio.com',
+    'https://*.firebasedatabase.app',
+    'wss://*.firebasedatabase.app',
+    firebaseRtdbHttpsOrigin,
+    firebaseRtdbWssOrigin,
   ]
     .filter(Boolean)
     .join(' ')
@@ -16,8 +55,9 @@ export function proxy(request: NextRequest) {
   const cspHeader = `
     default-src 'self';
     script-src ${scriptSrc};
+    script-src-elem ${scriptSrc};
     style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
-    connect-src 'self' https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firestore.googleapis.com https://*.firebasedatabase.app wss://*.firebasedatabase.app;
+    connect-src ${connectSrc};
     img-src 'self' data:;
     font-src 'self' https://cdn.jsdelivr.net;
     frame-src 'none';
