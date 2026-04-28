@@ -76,6 +76,7 @@ interface AuctionState {
   roomExists: boolean
   isRoomLoaded: boolean
   isReAuctionRound: boolean
+  auctionEventRevision: number
   teams: Team[]
   bids: Bid[]
   liveBid: LiveBidState | null
@@ -96,6 +97,7 @@ interface AuctionState {
   setRoomNotFound: () => void
   setReAuctionRound: (isRe: boolean) => void
   setLotteryPlayer: (player: Player | null) => void
+  setAuctionEventRevision: (revision: number) => void
   setPresenceLoaded: (loaded: boolean) => void
   setLocalConnected: (connected: boolean) => void
   appendBid: (bid: Bid) => void
@@ -120,6 +122,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomExists: true,
   isRoomLoaded: false,
   isReAuctionRound: false,
+  auctionEventRevision: 0,
   teams: [],
   bids: [],
   liveBid: null,
@@ -131,7 +134,12 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   lotteryPlayer: null,
 
   setRoomContext: (roomId, role, teamId) => set({
-    roomId, role, teamId: teamId || null, roomExists: true, isReAuctionRound: false
+    roomId,
+    role,
+    teamId: teamId || null,
+    roomExists: true,
+    isReAuctionRound: false,
+    auctionEventRevision: 0,
   }),
   setRealtimeData: (data) => set((state) => ({
     ...state, ...data, isRoomLoaded: true
@@ -139,6 +147,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   setRoomNotFound: () => set({ roomExists: false, isRoomLoaded: true }),
   setReAuctionRound: (isRe) => set({ isReAuctionRound: isRe }),
   setLotteryPlayer: (player) => set({ lotteryPlayer: player }),
+  setAuctionEventRevision: (revision) => set({ auctionEventRevision: revision }),
   setPresenceLoaded: (loaded) => set({ isPresenceLoaded: loaded }),
   setLocalConnected: (connected) => set({ isLocalConnected: connected }),
   appendBid: (bid) => set((state) => ({ bids: [...state.bids, bid] })),

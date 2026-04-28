@@ -1,0 +1,59 @@
+name: Auction Realtime CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'playwright/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.ts'
+      - '.github/workflows/auction-realtime-ci.yml'
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'src/**'
+      - 'playwright/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.ts'
+      - '.github/workflows/auction-realtime-ci.yml'
+
+jobs:
+  auction-realtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run auction realtime E2E
+        run: npx playwright test playwright/auction-realtime.spec.ts --project=chromium
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-auction-realtime-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { adminDb } from '@/lib/firebaseAdmin'
+import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
+import {
+  isE2EAuctionFixtureEnabled,
+  verifyE2EAuctionFixtureAccess,
+} from '@/features/auction/api/e2eAuctionFixture'
 
 const VALID_ROLES = ['ORGANIZER', 'LEADER', 'VIEWER'] as const
 type ValidRole = typeof VALID_ROLES[number]
@@ -31,9 +35,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  if (isE2EAuctionFixtureEnabled()) {
+    const valid = verifyE2EAuctionFixtureAccess({
+      roomId,
+      role: role as ValidRole,
+      token,
+      teamId,
+    })
+    if (!valid) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    const cookieSuffix = role === 'LEADER' && teamId ? `LEADER_${teamId}` : role.toUpperCase()
+    const cookieName = `room_auth_${roomId}_${cookieSuffix}`
+    const authData = JSON.stringify({ role, teamId: teamId || null, token })
+    const cookieStore = await cookies()
+    cookieStore.set(cookieName, authData, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 8,
+    })
+
+    const redirectUrl = new URL(`/room/${roomId}`, request.url)
+    redirectUrl.searchParams.set('role', role)
+    if (role === 'LEADER' && teamId) {
+      redirectUrl.searchParams.set('teamId', teamId)
+    }
+    return NextResponse.redirect(redirectUrl)
+  }
+
   const [roomDoc, roomAuthDoc] = await Promise.all([
-    adminDb.collection('rooms').doc(roomId).get(),
-    adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
+    getAuctionServerServices().firestore.collection('rooms').doc(roomId).get(),
+    getAuctionServerServices().firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
   ])
   if (!roomDoc.exists) {
     return NextResponse.redirect(new URL('/', request.url))
@@ -59,13 +94,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } else if (role === 'LEADER' && teamId) {
-    const teamDoc = await adminDb
+    const teamDoc = await getAuctionServerServices().firestore
       .collection('rooms')
       .doc(roomId)
       .collection('teams')
       .doc(teamId)
       .get()
-    const teamTokenDoc = await adminDb
+    const teamTokenDoc = await getAuctionServerServices().firestore
       .collection(ROOM_AUTH_COLLECTION)
       .doc(roomId)
       .collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION)

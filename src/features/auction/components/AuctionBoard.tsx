@@ -136,8 +136,10 @@ export function AuctionBoard(props: AuctionBoardProps) {
     lotteryDone,
     setLotteryDone,
     handleDraft,
+    handleRestartAuction,
     soldOverlayData,
     setSoldOverlayData,
+    isRestarting,
   } = useAuctionBoard({
     isLotteryActive: props.isLotteryActive,
     lotteryPlayer: props.lotteryPlayer,
@@ -303,6 +305,8 @@ export function AuctionBoard(props: AuctionBoardProps) {
                 }
                 role={props.role}
                 onDraft={handleDraft}
+                onRestartAuction={handleRestartAuction}
+                isRestarting={isRestarting}
               />
             )}
 

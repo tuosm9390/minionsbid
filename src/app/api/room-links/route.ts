@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { adminDb } from '@/lib/firebaseAdmin'
+import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
+import {
+  getE2EAuctionFixtureRoomLinks,
+  isE2EAuctionFixtureEnabled,
+} from '@/features/auction/api/e2eAuctionFixture'
 
 const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
 const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
@@ -23,10 +27,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
+    if (isE2EAuctionFixtureEnabled()) {
+      const fixtureLinks = getE2EAuctionFixtureRoomLinks(roomId)
+      if (fixtureLinks.organizerToken !== parsed.token) {
+        return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+      }
+      return NextResponse.json(fixtureLinks)
+    }
+
     const [roomDoc, roomAuthDoc, teamsSnapshot] = await Promise.all([
-      adminDb.collection('rooms').doc(roomId).get(),
-      adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
-      adminDb.collection('rooms').doc(roomId).collection('teams').get(),
+      getAuctionServerServices().firestore.collection('rooms').doc(roomId).get(),
+      getAuctionServerServices().firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
+      getAuctionServerServices().firestore.collection('rooms').doc(roomId).collection('teams').get(),
     ])
 
     if (!roomDoc.exists) {

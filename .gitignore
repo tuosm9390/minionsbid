@@ -51,7 +51,10 @@ next-env.d.ts
 # gemini
 .gemini/
 gha-creds-*.json
-.github/
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/auction-realtime-ci.yml
 /.claude
 /.omc/
 /

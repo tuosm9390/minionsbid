@@ -1,7 +1,13 @@
 'use server'
 
-import { adminDb } from '@/lib/firebaseAdmin'
 import * as admin from 'firebase-admin'
+import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
+import {
+  isE2EAuctionFixtureEnabled,
+  sendFixtureChatMessage,
+  sendFixtureNotice,
+} from '@/features/auction/api/e2eAuctionFixture'
+import type { MessageRole } from '@/features/auction/store/useAuctionStore'
 
 const VALID_ROLES = ['ORGANIZER', 'LEADER', 'VIEWER', 'SYSTEM', 'NOTICE'] as const
 
@@ -14,8 +20,8 @@ async function publishLiveMessage(
     content: string
   },
 ): Promise<void> {
-  const db = admin.database()
-  await db.ref(`signals/${roomId}/latestMessage`).set({
+  const { rtdb } = getAuctionServerServices()
+  await rtdb.ref(`signals/${roomId}/latestMessage`).set({
     id: message.event_id,
     event_id: message.event_id,
     room_id: roomId,
@@ -33,6 +39,7 @@ export async function sendChatMessage(
   senderName: string,
   senderRole: string,
   content: string,
+  clientEventId?: string,
 ): Promise<{ error?: string }> {
   if (!content.trim() || content.length > 200) return { error: '유효하지 않은 메시지' }
   const safeSenderRole = (VALID_ROLES as readonly string[]).includes(senderRole)
@@ -41,9 +48,19 @@ export async function sendChatMessage(
 
   try {
     const trimmedContent = content.trim()
-    const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const eventId =
+      clientEventId ?? `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    if (isE2EAuctionFixtureEnabled()) {
+      return sendFixtureChatMessage(
+        roomId,
+        senderName,
+        safeSenderRole as MessageRole,
+        trimmedContent,
+        eventId,
+      )
+    }
     await Promise.all([
-      adminDb
+      getAuctionServerServices().firestore
         .collection('rooms')
         .doc(roomId)
         .collection('messages')
@@ -77,9 +94,12 @@ export async function sendNotice(
 
   try {
     const trimmedContent = content.trim()
+    if (isE2EAuctionFixtureEnabled()) {
+      return sendFixtureNotice(roomId, trimmedContent)
+    }
     const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await Promise.all([
-      adminDb
+      getAuctionServerServices().firestore
         .collection('rooms')
         .doc(roomId)
         .collection('messages')

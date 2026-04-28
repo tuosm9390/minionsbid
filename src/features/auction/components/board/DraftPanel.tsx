@@ -10,6 +10,8 @@ interface DraftPanelProps {
   playersList: Player[];
   role: string | null;
   onDraft: (playerId: string) => void;
+  onRestartAuction?: () => void;
+  isRestarting?: boolean;
 }
 
 export function DraftPanel({
@@ -19,7 +21,11 @@ export function DraftPanel({
   playersList,
   role,
   onDraft,
+  onRestartAuction,
+  isRestarting = false,
 }: DraftPanelProps) {
+  const isReAuctionPhase = phase !== "DRAFT" && !isAutoDraftMode;
+
   return (
     <div className="flex-1 flex flex-col">
       <div className="text-center mb-6">
@@ -36,6 +42,17 @@ export function DraftPanel({
             <div className="pixel-box bg-purple-100 px-6 py-2 font-black text-purple-700">
               {currentTurnTeam.name} ({currentTurnTeam.point_balance}P)
             </div>
+          </div>
+        )}
+        {isReAuctionPhase && role === "ORGANIZER" && (
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={onRestartAuction}
+              disabled={isRestarting}
+              className="pixel-button bg-minion-blue text-white px-5 py-2 text-fluid-xs font-heading uppercase tracking-tight disabled:bg-gray-400"
+            >
+              {isRestarting ? "재경매 준비 중..." : "재경매 시작"}
+            </button>
           </div>
         )}
       </div>

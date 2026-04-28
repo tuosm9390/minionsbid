@@ -12,6 +12,9 @@ import {
   restartAuctionWithUnsold,
 } from '@/features/auction/api/auctionActions'
 import { getAuctionSlotsPerTeam } from '../utils/roster'
+import { getAuctionDerivedState } from '../utils/auctionRealtime'
+
+const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
 interface UseAuctionBoardProps {
   isLotteryActive: boolean
@@ -69,17 +72,12 @@ export function useAuctionBoard({
 
   const latestNotice = messages.findLast((m) => m.sender_role === 'NOTICE')
 
-  const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id)
-  const firestoreHighestBid =
-    playerBids.length > 0 ? Math.max(...playerBids.map((b) => b.amount)) : 0
-  const activeLiveBid =
-    liveBid?.player_id === currentPlayer?.id ? liveBid : null
-  const highestBid = Math.max(firestoreHighestBid, activeLiveBid?.amount ?? 0)
-  const topBid =
-    activeLiveBid && activeLiveBid.amount >= firestoreHighestBid
-      ? activeLiveBid
-      : playerBids.find((b) => b.amount === firestoreHighestBid)
-  const leadingTeam = teams.find((t) => t.id === topBid?.team_id)
+  const { highestBid, topBid, leadingTeam } = getAuctionDerivedState({
+    bids,
+    currentPlayerId: currentPlayer?.id,
+    liveBid,
+    teams,
+  })
 
   const unsoldPlayers = players.filter((p) => p.status === 'UNSOLD')
   const waitingPlayersList = players.filter((p) => p.status === 'WAITING')
@@ -156,6 +154,12 @@ export function useAuctionBoard({
   useEffect(() => {
     setLotteryDone(false)
   }, [lotteryPlayer])
+
+  useEffect(() => {
+    if (E2E_AUCTION_FIXTURE && isLotteryActive) {
+      setLotteryDone(true)
+    }
+  }, [isLotteryActive])
 
   // ── 이벤트 핸들러 ──
   const handleDraft = async (playerId: string) => {

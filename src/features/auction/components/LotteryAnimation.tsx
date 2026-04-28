@@ -22,6 +22,7 @@ interface LotteryAnimationProps {
 
 const ITEM_HEIGHT = 160;
 const VISIBLE_ITEMS = 24;
+const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === "1";
 
 export function LotteryAnimation({
   candidates,
@@ -32,9 +33,9 @@ export function LotteryAnimation({
   const [isSpinning, setIsSpinning] = useState(true);
   const [hasFinished, setHasFinished] = useState(false);
   const controls = useAnimationControls();
-  const spinItemCount = shouldReduceMotion ? 8 : VISIBLE_ITEMS;
-  const spinDuration = shouldReduceMotion ? 1.05 : 3.6;
-  const revealDelay = shouldReduceMotion ? 180 : 700;
+  const spinItemCount = E2E_AUCTION_FIXTURE ? 2 : shouldReduceMotion ? 8 : VISIBLE_ITEMS;
+  const spinDuration = E2E_AUCTION_FIXTURE ? 0.05 : shouldReduceMotion ? 1.05 : 3.6;
+  const revealDelay = E2E_AUCTION_FIXTURE ? 50 : shouldReduceMotion ? 180 : 700;
 
   // Generate a sequence of items that ends with the target player
   const trackItems = useMemo(() => {
@@ -84,6 +85,11 @@ export function LotteryAnimation({
 
         setIsSpinning(false);
         setHasFinished(true);
+
+        if (E2E_AUCTION_FIXTURE) {
+          onFinished?.();
+          return;
+        }
 
         // Additional delay for the winning moment
         setTimeout(() => {

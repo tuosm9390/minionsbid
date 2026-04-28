@@ -1,9 +1,10 @@
 'use server'
 
-import { adminDb } from '@/lib/firebaseAdmin'
 import * as admin from 'firebase-admin'
 import type { CaptainMode } from '@/features/auction/utils/roster'
 import { normalizeCaptainMode } from '@/features/auction/utils/roster'
+import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
+import { deleteFixtureRoom, isE2EAuctionFixtureEnabled } from '@/features/auction/api/e2eAuctionFixture'
 
 // ---------- 타입 ----------
 
@@ -76,13 +77,14 @@ export interface AuctionArchivePayload {
 /** 방 + 팀 + 선수를 Firestore에 생성 */
 export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoomResult> {
   try {
+    const { firestore } = getAuctionServerServices()
     const roomId = crypto.randomUUID()
     const organizerToken = crypto.randomUUID()
     const viewerToken = crypto.randomUUID()
 
-    const roomRef = adminDb.collection('rooms').doc(roomId)
-    const roomAuthRef = adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId)
-    const batch = adminDb.batch()
+    const roomRef = firestore.collection('rooms').doc(roomId)
+    const roomAuthRef = firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId)
+    const batch = firestore.batch()
 
     batch.set(roomRef, {
       name: payload.name,
@@ -166,7 +168,7 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
 export async function saveAuctionArchive(payload: AuctionArchivePayload): Promise<{ error?: string }> {
   try {
     let roomData: Record<string, unknown> = {}
-    const roomCollection = adminDb.collection('rooms')
+    const roomCollection = getAuctionServerServices().firestore.collection('rooms')
     const roomDocRef =
       typeof roomCollection.doc === 'function' ? roomCollection.doc(payload.roomId) : null
 
@@ -178,7 +180,7 @@ export async function saveAuctionArchive(payload: AuctionArchivePayload): Promis
           : {}
     }
 
-    await adminDb.collection('auction_archives').add({
+    await getAuctionServerServices().firestore.collection('auction_archives').add({
       room_id: payload.roomId,
       room_name: payload.roomName,
       schedule_id: roomData.schedule_id ?? null,
@@ -209,7 +211,7 @@ export async function updateTeamName(
   if (trimmed.length > 20) return { error: '팀 이름은 20자 이하여야 합니다.' }
 
   try {
-    await adminDb
+    await getAuctionServerServices().firestore
       .collection('rooms')
       .doc(roomId)
       .collection('teams')
@@ -227,7 +229,11 @@ export async function updateTeamName(
 /** 방 종료 — 토큰 무효화 후 재귀 삭제 */
 export async function deleteRoom(roomId: string): Promise<{ error?: string }> {
   try {
-    const roomRef = adminDb.collection('rooms').doc(roomId)
+    if (isE2EAuctionFixtureEnabled()) {
+      return deleteFixtureRoom(roomId)
+    }
+    const { firestore } = getAuctionServerServices()
+    const roomRef = firestore.collection('rooms').doc(roomId)
     const roomSnap = await roomRef.get()
     const currentName = roomSnap.data()?.name || '경매방'
 
@@ -237,11 +243,11 @@ export async function deleteRoom(roomId: string): Promise<{ error?: string }> {
       roomDeleted: true,
     })
 
-    const roomAuthRef = adminDb.collection(ROOM_AUTH_COLLECTION).doc(roomId)
+    const roomAuthRef = firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId)
 
     // 서브컬렉션 포함 재귀 삭제
-    await adminDb.recursiveDelete(roomRef)
-    await adminDb.recursiveDelete(roomAuthRef)
+    await firestore.recursiveDelete(roomRef)
+    await firestore.recursiveDelete(roomAuthRef)
 
     return {}
   } catch (err) {

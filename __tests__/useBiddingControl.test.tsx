@@ -49,6 +49,8 @@ describe("useBiddingControl", () => {
     vi.clearAllMocks();
     useAuctionStore.setState({
       bids: [],
+      liveBid: null,
+      timerEndsAt: null,
       players: [],
     });
   });
@@ -144,5 +146,54 @@ describe("useBiddingControl", () => {
 
     expect(result.current.bidError).toBe("포인트가 부족합니다.");
     expect(result.current.bidAmount).toBe(10); // 실패 시 금액 변동 없음
+  });
+
+  it("handleBid는 성공 전에도 local liveBid를 optimistic하게 세팅한다", async () => {
+    let resolveBid: ((value: { error?: string }) => void) | null = null;
+    (placeBid as Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveBid = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+
+    const pending = act(async () => {
+      await result.current.handleBid();
+    });
+
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      player_id: "p1",
+      team_id: "team-1",
+      amount: 10,
+    });
+
+    resolveBid?.({ error: undefined });
+    await pending;
+  });
+
+  it("handleBid 실패 시 optimistic liveBid를 롤백한다", async () => {
+    useAuctionStore.setState({
+      liveBid: {
+        player_id: "p1",
+        team_id: "team-2",
+        amount: 20,
+        created_at: new Date().toISOString(),
+      },
+    });
+    (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+
+    await act(async () => {
+      await result.current.handleBid();
+    });
+
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      player_id: "p1",
+      team_id: "team-2",
+      amount: 20,
+    });
   });
 });
