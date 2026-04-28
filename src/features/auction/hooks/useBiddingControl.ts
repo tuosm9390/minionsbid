@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getDatabase, ref, set } from 'firebase/database'
 import {
   useAuctionStore,
   type Player,
@@ -96,8 +97,15 @@ export function useBiddingControl({
     setIsBidding(true)
 
     if (shouldOptimisticallyExtend) {
-      setRealtimeData({
-        timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+      const optimisticTimerEndsAt = new Date(
+        Date.now() + EXTEND_DURATION_MS,
+      ).toISOString()
+      setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
+      void set(
+        ref(getDatabase(), `signals/${roomId}/timerExtended`),
+        { timerEndsAt: optimisticTimerEndsAt, at: Date.now() },
+      ).catch(() => {
+        // RTDB 신호 실패 시에도 로컬 optimistic update는 유지한다.
       })
     }
 

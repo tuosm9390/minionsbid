@@ -23,6 +23,7 @@ interface OrganizerControlPanelProps {
   isDrawing: boolean;
   allConnected: boolean;
   onDraw: () => void;
+  onStart: () => void;
 }
 
 export function OrganizerControlPanel({
@@ -38,6 +39,7 @@ export function OrganizerControlPanel({
   isDrawing,
   allConnected,
   onDraw,
+  onStart,
 }: OrganizerControlPanelProps) {
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const presences = useAuctionStore((s) => s.presences);
@@ -146,7 +148,7 @@ export function OrganizerControlPanel({
                   : `다음 선수 추첨 (${waitingPlayersCount} 명)`}
               </span>
             </motion.button>
-          ) : !timerEndsAt && (lotteryPlayer || currentPlayer) ? (
+          ) : !timerEndsAt && lotteryPlayer ? (
             <motion.div
               key="lottery-lock"
               initial={{ opacity: 0, y: 10 }}
@@ -165,6 +167,16 @@ export function OrganizerControlPanel({
                 </span>
               </div>
             </motion.div>
+          ) : !timerEndsAt && currentPlayer ? (
+            <motion.button
+              key="start"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={onStart}
+              className="w-full h-full pixel-button bg-minion-yellow text-black font-heading text-fluid-xs px-6 uppercase tracking-tighter hover:bg-minion-yellow-hover"
+            >
+              경매 시작
+            </motion.button>
           ) : (
             <motion.div
               key="in-progress"

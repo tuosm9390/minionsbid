@@ -165,7 +165,6 @@ export function RoomClient({
   };
 
   const handleStartFromLottery = async () => {
-    await handleStart();
     await handleCloseLottery();
   };
 
@@ -356,6 +355,7 @@ export function RoomClient({
                 isDrawing={isDrawing}
                 allConnected={allConnected}
                 onDraw={handleDraw}
+                onStart={handleStart}
               />
             </div>
           )}
