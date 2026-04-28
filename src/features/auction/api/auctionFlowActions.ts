@@ -170,14 +170,24 @@ export async function placeBid(
       return { error: "현재 경매 중인 선수가 아닙니다." };
     }
 
-    const topBidSnap = await adminDb
-      .collection("rooms")
-      .doc(roomId)
-      .collection("bids")
-      .where("player_id", "==", playerId)
-      .orderBy("amount", "desc")
-      .limit(1)
-      .get();
+    const [topBidSnap, teamSnap, soldCountSnap] = await Promise.all([
+      adminDb
+        .collection("rooms")
+        .doc(roomId)
+        .collection("bids")
+        .where("player_id", "==", playerId)
+        .orderBy("amount", "desc")
+        .limit(1)
+        .get(),
+      adminDb.collection("rooms").doc(roomId).collection("teams").doc(teamId).get(),
+      adminDb
+        .collection("rooms")
+        .doc(roomId)
+        .collection("players")
+        .where("team_id", "==", teamId)
+        .where("status", "==", "SOLD")
+        .get(),
+    ]);
 
     const topBid = topBidSnap.empty ? null : topBidSnap.docs[0].data();
 
@@ -188,33 +198,19 @@ export async function placeBid(
     const minBid = topBid ? topBid.amount + 10 : 10;
     if (amount < minBid) return { error: `최소 입찰액은 ${minBid}P입니다.` };
 
-    const teamSnap = await adminDb
-      .collection("rooms")
-      .doc(roomId)
-      .collection("teams")
-      .doc(teamId)
-      .get();
     if (!teamSnap.exists) return { error: "팀을 찾을 수 없습니다." };
     const teamData = teamSnap.data()!;
     if (teamData.point_balance < amount) {
       return { error: `포인트 부족 (보유: ${teamData.point_balance}P)` };
     }
 
-    const roomSnap2 = await roomRef.get();
-    const membersPerTeam = roomSnap2.data()?.members_per_team ?? 5;
-    const captainMode = normalizeCaptainMode(roomSnap2.data()?.captain_mode);
+    const membersPerTeam = roomData.members_per_team ?? 5;
+    const captainMode = normalizeCaptainMode(roomData.captain_mode);
     const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
       membersPerTeam,
       captainMode,
     );
 
-    const soldCountSnap = await adminDb
-      .collection("rooms")
-      .doc(roomId)
-      .collection("players")
-      .where("team_id", "==", teamId)
-      .where("status", "==", "SOLD")
-      .get();
     if (soldCountSnap.size >= auctionSlotsPerTeam) {
       return { error: "팀 인원이 가득 찼습니다." };
     }
@@ -227,29 +223,18 @@ export async function placeBid(
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    const currentTimerSnap = await roomRef.get();
-    const currentTimer = currentTimerSnap.data()
-      ?.timer_ends_at as admin.firestore.Timestamp | null;
     let newTimerEndsAt: string | undefined;
 
-    if (currentTimer) {
-      const currentRemaining = currentTimer.toMillis() - Date.now();
-      if (currentRemaining < EXTEND_THRESHOLD_MS) {
-        const extended = new Date(Date.now() + EXTEND_DURATION_MS);
-        await roomRef.update({
-          timer_ends_at: admin.firestore.Timestamp.fromDate(extended),
-        });
-        newTimerEndsAt = extended.toISOString();
-        // await sysMsg(
-        //   roomId,
-        //   // `💰 ${teamData.name} ${amount}P 입찰 (⏰ 타이머가 5초 연장!)`,
-        //   `💰 ${teamData.name}이 ${amount}P에 입찰했습니다!`,
-        // );
-      }
-      // else {
-      await sysMsg(roomId, `💰 ${teamData.name}이 ${amount}P에 입찰했습니다!`);
-      // }
+    const currentRemaining = timerField.toMillis() - Date.now();
+    if (currentRemaining < EXTEND_THRESHOLD_MS) {
+      const extended = new Date(Date.now() + EXTEND_DURATION_MS);
+      await roomRef.update({
+        timer_ends_at: admin.firestore.Timestamp.fromDate(extended),
+      });
+      newTimerEndsAt = extended.toISOString();
     }
+
+      await sysMsg(roomId, `💰 ${teamData.name}이 ${amount}P에 입찰했습니다!`);
 
     return { timerEndsAt: newTimerEndsAt };
   } catch (err) {

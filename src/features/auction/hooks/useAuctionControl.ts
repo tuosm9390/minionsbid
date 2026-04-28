@@ -9,6 +9,8 @@ interface UseAuctionControlProps {
   timerEndsAt: string | null
 }
 
+const AWARD_GRACE_MS = 150
+
 export function useAuctionControl({
   roomId,
   effectiveRole,
@@ -74,14 +76,14 @@ export function useAuctionControl({
   }
 
   useEffect(() => {
-    if (!effectiveRole || !timerEndsAt || !roomId) return
+    if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
 
     const cp = playersRef.current.find(p => p.status === 'IN_AUCTION')
     if (!cp) return
 
     const playerId = cp.id
-    // grace 800ms: 마지막 in-flight 입찰(서버 도달 ≤ T+600ms) 처리 후 여유 있게 실행
-    const delay = Math.max(0, new Date(timerEndsAt).getTime() - Date.now()) + 800
+    // 짧은 grace만 두고 종료 직후 바로 낙찰 처리한다.
+    const delay = Math.max(0, new Date(timerEndsAt).getTime() - Date.now()) + AWARD_GRACE_MS
 
     let cancelled = false
     const t = setTimeout(async () => {

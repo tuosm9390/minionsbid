@@ -6,6 +6,9 @@ import { Role } from '@/features/auction/store/useAuctionStore'
 type Params = Promise<{ id: string }>
 type SearchParams = Promise<{ role?: string; teamId?: string }>
 
+export const runtime = 'nodejs'
+export const preferredRegion = 'sin1'
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const resolvedParams = await params;
   return {
