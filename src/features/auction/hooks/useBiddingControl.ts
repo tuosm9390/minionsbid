@@ -19,6 +19,9 @@ interface UseBiddingControlProps {
   isTeamFull: boolean
 }
 
+const EXTEND_THRESHOLD_MS = 5_000
+const EXTEND_DURATION_MS = 5_000
+
 /**
  * BiddingControl 컴포넌트의 비즈니스 로직 Hook.
  *
@@ -31,6 +34,7 @@ export function useBiddingControl({
   currentPlayer,
   myTeam,
   isAuctionActive,
+  timerEndsAt,
   minBid,
   isTeamFull,
 }: UseBiddingControlProps) {
@@ -83,8 +87,20 @@ export function useBiddingControl({
       typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
     const finalAmount = Math.max(numericAmount, minBid)
     const optimisticBidId = `temp-bid-${teamId}-${Date.now()}`
+    const previousTimerEndsAt = timerEndsAt
+    const shouldOptimisticallyExtend =
+      !!timerEndsAt &&
+      new Date(timerEndsAt).getTime() - Date.now() < EXTEND_THRESHOLD_MS
+
     setBidError(null)
     setIsBidding(true)
+
+    if (shouldOptimisticallyExtend) {
+      setRealtimeData({
+        timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+      })
+    }
+
     appendBid({
       id: optimisticBidId,
       room_id: roomId,
@@ -97,6 +113,9 @@ export function useBiddingControl({
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
       if (res.error) {
         removeBid(optimisticBidId)
+        if (shouldOptimisticallyExtend) {
+          setRealtimeData({ timerEndsAt: previousTimerEndsAt })
+        }
         setBidError(res.error)
       } else {
         setBidAmount(finalAmount + 10)
