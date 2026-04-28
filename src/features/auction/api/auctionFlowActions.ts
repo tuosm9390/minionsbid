@@ -24,6 +24,17 @@ async function sysMsg(roomId: string, content: string): Promise<void> {
   });
 }
 
+async function publishTimerExtendedSignal(
+  roomId: string,
+  timerEndsAt: string,
+): Promise<void> {
+  const db = admin.database();
+  await db.ref(`signals/${roomId}/timerExtended`).set({
+    timerEndsAt,
+    at: Date.now(),
+  });
+}
+
 // ---------- 경매 흐름 ----------
 
 /** 랜덤으로 WAITING 선수 1명을 IN_AUCTION으로 전환 */
@@ -232,9 +243,10 @@ export async function placeBid(
         timer_ends_at: admin.firestore.Timestamp.fromDate(extended),
       });
       newTimerEndsAt = extended.toISOString();
+      await publishTimerExtendedSignal(roomId, newTimerEndsAt);
     }
 
-      await sysMsg(roomId, `💰 ${teamData.name}이 ${amount}P에 입찰했습니다!`);
+    await sysMsg(roomId, `💰 ${teamData.name}이 ${amount}P에 입찰했습니다!`);
 
     return { timerEndsAt: newTimerEndsAt };
   } catch (err) {

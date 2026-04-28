@@ -15,7 +15,6 @@ import { PlayerInAuction } from "./board/PlayerInAuction";
 import { BidStatus } from "./board/BidStatus";
 import { DraftPanel } from "./board/DraftPanel";
 import { AuctionWaitingState } from "./board/AuctionWaitingState";
-import { awardPlayer } from "@/features/auction/api/auctionActions";
 import { useAuctionStore, Player, Role } from "../store/useAuctionStore";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -279,9 +278,9 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   {timerEndsAt && currentPlayer && (
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
-                      onExpire={() => {
-                        void awardPlayer(props.roomId, currentPlayer.id);
-                      }}
+                      onExpire={
+                        props.role === "ORGANIZER" ? () => undefined : undefined
+                      }
                     />
                   )}
                 </div>

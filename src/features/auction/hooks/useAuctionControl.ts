@@ -9,7 +9,7 @@ interface UseAuctionControlProps {
   timerEndsAt: string | null
 }
 
-const AWARD_GRACE_MS = 150
+const AWARD_GRACE_MS = 350
 
 export function useAuctionControl({
   roomId,

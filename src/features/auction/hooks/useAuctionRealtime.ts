@@ -91,6 +91,7 @@ export function useFirebaseRealtime(roomId: string) {
   const lastRecoveryKeyRef = useRef<string | null>(null)
   // CLOSE_LOTTERY 초기값 무시를 위한 ref
   const closeLotteryInitRef = useRef(true)
+  const timerExtendedInitRef = useRef(true)
 
   useEffect(() => {
     if (!roomId) return
@@ -250,6 +251,22 @@ export function useFirebaseRealtime(roomId: string) {
       }
     })
     unsubs.push(() => signalUnsub())
+
+    // 6. RTDB: 타이머 연장 신호 감시
+    const timerExtendedRef = ref(rtdb, `signals/${roomId}/timerExtended`)
+    timerExtendedInitRef.current = true
+    const timerExtendedUnsub = onValue(timerExtendedRef, (snapshot) => {
+      if (timerExtendedInitRef.current) {
+        timerExtendedInitRef.current = false
+        return
+      }
+
+      const data = snapshot.val() as { timerEndsAt?: string } | null
+      if (data?.timerEndsAt) {
+        setRealtimeData({ timerEndsAt: data.timerEndsAt })
+      }
+    })
+    unsubs.push(() => timerExtendedUnsub())
 
     return () => {
       unsubs.forEach((unsub) => unsub())
