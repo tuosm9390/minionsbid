@@ -469,7 +469,7 @@ export async function recoverExpiredAuction(
   }
 }
 
-/** 자유계약 영입 (UNSOLD 또는 WAITING 선수를 0P로 팀에 배정) */
+/** 자유계약 영입 (마지막 슬롯이면 잔여 포인트 전액 사용) */
 export async function draftPlayer(
   roomId: string,
   playerId: string,
@@ -520,16 +520,60 @@ export async function draftPlayer(
       return { error: "팀 인원이 가득 찼습니다." };
     }
 
-    await adminDb
+    const isLastSlot = soldCountSnap.size === auctionSlotsPerTeam - 1;
+    const draftPrice = isLastSlot ? teamData.point_balance : 0;
+
+    const teamRef = adminDb
       .collection("rooms")
       .doc(roomId)
-      .collection("players")
-      .doc(playerId)
-      .update({ status: "SOLD", team_id: teamId, sold_price: 0 });
+      .collection("teams")
+      .doc(teamId);
+
+    await adminDb.runTransaction(async (tx) => {
+      const freshTeamSnap = await tx.get(teamRef);
+      const freshPlayerSnap = await tx.get(
+        adminDb.collection("rooms").doc(roomId).collection("players").doc(playerId),
+      );
+
+      if (!freshTeamSnap.exists) {
+        throw new Error("팀을 찾을 수 없습니다.");
+      }
+      if (!freshPlayerSnap.exists) {
+        throw new Error("선수를 찾을 수 없습니다.");
+      }
+
+      const freshTeamData = freshTeamSnap.data()!;
+      const freshPlayerData = freshPlayerSnap.data()!;
+      if (
+        freshPlayerData.status !== "UNSOLD" &&
+        freshPlayerData.status !== "WAITING"
+      ) {
+        throw new Error("영입 요청할 수 없는 상태의 선수입니다.");
+      }
+
+      const transactionDraftPrice =
+        soldCountSnap.size === auctionSlotsPerTeam - 1
+          ? freshTeamData.point_balance
+          : 0;
+
+      tx.update(freshPlayerSnap.ref, {
+        status: "SOLD",
+        team_id: teamId,
+        sold_price: transactionDraftPrice,
+      });
+
+      if (transactionDraftPrice > 0) {
+        tx.update(teamRef, {
+          point_balance: 0,
+        });
+      }
+    });
 
     await sysMsg(
       roomId,
-      `🤝 ${teamData.name}이(가) ${playerData.name} 선수를 자유계약으로 영입!`,
+      isLastSlot
+        ? `🤝 ${teamData.name}이(가) ${playerData.name} 선수를 ${draftPrice}P에 드래프트 영입!`
+        : `🤝 ${teamData.name}이(가) ${playerData.name} 선수를 자유계약으로 영입!`,
     );
     return {};
   } catch (err) {
