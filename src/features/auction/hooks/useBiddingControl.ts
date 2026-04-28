@@ -22,6 +22,7 @@ interface UseBiddingControlProps {
 
 const EXTEND_THRESHOLD_MS = 5_000
 const EXTEND_DURATION_MS = 5_000
+const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
 
 /**
  * BiddingControl 컴포넌트의 비즈니스 로직 Hook.
@@ -89,6 +90,7 @@ export function useBiddingControl({
     const finalAmount = Math.max(numericAmount, minBid)
     const optimisticBidId = `temp-bid-${teamId}-${Date.now()}`
     const previousTimerEndsAt = timerEndsAt
+    const bidClickedAt = Date.now()
     const shouldOptimisticallyExtend =
       !!timerEndsAt &&
       new Date(timerEndsAt).getTime() - Date.now() < EXTEND_THRESHOLD_MS
@@ -126,6 +128,16 @@ export function useBiddingControl({
         }
         setBidError(res.error)
       } else {
+        if (LATENCY_DEBUG) {
+          console.info('[latency][client] placeBid response', {
+            roomId,
+            teamId,
+            amount: finalAmount,
+            clientRoundTripMs: Date.now() - bidClickedAt,
+            server: res.debug ?? null,
+            optimisticExtend: shouldOptimisticallyExtend,
+          })
+        }
         setBidAmount(finalAmount + 10)
         // 타이머 연장 시 실시간 이벤트 대기 없이 즉시 반영 (Optimistic Update)
         if (res.timerEndsAt) {

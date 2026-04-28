@@ -67,6 +67,8 @@ interface FirestoreMessageData {
   created_at?: Timestamp | null
 }
 
+const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
+
 function timestampToISO(ts: Timestamp | null | undefined): string | null {
   if (!ts) return null
   return ts.toDate().toISOString()
@@ -120,6 +122,14 @@ export function useFirebaseRealtime(roomId: string) {
         timerEndsAt: timestampToISO(data.timer_ends_at),
         createdAt: timestampToISO(data.created_at),
       })
+
+      if (LATENCY_DEBUG && data.timer_ends_at) {
+        console.info('[latency][client] room snapshot timer', {
+          roomId,
+          timerEndsAt: timestampToISO(data.timer_ends_at),
+          receivedAt: Date.now(),
+        })
+      }
 
       const timerEndsAtIso = timestampToISO(data.timer_ends_at)
       const currentPlayerId = data.current_player_id ?? null
@@ -263,6 +273,13 @@ export function useFirebaseRealtime(roomId: string) {
 
       const data = snapshot.val() as { timerEndsAt?: string } | null
       if (data?.timerEndsAt) {
+        if (LATENCY_DEBUG) {
+          console.info('[latency][client] RTDB timerExtended signal', {
+            roomId,
+            timerEndsAt: data.timerEndsAt,
+            receivedAt: Date.now(),
+          })
+        }
         setRealtimeData({ timerEndsAt: data.timerEndsAt })
       }
     })

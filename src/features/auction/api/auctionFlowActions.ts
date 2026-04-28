@@ -12,6 +12,18 @@ import {
 const AUCTION_DURATION_MS = 10_000;
 const EXTEND_THRESHOLD_MS = 5_000;
 const EXTEND_DURATION_MS = 5_000;
+const LATENCY_DEBUG =
+  process.env.NEXT_PUBLIC_DEBUG_LATENCY === "1" ||
+  process.env.DEBUG_LATENCY === "1";
+
+function nowMs(): number {
+  return Date.now();
+}
+
+function logLatency(label: string, data: Record<string, unknown>) {
+  if (!LATENCY_DEBUG) return;
+  console.info(`[latency][server] ${label}`, data);
+}
 
 // ---------- 내부 헬퍼 ----------
 
@@ -158,13 +170,26 @@ export async function placeBid(
   playerId: string,
   teamId: string,
   amount: number,
-): Promise<{ error?: string; timerEndsAt?: string }> {
+): Promise<{
+  error?: string;
+  timerEndsAt?: string;
+  debug?: {
+    serverReceivedAt: number;
+    validationDoneAt?: number;
+    bidPersistedAt?: number;
+    timerExtendedAt?: number;
+    timerSignalSentAt?: number;
+    messagePersistedAt?: number;
+    serverCompletedAt: number;
+  };
+}> {
   if (!Number.isInteger(amount) || amount <= 0)
     return { error: "양의 정수 금액을 입력하세요." };
   if (amount % 10 !== 0) return { error: "10P 단위로 입찰해야 합니다." };
   if (amount > 100_000)
     return { error: "최대 입찰액(100,000P)을 초과했습니다." };
 
+  const serverReceivedAt = nowMs();
   try {
     const roomRef = adminDb.collection("rooms").doc(roomId);
     const roomSnap = await roomRef.get();
@@ -225,6 +250,7 @@ export async function placeBid(
     if (soldCountSnap.size >= auctionSlotsPerTeam) {
       return { error: "팀 인원이 가득 찼습니다." };
     }
+    const validationDoneAt = nowMs();
 
     await adminDb.collection("rooms").doc(roomId).collection("bids").add({
       player_id: playerId,
@@ -233,8 +259,11 @@ export async function placeBid(
       amount,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     });
+    const bidPersistedAt = nowMs();
 
     let newTimerEndsAt: string | undefined;
+    let timerExtendedAt: number | undefined;
+    let timerSignalSentAt: number | undefined;
 
     const currentRemaining = timerField.toMillis() - Date.now();
     if (currentRemaining < EXTEND_THRESHOLD_MS) {
@@ -243,12 +272,45 @@ export async function placeBid(
         timer_ends_at: admin.firestore.Timestamp.fromDate(extended),
       });
       newTimerEndsAt = extended.toISOString();
+      timerExtendedAt = nowMs();
       await publishTimerExtendedSignal(roomId, newTimerEndsAt);
+      timerSignalSentAt = nowMs();
     }
 
     await sysMsg(roomId, `💰 ${teamData.name}이 ${amount}P에 입찰했습니다!`);
+    const messagePersistedAt = nowMs();
+    const serverCompletedAt = nowMs();
 
-    return { timerEndsAt: newTimerEndsAt };
+    logLatency("placeBid", {
+      roomId,
+      teamId,
+      amount,
+      totalMs: serverCompletedAt - serverReceivedAt,
+      validationMs: validationDoneAt - serverReceivedAt,
+      bidPersistMs: bidPersistedAt - validationDoneAt,
+      timerExtendMs:
+        timerExtendedAt && bidPersistedAt
+          ? timerExtendedAt - bidPersistedAt
+          : null,
+      timerSignalMs:
+        timerSignalSentAt && timerExtendedAt
+          ? timerSignalSentAt - timerExtendedAt
+          : null,
+      messagePersistMs: messagePersistedAt - (timerSignalSentAt ?? bidPersistedAt),
+    });
+
+    return {
+      timerEndsAt: newTimerEndsAt,
+      debug: {
+        serverReceivedAt,
+        validationDoneAt,
+        bidPersistedAt,
+        timerExtendedAt,
+        timerSignalSentAt,
+        messagePersistedAt,
+        serverCompletedAt,
+      },
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
     return { error: message };
