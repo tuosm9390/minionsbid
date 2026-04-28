@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { memo, useState, useRef, useEffect } from "react";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import {
@@ -11,7 +11,7 @@ import { sendChatMessage } from "@/features/auction/api/auctionActions";
 
 const MAX_MESSAGE_LENGTH = 200;
 
-function MessageItem({ msg }: { msg: Message }) {
+const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
   const role = msg.sender_role;
 
   const renderFormattedSystemMessage = (content: string) => {
@@ -118,17 +118,13 @@ function MessageItem({ msg }: { msg: Message }) {
       </div>
     </div>
   );
-}
+});
 
-export function ChatPanel() {
-  const roomId = useAuctionStore((s) => s.roomId);
-  const role = useAuctionStore((s) => s.role);
-  const messages = useAuctionStore((s) => s.messages);
-  const teams = useAuctionStore((s) => s.teams);
-  const teamId = useAuctionStore((s) => s.teamId);
-
-  const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
+const MessageList = memo(function MessageList({
+  messages,
+}: {
+  messages: Message[];
+}) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastMsgIdRef = useRef<string | null>(null);
 
@@ -141,6 +137,37 @@ export function ChatPanel() {
       if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
   }, [messages]);
+
+  return (
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1 custom-scrollbar"
+    >
+      {messages.length === 0 ? (
+        <div className="text-gray-300 text-fluid-xs text-center py-20 my-auto font-heading italic uppercase opacity-50 flex flex-col items-center gap-4">
+          <PixelIcon
+            icon={PIXEL_ICONS.WAITING}
+            size={32}
+            color="text-gray-200"
+            animation="active"
+          />
+          --- WAITING FOR LOGS ---
+        </div>
+      ) : (
+        messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
+      )}
+    </div>
+  );
+});
+
+const ChatComposer = memo(function ChatComposer() {
+  const roomId = useAuctionStore((s) => s.roomId);
+  const role = useAuctionStore((s) => s.role);
+  const teams = useAuctionStore((s) => s.teams);
+  const teamId = useAuctionStore((s) => s.teamId);
+
+  const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,60 +199,50 @@ export function ChatPanel() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white border-4 border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.05)]">
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1 custom-scrollbar"
-      >
-        {messages.length === 0 ? (
-          <div className="text-gray-300 text-fluid-xs text-center py-20 my-auto font-heading italic uppercase opacity-50 flex flex-col items-center gap-4">
-            <PixelIcon
-              icon={PIXEL_ICONS.WAITING}
-              size={32}
-              color="text-gray-200"
-              animation="active"
-            />
-            --- WAITING FOR LOGS ---
-          </div>
-        ) : (
-          messages.map((msg) => <MessageItem key={msg.id} msg={msg} />)
-        )}
-      </div>
-
-      <form
-        onSubmit={handleSend}
-        className="p-4 bg-gray-50 border-t-4 border-black flex flex-col gap-3"
-      >
-        <div className="flex justify-between items-center px-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-heading text-gray-400 uppercase tracking-tighter">
-              COMMS LINK ACTIVE
-            </span>
-          </div>
-          <span className="text-[10px] font-mono text-gray-400">
-            {input.length}/{MAX_MESSAGE_LENGTH}
+    <form
+      onSubmit={handleSend}
+      className="p-4 bg-gray-50 border-t-4 border-black flex flex-col gap-3"
+    >
+      <div className="flex justify-between items-center px-1">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 bg-green-500 animate-pulse" />
+          <span className="text-[10px] font-heading text-gray-400 uppercase tracking-tighter">
+            COMMS LINK ACTIVE
           </span>
         </div>
-        <div className="flex gap-3 h-12">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="메시지를 입력하세요..."
-            maxLength={MAX_MESSAGE_LENGTH}
-            className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-xs font-body focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
-            disabled={isSending}
-          />
-          <button
-            type="submit"
-            disabled={isSending || !input.trim()}
-            className="pixel-button bg-minion-yellow text-black h-full px-6 text-fluid-xs font-heading uppercase tracking-tight"
-          >
-            SEND
-          </button>
-        </div>
-      </form>
+        <span className="text-[10px] font-mono text-gray-400">
+          {input.length}/{MAX_MESSAGE_LENGTH}
+        </span>
+      </div>
+      <div className="flex gap-3 h-12">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="메시지를 입력하세요..."
+          maxLength={MAX_MESSAGE_LENGTH}
+          className="flex-1 bg-white border-4 w-2 border-black px-4 py-2 text-fluid-xs font-body focus:bg-yellow-50 focus:outline-none placeholder:text-gray-200 transition-colors"
+          disabled={isSending}
+        />
+        <button
+          type="submit"
+          disabled={isSending || !input.trim()}
+          className="pixel-button bg-minion-yellow text-black h-full px-6 text-fluid-xs font-heading uppercase tracking-tight"
+        >
+          SEND
+        </button>
+      </div>
+    </form>
+  );
+});
+
+export function ChatPanel() {
+  const messages = useAuctionStore((s) => s.messages);
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white border-4 border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.05)]">
+      <MessageList messages={messages} />
+      <ChatComposer />
     </div>
   );
 }
