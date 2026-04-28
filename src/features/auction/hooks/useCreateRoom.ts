@@ -8,6 +8,10 @@ import { getLeagueScheduleCatalog } from "@/features/schedules/api/scheduleActio
 import type { LeagueScheduleItem } from "@/features/schedules/types";
 import { buildTemplateData, CaptainInfo, PlayerInfo } from "../utils/roomGenerator";
 import { TIER_MAP, POSITION_HEADER_KEYWORDS } from "../constants/room";
+import {
+  type CaptainMode,
+  getAuctionSlotsPerTeam,
+} from "../utils/roster";
 
 const LS_KEY = "league_auction_rooms";
 
@@ -15,6 +19,7 @@ export interface BasicInfo {
   title: string;
   teamCount: number;
   membersPerTeam: number;
+  captainMode: CaptainMode;
   totalPoints: number;
   scheduleId: string | null;
   linkedAuctionId: string | null;
@@ -53,6 +58,7 @@ export function useCreateRoom() {
     title: "",
     teamCount: 2,
     membersPerTeam: 5,
+    captainMode: "IN_ROSTER",
     totalPoints: 1000,
     scheduleId: null,
     linkedAuctionId: null,
@@ -158,6 +164,7 @@ export function useCreateRoom() {
       totalTeams: basic.teamCount,
       basePoint: basic.totalPoints,
       membersPerTeam: basic.membersPerTeam,
+      captainMode: basic.captainMode,
       captains,
       players,
     });
@@ -262,7 +269,9 @@ export function useCreateRoom() {
             alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
             return;
           }
-          const fixed = basic.teamCount * (basic.membersPerTeam - 1);
+          const fixed =
+            basic.teamCount *
+            getAuctionSlotsPerTeam(basic.membersPerTeam, basic.captainMode);
           const trimmed = parsed.slice(0, fixed);
           const padded: PlayerInfo[] = trimmed.length < fixed
               ? [...trimmed, ...Array.from({ length: fixed - trimmed.length }, () => ({ name: "", tier: "골드", mainPosition: "탑", subPosition: "무관", description: "" }))]
@@ -310,7 +319,10 @@ export function useCreateRoom() {
     } else if (step === 1) {
       if (captains.some((c) => !c.name.trim() || !c.teamName.trim())) return alert("모든 팀장의 정보를 입력해주세요.");
       if (captains.some((c) => c.captainPoints < 0 || c.captainPoints >= basic.totalPoints)) return alert("포인트 설정을 확인해주세요.");
-      syncPlayers(basic.teamCount * (basic.membersPerTeam - 1));
+      syncPlayers(
+        basic.teamCount *
+          getAuctionSlotsPerTeam(basic.membersPerTeam, basic.captainMode),
+      );
       setStep(2);
     } else if (step === 2) {
       if (players.find((p) => !p.name.trim())) return alert("모든 선수의 이름을 입력해주세요.");
@@ -333,6 +345,7 @@ export function useCreateRoom() {
       title: "",
       teamCount: 5,
       membersPerTeam: 5,
+      captainMode: "IN_ROSTER",
       totalPoints: 1000,
       scheduleId: null,
       linkedAuctionId: null,
@@ -357,7 +370,13 @@ export function useCreateRoom() {
   };
 
   const openTemplateModal = () => {
-    setTemplateData(buildTemplateData(basic.teamCount, basic.membersPerTeam));
+    setTemplateData(
+      buildTemplateData(
+        basic.teamCount,
+        basic.membersPerTeam,
+        basic.captainMode,
+      ),
+    );
     setIsTemplateModalOpen(true);
   };
 

@@ -12,6 +12,7 @@ export type {
   ArchiveTeam,
   AuctionArchivePayload,
 } from './roomActions'
+export type { CaptainMode } from '../utils/roster'
 
 // 상수는 'use server' 파일에서 export 불가하므로 여기서 직접 정의
 export const AUCTION_DURATION_MS = 10_000

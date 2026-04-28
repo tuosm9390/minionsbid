@@ -10,6 +10,7 @@ import { CaptainRegistrationStep } from "./create-room/CaptainRegistrationStep";
 import { PlayerRegistrationStep } from "./create-room/PlayerRegistrationStep";
 import { LinksStep } from "./create-room/LinksStep";
 import { TemplatePreviewModal } from "./create-room/TemplatePreviewModal";
+import { getAuctionSlotsPerTeam } from "@/features/auction/utils/roster";
 
 const STEPS = ["기본 정보", "팀장 등록", "선수 등록", "링크 발급"];
 
@@ -49,7 +50,9 @@ export function CreateRoomModal() {
     buildTemplateData,
   } = useCreateRoom();
 
-  const minPlayers = basic.teamCount * (basic.membersPerTeam - 1);
+  const minPlayers =
+    basic.teamCount *
+    getAuctionSlotsPerTeam(basic.membersPerTeam, basic.captainMode);
 
   return (
     <>
@@ -264,7 +267,11 @@ export function CreateRoomModal() {
             onApply={applyTemplate}
             onRegenerate={() =>
               setTemplateData(
-                buildTemplateData(basic.teamCount, basic.membersPerTeam),
+                buildTemplateData(
+                  basic.teamCount,
+                  basic.membersPerTeam,
+                  basic.captainMode,
+                ),
               )
             }
           />,

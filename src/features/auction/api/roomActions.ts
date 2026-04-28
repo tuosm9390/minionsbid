@@ -2,6 +2,8 @@
 
 import { adminDb } from '@/lib/firebaseAdmin'
 import * as admin from 'firebase-admin'
+import type { CaptainMode } from '@/features/auction/utils/roster'
+import { normalizeCaptainMode } from '@/features/auction/utils/roster'
 
 // ---------- 타입 ----------
 
@@ -26,6 +28,7 @@ export interface CreateRoomPayload {
   totalTeams: number
   basePoint: number
   membersPerTeam: number
+  captainMode?: CaptainMode
   scheduleId?: string | null
   scheduleName?: string | null
   linkedAuctionId?: string | null
@@ -49,6 +52,8 @@ export interface ArchiveTeam {
   id: string
   name: string
   leader_name: string
+  leader_position?: string
+  captain_mode?: CaptainMode
   point_balance: number
   players: {
     name: string
@@ -88,6 +93,7 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
       total_teams: payload.captains.length,
       base_point: payload.basePoint,
       members_per_team: payload.membersPerTeam,
+      captain_mode: normalizeCaptainMode(payload.captainMode),
       current_player_id: null,
       timer_ends_at: null,
       created_at: admin.firestore.FieldValue.serverTimestamp(),

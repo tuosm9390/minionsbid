@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { BasicInfo } from "@/features/auction/hooks/useCreateRoom";
 import { CaptainInfo, PlayerInfo } from "@/features/auction/utils/roomGenerator";
+import { getAuctionSlotsPerTeam } from "@/features/auction/utils/roster";
 
 interface TemplatePreviewModalProps {
   isOpen: boolean;
@@ -30,7 +31,13 @@ export function TemplatePreviewModal({
           <div>
             <h3 className="text-lg font-black text-black">🎲 테스트 데이터 미리보기</h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              {basic.teamCount}팀 · 팀장 {basic.teamCount}명 · 선수 {basic.teamCount * (basic.membersPerTeam - 1)}명
+              {basic.teamCount}팀 · 팀장 {basic.teamCount}명 · 경매 선수{" "}
+              {basic.teamCount *
+                getAuctionSlotsPerTeam(
+                  basic.membersPerTeam,
+                  basic.captainMode,
+                )}
+              명
             </p>
           </div>
           <button onClick={onClose} className="text-black hover:bg-black/10 p-1 transition-colors"><X size={20} /></button>

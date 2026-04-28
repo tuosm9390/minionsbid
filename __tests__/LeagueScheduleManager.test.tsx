@@ -93,6 +93,7 @@ const baseTimeline = {
       id: 'team-1',
       name: 'Blue',
       leaderName: 'Captain Blue',
+      captainMode: 'IN_ROSTER',
       pointBalance: 0,
       players: [],
       source: 'archive' as const,

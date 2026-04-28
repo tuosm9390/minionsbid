@@ -155,7 +155,9 @@ function buildCollectionRef(collectionName: string, parentId?: string) {
           : collectionName === 'hall_of_fame'
             ? 'hof-created'
             : 'doc-created'
-      const ref = buildDocRef(collectionName, id, parentId)
+      const ref = buildDocRef(collectionName, id, parentId) as {
+        set: (data: DocData) => Promise<void>
+      }
       await ref.set(data)
       return { id, ...ref }
     },
@@ -440,8 +442,16 @@ describe('scheduleActions', () => {
           id: 'team-1',
           name: 'Blue',
           leader_name: 'Captain Blue',
+          captain_mode: 'IN_ROSTER',
           point_balance: 10,
           players: [
+            {
+              name: 'Captain Blue',
+              tier: '팀장',
+              main_position: 'TOP',
+              sub_position: '',
+              sold_price: null,
+            },
             {
               name: 'Player One',
               tier: 'S',
@@ -467,6 +477,52 @@ describe('scheduleActions', () => {
     expect(dbState.hallOfFame.has('schedule:schedule-1')).toBe(true)
     expect(dbState.leagueSchedules.get('schedule-1')?.status).toBe('COMPLETED')
     expect(dbState.leagueSchedules.get('schedule-1')?.champion_team_name).toBe('Blue')
+    expect(
+      (
+        dbState.hallOfFame.get('schedule:schedule-1')?.winning_team_players as Array<{
+          name: string
+        }>
+      )[0]?.name,
+    ).toBe('Captain Blue')
+  })
+
+  it('legacy archive without captain_mode keeps captain out when roster did not include leader', async () => {
+    dbState.leagueSchedules.set('schedule-legacy', {
+      name: 'Legacy Split',
+      linked_auction_id: 'archive-legacy',
+      roster_source_type: 'archive',
+      roster_source_id: 'archive-legacy',
+      starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      status: 'ACTIVE',
+    })
+    dbState.auctionArchives.set('archive-legacy', {
+      room_name: '레거시 경매',
+      result_snapshot: [
+        {
+          id: 'team-legacy',
+          name: 'Legacy Blue',
+          leader_name: 'Captain Legacy',
+          point_balance: 20,
+          players: [
+            {
+              name: 'Legacy Player',
+              tier: 'A',
+              main_position: 'MID',
+              sub_position: '',
+              sold_price: 120,
+            },
+          ],
+        },
+      ],
+    })
+
+    const { getLeagueScheduleTimeline } = await import('../scheduleActions')
+    const timeline = await getLeagueScheduleTimeline('schedule-legacy')
+
+    expect(timeline.rosterTeams[0]?.captainMode).toBe('COACH_ONLY')
+    expect(timeline.rosterTeams[0]?.players.map((player) => player.name)).toEqual([
+      'Legacy Player',
+    ])
   })
 
   it('deleteLeagueSchedule removes schedule tree and linked hall of fame entry', async () => {

@@ -15,6 +15,7 @@ const rosterTeams: LeagueRosterTeam[] = [
     id: "team-a",
     name: "알파",
     leaderName: "리더A",
+    captainMode: "IN_ROSTER",
     pointBalance: 0,
     players: [],
     source: "room",
@@ -25,6 +26,7 @@ const rosterTeams: LeagueRosterTeam[] = [
     id: "team-b",
     name: "브라보",
     leaderName: "리더B",
+    captainMode: "IN_ROSTER",
     pointBalance: 0,
     players: [],
     source: "room",
@@ -35,6 +37,7 @@ const rosterTeams: LeagueRosterTeam[] = [
     id: "team-c",
     name: "찰리",
     leaderName: "리더C",
+    captainMode: "IN_ROSTER",
     pointBalance: 0,
     players: [],
     source: "room",
@@ -156,7 +159,11 @@ describe("leagueRecords", () => {
   });
 
   it("summarizes completed and pending match counts", () => {
-    expect(summarizeLeagueMatches(days)).toEqual({
+    expect(
+      summarizeLeagueMatches(days, {
+        now: new Date("2026-04-11T08:00:00.000Z"),
+      }),
+    ).toEqual({
       totalMatches: 3,
       completedMatches: 2,
       inProgressMatches: 0,

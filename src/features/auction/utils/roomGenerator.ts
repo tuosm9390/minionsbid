@@ -1,4 +1,12 @@
-﻿import { LAST_NAMES, FIRST_NAMES_LIST, CAPTAIN_INTROS, PLAYER_INTROS, POSITIONS, TIERS } from "../constants/room";
+import {
+  LAST_NAMES,
+  FIRST_NAMES_LIST,
+  CAPTAIN_INTROS,
+  PLAYER_INTROS,
+  POSITIONS,
+  TIERS,
+} from "../constants/room";
+import { type CaptainMode, getAuctionSlotsPerTeam } from "./roster";
 
 export interface CaptainInfo {
   teamName: string;
@@ -19,7 +27,8 @@ export interface PlayerInfo {
 export function generateKoreanName(usedNames: Set<string>): string {
   for (let i = 0; i < 100; i++) {
     const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
-    const first = FIRST_NAMES_LIST[Math.floor(Math.random() * FIRST_NAMES_LIST.length)];
+    const first =
+      FIRST_NAMES_LIST[Math.floor(Math.random() * FIRST_NAMES_LIST.length)];
     const name = `${last}${first}`;
     if (!usedNames.has(name)) {
       usedNames.add(name);
@@ -34,6 +43,7 @@ export function generateKoreanName(usedNames: Set<string>): string {
 export function buildTemplateData(
   teamCount: number,
   membersPerTeam: number,
+  captainMode: CaptainMode = "IN_ROSTER",
 ): { captains: CaptainInfo[]; players: PlayerInfo[] } {
   const usedNames = new Set<string>();
 
@@ -48,7 +58,8 @@ export function buildTemplateData(
     };
   });
 
-  const playerCount = teamCount * (membersPerTeam - 1);
+  const playerCount =
+    teamCount * getAuctionSlotsPerTeam(membersPerTeam, captainMode);
   const players: PlayerInfo[] = Array.from({ length: playerCount }, (_, i) => {
     const name = generateKoreanName(usedNames);
     return {

@@ -31,6 +31,7 @@ export interface AuctionArchiveForHof {
     id: string
     name: string
     leader_name: string
+    captain_mode?: 'IN_ROSTER' | 'COACH_ONLY'
     point_balance: number
     players: { name: string; sold_price: number | null }[]
   }[]

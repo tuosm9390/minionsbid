@@ -37,6 +37,7 @@ import {
   saveFixtureLeagueScheduleDay,
   verifyFixtureScheduleAdminCode,
 } from './e2eScheduleFixture'
+import { inferCaptainModeFromRoster, normalizeCaptainMode } from '@/features/auction/utils/roster'
 
 function toIsoString(value: unknown): string | null {
   if (!value) return null
@@ -217,6 +218,30 @@ function rosterPlayersFromArchive(players: unknown[]): LeagueRosterPlayer[] {
   })
 }
 
+function prependCaptainToRoster(
+  players: LeagueRosterPlayer[],
+  options: {
+    captainMode: 'IN_ROSTER' | 'COACH_ONLY'
+    leaderName: string
+    leaderPosition?: string
+  }
+): LeagueRosterPlayer[] {
+  if (options.captainMode !== 'IN_ROSTER' || !options.leaderName.trim()) {
+    return players
+  }
+
+  return [
+    {
+      name: options.leaderName,
+      tier: '팀장',
+      mainPosition: options.leaderPosition?.trim() || '',
+      subPosition: '',
+      soldPrice: null,
+    },
+    ...players,
+  ]
+}
+
 async function getHallOfFameArchiveIdSet(): Promise<Set<string>> {
   const snapshot = await adminDb.collection('hall_of_fame').get()
   return new Set(
@@ -236,14 +261,25 @@ function mapArchiveRosterTeam(
 ): LeagueRosterTeam | null {
   const name = normalizeText(record.name)
   if (!name) return null
+  const leaderName = normalizeText(record.leader_name)
+  const rawPlayers = Array.isArray(record.players) ? (record.players as unknown[]) : []
+  const captainMode = inferCaptainModeFromRoster(record.captain_mode, {
+    leaderName,
+    players: rawPlayers.map((player) =>
+      typeof player === 'object' && player !== null
+        ? (player as { name?: string | null })
+        : {}
+    ),
+  })
 
   return {
     id: normalizeText(record.id) || archiveId,
     name,
-    leaderName: normalizeText(record.leader_name),
+    leaderName,
+    captainMode,
     pointBalance: typeof record.point_balance === 'number' ? record.point_balance : 0,
     players: rosterPlayersFromArchive(
-      Array.isArray(record.players) ? (record.players as unknown[]) : []
+      rawPlayers
     ).sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')),
     source: 'archive',
     auctionKey: `archive:${archiveId}`,
@@ -282,6 +318,7 @@ async function loadRosterTeamsFromRoomDoc(
 
   const roomName =
     normalizeText(roomData.schedule_name) || normalizeText(roomData.name) || fallbackName
+  const captainMode = normalizeCaptainMode(roomData.captain_mode)
 
   const teams: LeagueRosterTeam[] = []
 
@@ -294,9 +331,17 @@ async function loadRosterTeamsFromRoomDoc(
       id: teamDoc.id,
       name,
       leaderName: normalizeText(data.leader_name),
+      captainMode,
       pointBalance: typeof data.point_balance === 'number' ? data.point_balance : 0,
-      players: (playersByTeam.get(teamDoc.id) ?? []).sort((a, b) =>
-        a.name.localeCompare(b.name, 'ko-KR')
+      players: prependCaptainToRoster(
+        (playersByTeam.get(teamDoc.id) ?? []).sort((a, b) =>
+          a.name.localeCompare(b.name, 'ko-KR')
+        ),
+        {
+          captainMode,
+          leaderName: normalizeText(data.leader_name),
+          leaderPosition: normalizeText(data.leader_position),
+        }
       ),
       source: 'room',
       auctionKey: `room:${roomDoc.id}`,

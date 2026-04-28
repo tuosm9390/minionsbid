@@ -86,6 +86,7 @@ export interface LeagueRosterTeam {
   id: string;
   name: string;
   leaderName: string;
+  captainMode: "IN_ROSTER" | "COACH_ONLY";
   pointBalance: number;
   players: LeagueRosterPlayer[];
   source: 'room' | 'archive';

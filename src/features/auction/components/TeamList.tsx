@@ -4,9 +4,12 @@ import { useState } from "react";
 import {
   useAuctionStore,
   Team,
-  Player,
 } from "@/features/auction/store/useAuctionStore";
 import { updateTeamName } from "@/features/auction/api/roomActions";
+import {
+  buildRosterWithCaptain,
+  getAuctionSlotsPerTeam,
+} from "@/features/auction/utils/roster";
 
 const TIER_COLOR: Record<string, string> = {
   챌린저: "text-cyan-400",
@@ -22,7 +25,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export function UnsoldPanel() {
   const players = useAuctionStore((state) => state.players || []);
-  const unsoldPlayers = players.filter((p: Player) => p.status === "UNSOLD");
+  const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
 
   if (unsoldPlayers.length === 0)
     return (
@@ -34,7 +37,7 @@ export function UnsoldPanel() {
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="grid grid-cols-1 gap-2">
-        {unsoldPlayers.map((p: Player) => (
+        {unsoldPlayers.map((p) => (
           <div
             key={p.id}
             className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 hover:bg-minion-red/5 transition-colors shadow-[2px_2px_0px_rgba(0,0,0,1)]"
@@ -61,6 +64,7 @@ export function TeamList() {
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
   const role = useAuctionStore((state) => state.role);
   const roomId = useAuctionStore((state) => state.roomId);
+  const captainMode = useAuctionStore((state) => state.captainMode);
 
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -114,9 +118,19 @@ export function TeamList() {
         const teamPlayers = players.filter(
           (p) => p.team_id === team.id && p.status === "SOLD",
         );
+        const rosterPlayers = buildRosterWithCaptain(
+          teamPlayers.map((p) => ({ ...p, sold_price: p.sold_price })),
+          {
+            captainMode,
+            leaderName: team.leader_name,
+            leaderPosition: team.leader_position,
+          },
+        );
         const isMyTeam = team.id === myTeamId;
-        const totalSlots = membersPerTeam - 1;
-        const isTeamComplete = teamPlayers.length === totalSlots;
+        const totalSlots = membersPerTeam;
+        const isTeamComplete =
+          teamPlayers.length ===
+          getAuctionSlotsPerTeam(membersPerTeam, captainMode);
         const isEditing = editingTeamId === team.id;
 
         const pointRatio = Math.min(100, (team.point_balance / 1000) * 100);
@@ -221,9 +235,9 @@ export function TeamList() {
 
             <div className="grid grid-cols-1 gap-2">
               {/* Sold Players */}
-              {teamPlayers.map((p: Player) => (
+              {rosterPlayers.map((p, index) => (
                 <div
-                  key={p.id}
+                  key={"id" in p ? p.id : `captain-${team.id}-${index}`}
                   className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group"
                 >
                   <div className="flex flex-col">
@@ -231,21 +245,29 @@ export function TeamList() {
                       {p.name}
                     </span>
                     <span
-                      className={`text-fluid-xs font-heading mt-1 ${TIER_COLOR[p.tier]}`}
+                      className={`text-fluid-xs font-heading mt-1 ${TIER_COLOR[p.tier] ?? "text-gray-500"}`}
                     >
-                      {p.tier}
+                      {p.sold_price == null
+                        ? `팀장${p.main_position ? ` · ${p.main_position}` : ""}`
+                        : p.tier}
                     </span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-fluid-xs font-black text-minion-blue bg-minion-yellow px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
-                      {p.sold_price} P
-                    </span>
+                    {p.sold_price != null ? (
+                      <span className="text-fluid-xs font-black text-minion-blue bg-minion-yellow px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
+                        {p.sold_price} P
+                      </span>
+                    ) : (
+                      <span className="text-fluid-xs font-black text-gray-500 bg-white px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                        팀장
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
 
               {/* Empty Slots */}
-              {Array.from({ length: totalSlots - teamPlayers.length }).map(
+              {Array.from({ length: totalSlots - rosterPlayers.length }).map(
                 (_, i) => (
                   <div
                     key={`empty-${i}`}

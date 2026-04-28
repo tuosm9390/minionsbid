@@ -181,9 +181,45 @@ export function BasicInfoStep({
         </div>
       </div>
 
+      <div>
+        <label className="text-sm font-bold text-gray-700 block mb-2">팀장 운영 방식</label>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setBasic((p) => ({ ...p, captainMode: "IN_ROSTER" }))}
+            className={`border-2 border-black px-4 py-4 text-left ${
+              basic.captainMode === "IN_ROSTER" ? "bg-minion-yellow" : "bg-white"
+            }`}
+          >
+            <p className="text-sm font-black">팀장도 로스터 포함</p>
+            <p className="mt-1 text-xs font-bold text-gray-600">
+              팀장은 실경기 인원에 포함되고, 그만큼 경매 선수 수가 줄어듭니다.
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBasic((p) => ({ ...p, captainMode: "COACH_ONLY" }))}
+            className={`border-2 border-black px-4 py-4 text-left ${
+              basic.captainMode === "COACH_ONLY" ? "bg-minion-yellow" : "bg-white"
+            }`}
+          >
+            <p className="text-sm font-black">팀장은 감독 전용</p>
+            <p className="mt-1 text-xs font-bold text-gray-600">
+              팀장은 로스터에서 제외되고, 모든 실경기 인원을 경매로 채웁니다.
+            </p>
+          </button>
+        </div>
+      </div>
+
       <div className="bg-blue-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm text-gray-600 space-y-1">
         <p className="font-bold text-black mb-1">요약</p>
-        <p>· 총 {basic.teamCount}팀, 팀당 {basic.membersPerTeam}명 (팀장 포함)</p>
+        <p>· 총 {basic.teamCount}팀, 팀당 {basic.membersPerTeam}명</p>
+        <p>
+          · 팀장 운영:{" "}
+          <span className="font-bold text-black">
+            {basic.captainMode === "IN_ROSTER" ? "로스터 포함" : "감독 전용"}
+          </span>
+        </p>
         <p>· 경매 선수 <span className="font-bold text-black">{minPlayers}명</span> 고정 등록</p>
         <p>· 각 팀 시작 포인트: {basic.totalPoints}P</p>
       </div>
