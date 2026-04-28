@@ -95,9 +95,16 @@ export function RoomClient({
   const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
 
   const bids = useAuctionStore((s) => s.bids);
+  const liveBid = useAuctionStore((s) => s.liveBid);
   const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id);
-  const highestBid =
+  const firestoreHighestBid =
     playerBids.length > 0 ? Math.max(...playerBids.map((b) => b.amount)) : 0;
+  const activeLiveBid =
+    liveBid?.player_id === currentPlayer?.id ? liveBid : null;
+  const highestBid = Math.max(
+    firestoreHighestBid,
+    activeLiveBid?.amount ?? 0,
+  );
   const minBid = highestBid > 0 ? highestBid + 10 : 10;
 
   useEffect(() => {

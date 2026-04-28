@@ -43,6 +43,13 @@ export interface Bid {
   created_at: string
 }
 
+export interface LiveBidState {
+  player_id: string
+  team_id: string
+  amount: number
+  created_at: string
+}
+
 export interface Message {
   id: string
   room_id: string
@@ -70,6 +77,7 @@ interface AuctionState {
   isReAuctionRound: boolean
   teams: Team[]
   bids: Bid[]
+  liveBid: LiveBidState | null
   players: Player[]
   messages: Message[]
 
@@ -91,6 +99,7 @@ interface AuctionState {
   setLocalConnected: (connected: boolean) => void
   appendBid: (bid: Bid) => void
   removeBid: (bidId: string) => void
+  setLiveBid: (bid: LiveBidState | null) => void
   appendMessage: (message: Message) => void
   removeMessage: (messageId: string) => void
 }
@@ -112,6 +121,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   isReAuctionRound: false,
   teams: [],
   bids: [],
+  liveBid: null,
   players: [],
   messages: [],
   presences: [],
@@ -134,6 +144,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   removeBid: (bidId) => set((state) => ({
     bids: state.bids.filter((bid) => bid.id !== bidId),
   })),
+  setLiveBid: (bid) => set({ liveBid: bid }),
   appendMessage: (message) => set((state) => ({
     messages: [...state.messages, message],
   })),

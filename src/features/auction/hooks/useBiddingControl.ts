@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { getDatabase, ref, set } from 'firebase/database'
 import {
   useAuctionStore,
+  type LiveBidState,
   type Player,
   type Team,
 } from '@/features/auction/store/useAuctionStore'
@@ -45,16 +46,24 @@ export function useBiddingControl({
   const [bidError, setBidError] = useState<string | null>(null)
 
   const bids = useAuctionStore((s) => s.bids)
+  const liveBid = useAuctionStore((s) => s.liveBid)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
+  const setLiveBid = useAuctionStore((s) => s.setLiveBid)
   const appendBid = useAuctionStore((s) => s.appendBid)
   const removeBid = useAuctionStore((s) => s.removeBid)
   const players = useAuctionStore((s) => s.players)
 
   // ── 파생 데이터 ──
   const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id)
-  const highestBid =
+  const firestoreHighestBid =
     playerBids.length > 0 ? Math.max(...playerBids.map((b) => b.amount)) : 0
-  const topBid = playerBids.find((b) => b.amount === highestBid)
+  const activeLiveBid =
+    liveBid?.player_id === currentPlayer?.id ? liveBid : null
+  const highestBid = Math.max(firestoreHighestBid, activeLiveBid?.amount ?? 0)
+  const topBid =
+    activeLiveBid && activeLiveBid.amount >= firestoreHighestBid
+      ? activeLiveBid
+      : playerBids.find((b) => b.amount === firestoreHighestBid)
   const isLeading = topBid?.team_id === teamId
 
   const numericBidAmount =
@@ -90,13 +99,28 @@ export function useBiddingControl({
     const finalAmount = Math.max(numericAmount, minBid)
     const optimisticBidId = `temp-bid-${teamId}-${Date.now()}`
     const previousTimerEndsAt = timerEndsAt
+    const previousLiveBid = activeLiveBid
     const bidClickedAt = Date.now()
     const shouldOptimisticallyExtend =
       !!timerEndsAt &&
       new Date(timerEndsAt).getTime() - Date.now() < EXTEND_THRESHOLD_MS
+    const optimisticLiveBid: LiveBidState = {
+      player_id: currentPlayer.id,
+      team_id: teamId,
+      amount: finalAmount,
+      created_at: new Date().toISOString(),
+    }
 
     setBidError(null)
     setIsBidding(true)
+
+    setLiveBid(optimisticLiveBid)
+    void set(ref(getDatabase(), `signals/${roomId}/latestBid`), {
+      ...optimisticLiveBid,
+      at: Date.now(),
+    }).catch(() => {
+      // RTDB 신호 실패 시에도 로컬 optimistic update는 유지한다.
+    })
 
     if (shouldOptimisticallyExtend) {
       const optimisticTimerEndsAt = new Date(
@@ -123,11 +147,19 @@ export function useBiddingControl({
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
       if (res.error) {
         removeBid(optimisticBidId)
+        setLiveBid(previousLiveBid ?? null)
+        void set(
+          ref(getDatabase(), `signals/${roomId}/latestBid`),
+          previousLiveBid ? { ...previousLiveBid, at: Date.now() } : null,
+        ).catch(() => {
+          // 롤백 신호 실패는 무시하고 Firestore snapshot에 맡긴다.
+        })
         if (shouldOptimisticallyExtend) {
           setRealtimeData({ timerEndsAt: previousTimerEndsAt })
         }
         setBidError(res.error)
       } else {
+        setLiveBid(optimisticLiveBid)
         if (LATENCY_DEBUG) {
           console.info('[latency][client] placeBid response', {
             roomId,

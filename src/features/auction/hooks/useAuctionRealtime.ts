@@ -87,6 +87,7 @@ export function useFirebaseRealtime(roomId: string) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setRoomNotFound = useAuctionStore(s => s.setRoomNotFound)
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
+  const setLiveBid = useAuctionStore(s => s.setLiveBid)
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
@@ -94,6 +95,7 @@ export function useFirebaseRealtime(roomId: string) {
   // CLOSE_LOTTERY 초기값 무시를 위한 ref
   const closeLotteryInitRef = useRef(true)
   const timerExtendedInitRef = useRef(true)
+  const latestBidInitRef = useRef(true)
 
   useEffect(() => {
     if (!roomId) return
@@ -148,6 +150,7 @@ export function useFirebaseRealtime(roomId: string) {
       const newPlayerId = currentPlayerId
       if (newPlayerId !== currentPlayerIdRef.current) {
         currentPlayerIdRef.current = newPlayerId
+        setLiveBid(null)
         bidsUnsubRef.current?.()
 
         if (newPlayerId) {
@@ -284,6 +287,34 @@ export function useFirebaseRealtime(roomId: string) {
       }
     })
     unsubs.push(() => timerExtendedUnsub())
+
+    // 7. RTDB: 실시간 최고 입찰 신호 감시
+    const latestBidRef = ref(rtdb, `signals/${roomId}/latestBid`)
+    latestBidInitRef.current = true
+    const latestBidUnsub = onValue(latestBidRef, (snapshot) => {
+      if (latestBidInitRef.current) {
+        latestBidInitRef.current = false
+        return
+      }
+
+      const data = snapshot.val() as Bid | null
+      if (!data || !currentPlayerIdRef.current) {
+        setLiveBid(null)
+        return
+      }
+
+      if (data.player_id !== currentPlayerIdRef.current) {
+        return
+      }
+
+      setLiveBid({
+        player_id: data.player_id,
+        team_id: data.team_id,
+        amount: data.amount,
+        created_at: data.created_at,
+      })
+    })
+    unsubs.push(() => latestBidUnsub())
 
     return () => {
       unsubs.forEach((unsub) => unsub())

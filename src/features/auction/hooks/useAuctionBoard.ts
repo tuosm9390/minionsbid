@@ -33,6 +33,7 @@ export function useAuctionBoard({
   // ── Store 셀렉터 ──
   const players = useAuctionStore((s) => s.players)
   const bids = useAuctionStore((s) => s.bids)
+  const liveBid = useAuctionStore((s) => s.liveBid)
   const teams = useAuctionStore((s) => s.teams)
   const presences = useAuctionStore((s) => s.presences)
   const messages = useAuctionStore((s) => s.messages)
@@ -69,9 +70,15 @@ export function useAuctionBoard({
   const latestNotice = messages.findLast((m) => m.sender_role === 'NOTICE')
 
   const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id)
-  const highestBid =
+  const firestoreHighestBid =
     playerBids.length > 0 ? Math.max(...playerBids.map((b) => b.amount)) : 0
-  const topBid = playerBids.find((b) => b.amount === highestBid)
+  const activeLiveBid =
+    liveBid?.player_id === currentPlayer?.id ? liveBid : null
+  const highestBid = Math.max(firestoreHighestBid, activeLiveBid?.amount ?? 0)
+  const topBid =
+    activeLiveBid && activeLiveBid.amount >= firestoreHighestBid
+      ? activeLiveBid
+      : playerBids.find((b) => b.amount === firestoreHighestBid)
   const leadingTeam = teams.find((t) => t.id === topBid?.team_id)
 
   const unsoldPlayers = players.filter((p) => p.status === 'UNSOLD')

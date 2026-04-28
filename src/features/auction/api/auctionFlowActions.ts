@@ -47,6 +47,22 @@ async function publishTimerExtendedSignal(
   });
 }
 
+async function publishLatestBidSignal(
+  roomId: string,
+  bid: {
+    player_id: string;
+    team_id: string;
+    amount: number;
+    created_at: string;
+  },
+): Promise<void> {
+  const db = admin.database();
+  await db.ref(`signals/${roomId}/latestBid`).set({
+    ...bid,
+    at: Date.now(),
+  });
+}
+
 // ---------- 경매 흐름 ----------
 
 /** 랜덤으로 WAITING 선수 1명을 IN_AUCTION으로 전환 */
@@ -260,6 +276,13 @@ export async function placeBid(
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     });
     const bidPersistedAt = nowMs();
+
+    await publishLatestBidSignal(roomId, {
+      player_id: playerId,
+      team_id: teamId,
+      amount,
+      created_at: new Date().toISOString(),
+    });
 
     let newTimerEndsAt: string | undefined;
     let timerExtendedAt: number | undefined;

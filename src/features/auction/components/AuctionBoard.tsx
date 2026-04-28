@@ -260,7 +260,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                     onClick={props.onCloseLottery}
                     className="pixel-button bg-black text-white h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter hover:bg-minion-blue transition-colors flex items-center gap-3"
                   >
-                    경매 시작하기
+                    경매 준비
                     <PixelIcon
                       icon={PIXEL_ICONS.SUCCESS}
                       size={20}
