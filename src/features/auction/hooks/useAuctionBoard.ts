@@ -11,6 +11,7 @@ import {
   draftPlayer,
   restartAuctionWithUnsold,
 } from '@/features/auction/api/auctionActions'
+import { getAuctionSlotsPerTeam } from '../utils/roster'
 
 interface UseAuctionBoardProps {
   isLotteryActive: boolean
@@ -39,11 +40,11 @@ export function useAuctionBoard({
   const roomId = useAuctionStore((s) => s.roomId)
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt)
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam)
+  const captainMode = useAuctionStore((s) => s.captainMode)
   const setReAuctionRound = useAuctionStore((s) => s.setReAuctionRound)
 
   // ── 로컬 상태 ──
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null)
-  const [showResultModal, setShowResultModal] = useState(false)
   const [isRestarting, setIsRestarting] = useState(false)
   const [lotteryDone, setLotteryDone] = useState(false)
   const [soldOverlayData, setSoldOverlayData] = useState<{
@@ -82,8 +83,9 @@ export function useAuctionBoard({
     soldCount: players.filter((p) => p.team_id === t.id && p.status === 'SOLD').length,
   }))
 
+  const auctionSlotsPerTeam = getAuctionSlotsPerTeam(membersPerTeam, captainMode)
   const needyTeams = teamPlayerCounts.filter(
-    (t) => t.soldCount < membersPerTeam - 1,
+    (t) => t.soldCount < auctionSlotsPerTeam,
   )
   const isRoomComplete = teams.length > 0 && needyTeams.length === 0
 
@@ -91,21 +93,23 @@ export function useAuctionBoard({
     players.length > 0 &&
     players.filter((p) => p.status === 'WAITING' || p.status === 'IN_AUCTION').length === 0
 
-  const isAuctionStarted = soldPlayers.length > 0 || !!currentPlayer
-  const isAuctionComplete = isAuctionFinished && isRoomComplete
-
   const biddableTeams = teamPlayerCounts.filter(
-    (t) => t.soldCount < membersPerTeam - 1 && t.point_balance >= 10,
+    (t) => t.soldCount < auctionSlotsPerTeam && t.point_balance >= 10,
   )
   const isAutoDraftMode =
     !currentPlayer &&
     waitingPlayersList.length > 0 &&
     unsoldPlayers.length === 0 &&
     biddableTeams.length <= 1
+  const hasDraftablePlayers = unsoldPlayers.length > 0 || isAutoDraftMode
+  const isAuctionStarted = soldPlayers.length > 0 || !!currentPlayer
+  const isAuctionTerminal =
+    isAuctionFinished && !hasDraftablePlayers && soldPlayers.length > 0
+  const isAuctionComplete = isRoomComplete || isAuctionTerminal
 
   const maxEmptySlots =
     needyTeams.length > 0
-      ? Math.max(...needyTeams.map((t) => membersPerTeam - 1 - t.soldCount))
+      ? Math.max(...needyTeams.map((t) => auctionSlotsPerTeam - t.soldCount))
       : 0
   const phase =
     needyTeams.length >= 2 && maxEmptySlots >= 2 ? 'RE_AUCTION' : 'DRAFT'
@@ -193,15 +197,15 @@ export function useAuctionBoard({
     isAuctionFinished,
     isAuctionStarted,
     isAuctionComplete,
+    isAuctionTerminal,
     isAutoDraftMode,
+    hasDraftablePlayers,
     phase,
     currentTurnTeam,
 
     // 로컬 상태
     soldOverlayData,
     setSoldOverlayData,
-    showResultModal,
-    setShowResultModal,
     isProcessingAction,
     isRestarting,
     lotteryDone,

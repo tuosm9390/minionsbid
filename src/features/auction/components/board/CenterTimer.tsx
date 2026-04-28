@@ -7,11 +7,13 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface CenterTimerProps {
   timerEndsAt: string;
+  onExpire?: () => void;
 }
 
-export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
+export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
   const [now, setNow] = useState(() => Date.now());
   const [initialDuration, setInitialDuration] = useState<number | null>(null);
+  const hasExpiredRef = useRef(false);
 
   const target = new Date(timerEndsAt).getTime();
   const timeLeftMs = Math.max(0, target - now);
@@ -26,7 +28,14 @@ export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
 
   useEffect(() => {
     setInitialDuration(target - Date.now());
+    hasExpiredRef.current = false;
   }, [target]);
+
+  useEffect(() => {
+    if (timeLeftMs > 0 || hasExpiredRef.current) return;
+    hasExpiredRef.current = true;
+    onExpire?.();
+  }, [onExpire, timeLeftMs]);
 
   const displayTime = Math.ceil(timeLeftSec);
   const progress = initialDuration ? (timeLeftMs / initialDuration) * 100 : 0;
@@ -86,7 +95,7 @@ export function CenterTimer({ timerEndsAt }: CenterTimerProps) {
         <div
           className={cn(
             "h-full transition-all duration-150",
-            isUrgent ? "bg-minion-red animate-pulse" : "bg-minion-yellow"
+            isUrgent ? "bg-minion-red" : "bg-minion-yellow"
           )}
           style={{ width: `${progress}%` }}
         />

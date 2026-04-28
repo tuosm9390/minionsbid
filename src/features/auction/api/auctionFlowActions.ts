@@ -2,6 +2,10 @@
 
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
+import {
+  getAuctionSlotsPerTeam,
+  normalizeCaptainMode,
+} from "@/features/auction/utils/roster";
 
 // ---------- 상수 ----------
 
@@ -198,6 +202,11 @@ export async function placeBid(
 
     const roomSnap2 = await roomRef.get();
     const membersPerTeam = roomSnap2.data()?.members_per_team ?? 5;
+    const captainMode = normalizeCaptainMode(roomSnap2.data()?.captain_mode);
+    const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
+      membersPerTeam,
+      captainMode,
+    );
 
     const soldCountSnap = await adminDb
       .collection("rooms")
@@ -206,7 +215,7 @@ export async function placeBid(
       .where("team_id", "==", teamId)
       .where("status", "==", "SOLD")
       .get();
-    if (soldCountSnap.size >= membersPerTeam) {
+    if (soldCountSnap.size >= auctionSlotsPerTeam) {
       return { error: "팀 인원이 가득 찼습니다." };
     }
 
@@ -331,6 +340,38 @@ export async function awardPlayer(
   }
 }
 
+/** 만료된 경매 복구 — 현재 room 상태를 읽고 필요한 경우에만 awardPlayer 호출 */
+export async function recoverExpiredAuction(
+  roomId: string,
+): Promise<{ error?: string; recovered?: boolean }> {
+  try {
+    const roomRef = adminDb.collection("rooms").doc(roomId);
+    const roomSnap = await roomRef.get();
+    if (!roomSnap.exists) return { error: "방을 찾을 수 없습니다." };
+
+    const roomData = roomSnap.data()!;
+    const playerId = roomData.current_player_id as string | null | undefined;
+    const timerEndsAt =
+      roomData.timer_ends_at as admin.firestore.Timestamp | null | undefined;
+
+    if (!playerId || !timerEndsAt) {
+      return { recovered: false };
+    }
+
+    if (timerEndsAt.toMillis() > Date.now()) {
+      return { recovered: false };
+    }
+
+    const result = await awardPlayer(roomId, playerId);
+    if (result.error) return result;
+
+    return { recovered: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "알 수 없는 오류";
+    return { error: message };
+  }
+}
+
 /** 자유계약 영입 (UNSOLD 또는 WAITING 선수를 0P로 팀에 배정) */
 export async function draftPlayer(
   roomId: string,
@@ -365,6 +406,11 @@ export async function draftPlayer(
 
     const roomSnap = await adminDb.collection("rooms").doc(roomId).get();
     const membersPerTeam = roomSnap.data()?.members_per_team ?? 5;
+    const captainMode = normalizeCaptainMode(roomSnap.data()?.captain_mode);
+    const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
+      membersPerTeam,
+      captainMode,
+    );
 
     const soldCountSnap = await adminDb
       .collection("rooms")
@@ -373,7 +419,7 @@ export async function draftPlayer(
       .where("team_id", "==", teamId)
       .where("status", "==", "SOLD")
       .get();
-    if (soldCountSnap.size >= membersPerTeam) {
+    if (soldCountSnap.size >= auctionSlotsPerTeam) {
       return { error: "팀 인원이 가득 찼습니다." };
     }
 

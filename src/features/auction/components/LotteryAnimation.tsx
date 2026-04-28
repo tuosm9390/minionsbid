@@ -21,7 +21,7 @@ interface LotteryAnimationProps {
 }
 
 const ITEM_HEIGHT = 160;
-const VISIBLE_ITEMS = 40;
+const VISIBLE_ITEMS = 24;
 
 export function LotteryAnimation({
   candidates,
@@ -31,11 +31,10 @@ export function LotteryAnimation({
   const shouldReduceMotion = useReducedMotion();
   const [isSpinning, setIsSpinning] = useState(true);
   const [hasFinished, setHasFinished] = useState(false);
-  const [tick, setTick] = useState(0);
   const controls = useAnimationControls();
   const spinItemCount = shouldReduceMotion ? 8 : VISIBLE_ITEMS;
-  const spinDuration = shouldReduceMotion ? 1.15 : 4.5;
-  const revealDelay = shouldReduceMotion ? 250 : 1000;
+  const spinDuration = shouldReduceMotion ? 1.05 : 3.6;
+  const revealDelay = shouldReduceMotion ? 180 : 700;
 
   // Generate a sequence of items that ends with the target player
   const trackItems = useMemo(() => {
@@ -66,7 +65,7 @@ export function LotteryAnimation({
     const startAnimation = async () => {
       // Small delay before starting to ensure Framer Motion is ready
       await new Promise((resolve) =>
-        setTimeout(resolve, shouldReduceMotion ? 180 : 500),
+        setTimeout(resolve, shouldReduceMotion ? 120 : 240),
       );
 
       if (!isMounted) return;
@@ -110,19 +109,6 @@ export function LotteryAnimation({
     spinItemCount,
   ]);
 
-  // Handle "Tick" effect as items scroll
-  useEffect(() => {
-    if (!isSpinning) return;
-
-    const interval = setInterval(() => {
-      // This is a simplified tick simulation based on timing
-      // In a real scenario, we could use useScroll and useTransform to be more precise
-      setTick((t) => (t + 1) % 2);
-    }, shouldReduceMotion ? 220 : 100);
-
-    return () => clearInterval(interval);
-  }, [isSpinning, shouldReduceMotion]);
-
   return (
     <div className="w-full flex flex-col items-center justify-center gap-8 py-8 perspective-1000">
       <AnimatePresence mode="wait">
@@ -160,7 +146,6 @@ export function LotteryAnimation({
       </AnimatePresence>
 
       <motion.div
-        layout
         animate={
           hasFinished
             ? shouldReduceMotion
@@ -236,7 +221,8 @@ export function LotteryAnimation({
         {/* Scrolling Track */}
         <motion.div
           animate={controls}
-          className="flex flex-col w-full absolute top-0 left-0 px-4"
+          className="absolute top-0 left-0 flex w-full flex-col px-4 will-change-transform"
+          style={{ backfaceVisibility: "hidden", transform: "translateZ(0)" }}
         >
           {trackItems.map((p, idx) => (
             <div
@@ -259,11 +245,29 @@ export function LotteryAnimation({
                 <motion.div
                   className="w-16 h-16 relative"
                   animate={
-                    isSpinning && tick === 0
+                    isSpinning
                       ? shouldReduceMotion
                         ? { opacity: [1, 0.9, 1] }
-                        : { scale: [1, 1.1, 1] }
+                        : {
+                            scale: [1, 1.08, 1],
+                            rotate: [0, -2, 2, 0],
+                          }
                       : {}
+                  }
+                  transition={
+                    isSpinning
+                      ? shouldReduceMotion
+                        ? {
+                            duration: 0.5,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }
+                        : {
+                            duration: 0.45,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }
+                      : undefined
                   }
                 >
                   <Image

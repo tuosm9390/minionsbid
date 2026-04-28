@@ -7,7 +7,6 @@ import {
   Variants,
 } from "framer-motion";
 import { useAuctionBoard } from "@/features/auction/hooks/useAuctionBoard";
-import { AuctionResultModal } from "./AuctionResultModal";
 import { LotteryAnimation } from "./LotteryAnimation";
 import { SoldOverlay } from "./SoldOverlay";
 import { NoticeBanner } from "./board/NoticeBanner";
@@ -16,6 +15,7 @@ import { PlayerInAuction } from "./board/PlayerInAuction";
 import { BidStatus } from "./board/BidStatus";
 import { DraftPanel } from "./board/DraftPanel";
 import { AuctionWaitingState } from "./board/AuctionWaitingState";
+import { awardPlayer } from "@/features/auction/api/auctionActions";
 import { useAuctionStore, Player, Role } from "../store/useAuctionStore";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -27,6 +27,7 @@ interface AuctionBoardProps {
   role: Role;
   allConnected: boolean;
   onCloseLottery: () => void;
+  onShowResult: () => void;
   roomId: string;
 }
 
@@ -128,11 +129,11 @@ export function AuctionBoard(props: AuctionBoardProps) {
     isAuctionFinished,
     isAuctionStarted,
     isAuctionComplete,
+    isAuctionTerminal,
     isAutoDraftMode,
+    hasDraftablePlayers,
     phase,
     currentTurnTeam,
-    showResultModal,
-    setShowResultModal,
     lotteryDone,
     setLotteryDone,
     handleDraft,
@@ -149,9 +150,11 @@ export function AuctionBoard(props: AuctionBoardProps) {
     ? "lottery"
     : currentPlayer
       ? "bidding"
-      : (isAuctionFinished || isAutoDraftMode) && !isRoomComplete
+      : (isAuctionFinished || isAutoDraftMode) &&
+          hasDraftablePlayers &&
+          !isRoomComplete
         ? "draft"
-        : isAuctionFinished
+        : isAuctionTerminal
           ? "finished"
           : "waiting";
 
@@ -172,7 +175,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
       {/* 1. 중립 로딩 상태 (FR-005) */}
       {!isPresenceLoaded && (
         <div className="absolute inset-0 z-[110] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 animate-minion-bounce">
+          <div className="flex flex-col items-center gap-4">
             <PixelIcon
               icon={PIXEL_ICONS.TIMER}
               size={48}
@@ -189,7 +192,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
       {/* 2. 로컬 네트워크 단절 (FR-006) */}
       {!isLocalConnected && (
         <div className="absolute inset-0 z-[120] flex flex-col items-center justify-center bg-minion-blue/20 backdrop-blur-md">
-          <div className="pixel-box bg-white p-8 border-minion-blue flex flex-col items-center gap-4 text-center animate-minion-bounce">
+          <div className="pixel-box bg-white p-8 border-minion-blue flex flex-col items-center gap-4 text-center">
             <PixelIcon
               icon={PIXEL_ICONS.WARNING}
               size={48}
@@ -209,7 +212,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
         isAuctionStarted &&
         !isAuctionComplete && (
           <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
-            <div className="pixel-box bg-white p-10 border-minion-red flex flex-col items-center gap-6 text-center max-w-md animate-minion-bounce">
+            <div className="pixel-box bg-white p-10 border-minion-red flex flex-col items-center gap-6 text-center max-w-md">
               <div className="mb-4">
                 <PixelIcon
                   icon={PIXEL_ICONS.WARNING}
@@ -228,12 +231,6 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   <br />
                   재연결을 기다리는 중입니다...
                 </p>
-              </div>
-              <div className="w-full h-2 bg-gray-100 border-2 border-black overflow-hidden">
-                <div
-                  className="h-full bg-minion-red animate-[progress_2s_ease-in-out_infinite]"
-                  style={{ width: "30%" }}
-                />
               </div>
             </div>
           </div>
@@ -279,7 +276,14 @@ export function AuctionBoard(props: AuctionBoardProps) {
             {currentScene === "bidding" && (
               <div className="flex-1 flex flex-col gap-3">
                 <div className="flex justify-center">
-                  {timerEndsAt && <CenterTimer timerEndsAt={timerEndsAt} />}
+                  {timerEndsAt && currentPlayer && (
+                    <CenterTimer
+                      timerEndsAt={timerEndsAt}
+                      onExpire={() => {
+                        void awardPlayer(props.roomId, currentPlayer.id);
+                      }}
+                    />
+                  )}
                 </div>
                 <PlayerInAuction player={currentPlayer!} />
                 <BidStatus
@@ -323,8 +327,8 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowResultModal(true)}
-                  className="pixel-button bg-minion-yellow text-black h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter hover:scale-105 transition-transform flex items-center gap-3"
+                  onClick={props.onShowResult}
+                  className="pixel-button bg-minion-yellow text-black h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter flex items-center gap-3"
                 >
                   팀 결과 확인하기
                   <PixelIcon
@@ -334,10 +338,6 @@ export function AuctionBoard(props: AuctionBoardProps) {
                     animation="active"
                   />
                 </button>
-                <AuctionResultModal
-                  isOpen={showResultModal}
-                  onClose={() => setShowResultModal(false)}
-                />
               </div>
             )}
 

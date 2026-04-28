@@ -17,6 +17,7 @@ interface BiddingControlProps {
   timerEndsAt: string | null;
   minBid: number;
   isTeamFull: boolean;
+  allDone: boolean;
 }
 
 export function BiddingControl(props: BiddingControlProps) {
@@ -41,6 +42,7 @@ export function BiddingControl(props: BiddingControlProps) {
     minBid,
     isTeamFull,
     myTeam,
+    allDone,
   } = props;
 
   const pointBalance = myTeam?.point_balance ?? 0;
@@ -101,92 +103,122 @@ export function BiddingControl(props: BiddingControlProps) {
 
       {bidError && (
         <div className="mb-4 bg-minion-red/10 border-4 border-minion-red text-minion-red text-fluid-xs py-2.5 px-4 font-bold text-center animate-shake uppercase flex items-center justify-center gap-2 pixel-box shadow-none">
-          <PixelIcon icon={PIXEL_ICONS.WARNING} size={16} color="text-minion-red" animation="urgent" />
+          <PixelIcon
+            icon={PIXEL_ICONS.WARNING}
+            size={16}
+            color="text-minion-red"
+            animation="urgent"
+          />
           {bidError}
         </div>
       )}
 
       <div className="flex gap-3 h-14 relative group/control">
-        {!isAuctionActive && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none transition-all duration-300">
-            <div className="flex items-center gap-3">
-              <PixelIcon icon={PIXEL_ICONS.WAITING} size={24} color="text-gray-400" animation="active" />
-              <p className="text-fluid-xs font-heading text-gray-500 uppercase tracking-widest">
-                {!currentPlayer ? "READY FOR NEXT" : "WAITING..."}
-              </p>
-            </div>
+        {allDone ? (
+          <div className="w-full h-full pixel-box bg-green-500/15 border-green-600 flex items-center justify-center">
+            <span className="text-fluid-xs font-heading text-green-700 uppercase">
+              중앙 화면에서 최종 결과를 확인하세요
+            </span>
           </div>
-        )}
-
-        <div className="flex gap-1 h-full flex-none">
-          <button
-            onClick={decrementBid}
-            disabled={!canBid || numericBidAmount <= minBid}
-            className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
-          >
-            -
-          </button>
-
-          <div className="relative w-32 h-full">
-            <input
-              type="number"
-              value={bidAmount}
-              min={minBid}
-              step={10}
-              onChange={(e) => setBidAmount(e.target.value)}
-              onFocus={(e) => e.target.select()}
-              disabled={!canBid}
-              className="w-full h-full bg-yellow-50/30 border-4 border-black px-4 text-fluid-base font-black text-center focus:bg-white focus:outline-none tabular-nums transition-colors"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 font-black text-fluid-xs pointer-events-none transition-colors">
-              P
-            </div>
-          </div>
-
-          <button
-            onClick={incrementBid}
-            disabled={!canBid}
-            className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
-          >
-            +
-          </button>
-        </div>
-
-        <button
-          onClick={handleBid}
-          disabled={!canBid}
-          className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group/btn ${
-            isLeading
-              ? "bg-black text-minion-yellow border-minion-yellow shadow-[0_0_15px_rgba(251,224,66,0.4)]"
-              : "bg-minion-blue text-white border-black hover:bg-minion-blue-hover shadow-pixel-sm"
-          }`}
-        >
-          {/* Gold Shine effect for leading state */}
-          {isLeading && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shine pointer-events-none" />
-          )}
-
-          <span className="relative z-10 flex items-center justify-center gap-2">
-            {isLeading && (
-              <PixelIcon icon={PIXEL_ICONS.LEADING} size={16} color="text-minion-yellow" animation="success" />
+        ) : (
+          <>
+            {!isAuctionActive && (
+              <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none transition-all duration-300">
+                <div className="flex items-center gap-3">
+                  <PixelIcon
+                    icon={PIXEL_ICONS.WAITING}
+                    size={24}
+                    color="text-gray-400"
+                    animation="active"
+                  />
+                  <p className="text-fluid-xs font-heading text-gray-500 uppercase tracking-widest">
+                    {!currentPlayer
+                      ? "다음 선수 추첨을 기다리는 중..."
+                      : "경매 대기중..."}
+                  </p>
+                </div>
+              </div>
             )}
-            {isLeading
-              ? "최고 입찰 유지 중"
-              : isBidding
-                ? "입찰 통신 중..."
-                : isTeamFull
-                  ? "TEAM FULL"
-                  : (
-                    <span className="flex items-center gap-2">
-                      BID NOW
-                      <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={14} color="text-white" />
-                    </span>
-                  )}
-          </span>
-        </button>
+
+            <div className="flex gap-1 h-full flex-none">
+              <button
+                onClick={decrementBid}
+                disabled={!canBid || numericBidAmount <= minBid}
+                className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
+              >
+                -
+              </button>
+
+              <div className="relative w-32 h-full">
+                <input
+                  type="number"
+                  value={bidAmount}
+                  min={minBid}
+                  step={10}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  disabled={!canBid}
+                  className="w-full h-full bg-yellow-50/30 border-4 border-black px-4 text-fluid-base font-black text-center focus:bg-white focus:outline-none tabular-nums transition-colors"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 font-black text-fluid-xs pointer-events-none transition-colors">
+                  P
+                </div>
+              </div>
+
+              <button
+                onClick={incrementBid}
+                disabled={!canBid}
+                className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
+              >
+                +
+              </button>
+            </div>
+
+            <button
+              onClick={handleBid}
+              disabled={!canBid}
+              className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group/btn ${
+                isLeading
+                  ? "bg-black text-minion-yellow border-minion-yellow shadow-[0_0_15px_rgba(251,224,66,0.4)]"
+                  : "bg-minion-blue text-white border-black hover:bg-minion-blue-hover shadow-pixel-sm"
+              }`}
+            >
+              {isLeading && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shine pointer-events-none" />
+              )}
+
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isLeading && (
+                  <PixelIcon
+                    icon={PIXEL_ICONS.LEADING}
+                    size={16}
+                    color="text-minion-yellow"
+                    animation="success"
+                  />
+                )}
+                {isLeading ? (
+                  "최고 입찰 유지 중"
+                ) : isBidding ? (
+                  "입찰 통신 중..."
+                ) : isTeamFull ? (
+                  "TEAM FULL"
+                ) : (
+                  <span className="flex items-center gap-2">
+                    입찰하기
+                    <PixelIcon
+                      icon={PIXEL_ICONS.SUCCESS}
+                      size={14}
+                      color="text-white"
+                    />
+                  </span>
+                )}
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
-      {isTeamFull && (
+      {!allDone && isTeamFull && (
         <p className="text-fluid-xs font-heading text-minion-red mt-4 text-center animate-pulse uppercase tracking-tight">
           팀이 가득 찼습니다. 더 이상 입찰할 수 없습니다.
         </p>

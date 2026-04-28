@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { useAuctionStore, Player } from "@/features/auction/store/useAuctionStore";
+import {
+  useAuctionStore,
+  Player,
+} from "@/features/auction/store/useAuctionStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -19,9 +22,7 @@ interface OrganizerControlPanelProps {
   lotteryPlayer: Player | null;
   isDrawing: boolean;
   allConnected: boolean;
-  onShowResult: () => void;
   onDraw: () => void;
-  onStart: () => void;
 }
 
 export function OrganizerControlPanel({
@@ -36,9 +37,7 @@ export function OrganizerControlPanel({
   lotteryPlayer,
   isDrawing,
   allConnected,
-  onShowResult,
   onDraw,
-  onStart,
 }: OrganizerControlPanelProps) {
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const presences = useAuctionStore((s) => s.presences);
@@ -74,7 +73,12 @@ export function OrganizerControlPanel({
             exit={{ height: 0, opacity: 0, marginBottom: 0 }}
             className="bg-minion-red/10 border-2 border-minion-red p-3 flex items-center gap-3 overflow-hidden"
           >
-            <PixelIcon icon={PIXEL_ICONS.WARNING} size={20} color="text-minion-red" animation="urgent" />
+            <PixelIcon
+              icon={PIXEL_ICONS.WARNING}
+              size={20}
+              color="text-minion-red"
+              animation="urgent"
+            />
             <p className="text-fluid-xs font-bold text-minion-red uppercase tracking-tight">
               시스템 부하 주의: 현재 접속자 {sessionCount}명
             </p>
@@ -109,15 +113,16 @@ export function OrganizerControlPanel({
       <div className="h-14 relative">
         <AnimatePresence mode="wait">
           {allDone ? (
-            <motion.button
+            <motion.div
               key="result"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              onClick={onShowResult}
-              className="w-full h-full pixel-button bg-green-500 text-white font-heading text-fluid-xs px-6 uppercase tracking-tighter animate-bounce shadow-pixel-sm"
+              className="w-full h-full pixel-box bg-green-500/15 border-green-600 flex items-center justify-center"
             >
-              최종 결과 ✨
-            </motion.button>
+              <span className="text-fluid-xs font-heading text-green-700 uppercase">
+                중앙 화면에서 최종 결과를 확인하세요
+              </span>
+            </motion.div>
           ) : !currentPlayer ? (
             <motion.button
               key="draw"
@@ -141,22 +146,25 @@ export function OrganizerControlPanel({
                   : `다음 선수 추첨 (${waitingPlayersCount} 명)`}
               </span>
             </motion.button>
-          ) : !timerEndsAt && !lotteryPlayer ? (
-            <motion.button
-              key="start"
+          ) : !timerEndsAt && (lotteryPlayer || currentPlayer) ? (
+            <motion.div
+              key="lottery-lock"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              onClick={onStart}
-              className="w-full h-full pixel-button bg-minion-yellow text-black font-heading text-fluid-xs px-6 uppercase tracking-tighter hover:scale-[1.02] active:scale-[0.98] transition-transform"
+              className="w-full h-full pixel-box bg-minion-yellow/15 border-minion-yellow flex items-center justify-center"
             >
-              경매 시작
-              <PixelIcon
-                icon={PIXEL_ICONS.SUCCESS}
-                size={20}
-                color="text-black"
-                animation="active"
-              />
-            </motion.button>
+              <div className="flex items-center gap-2">
+                <PixelIcon
+                  icon={PIXEL_ICONS.WARNING}
+                  size={18}
+                  color="text-black"
+                  animation="active"
+                />
+                <span className="text-fluid-xs font-heading text-black uppercase">
+                  추첨 화면에서 경매를 시작하세요
+                </span>
+              </div>
+            </motion.div>
           ) : (
             <motion.div
               key="in-progress"

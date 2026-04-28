@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { CaptainMode } from '@/features/auction/utils/roster'
 
 export type Role = 'ORGANIZER' | 'LEADER' | 'VIEWER' | null
 export type PlayerStatus = 'WAITING' | 'IN_AUCTION' | 'SOLD' | 'UNSOLD'
@@ -56,6 +57,7 @@ interface AuctionState {
   roomName: string | null
   role: Role
   teamId: string | null
+  captainMode: CaptainMode
 
   // Realtime Data sync
   basePoint: number
@@ -87,6 +89,10 @@ interface AuctionState {
   setLotteryPlayer: (player: Player | null) => void
   setPresenceLoaded: (loaded: boolean) => void
   setLocalConnected: (connected: boolean) => void
+  appendBid: (bid: Bid) => void
+  removeBid: (bidId: string) => void
+  appendMessage: (message: Message) => void
+  removeMessage: (messageId: string) => void
 }
 
 export const useAuctionStore = create<AuctionState>((set) => ({
@@ -94,6 +100,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomName: null,
   role: null,
   teamId: null,
+  captainMode: 'IN_ROSTER',
 
   basePoint: 1000,
   totalTeams: 5,
@@ -123,4 +130,14 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   setLotteryPlayer: (player) => set({ lotteryPlayer: player }),
   setPresenceLoaded: (loaded) => set({ isPresenceLoaded: loaded }),
   setLocalConnected: (connected) => set({ isLocalConnected: connected }),
+  appendBid: (bid) => set((state) => ({ bids: [...state.bids, bid] })),
+  removeBid: (bidId) => set((state) => ({
+    bids: state.bids.filter((bid) => bid.id !== bidId),
+  })),
+  appendMessage: (message) => set((state) => ({
+    messages: [...state.messages, message],
+  })),
+  removeMessage: (messageId) => set((state) => ({
+    messages: state.messages.filter((message) => message.id !== messageId),
+  })),
 }))

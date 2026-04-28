@@ -44,9 +44,9 @@ export function AuctionWaitingState({
           </div>
         </div>
       ) : (
-        <div className="animate-in zoom-in-95 duration-700 space-y-6">
+        <div className="space-y-6">
           <div className="mb-4">
-            <PixelIcon icon={PIXEL_ICONS.WAITING} color="text-minion-yellow" size={64} animation="active" label="대기 중" />
+            <PixelIcon icon={PIXEL_ICONS.WAITING} color="text-minion-yellow" size={64} label="대기 중" />
           </div>
           <h3 className="text-2xl font-black text-minion-blue">
             경매 준비 완료

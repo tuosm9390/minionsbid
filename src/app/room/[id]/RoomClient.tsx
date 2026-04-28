@@ -26,6 +26,10 @@ import { RoomHeader } from "./components/RoomHeader";
 import { OrganizerControlPanel } from "./components/OrganizerControlPanel";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
+import {
+  buildRosterWithCaptain,
+  getAuctionSlotsPerTeam,
+} from "@/features/auction/utils/roster";
 
 export function RoomClient({
   roomId,
@@ -45,6 +49,7 @@ export function RoomClient({
   const isRoomLoaded = useAuctionStore((s) => s.isRoomLoaded);
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt);
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
+  const captainMode = useAuctionStore((s) => s.captainMode);
   const presences = useAuctionStore((s) => s.presences);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const isReAuctionRound = useAuctionStore((s) => s.isReAuctionRound);
@@ -87,6 +92,7 @@ export function RoomClient({
   const currentPlayer = players.find((p) => p.status === "IN_AUCTION");
   const waitingPlayers = players.filter((p) => p.status === "WAITING");
   const soldPlayers = players.filter((p) => p.status === "SOLD");
+  const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
 
   const bids = useAuctionStore((s) => s.bids);
   const playerBids = bids.filter((b) => b.player_id === currentPlayer?.id);
@@ -109,11 +115,15 @@ export function RoomClient({
   }, [timerEndsAt]);
 
   const isAuctionActive = !!timerEndsAt && !isExpired;
+  const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
+    membersPerTeam,
+    captainMode,
+  );
   const myTeam = teams.find((t) => t.id === storeTeamId);
   const isTeamFull = myTeam
     ? players.filter((p) => p.team_id === myTeam.id && p.status === "SOLD")
         .length >=
-      membersPerTeam - 1
+      auctionSlotsPerTeam
     : false;
   const lotteryPlayer = useAuctionStore((s) => s.lotteryPlayer);
 
@@ -154,19 +164,25 @@ export function RoomClient({
     }
   };
 
+  const handleStartFromLottery = async () => {
+    await handleStart();
+    await handleCloseLottery();
+  };
+
   const isRoomComplete =
     teams.length > 0 &&
     teams.every(
       (t) =>
         players.filter((p) => p.team_id === t.id && p.status === "SOLD")
           .length ===
-        membersPerTeam - 1,
+        auctionSlotsPerTeam,
     );
   const allDone =
     waitingPlayers.length === 0 &&
     !currentPlayer &&
+    unsoldPlayers.length === 0 &&
     soldPlayers.length > 0 &&
-    isRoomComplete;
+    (isRoomComplete || players.length === soldPlayers.length);
 
   const handleEndRoom = async (saveResult: boolean) => {
     if (!roomId) return;
@@ -181,16 +197,25 @@ export function RoomClient({
             id: t.id,
             name: t.name,
             leader_name: t.leader_name,
+            leader_position: t.leader_position,
+            captain_mode: captainMode,
             point_balance: t.point_balance,
-            players: players
-              .filter((p) => p.team_id === t.id)
-              .map((p) => ({
-                name: p.name,
-                tier: p.tier,
-                main_position: p.main_position,
-                sub_position: p.sub_position,
-                sold_price: p.sold_price,
-              })),
+            players: buildRosterWithCaptain(
+              players
+                .filter((p) => p.team_id === t.id && p.status === "SOLD")
+                .map((p) => ({
+                  name: p.name,
+                  tier: p.tier,
+                  main_position: p.main_position,
+                  sub_position: p.sub_position,
+                  sold_price: p.sold_price,
+                })),
+              {
+                captainMode,
+                leaderName: t.leader_name,
+                leaderPosition: t.leader_position,
+              },
+            ),
           })),
         });
       }
@@ -203,7 +228,7 @@ export function RoomClient({
 
   if (!isRoomLoaded)
     return (
-      <div className="h-screen flex items-center justify-center font-black text-fluid-xl animate-pulse">
+      <div className="h-screen flex items-center justify-center font-black text-fluid-xl">
         LOADING INSTANCE...
       </div>
     );
@@ -236,7 +261,7 @@ export function RoomClient({
       <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
         {/* Left Side: Team List (Mobile Accordion) */}
         <aside
-          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-500 ease-in-out ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
+          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ease-in-out ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
         >
           <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <button
@@ -251,7 +276,7 @@ export function RoomClient({
               </div>
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex items-center gap-1.5 bg-minion-blue/20 px-2 py-1 border-2 border-minion-blue/30">
-                  <div className="w-1.5 h-1.5 bg-green-500 animate-pulse" />
+                  <div className="w-1.5 h-1.5 bg-green-500" />
                   <span className="text-minion-blue text-[10px] font-bold">LIVE FEED</span>
                 </div>
                 <span className={`lg:hidden text-minion-yellow font-heading transition-transform duration-300 ${isTeamsExpanded ? "rotate-180" : ""}`}>
@@ -272,11 +297,11 @@ export function RoomClient({
         </aside>
 
         {/* Center: Main Auction Board & Control */}
-        <section className="lg:col-span-6 flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:h-full shrink-0 animate-slide-up delay-100">
+        <section className="lg:col-span-6 flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:h-full shrink-0">
           <div className="pixel-box bg-black p-4 flex items-center justify-between overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)] border-b-0">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
-                <span className="text-2xl animate-bounce">
+                <span className="text-2xl">
                   <PixelIcon
                     icon={PIXEL_ICONS.FINISH}
                     size={18}
@@ -297,7 +322,7 @@ export function RoomClient({
                   onClick={() => setIsEndRoomOpen(true)}
                   className="pixel-button bg-minion-red text-white h-10 px-5 py-2 text-fluid-xs font-heading hover:bg-minion-red-hover border-2 shadow-none"
                 >
-                  경매 종료
+                  방 종료
                 </button>
               )}
             </div>
@@ -310,13 +335,14 @@ export function RoomClient({
               waitingPlayers={waitingPlayers}
               role={effectiveRole}
               allConnected={allConnected}
-              onCloseLottery={handleCloseLottery}
+              onCloseLottery={handleStartFromLottery}
+              onShowResult={() => setShowResultModal(true)}
               roomId={roomId}
             />
           </div>
 
           {effectiveRole === "ORGANIZER" && (
-            <div className="animate-slide-up delay-300">
+            <div>
               <OrganizerControlPanel
                 noticeText={noticeText}
                 setNoticeText={setNoticeText}
@@ -329,15 +355,13 @@ export function RoomClient({
                 lotteryPlayer={lotteryPlayer}
                 isDrawing={isDrawing}
                 allConnected={allConnected}
-                onShowResult={() => setShowResultModal(true)}
                 onDraw={handleDraw}
-                onStart={handleStart}
               />
             </div>
           )}
 
           {effectiveRole === "LEADER" && roomId && storeTeamId && (
-            <div className="animate-slide-up delay-300">
+            <div>
               <BiddingControl
                 roomId={roomId}
                 teamId={storeTeamId}
@@ -347,13 +371,14 @@ export function RoomClient({
                 timerEndsAt={timerEndsAt}
                 minBid={minBid}
                 isTeamFull={isTeamFull}
+                allDone={allDone}
               />
             </div>
           )}
         </section>
 
         {/* Right Side: Unsold & Chat */}
-        <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0 animate-slide-in-right delay-200">
+        <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0">
           <div className="pixel-box bg-white flex-none max-h-[160px] lg:max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
               Unsold Roster
@@ -366,7 +391,7 @@ export function RoomClient({
           <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
             <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
               <span>Communication</span>
-              <span className="animate-pulse text-fluid-xs text-blue-200">
+              <span className="text-fluid-xs text-blue-200">
                 ● LIVE
               </span>
             </div>

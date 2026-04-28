@@ -62,6 +62,7 @@ describe("useAuctionBoard", () => {
       presences: [],
       messages: [],
       membersPerTeam: 5,
+      captainMode: "IN_ROSTER",
     });
   });
 
@@ -197,5 +198,42 @@ describe("useAuctionBoard", () => {
     });
 
     expect(result.current.soldOverlayData).toBeNull();
+  });
+
+  it("COACH_ONLY에서는 팀장 제외 슬롯 기준으로 팀 충원 상태를 계산한다", () => {
+    useAuctionStore.setState({
+      teams: [makeTeam("team-1", "팀1")],
+      players: [
+        makePlayer("p1", "선수1", "SOLD", "team-1", 100),
+        makePlayer("p2", "선수2", "SOLD", "team-1", 100),
+        makePlayer("p3", "선수3", "SOLD", "team-1", 100),
+        makePlayer("p4", "선수4", "SOLD", "team-1", 100),
+      ],
+      membersPerTeam: 5,
+      captainMode: "COACH_ONLY",
+    });
+
+    const { result } = renderHook(() => useAuctionBoard(defaultProps));
+
+    expect(result.current.needyTeams).toHaveLength(1);
+    expect(result.current.isRoomComplete).toBe(false);
+  });
+
+  it("모든 선수가 SOLD이고 추가 드래프트 대상이 없으면 팀 슬롯이 비어 있어도 종료 상태로 본다", () => {
+    useAuctionStore.setState({
+      teams: [makeTeam("team-1", "팀1"), makeTeam("team-2", "팀2")],
+      players: [
+        makePlayer("p1", "선수1", "SOLD", "team-1", 100),
+        makePlayer("p2", "선수2", "SOLD", "team-2", 100),
+      ],
+      membersPerTeam: 3,
+    });
+
+    const { result } = renderHook(() => useAuctionBoard(defaultProps));
+
+    expect(result.current.isRoomComplete).toBe(false);
+    expect(result.current.hasDraftablePlayers).toBe(false);
+    expect(result.current.isAuctionTerminal).toBe(true);
+    expect(result.current.isAuctionComplete).toBe(true);
   });
 });

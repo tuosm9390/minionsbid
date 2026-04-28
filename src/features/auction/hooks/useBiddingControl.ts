@@ -40,6 +40,8 @@ export function useBiddingControl({
 
   const bids = useAuctionStore((s) => s.bids)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
+  const appendBid = useAuctionStore((s) => s.appendBid)
+  const removeBid = useAuctionStore((s) => s.removeBid)
   const players = useAuctionStore((s) => s.players)
 
   // ── 파생 데이터 ──
@@ -80,11 +82,21 @@ export function useBiddingControl({
     const numericAmount =
       typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
     const finalAmount = Math.max(numericAmount, minBid)
+    const optimisticBidId = `temp-bid-${teamId}-${Date.now()}`
     setBidError(null)
     setIsBidding(true)
+    appendBid({
+      id: optimisticBidId,
+      room_id: roomId,
+      player_id: currentPlayer.id,
+      team_id: teamId,
+      amount: finalAmount,
+      created_at: new Date().toISOString(),
+    })
     try {
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
       if (res.error) {
+        removeBid(optimisticBidId)
         setBidError(res.error)
       } else {
         setBidAmount(finalAmount + 10)
@@ -93,6 +105,9 @@ export function useBiddingControl({
           setRealtimeData({ timerEndsAt: res.timerEndsAt })
         }
       }
+    } catch (error) {
+      removeBid(optimisticBidId)
+      throw error
     } finally {
       setIsBidding(false)
     }

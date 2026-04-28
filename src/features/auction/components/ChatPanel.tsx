@@ -52,7 +52,7 @@ function MessageItem({ msg }: { msg: Message }) {
 
   if (role === "NOTICE") {
     return (
-      <div className="bg-minion-yellow border-4 border-black p-3.5 my-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0 animate-bounce">
+      <div className="bg-minion-yellow border-4 border-black p-3.5 my-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group shrink-0">
         <div className="absolute inset-0 opacity-5 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,black_5px,black_10px)]" />
         <div className="relative z-10 flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -126,6 +126,8 @@ export function ChatPanel() {
   const messages = useAuctionStore((s) => s.messages);
   const teams = useAuctionStore((s) => s.teams);
   const teamId = useAuctionStore((s) => s.teamId);
+  const appendMessage = useAuctionStore((s) => s.appendMessage);
+  const removeMessage = useAuctionStore((s) => s.removeMessage);
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -146,6 +148,8 @@ export function ChatPanel() {
     e.preventDefault();
     if (!input.trim() || !roomId || isSending) return;
     setIsSending(true);
+    const content = input.trim();
+    const optimisticMessageId = `temp-msg-${Date.now()}`;
     try {
       let senderName = "관전자";
       if (role === "ORGANIZER") senderName = "주최자";
@@ -153,8 +157,27 @@ export function ChatPanel() {
         const myTeam = teams.find((t) => t.id === teamId);
         senderName = myTeam?.leader_name || myTeam?.name || "팀장";
       }
-      await sendChatMessage(roomId, senderName, role || "VIEWER", input.trim());
+      appendMessage({
+        id: optimisticMessageId,
+        room_id: roomId,
+        sender_name: senderName,
+        sender_role: (role || "VIEWER") as Message["sender_role"],
+        content,
+        created_at: new Date().toISOString(),
+      });
+      const result = await sendChatMessage(
+        roomId,
+        senderName,
+        role || "VIEWER",
+        content,
+      );
+      if (result.error) {
+        removeMessage(optimisticMessageId);
+        return;
+      }
       setInput("");
+    } catch {
+      removeMessage(optimisticMessageId);
     } finally {
       setIsSending(false);
     }

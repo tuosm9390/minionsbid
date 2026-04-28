@@ -52,9 +52,29 @@ export function useAuctionControl({
   const awardLock = useRef(false)
   const playersRef = useRef(players)
   playersRef.current = players
+  const triggerAward = async (playerId: string) => {
+    if (awardLock.current) return
+    const stillActive = playersRef.current.find(
+      p => p.id === playerId && p.status === 'IN_AUCTION',
+    )
+    if (!stillActive) return
+
+    awardLock.current = true
+    try {
+      const result = await awardPlayer(roomId, playerId)
+      if (result.error) {
+        console.error('[Auto-Award] 낙찰 처리 실패:', result.error)
+        alert(`낙찰 처리 오류: ${result.error}`)
+      }
+    } catch (err) {
+      console.error('[Auto-Award] Server Action 예외:', err)
+    } finally {
+      awardLock.current = false
+    }
+  }
 
   useEffect(() => {
-    if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
+    if (!effectiveRole || !timerEndsAt || !roomId) return
 
     const cp = playersRef.current.find(p => p.status === 'IN_AUCTION')
     if (!cp) return
@@ -65,23 +85,8 @@ export function useAuctionControl({
 
     let cancelled = false
     const t = setTimeout(async () => {
-      if (cancelled || awardLock.current) return
-      const stillActive = playersRef.current.find(p => p.id === playerId && p.status === 'IN_AUCTION')
-      if (!stillActive) return
-      awardLock.current = true
-      try {
-        const result = await awardPlayer(roomId, playerId)
-        if (result.error) {
-          console.error('[Auto-Award] 낙찰 처리 실패:', result.error)
-          alert(`낙찰 처리 오류: ${result.error}`)
-        }
-        // Firebase onSnapshot이 자동으로 최신 상태를 반영하므로 fetchAll/setRealtimeData 불필요
-      } catch (err) {
-        console.error('[Auto-Award] Server Action 예외:', err)
-        // Firebase onSnapshot이 DB 변경사항을 자동 감지하므로 별도 복원 불필요
-      } finally {
-        awardLock.current = false
-      }
+      if (cancelled) return
+      await triggerAward(playerId)
     }, delay)
 
     return () => { cancelled = true; clearTimeout(t) }
@@ -89,6 +94,7 @@ export function useAuctionControl({
 
   return {
     lotteryPlayer,
-    handleCloseLottery
+    handleCloseLottery,
+    triggerAward,
   }
 }

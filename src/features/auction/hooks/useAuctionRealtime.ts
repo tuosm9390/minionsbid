@@ -16,12 +16,15 @@ import {
 import { getDatabase, ref, onValue } from 'firebase/database'
 import { useAuctionStore } from '../store/useAuctionStore'
 import type { Bid, Team, Player, Message } from '../store/useAuctionStore'
+import { normalizeCaptainMode } from '../utils/roster'
+import { recoverExpiredAuction } from '../api/auctionActions'
 
 // Firestore 문서 데이터 → Store 타입 변환 헬퍼
 interface FirestoreRoomData {
   name?: string
   base_point?: number
   members_per_team?: number
+  captain_mode?: string
   total_teams?: number
   timer_ends_at?: Timestamp | null
   current_player_id?: string | null
@@ -85,6 +88,7 @@ export function useFirebaseRealtime(roomId: string) {
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
+  const lastRecoveryKeyRef = useRef<string | null>(null)
   // CLOSE_LOTTERY 초기값 무시를 위한 ref
   const closeLotteryInitRef = useRef(true)
 
@@ -110,13 +114,27 @@ export function useFirebaseRealtime(roomId: string) {
         roomName: data.name ?? null,
         basePoint: data.base_point ?? 1000,
         membersPerTeam: data.members_per_team ?? 5,
+        captainMode: normalizeCaptainMode(data.captain_mode),
         totalTeams: data.total_teams ?? 0,
         timerEndsAt: timestampToISO(data.timer_ends_at),
         createdAt: timestampToISO(data.created_at),
       })
 
+      const timerEndsAtIso = timestampToISO(data.timer_ends_at)
+      const currentPlayerId = data.current_player_id ?? null
+      if (timerEndsAtIso && currentPlayerId) {
+        const recoveryKey = `${currentPlayerId}:${timerEndsAtIso}`
+        const isExpired = new Date(timerEndsAtIso).getTime() <= Date.now()
+        if (isExpired && lastRecoveryKeyRef.current !== recoveryKey) {
+          lastRecoveryKeyRef.current = recoveryKey
+          void recoverExpiredAuction(roomId)
+        }
+      } else {
+        lastRecoveryKeyRef.current = null
+      }
+
       // current_player_id 변경 시 bids 구독 갱신
-      const newPlayerId = data.current_player_id ?? null
+      const newPlayerId = currentPlayerId
       if (newPlayerId !== currentPlayerIdRef.current) {
         currentPlayerIdRef.current = newPlayerId
         bidsUnsubRef.current?.()
