@@ -8,6 +8,7 @@ const VALID_ROLES = ['ORGANIZER', 'LEADER', 'VIEWER', 'SYSTEM', 'NOTICE'] as con
 async function publishLiveMessage(
   roomId: string,
   message: {
+    event_id: string
     sender_name: string
     sender_role: string
     content: string
@@ -15,7 +16,8 @@ async function publishLiveMessage(
 ): Promise<void> {
   const db = admin.database()
   await db.ref(`signals/${roomId}/latestMessage`).set({
-    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: message.event_id,
+    event_id: message.event_id,
     room_id: roomId,
     sender_name: message.sender_name,
     sender_role: message.sender_role,
@@ -39,18 +41,21 @@ export async function sendChatMessage(
 
   try {
     const trimmedContent = content.trim()
+    const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await Promise.all([
       adminDb
         .collection('rooms')
         .doc(roomId)
         .collection('messages')
         .add({
+          event_id: eventId,
           sender_name: senderName,
           sender_role: safeSenderRole,
           content: trimmedContent,
           created_at: admin.firestore.FieldValue.serverTimestamp(),
         }),
       publishLiveMessage(roomId, {
+        event_id: eventId,
         sender_name: senderName,
         sender_role: safeSenderRole,
         content: trimmedContent,
@@ -72,18 +77,21 @@ export async function sendNotice(
 
   try {
     const trimmedContent = content.trim()
+    const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await Promise.all([
       adminDb
         .collection('rooms')
         .doc(roomId)
         .collection('messages')
         .add({
+          event_id: eventId,
           sender_name: '주최자',
           sender_role: 'NOTICE',
           content: trimmedContent,
           created_at: admin.firestore.FieldValue.serverTimestamp(),
         }),
       publishLiveMessage(roomId, {
+        event_id: eventId,
         sender_name: '주최자',
         sender_role: 'NOTICE',
         content: trimmedContent,

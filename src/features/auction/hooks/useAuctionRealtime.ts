@@ -61,6 +61,7 @@ interface FirestoreBidData {
 }
 
 interface FirestoreMessageData {
+  event_id?: string
   sender_name?: string
   sender_role?: string
   content?: string
@@ -241,6 +242,7 @@ export function useFirebaseRealtime(roomId: string) {
         const md = d.data() as FirestoreMessageData
         return {
           id: d.id,
+          event_id: md.event_id ?? d.id,
           room_id: roomId,
           sender_name: md.sender_name ?? '',
           sender_role: (md.sender_role ?? 'SYSTEM') as Message['sender_role'],
@@ -334,6 +336,16 @@ export function useFirebaseRealtime(roomId: string) {
       }
 
       if (lastLiveMessageIdRef.current === data.id) {
+        return
+      }
+
+      const existingMessages = useAuctionStore.getState().messages
+      const liveEventId = data.event_id ?? data.id
+      const alreadyExists = existingMessages.some(
+        (message) => (message.event_id ?? message.id) === liveEventId,
+      )
+      if (alreadyExists) {
+        lastLiveMessageIdRef.current = data.id
         return
       }
 

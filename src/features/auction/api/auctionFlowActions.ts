@@ -30,17 +30,19 @@ function logLatency(label: string, data: Record<string, unknown>) {
 async function sysMsg(roomId: string, content: string): Promise<void> {
   const createdAt = new Date().toISOString();
   const db = admin.database();
-  const signalId = `sys-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const eventId = `sys-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   await Promise.all([
     adminDb.collection("rooms").doc(roomId).collection("messages").add({
+      event_id: eventId,
       sender_name: "시스템",
       sender_role: "SYSTEM",
       content,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     }),
     db.ref(`signals/${roomId}/latestMessage`).set({
-      id: signalId,
+      id: eventId,
+      event_id: eventId,
       room_id: roomId,
       sender_name: "시스템",
       sender_role: "SYSTEM",

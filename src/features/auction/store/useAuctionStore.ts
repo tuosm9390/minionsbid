@@ -52,6 +52,7 @@ export interface LiveBidState {
 
 export interface Message {
   id: string
+  event_id?: string
   room_id: string
   sender_name: string
   sender_role: MessageRole
