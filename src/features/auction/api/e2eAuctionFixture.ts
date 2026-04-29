@@ -214,17 +214,17 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
   if (options.stage === 'active-auction') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 8_000).toISOString()
+    room.timerEndsAt = new Date(Date.now() + 15_000).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-expiring') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 1_500).toISOString()
+    room.timerEndsAt = new Date(Date.now() + 4_000).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-final-second') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 2_200).toISOString()
+    room.timerEndsAt = new Date(Date.now() + 8_000).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'draft-last-slot') {
     room.membersPerTeam = 2

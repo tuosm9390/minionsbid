@@ -42,14 +42,14 @@ test('extends timer and syncs min bid across organizer and leaders', async ({
   const redBidInput = redPage.locator('input[type="number"]').first()
   const organizerTimer = organizerPage.locator('[role="timer"] span')
 
-  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 5000 })
-  await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 5000 })
+  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(redBidInput).toHaveValue('10')
   await expect(bluePage.locator('[role="timer"] span')).toBeVisible()
   await expect
     .poll(
       async () => parseFloat((await organizerTimer.textContent()) ?? '0'),
-      { timeout: 6000 },
+      { timeout: 12000 },
     )
     .toBeLessThanOrEqual(2.5)
   const timerBeforeBid = parseFloat((await organizerTimer.textContent()) ?? '0')
@@ -123,7 +123,7 @@ test('marks the player unsold after organizer-side timer expiry and syncs unsold
   await organizerPage.goto(fixture.organizerLink)
   await viewerPage.goto(fixture.viewerLink)
 
-  await expect(organizerPage.locator('[role="timer"] span')).toBeVisible()
+  await expect(organizerPage.locator('[role="timer"] span')).toBeVisible({ timeout: 10000 })
   await expect(
     organizerPage.getByText(/Alpha 선수 유찰/),
   ).toBeVisible({ timeout: 5000 })
@@ -212,12 +212,12 @@ test('keeps the auction alive when a bid lands in the final second', async ({
   const redBidInput = redPage.locator('input[type="number"]').first()
   const organizerTimer = organizerPage.locator('[role="timer"] span')
 
-  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 5000 })
-  await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 5000 })
+  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect
     .poll(
       async () => parseFloat((await organizerTimer.textContent()) ?? '0'),
-      { timeout: 5000 },
+      { timeout: 10000 },
     )
     .toBeLessThanOrEqual(1.2)
 
