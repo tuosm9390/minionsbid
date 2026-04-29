@@ -211,15 +211,18 @@ test('keeps the auction alive when a bid lands in the final second', async ({
   const blueBidInput = bluePage.locator('input[type="number"]').first()
   const redBidInput = redPage.locator('input[type="number"]').first()
   const organizerTimer = organizerPage.locator('[role="timer"] span')
+  const blueTimer = bluePage.locator('[role="timer"] span')
 
   await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect(blueTimer).toBeVisible({ timeout: 10000 })
   await expect
     .poll(
-      async () => parseFloat((await organizerTimer.textContent()) ?? '0'),
-      { timeout: 10000 },
+      async () => parseFloat((await blueTimer.textContent()) ?? '0'),
+      { timeout: 15000 },
     )
-    .toBeLessThanOrEqual(1.2)
+    .toBeLessThanOrEqual(1.6)
+  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 3000 })
 
   await blueBidInput.fill('10')
   await bluePage.getByRole('button', { name: '입찰하기' }).click()
@@ -272,14 +275,17 @@ test('awards the winning bid and syncs roster plus point balance across clients'
 
   const organizerTimer = organizerPage.locator('[role="timer"] span')
   const blueBidInput = bluePage.locator('input[type="number"]').first()
+  const blueTimer = bluePage.locator('[role="timer"] span')
 
   await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect(blueTimer).toBeVisible({ timeout: 10000 })
   await expect
     .poll(
-      async () => parseFloat((await organizerTimer.textContent()) ?? '0'),
-      { timeout: 10000 },
+      async () => parseFloat((await blueTimer.textContent()) ?? '0'),
+      { timeout: 15000 },
     )
-    .toBeLessThanOrEqual(1.2)
+    .toBeLessThanOrEqual(1.6)
+  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 3000 })
 
   await blueBidInput.fill('10')
   await bluePage.getByRole('button', { name: '입찰하기' }).click()

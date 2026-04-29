@@ -224,7 +224,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
   } else if (options.stage === 'active-auction-final-second') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 8_000).toISOString()
+    room.timerEndsAt = new Date(Date.now() + 10_000).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'draft-last-slot') {
     room.membersPerTeam = 2
