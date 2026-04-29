@@ -244,6 +244,64 @@ test('keeps the auction alive when a bid lands in the final second', async ({
   await redContext.close()
 })
 
+test('awards the winning bid and syncs roster plus point balance across clients', async ({
+  request,
+  browser,
+}) => {
+  const response = await request.post('/api/e2e/auction-fixture/reset', {
+    data: { stage: 'active-auction-final-second' },
+  })
+  expect(response.ok()).toBeTruthy()
+  const fixture = (await response.json()) as AuctionFixtureResetResponse
+
+  const organizerContext = await browser.newContext({ reducedMotion: 'reduce' })
+  const blueContext = await browser.newContext({ reducedMotion: 'reduce' })
+  const viewerContext = await browser.newContext({ reducedMotion: 'reduce' })
+  const organizerPage = await organizerContext.newPage()
+  const bluePage = await blueContext.newPage()
+  const viewerPage = await viewerContext.newPage()
+
+  const blueLink = fixture.captainLinks.find((entry) => entry.teamName === 'Blue')?.link
+  if (!blueLink) {
+    throw new Error('fixture blue link is missing')
+  }
+
+  await organizerPage.goto(fixture.organizerLink)
+  await bluePage.goto(blueLink)
+  await viewerPage.goto(fixture.viewerLink)
+
+  const organizerTimer = organizerPage.locator('[role="timer"] span')
+  const blueBidInput = bluePage.locator('input[type="number"]').first()
+
+  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect
+    .poll(
+      async () => parseFloat((await organizerTimer.textContent()) ?? '0'),
+      { timeout: 10000 },
+    )
+    .toBeLessThanOrEqual(1.2)
+
+  await blueBidInput.fill('10')
+  await bluePage.getByRole('button', { name: '입찰하기' }).click()
+
+  await expect(organizerPage.getByText(/Blue이 Alpha 선수를 10P에 낙찰!/)).toBeVisible({
+    timeout: 12000,
+  })
+  await expect(organizerPage.getByText('경매 준비 완료')).toBeVisible({ timeout: 12000 })
+  await expect(organizerPage.locator('aside').first().getByText(/990\s*P/)).toBeVisible()
+  await expect(organizerPage.locator('aside').first().getByText('Alpha', { exact: true })).toBeVisible()
+
+  await expect(viewerPage.getByText(/Blue이 Alpha 선수를 10P에 낙찰!/)).toBeVisible({
+    timeout: 12000,
+  })
+  await expect(viewerPage.locator('aside').first().getByText(/990\s*P/)).toBeVisible()
+  await expect(viewerPage.locator('aside').first().getByText('Alpha', { exact: true })).toBeVisible()
+
+  await organizerContext.close()
+  await blueContext.close()
+  await viewerContext.close()
+})
+
 test('syncs leader chat to every client without duplicating the sender message', async ({
   request,
   browser,
