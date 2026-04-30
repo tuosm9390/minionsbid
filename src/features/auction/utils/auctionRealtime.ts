@@ -24,6 +24,7 @@ export interface AuctionEventEnvelope {
   roomId: string
   type: AuctionEventType
   serverCreatedAt: string
+  currentPlayerId?: string | null
   timerEndsAt?: string | null
   liveBid?: LiveBidState | null
   player?: Partial<Player> & Pick<Player, 'id'>
@@ -38,6 +39,7 @@ export interface AuctionRealtimeStateSlice {
   players: Player[]
   teams: Team[]
   timerEndsAt: string | null
+  currentPlayerId: string | null
   liveBid: LiveBidState | null
   lotteryPlayer: Player | null
 }
@@ -47,6 +49,7 @@ export interface AppliedAuctionRealtimeState {
   players: Player[]
   teams: Team[]
   timerEndsAt: string | null
+  currentPlayerId: string | null
   liveBid: LiveBidState | null
   lotteryPlayer: Player | null
   revision: number
@@ -58,6 +61,27 @@ interface AuctionDerivedStateInput {
   liveBid?: LiveBidState | null
   teamId?: string | null
   teams?: Team[]
+}
+
+interface AuctionBidStateInput {
+  currentBidAmount?: number | null
+  currentBidTeamId?: string | null
+  teamId?: string | null
+  teamPointBalance?: number | null
+  isAuctionActive?: boolean
+  hasCurrentPlayer?: boolean
+  isTeamFull?: boolean
+}
+
+export interface AuctionBidState {
+  highestBid: number
+  minBid: number
+  topBidTeamId: string | null
+  isLeading: boolean
+}
+
+export interface AuctionBidEligibility extends AuctionBidState {
+  canBid: boolean
 }
 
 export function getAuctionDerivedState({
@@ -93,6 +117,93 @@ export function getAuctionDerivedState({
   }
 }
 
+export function getAuctionBidState({
+  currentBidAmount,
+  currentBidTeamId,
+  teamId,
+}: AuctionBidStateInput): AuctionBidState {
+  const highestBid = Math.max(currentBidAmount ?? 0, 0)
+  const minBid = highestBid > 0 ? highestBid + 10 : 10
+  const topBidTeamId = currentBidTeamId ?? null
+  const isLeading = !!teamId && topBidTeamId === teamId
+
+  return {
+    highestBid,
+    minBid,
+    topBidTeamId,
+    isLeading,
+  }
+}
+
+export function getAuctionBidEligibility({
+  currentBidAmount,
+  currentBidTeamId,
+  teamId,
+  teamPointBalance,
+  isAuctionActive,
+  hasCurrentPlayer,
+  isTeamFull,
+}: AuctionBidStateInput): AuctionBidEligibility {
+  const base = getAuctionBidState({
+    currentBidAmount,
+    currentBidTeamId,
+    teamId,
+  })
+
+  const canBid =
+    !!isAuctionActive &&
+    !!hasCurrentPlayer &&
+    !base.isLeading &&
+    !isTeamFull &&
+    (teamPointBalance ?? 0) >= base.minBid
+
+  return {
+    ...base,
+    canBid,
+  }
+}
+
+export function getAuctionRecoveryKey(args: {
+  currentPlayerId?: string | null
+  timerEndsAt?: string | null
+  revision?: number | null
+}) {
+  if (!args.currentPlayerId || !args.timerEndsAt) return null
+  return `${args.currentPlayerId}:${args.timerEndsAt}:${args.revision ?? 0}`
+}
+
+export function shouldRecoverExpiredAuction(args: {
+  effectiveRole?: string | null
+  currentPlayerId?: string | null
+  timerEndsAt?: string | null
+  recoveryKey?: string | null
+  lastRecoveryKey?: string | null
+}) {
+  if (!args.currentPlayerId || !args.timerEndsAt) {
+    return { shouldRecover: false, recoveryKey: null as string | null }
+  }
+  const recoveryKey =
+    args.recoveryKey ??
+    getAuctionRecoveryKey({
+      currentPlayerId: args.currentPlayerId,
+      timerEndsAt: args.timerEndsAt,
+    })
+  if (!recoveryKey) {
+    return { shouldRecover: false, recoveryKey: null as string | null }
+  }
+
+  const isExpired = new Date(args.timerEndsAt).getTime() <= Date.now()
+  const shouldRecover =
+    args.effectiveRole === 'ORGANIZER' &&
+    isExpired &&
+    args.lastRecoveryKey !== recoveryKey
+
+  return {
+    shouldRecover,
+    recoveryKey,
+  }
+}
+
 export function applyAuctionEventToState(
   state: AuctionRealtimeStateSlice,
   event: AuctionEventEnvelope,
@@ -103,6 +214,7 @@ export function applyAuctionEventToState(
       players: state.players,
       teams: state.teams,
       timerEndsAt: state.timerEndsAt,
+      currentPlayerId: state.currentPlayerId,
       liveBid: state.liveBid,
       lotteryPlayer: state.lotteryPlayer,
       revision: state.auctionEventRevision,
@@ -112,6 +224,7 @@ export function applyAuctionEventToState(
   let nextPlayers = state.players
   let nextTeams = state.teams
   let nextTimerEndsAt = state.timerEndsAt
+  let nextCurrentPlayerId = state.currentPlayerId
   let nextLiveBid = state.liveBid
   let nextLotteryPlayer = state.lotteryPlayer
 
@@ -129,6 +242,8 @@ export function applyAuctionEventToState(
 
   switch (event.type) {
     case 'LOTTERY_DRAWN':
+      nextCurrentPlayerId =
+        event.currentPlayerId ?? event.player?.id ?? nextCurrentPlayerId
       nextLotteryPlayer = event.lotteryPlayer ?? null
       break
     case 'LOTTERY_CLOSED':
@@ -137,15 +252,19 @@ export function applyAuctionEventToState(
     case 'AUCTION_STARTED':
     case 'AUCTION_RESUMED':
     case 'AUCTION_PAUSED':
+      nextCurrentPlayerId =
+        event.currentPlayerId ?? event.player?.id ?? nextCurrentPlayerId
       nextTimerEndsAt = event.timerEndsAt ?? null
       break
     case 'BID_PLACED':
+      nextCurrentPlayerId = event.currentPlayerId ?? nextCurrentPlayerId
       nextTimerEndsAt = event.timerEndsAt ?? nextTimerEndsAt
       nextLiveBid = event.liveBid ?? null
       break
     case 'PLAYER_AWARDED':
     case 'PLAYER_UNSOLD':
       nextTimerEndsAt = null
+      nextCurrentPlayerId = null
       nextLiveBid = null
       nextLotteryPlayer = null
       break
@@ -165,6 +284,7 @@ export function applyAuctionEventToState(
     players: nextPlayers,
     teams: nextTeams,
     timerEndsAt: nextTimerEndsAt,
+    currentPlayerId: nextCurrentPlayerId,
     liveBid: nextLiveBid,
     lotteryPlayer: nextLotteryPlayer,
     revision: event.revision,

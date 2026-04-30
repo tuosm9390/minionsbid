@@ -87,6 +87,8 @@ function emitAuctionEvent(path: string, value: unknown) {
 
 describe('useFirebaseRealtime', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/')
+    window.localStorage.clear()
     roomSnapshotListeners.length = 0
     genericSnapshotListeners.length = 0
     valueListeners.clear()
@@ -253,5 +255,129 @@ describe('useFirebaseRealtime', () => {
     })
 
     expect(recoverExpiredAuction).toHaveBeenCalledWith('room-1')
+  })
+
+  it('RTDB 이벤트를 놓쳐도 room snapshot의 last_auction_event로 즉시 복구한다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => new Date('2026-04-29T00:00:05.000Z'),
+        },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:01.000Z',
+        },
+        auction_revision: 11,
+        last_auction_event: {
+          eventId: 'bid-fallback-1',
+          revision: 11,
+          roomId: 'room-1',
+          type: 'BID_PLACED',
+          serverCreatedAt: '2026-04-29T00:00:01.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:05.000Z',
+          liveBid: {
+            player_id: 'player-1',
+            team_id: 'team-2',
+            amount: 110,
+            created_at: '2026-04-29T00:00:01.000Z',
+          },
+        },
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 110,
+    })
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(11)
+  })
+
+  it('RTDB auctionEvent를 의도적으로 건너뛰어도 room snapshot fallback으로 복구한다', () => {
+    window.history.replaceState({}, '', '/?skipAuctionEvent=1')
+
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+        current_player_id: 'player-1',
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-skipped-1',
+        revision: 10,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2026-04-29T00:00:01.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-04-29T00:00:05.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:01.000Z',
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(0)
+    expect(useAuctionStore.getState().liveBid).toBeNull()
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => new Date('2026-04-29T00:00:05.000Z'),
+        },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:01.000Z',
+        },
+        auction_revision: 10,
+        last_auction_event: {
+          eventId: 'bid-skipped-1',
+          revision: 10,
+          roomId: 'room-1',
+          type: 'BID_PLACED',
+          serverCreatedAt: '2026-04-29T00:00:01.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:05.000Z',
+          liveBid: {
+            player_id: 'player-1',
+            team_id: 'team-2',
+            amount: 110,
+            created_at: '2026-04-29T00:00:01.000Z',
+          },
+        },
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 110,
+    })
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:05.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(10)
   })
 })

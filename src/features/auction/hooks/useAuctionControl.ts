@@ -6,6 +6,7 @@ interface UseAuctionControlProps {
   roomId: string
   effectiveRole: Role
   players: Player[]
+  currentPlayerId: string | null
   timerEndsAt: string | null
 }
 
@@ -15,6 +16,7 @@ export function useAuctionControl({
   roomId,
   effectiveRole,
   players,
+  currentPlayerId,
   timerEndsAt,
 }: UseAuctionControlProps) {
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
@@ -45,9 +47,15 @@ export function useAuctionControl({
   const handleCloseLottery = async () => {
     if (effectiveRole !== 'ORGANIZER') return
     if (!lotteryPlayer || !roomId) return
-    await closeLotteryAction(roomId, lotteryPlayer.name)
-    // CLOSE_LOTTERY 브로드캐스트를 받아 useAuctionRealtime이 setLotteryPlayer(null) 호출
-    // 로컬에서는 별도 처리 불필요
+    const result = await closeLotteryAction(roomId, lotteryPlayer.name)
+    if (result.error) {
+      console.error('[Lottery] close failed:', result.error)
+      alert(`추첨 종료 오류: ${result.error}`)
+      return
+    }
+    // 서버 정본이 먼저 갱신된 뒤라도 organizer 화면은 즉시 bidding scene으로 넘어가야 한다.
+    // RTDB/Firestore 반영이 조금 늦어도 로컬 scene 전환은 낙오되면 안 된다.
+    setLotteryPlayer(null)
   }
 
   // 3. 타이머 만료 시 자동 낙찰 처리 (ORGANIZER 클라이언트만 실행)
@@ -78,7 +86,9 @@ export function useAuctionControl({
   useEffect(() => {
     if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
 
-    const cp = playersRef.current.find(p => p.status === 'IN_AUCTION')
+    const cp =
+      playersRef.current.find((p) => p.id === currentPlayerId) ??
+      playersRef.current.find(p => p.status === 'IN_AUCTION')
     if (!cp) return
 
     const playerId = cp.id
@@ -92,7 +102,7 @@ export function useAuctionControl({
     }, delay)
 
     return () => { cancelled = true; clearTimeout(t) }
-  }, [timerEndsAt, roomId, effectiveRole])
+  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId])
 
   return {
     lotteryPlayer,

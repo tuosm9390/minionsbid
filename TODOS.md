@@ -59,6 +59,29 @@
 - **Status update (2026-04-29)**: 기본 계약 문서를 [`doc/AUCTION_REALTIME_CONTRACT.md`](D:\development\league-auction\doc\AUCTION_REALTIME_CONTRACT.md:1)에 추가했다. 이후 envelope 타입이나 recovery 정책이 바뀌면 이 문서를 함께 갱신해야 한다.
 - **Depends on / blocked by**: auction envelope 설계 확정, 공통 selector/helper 정리, organizer-only recover path 반영 후 문서화하는 것이 가장 정확하다.
 
+### [ ] final-second 경매 E2E flaky 추가 완화
+- **What**: `playwright/auction-realtime.spec.ts`의 마지막 1초 입찰/낙찰 시나리오를 더 안정적으로 만들기 위한 fixture 또는 테스트 헬퍼를 추가 검토한다.
+- **Why**: 현재 `master` 기준 CI는 통과하지만, `auction-realtime-ci` PR 환경에서는 runner 속도 차이 때문에 final-second 시나리오가 간헐적으로 흔들렸다.
+- **Pros**: PR CI false negative를 줄이고, 실시간 경매 핵심 회귀 테스트의 신뢰도를 더 높일 수 있다.
+- **Cons**: 테스트 전용 fixture/clock 제어가 늘어나면 구현이 조금 더 복잡해질 수 있다.
+- **Context**: 2026-04-29 기준 마지막 1초 시나리오는 입찰자 화면 기준 타이머와 버튼 활성 상태를 확인하도록 안정화했고, `master` merge CI는 성공했다. 다만 runner 성능 의존성이 남아 있을 수 있으므로 장기적으로는 mock clock, 명시적 fixture phase, 또는 timer freeze 훅 같은 더 강한 제어 수단을 검토할 가치가 있다.
+
+### [ ] 경매 realtime 운영 latency 관측 체계
+- **What**: 입찰 이벤트의 `eventId` 기준 end-to-end latency를 운영 환경에서 수집하고, `p95 <= 500ms`를 지속적으로 관측하는 체계를 도입한다.
+- **Why**: 개발/fixture 환경 통과만으로는 실제 사용자 체감 성능을 보장할 수 없다. 느려졌을 때 “느린 것 같다”가 아니라 어느 구간이 병목인지 바로 알아야 한다.
+- **Pros**: 경매 품질 저하를 조기에 감지할 수 있고, 지역/시간대/트래픽별 latency 분포를 숫자로 볼 수 있다.
+- **Cons**: 외부 수집 시스템 또는 서버 로그 집계 비용이 생기고, 운영 복잡도가 늘어난다.
+- **Context**: 이번 변경에서는 room canonical state, RTDB fanout, `eventId` 기반 로컬/서버 marker, 대표 시나리오 테스트까지만 포함한다. 장기적으로는 `client click -> server receive -> Firestore commit -> RTDB fanout -> client apply` 전 구간을 운영에서 추적해야 한다.
+- **Depends on / blocked by**: canonical `eventId` 전파 규칙 확정, 운영 로그 수집 경로 선택.
+
+### [ ] 서버 측 auction expiry watchdog 재검토
+- **What**: `/api/auction-watchdog` route를 계속 유지할지, 아니면 organizer 상시 참여 운영에서는 수동/선택 기능으로만 둘지 재검토한다.
+- **Why**: 현재 제품 운영 가정은 organizer 상시 참여이며, 팀장 연결 끊김은 presence guard가 즉시 경매를 멈춘다. 따라서 watchdog은 핵심 실시간 경로가 아니라 선택적 backup이다.
+- **Pros**: 실시간 핵심 경로와 운영 backup을 분리해 우선순위를 더 명확히 할 수 있다.
+- **Cons**: organizer 비의존 만료 처리까지 강하게 원하면 별도 스케줄러 또는 worker가 다시 필요해질 수 있다.
+- **Context**: 현재 `/api/auction-watchdog` route는 남아 있지만, 기본 배포 cron 연결은 제거했다. organizer/presence 기반 일시정지와 recover 경로가 1차 ownership을 가진다.
+- **Depends on / blocked by**: 실제 운영에서 organizer 부재 없는지 확인, 수동 backup이 필요한지 운영 정책 확정.
+
 ### [ ] 사운드 효과 (Sound System)
 - **What**: 입찰, 낙찰, 경매 시작 시 8-bit 스타일 효과음 추가.
 - **Why**: 경매의 몰입감과 피드백 강화.

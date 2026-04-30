@@ -8,7 +8,8 @@ import {
   type Team,
 } from '@/features/auction/store/useAuctionStore'
 import { placeBid } from '@/features/auction/api/auctionActions'
-import { getAuctionDerivedState } from '@/features/auction/utils/auctionRealtime'
+import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
+import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 
 interface UseBiddingControlProps {
   roomId: string
@@ -24,6 +25,14 @@ interface UseBiddingControlProps {
 const EXTEND_THRESHOLD_MS = 5_000
 const EXTEND_DURATION_MS = 5_000
 const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
+
+function isRealtimeDebugEnabled() {
+  if (typeof window === 'undefined') return false
+  return (
+    new URLSearchParams(window.location.search).has('debugRealtime') ||
+    window.localStorage.getItem('debugRealtime') === '1'
+  )
+}
 
 /**
  * BiddingControl 컴포넌트의 비즈니스 로직 Hook.
@@ -45,7 +54,6 @@ export function useBiddingControl({
   const [isBidding, setIsBidding] = useState(false)
   const [bidError, setBidError] = useState<string | null>(null)
 
-  const bids = useAuctionStore((s) => s.bids)
   const liveBid = useAuctionStore((s) => s.liveBid)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
@@ -54,21 +62,21 @@ export function useBiddingControl({
   const players = useAuctionStore((s) => s.players)
 
   // ── 파생 데이터 ──
-  const { activeLiveBid, isLeading } = getAuctionDerivedState({
-    bids,
-    currentPlayerId: currentPlayer?.id,
-    liveBid,
+  const activeLiveBid =
+    liveBid?.player_id === currentPlayer?.id ? liveBid : null
+  const { isLeading, canBid } = getAuctionBidEligibility({
+    currentBidAmount: activeLiveBid?.amount ?? null,
+    currentBidTeamId: activeLiveBid?.team_id ?? null,
     teamId,
+    teamPointBalance: myTeam?.point_balance ?? 0,
+    isAuctionActive,
+    hasCurrentPlayer: !!currentPlayer,
+    isTeamFull,
   })
 
   const numericBidAmount =
     typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
-  const canBid =
-    isAuctionActive &&
-    !isBidding &&
-    !!currentPlayer &&
-    !isLeading &&
-    !isTeamFull
+  const canSubmitBid = canBid && !isBidding
 
   const waitingCount = players.filter((p) => p.status === 'WAITING').length
   const soldCount = players.filter((p) => p.status === 'SOLD').length
@@ -85,6 +93,44 @@ export function useBiddingControl({
     setBidAmount(minBid)
     setBidError(null)
   }, [currentPlayer?.id, minBid])
+
+  useEffect(() => {
+    if (!isRealtimeDebugEnabled()) return
+    console.info('[debug][canBid]', {
+      roomId,
+      teamId,
+      canBid: canSubmitBid,
+      isAuctionActive,
+      isBidding,
+      currentPlayerId: currentPlayer?.id ?? null,
+      currentPlayerName: currentPlayer?.name ?? null,
+      isLeading,
+      isTeamFull,
+      minBid,
+      numericBidAmount,
+      timerEndsAt,
+      now: new Date().toISOString(),
+      waitingCount,
+      soldCount,
+      myTeamPointBalance: myTeam?.point_balance ?? null,
+    })
+  }, [
+    roomId,
+    teamId,
+    canSubmitBid,
+    isAuctionActive,
+    isBidding,
+    currentPlayer?.id,
+    currentPlayer?.name,
+    isLeading,
+    isTeamFull,
+    minBid,
+    numericBidAmount,
+    timerEndsAt,
+    waitingCount,
+    soldCount,
+    myTeam?.point_balance,
+  ])
 
   // ── 핸들러 ──
   const handleBid = async () => {
@@ -137,6 +183,18 @@ export function useBiddingControl({
         setBidError(res.error)
       } else {
         setLiveBid(optimisticLiveBid)
+        if (res.debug?.eventId) {
+          recordAuctionLatencyMarker({
+            eventId: res.debug.eventId,
+            roomId,
+            playerId: currentPlayer.id,
+            teamId,
+            amount: finalAmount,
+            clickedAt: bidClickedAt,
+            respondedAt: Date.now(),
+            source: 'client-response',
+          })
+        }
         if (LATENCY_DEBUG) {
           console.info('[latency][client] placeBid response', {
             roomId,
@@ -181,7 +239,7 @@ export function useBiddingControl({
     // 파생 데이터
     isLeading,
     numericBidAmount,
-    canBid,
+    canBid: canSubmitBid,
     waitingCount,
     soldCount,
     myTeam,

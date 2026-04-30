@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyAuctionEventToState,
+  getAuctionBidEligibility,
+  getAuctionRecoveryKey,
+  shouldRecoverExpiredAuction,
   type AuctionEventEnvelope,
   type AuctionRealtimeStateSlice,
 } from '@/features/auction/utils/auctionRealtime'
@@ -122,5 +125,41 @@ describe('applyAuctionEventToState', () => {
     expect(player?.status).toBe('WAITING')
     expect(player?.team_id).toBeNull()
     expect(player?.sold_price).toBeNull()
+  })
+
+  it('shared bid eligibility는 canonical active bid 기준으로 선두 여부와 최소 입찰가를 계산한다', () => {
+    const result = getAuctionBidEligibility({
+      currentBidAmount: 120,
+      currentBidTeamId: 'team-1',
+      teamId: 'team-1',
+      teamPointBalance: 500,
+      isAuctionActive: true,
+      hasCurrentPlayer: true,
+      isTeamFull: false,
+    })
+
+    expect(result.highestBid).toBe(120)
+    expect(result.minBid).toBe(130)
+    expect(result.isLeading).toBe(true)
+    expect(result.canBid).toBe(false)
+  })
+
+  it('expired recovery helper는 revision 포함 recovery key로 중복 호출을 막는다', () => {
+    const recoveryKey = getAuctionRecoveryKey({
+      currentPlayerId: 'player-1',
+      timerEndsAt: '2026-04-29T00:00:00.000Z',
+      revision: 42,
+    })
+
+    const result = shouldRecoverExpiredAuction({
+      effectiveRole: 'ORGANIZER',
+      currentPlayerId: 'player-1',
+      timerEndsAt: '2026-04-29T00:00:00.000Z',
+      recoveryKey,
+      lastRecoveryKey: recoveryKey,
+    })
+
+    expect(recoveryKey).toBe('player-1:2026-04-29T00:00:00.000Z:42')
+    expect(result.shouldRecover).toBe(false)
   })
 })

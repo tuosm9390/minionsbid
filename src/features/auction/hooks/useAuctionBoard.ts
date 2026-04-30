@@ -12,7 +12,7 @@ import {
   restartAuctionWithUnsold,
 } from '@/features/auction/api/auctionActions'
 import { getAuctionSlotsPerTeam } from '../utils/roster'
-import { getAuctionDerivedState } from '../utils/auctionRealtime'
+import { getAuctionBidState } from '../utils/auctionRealtime'
 
 const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
@@ -35,7 +35,6 @@ export function useAuctionBoard({
 }: UseAuctionBoardProps) {
   // ── Store 셀렉터 ──
   const players = useAuctionStore((s) => s.players)
-  const bids = useAuctionStore((s) => s.bids)
   const liveBid = useAuctionStore((s) => s.liveBid)
   const teams = useAuctionStore((s) => s.teams)
   const presences = useAuctionStore((s) => s.presences)
@@ -43,6 +42,7 @@ export function useAuctionBoard({
   const teamId = useAuctionStore((s) => s.teamId)
   const roomId = useAuctionStore((s) => s.roomId)
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt)
+  const currentPlayerId = useAuctionStore((s) => s.currentPlayerId)
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam)
   const captainMode = useAuctionStore((s) => s.captainMode)
   const setReAuctionRound = useAuctionStore((s) => s.setReAuctionRound)
@@ -68,16 +68,19 @@ export function useAuctionBoard({
 
   const currentPlayer = isLotteryActive
     ? undefined
-    : players.find((p) => p.status === 'IN_AUCTION')
+    : players.find((p) => p.id === currentPlayerId) ??
+      players.find((p) => p.status === 'IN_AUCTION')
 
   const latestNotice = messages.findLast((m) => m.sender_role === 'NOTICE')
+  const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id
 
-  const { highestBid, topBid, leadingTeam } = getAuctionDerivedState({
-    bids,
-    currentPlayerId: currentPlayer?.id,
-    liveBid,
-    teams,
+  const { highestBid, topBidTeamId } = getAuctionBidState({
+    currentBidAmount: isCurrentPlayerBid && liveBid ? liveBid.amount : null,
+    currentBidTeamId: isCurrentPlayerBid && liveBid ? liveBid.team_id : null,
   })
+  const topBid =
+    topBidTeamId && liveBid?.team_id === topBidTeamId ? liveBid : null
+  const leadingTeam = teams.find((team) => team.id === topBidTeamId) ?? null
 
   const unsoldPlayers = players.filter((p) => p.status === 'UNSOLD')
   const waitingPlayersList = players.filter((p) => p.status === 'WAITING')

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuctionStore, Role, PresenceUser } from "@/features/auction/store/useAuctionStore";
 import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
 import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
+import { useAuctionPresenceGuard } from "@/features/auction/hooks/useAuctionPresenceGuard";
 import { useRoomAuth } from "@/features/auction/hooks/useRoomAuth";
 import { useAuctionControl } from "@/features/auction/hooks/useAuctionControl";
 import {
@@ -18,6 +19,7 @@ import { AuctionBoard } from "@/features/auction/components/AuctionBoard";
 import { TeamList, UnsoldPanel } from "@/features/auction/components/TeamList";
 import { ChatPanel } from "@/features/auction/components/ChatPanel";
 import { BiddingControl } from "@/features/auction/components/BiddingControl";
+import { LatencyDebugPanel } from "@/features/auction/components/LatencyDebugPanel";
 import { HowToUseModal } from "@/features/auction/components/HowToUseModal";
 import { EndRoomModal } from "@/features/auction/components/EndRoomModal";
 import { AuctionResultModal } from "@/features/auction/components/AuctionResultModal";
@@ -30,7 +32,7 @@ import {
   buildRosterWithCaptain,
   getAuctionSlotsPerTeam,
 } from "@/features/auction/utils/roster";
-import { getAuctionDerivedState } from "@/features/auction/utils/auctionRealtime";
+import { getAuctionBidState } from "@/features/auction/utils/auctionRealtime";
 
 export function RoomClient({
   roomId,
@@ -48,9 +50,11 @@ export function RoomClient({
   const roomExists = useAuctionStore((s) => s.roomExists);
   const isRoomLoaded = useAuctionStore((s) => s.isRoomLoaded);
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt);
+  const currentPlayerId = useAuctionStore((s) => s.currentPlayerId);
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
   const captainMode = useAuctionStore((s) => s.captainMode);
   const presences = useAuctionStore((s) => s.presences);
+  const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const isReAuctionRound = useAuctionStore((s) => s.isReAuctionRound);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
@@ -90,19 +94,19 @@ export function RoomClient({
   );
   const allConnected =
     teams.length > 0 && connectedLeaderIds.size >= teams.length;
-  const currentPlayer = players.find((p) => p.status === "IN_AUCTION");
+  const currentPlayer =
+    players.find((p) => p.id === currentPlayerId) ??
+    players.find((p) => p.status === "IN_AUCTION");
   const waitingPlayers = players.filter((p) => p.status === "WAITING");
   const soldPlayers = players.filter((p) => p.status === "SOLD");
   const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
 
-  const bids = useAuctionStore((s) => s.bids);
   const liveBid = useAuctionStore((s) => s.liveBid);
-  const { highestBid } = getAuctionDerivedState({
-    bids,
-    currentPlayerId: currentPlayer?.id,
-    liveBid,
+  const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id;
+  const { highestBid, minBid } = getAuctionBidState({
+    currentBidAmount: isCurrentPlayerBid && liveBid ? liveBid.amount : null,
+    currentBidTeamId: isCurrentPlayerBid && liveBid ? liveBid.team_id : null,
   });
-  const minBid = highestBid > 0 ? highestBid + 10 : 10;
 
   useEffect(() => {
     if (!timerEndsAt) {
@@ -131,10 +135,21 @@ export function RoomClient({
     : false;
   const lotteryPlayer = useAuctionStore((s) => s.lotteryPlayer);
 
+  useAuctionPresenceGuard({
+    roomId,
+    effectiveRole,
+    isPresenceLoaded,
+    allConnected,
+    currentPlayerId: currentPlayer?.id ?? null,
+    timerEndsAt,
+    lotteryPlayerId: lotteryPlayer?.id ?? null,
+  });
+
   const { handleCloseLottery } = useAuctionControl({
     roomId,
     effectiveRole: effectiveRole ?? "VIEWER",
     players,
+    currentPlayerId,
     timerEndsAt,
   });
 
@@ -420,6 +435,7 @@ export function RoomClient({
         isOpen={showResultModal}
         onClose={() => setShowResultModal(false)}
       />
+      <LatencyDebugPanel />
     </div>
   );
 }
