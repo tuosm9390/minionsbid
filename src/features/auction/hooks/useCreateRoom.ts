@@ -14,6 +14,9 @@ import {
 import { getAuctionClientServices } from "../realtime/clientAdapter";
 
 const LS_KEY = "league_auction_rooms";
+const LATENCY_DEBUG =
+  process.env.NEXT_PUBLIC_DEBUG_LATENCY === "1" ||
+  process.env.DEBUG_LATENCY === "1";
 
 export interface BasicInfo {
   title: string;
@@ -156,6 +159,7 @@ export function useCreateRoom() {
   };
 
   const createRoom = async () => {
+    const startedAt = Date.now();
     const result = await createRoomAction({
       name: basic.title,
       scheduleId: basic.scheduleId,
@@ -201,6 +205,15 @@ export function useCreateRoom() {
       })),
       viewerLink: `${baseUrl}/api/room-auth?roomId=${roomId}&role=VIEWER&token=${viewerToken}`,
     });
+
+    if (LATENCY_DEBUG) {
+      console.info("[latency][client] createRoom response", {
+        roomId,
+        totalMs: Date.now() - startedAt,
+        teamCount: captains.length,
+        playerCount: players.length,
+      });
+    }
   };
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

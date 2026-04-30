@@ -5,9 +5,13 @@ import {
   getE2EAuctionFixtureRoomLinks,
   isE2EAuctionFixtureEnabled,
 } from '@/features/auction/api/e2eAuctionFixture'
-
-const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
-const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
+import {
+  ROOM_AUTH_COLLECTION,
+  ROOM_AUTH_TEAM_TOKENS_COLLECTION,
+  buildRoomAuthCookieName,
+  parseRoomAuthCookie,
+  validateRoomAuthToken,
+} from '@/features/auction/utils/roomAuth'
 
 export async function GET(request: NextRequest) {
   const roomId = request.nextUrl.searchParams.get('roomId')?.trim()
@@ -16,33 +20,45 @@ export async function GET(request: NextRequest) {
   }
 
   const cookieStore = await cookies()
-  const authCookie = cookieStore.get(`room_auth_${roomId}_ORGANIZER`)
-  if (!authCookie) {
+  const authCookie = cookieStore.get(buildRoomAuthCookieName(roomId, 'ORGANIZER'))
+  const parsed = parseRoomAuthCookie(authCookie?.value)
+  if (!parsed || parsed.role !== 'ORGANIZER' || typeof parsed.token !== 'string') {
     return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  }
+  if (isE2EAuctionFixtureEnabled()) {
+    const fixtureLinks = getE2EAuctionFixtureRoomLinks(roomId)
+    if (fixtureLinks.organizerToken !== parsed.token) {
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+    }
+    return NextResponse.json(fixtureLinks)
   }
 
   try {
-    const parsed = JSON.parse(authCookie.value)
-    if (parsed?.role !== 'ORGANIZER' || typeof parsed?.token !== 'string') {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
-
-    if (isE2EAuctionFixtureEnabled()) {
-      const fixtureLinks = getE2EAuctionFixtureRoomLinks(roomId)
-      if (fixtureLinks.organizerToken !== parsed.token) {
-        return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-      }
-      return NextResponse.json(fixtureLinks)
-    }
-
+    const { firestore } = getAuctionServerServices()
     const [roomDoc, roomAuthDoc, teamsSnapshot] = await Promise.all([
-      getAuctionServerServices().firestore.collection('rooms').doc(roomId).get(),
-      getAuctionServerServices().firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
-      getAuctionServerServices().firestore.collection('rooms').doc(roomId).collection('teams').get(),
+      firestore.collection('rooms').doc(roomId).get(),
+      firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
+      firestore.collection('rooms').doc(roomId).collection('teams').get(),
     ])
 
     if (!roomDoc.exists) {
       return NextResponse.json({ error: '링크 정보를 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    const isValid = await validateRoomAuthToken({
+      roomId,
+      role: 'ORGANIZER',
+      token: parsed.token,
+      isFixtureEnabled: false,
+      verifyFixtureAccess: () => false,
+      loadTokenDocuments: async () => ({
+        roomData: roomDoc.data() ?? {},
+        roomAuthData: roomAuthDoc.data() ?? {},
+      }),
+    })
+
+    if (!isValid) {
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     const roomData = roomDoc.data() ?? {}
@@ -60,14 +76,10 @@ export async function GET(request: NextRequest) {
           ? roomData.viewer_token
           : null
 
-    if (!organizerToken || organizerToken !== parsed.token) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
-
     const teamTokenSnapshots = await Promise.all(
       teamsSnapshot.docs.map((teamDoc) =>
-        roomAuthDoc.ref.collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION).doc(teamDoc.id).get()
-      )
+        roomAuthDoc.ref.collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION).doc(teamDoc.id).get(),
+      ),
     )
 
     const captainLinks = teamsSnapshot.docs
@@ -93,13 +105,13 @@ export async function GET(request: NextRequest) {
       })
       .filter(
         (
-          link
+          link,
         ): link is {
           teamId: string
           teamName: string
           leaderName: string
           token: string
-        } => link !== null
+        } => link !== null,
       )
 
     return NextResponse.json({

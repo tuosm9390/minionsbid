@@ -17,7 +17,13 @@ import { useAuctionStore } from '../store/useAuctionStore'
 import type { Bid, Team, Player, Message, Role, PresenceUser, LiveBidState } from '../store/useAuctionStore'
 import { normalizeCaptainMode } from '../utils/roster'
 import { recoverExpiredAuction } from '../api/auctionActions'
-import { applyAuctionEventToState, type AuctionEventEnvelope } from '../utils/auctionRealtime'
+import {
+  applyAuctionEventToState,
+  getAuctionRecoveryKey,
+  shouldRecoverExpiredAuction,
+  type AuctionEventEnvelope,
+} from '../utils/auctionRealtime'
+import { recordAuctionLatencyMarker } from '../utils/latencyDebug'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
 
 // Firestore 문서 데이터 → Store 타입 변환 헬퍼
@@ -29,6 +35,9 @@ interface FirestoreRoomData {
   total_teams?: number
   timer_ends_at?: Timestamp | null
   current_player_id?: string | null
+  active_bid?: LiveBidState | null
+  auction_revision?: number
+  last_auction_event?: AuctionEventEnvelope | null
   created_at?: Timestamp | null
   roomDeleted?: boolean
 }
@@ -77,6 +86,33 @@ function timestampToISO(ts: Timestamp | null | undefined): string | null {
   return ts.toDate().toISOString()
 }
 
+function shouldSkipRealtimeAuctionEvent() {
+  if (typeof window === 'undefined') return false
+  const searchParams = new URLSearchParams(window.location.search)
+  return (
+    searchParams.get('skipAuctionEvent') === '1' ||
+    window.localStorage.getItem('skipAuctionEvent') === '1'
+  )
+}
+
+function recordBidLatencyFromEvent(
+  event: AuctionEventEnvelope,
+  source: 'rtdb' | 'room-fallback',
+) {
+  if (event.type !== 'BID_PLACED') return
+  recordAuctionLatencyMarker({
+    eventId: event.eventId,
+    roomId: event.roomId,
+    playerId: event.currentPlayerId ?? event.liveBid?.player_id ?? null,
+    teamId: event.liveBid?.team_id ?? null,
+    amount: event.liveBid?.amount ?? null,
+    revision: event.revision,
+    serverCreatedAt: event.serverCreatedAt,
+    appliedAt: Date.now(),
+    source,
+  })
+}
+
 /**
  * Firebase Firestore + RTDB 기반 실시간 구독 훅.
  *
@@ -97,8 +133,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
   const lastRecoveryKeyRef = useRef<string | null>(null)
-  // CLOSE_LOTTERY 초기값 무시를 위한 ref
-  const auctionEventInitRef = useRef(true)
   const latestMessageInitRef = useRef(true)
   const lastLiveMessageIdRef = useRef<string | null>(null)
 
@@ -107,6 +141,9 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
     if (E2E_AUCTION_FIXTURE) {
       let cancelled = false
+      const fixtureFallbackMode =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).get('fixtureFallbackMode') === '1'
       const sync = async () => {
         try {
           const response = await fetch(
@@ -133,12 +170,15 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             presences: PresenceUser[]
             lotteryPlayer: Player | null
             liveBid: LiveBidState | null
+            lastAuctionEvent?: AuctionEventEnvelope | null
             revision: number
           }
           if (cancelled) return
 
-          setAuctionEventRevision(data.revision)
-          setLiveBid(data.liveBid ?? null)
+          if (!fixtureFallbackMode) {
+            setAuctionEventRevision(data.revision)
+            setLiveBid(data.liveBid ?? null)
+          }
           setLotteryPlayer(data.lotteryPlayer ?? null)
           setRealtimeData({
             roomName: data.roomName,
@@ -147,6 +187,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             membersPerTeam: data.membersPerTeam,
             captainMode: normalizeCaptainMode(data.captainMode),
             timerEndsAt: data.timerEndsAt,
+            currentPlayerId:
+              data.players.find((player) => player.status === 'IN_AUCTION')?.id ?? null,
             createdAt: data.createdAt,
             teams: data.teams,
             players: data.players,
@@ -155,17 +197,45 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             presences: data.presences,
           })
 
+          if (fixtureFallbackMode && data.lastAuctionEvent?.eventId) {
+            const next = applyAuctionEventToState(useAuctionStore.getState(), data.lastAuctionEvent)
+            if (next.applied) {
+              recordBidLatencyFromEvent(data.lastAuctionEvent, 'room-fallback')
+              setLiveBid(next.liveBid)
+              setLotteryPlayer(next.lotteryPlayer)
+              setAuctionEventRevision(next.revision)
+              setRealtimeData({
+                players: next.players,
+                teams: next.teams,
+                timerEndsAt: next.timerEndsAt,
+                currentPlayerId: next.currentPlayerId,
+              })
+            }
+          }
+          if (
+            !fixtureFallbackMode &&
+            data.lastAuctionEvent?.eventId &&
+            data.lastAuctionEvent.revision >= data.revision
+          ) {
+            recordBidLatencyFromEvent(data.lastAuctionEvent, 'rtdb')
+          }
+
           const currentPlayerId =
             data.players.find((player) => player.status === 'IN_AUCTION')?.id ?? null
           if (data.timerEndsAt && currentPlayerId) {
-            const recoveryKey = `${currentPlayerId}:${data.timerEndsAt}`
-            const isExpired = new Date(data.timerEndsAt).getTime() <= Date.now()
-            if (
-              effectiveRole === 'ORGANIZER' &&
-              isExpired &&
-              lastRecoveryKeyRef.current !== recoveryKey
-            ) {
-              lastRecoveryKeyRef.current = recoveryKey
+            const recovery = shouldRecoverExpiredAuction({
+              effectiveRole,
+              currentPlayerId,
+              timerEndsAt: data.timerEndsAt,
+              recoveryKey: getAuctionRecoveryKey({
+                currentPlayerId,
+                timerEndsAt: data.timerEndsAt,
+                revision: data.revision,
+              }),
+              lastRecoveryKey: lastRecoveryKeyRef.current,
+            })
+            if (recovery.shouldRecover && recovery.recoveryKey) {
+              lastRecoveryKeyRef.current = recovery.recoveryKey
               void recoverExpiredAuction(roomId)
             }
           } else {
@@ -179,7 +249,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       void sync()
       const intervalId = window.setInterval(() => {
         void sync()
-      }, 200)
+      }, 100)
       return () => {
         cancelled = true
         window.clearInterval(intervalId)
@@ -187,6 +257,30 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     }
 
     const { firestore, rtdb } = getAuctionClientServices()
+
+    const projectCurrentPlayerIntoStore = (currentPlayerId: string | null) => {
+      if (!currentPlayerId) return
+      const state = useAuctionStore.getState()
+      if (state.players.length === 0) return
+      const alreadyProjected = state.players.some(
+        (player) =>
+          player.id === currentPlayerId && player.status === 'IN_AUCTION',
+      )
+      if (alreadyProjected) return
+      const hasCurrentPlayer = state.players.some((player) => player.id === currentPlayerId)
+      if (!hasCurrentPlayer) return
+
+      setRealtimeData({
+        players: state.players.map((player) =>
+          player.id === currentPlayerId
+            ? { ...player, status: 'IN_AUCTION' }
+            : player.status === 'IN_AUCTION'
+              ? { ...player, status: 'WAITING' }
+              : player,
+        ),
+        currentPlayerId,
+      })
+    }
 
     const unsubs: Unsubscribe[] = []
 
@@ -210,8 +304,30 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         captainMode: normalizeCaptainMode(data.captain_mode),
         totalTeams: data.total_teams ?? 0,
         timerEndsAt: timestampToISO(data.timer_ends_at),
+        currentPlayerId: data.current_player_id ?? null,
         createdAt: timestampToISO(data.created_at),
       })
+      setLiveBid(data.active_bid ?? null)
+
+      const roomRevision = data.auction_revision ?? 0
+      const fallbackEvent = data.last_auction_event ?? null
+      if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
+        const next = applyAuctionEventToState(useAuctionStore.getState(), fallbackEvent)
+        if (next.applied) {
+          recordBidLatencyFromEvent(fallbackEvent, 'room-fallback')
+          setLiveBid(next.liveBid)
+          setLotteryPlayer(next.lotteryPlayer)
+          setAuctionEventRevision(next.revision)
+          setRealtimeData({
+            players: next.players,
+            teams: next.teams,
+            timerEndsAt: next.timerEndsAt,
+            currentPlayerId: next.currentPlayerId,
+          })
+        }
+      } else if (roomRevision > useAuctionStore.getState().auctionEventRevision) {
+        setAuctionEventRevision(roomRevision)
+      }
 
       if (LATENCY_DEBUG && data.timer_ends_at) {
         console.info('[latency][client] room snapshot timer', {
@@ -224,14 +340,19 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       const timerEndsAtIso = timestampToISO(data.timer_ends_at)
       const currentPlayerId = data.current_player_id ?? null
       if (timerEndsAtIso && currentPlayerId) {
-        const recoveryKey = `${currentPlayerId}:${timerEndsAtIso}`
-        const isExpired = new Date(timerEndsAtIso).getTime() <= Date.now()
-        if (
-          effectiveRole === 'ORGANIZER' &&
-          isExpired &&
-          lastRecoveryKeyRef.current !== recoveryKey
-        ) {
-          lastRecoveryKeyRef.current = recoveryKey
+        const recovery = shouldRecoverExpiredAuction({
+          effectiveRole,
+          currentPlayerId,
+          timerEndsAt: timerEndsAtIso,
+          recoveryKey: getAuctionRecoveryKey({
+            currentPlayerId,
+            timerEndsAt: timerEndsAtIso,
+            revision: roomRevision,
+          }),
+          lastRecoveryKey: lastRecoveryKeyRef.current,
+        })
+        if (recovery.shouldRecover && recovery.recoveryKey) {
+          lastRecoveryKeyRef.current = recovery.recoveryKey
           void recoverExpiredAuction(roomId)
         }
       } else {
@@ -242,7 +363,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       const newPlayerId = currentPlayerId
       if (newPlayerId !== currentPlayerIdRef.current) {
         currentPlayerIdRef.current = newPlayerId
-        setLiveBid(null)
+        setLiveBid(data.active_bid ?? null)
+        projectCurrentPlayerIntoStore(newPlayerId)
         bidsUnsubRef.current?.()
 
         if (newPlayerId) {
@@ -314,6 +436,33 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             description: pd.description ?? '',
           }
         })
+        const state = useAuctionStore.getState()
+        const snapshotCurrentPlayerId =
+          players.find((player) => player.status === 'IN_AUCTION')?.id ?? null
+
+        if (snapshotCurrentPlayerId) {
+          setRealtimeData({ players, currentPlayerId: snapshotCurrentPlayerId })
+          return
+        }
+
+        if (
+          state.currentPlayerId &&
+          state.timerEndsAt &&
+          players.some((player) => player.id === state.currentPlayerId)
+        ) {
+          setRealtimeData({
+            players: players.map((player) =>
+              player.id === state.currentPlayerId
+                ? { ...player, status: 'IN_AUCTION' }
+                : player.status === 'IN_AUCTION'
+                  ? { ...player, status: 'WAITING' }
+                  : player,
+            ),
+            currentPlayerId: state.currentPlayerId,
+          })
+          return
+        }
+
         setRealtimeData({ players })
       },
     )
@@ -348,6 +497,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (!next.applied) {
         return
       }
+      recordBidLatencyFromEvent(event, 'rtdb')
       setLiveBid(next.liveBid)
       setLotteryPlayer(next.lotteryPlayer)
       setAuctionEventRevision(next.revision)
@@ -355,15 +505,14 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         players: next.players,
         teams: next.teams,
         timerEndsAt: next.timerEndsAt,
+        currentPlayerId: next.currentPlayerId,
       })
     }
 
     // 5. RTDB: 단일 경매 이벤트 감시
     const auctionEventRef = ref(rtdb, `signals/${roomId}/auctionEvent`)
-    auctionEventInitRef.current = true
     const auctionEventUnsub = onValue(auctionEventRef, (snapshot) => {
-      if (auctionEventInitRef.current) {
-        auctionEventInitRef.current = false
+      if (shouldSkipRealtimeAuctionEvent()) {
         return
       }
       const data = snapshot.val() as AuctionEventEnvelope | null

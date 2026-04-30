@@ -98,16 +98,12 @@ describe("useBiddingControl", () => {
 
   it("자신이 최고 입찰자일 때 canBid는 false", () => {
     useAuctionStore.setState({
-      bids: [
-        {
-          id: "b1",
-          room_id: "room-1",
-          player_id: "p1",
-          team_id: "team-1",
-          amount: 50,
-          created_at: "",
-        },
-      ],
+      liveBid: {
+        player_id: "p1",
+        team_id: "team-1",
+        amount: 50,
+        created_at: "",
+      },
     });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));

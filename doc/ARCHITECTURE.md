@@ -6,22 +6,23 @@
 ---
 
 ## 1. 개요
-Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케이션입니다. **Firebase Realtime Database**를 주 엔진으로 사용하며, 복잡한 비즈니스 로직은 **Next.js Server Actions**를 통해 원자적으로 처리됩니다.
+Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케이션입니다. **Firestore room 문서가 현재 경매 hot state의 정본**이고, **Firebase Realtime Database**는 그 정본을 빠르게 fanout하는 저지연 채널입니다. 복잡한 비즈니스 로직은 **Next.js Server Actions**를 통해 원자적으로 처리됩니다.
 
 ---
 
 ## 2. 데이터 아키텍처
 
 ### 데이터베이스 레이어
-- **Firestore**: 방 설정, 선수 정보, 팀 구성 등 구조화되고 영구적인 데이터 저장.
-- **Realtime Database (RTDB)**: 경매 타이머, 현재 입찰가, 실시간 채팅 등 100ms 미만의 지연시간이 필요한 동적 상태 관리.
+- **Firestore**: 방 설정, 선수 정보, 팀 구성, 그리고 현재 경매 canonical state 저장.
+- **Realtime Database (RTDB)**: 최신 경매 이벤트와 실시간 메시지를 모든 클라이언트에 빠르게 fanout.
 
 ### 데이터 흐름
 1. **Mutation**: 클라이언트가 입찰(Bid) 또는 상태 변경 요청 → Next.js Server Action 호출.
-2. **Validation**: 서버 사이드에서 권한, 포인트 잔액, 타이머 유효성 검증.
-3. **Write**: 서버가 Firebase Admin SDK를 통해 Firestore/RTDB 업데이트.
+2. **Validation**: 서버 사이드 transaction 안에서 권한, 포인트 잔액, 타이머 유효성, 현재 선두 상태를 검증.
+3. **Write**: 서버가 Firestore room canonical state와 필요한 하위 문서를 업데이트.
 4. **Broadcast**: Firebase RTDB가 연결된 모든 클라이언트에게 변경된 상태를 즉시 푸시.
-5. **UI Update**: `useAuctionRealtime` 훅이 새로운 상태를 감지하고 Zustand 스토어 업데이트 → UI 리렌더링.
+5. **Heal**: RTDB 이벤트를 놓친 화면은 Firestore room snapshot의 `last_auction_event`와 `auction_revision`으로 빠르게 복구.
+6. **UI Update**: `useAuctionRealtime` 훅이 새로운 상태를 감지하고 Zustand 스토어 업데이트 → UI 리렌더링.
 
 ### 일정 관리 서브시스템
 - **스토리지**: `league_schedules`, `match_days`, `hall_of_fame`는 Firestore를 사용한다.
@@ -52,12 +53,21 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 ## 4. 실시간 동기화 전략
 
 ### 입찰 (Bidding)
-- 낙관적 업데이트(Optimistic UI) 대신 **서버 신뢰(Server Authority)** 방식을 사용합니다. 
-- 입찰 버튼 클릭 시 즉시 로딩 상태로 전환하며, Firebase로부터 실제 데이터가 푸시되었을 때만 '선두' 상태를 표시합니다. 이는 0.1초 차이의 경합 상황에서 사용자에게 혼란을 주지 않기 위함입니다.
+- 경매 정답은 room 문서의 `active_bid`, `current_player_id`, `timer_ends_at`, `auction_revision`이 가집니다.
+- 클라이언트는 local optimistic UI를 허용하지만, 최종 판정은 항상 서버 transaction 결과가 덮어씁니다.
+- `bids` 컬렉션은 현재 선두 판정이 아니라 history / audit 용도로 사용합니다.
+- 디버그/검증 계층에서는 `eventId` 기반 latency marker를 사용해 `client-response`, `rtdb`, `room-fallback` 적용 시점을 추적합니다.
 
 ### 타이머 (Timer)
 - 서버의 `timerEnds_at` 타임스탬프를 기준으로 각 클라이언트가 로컬에서 카운트다운을 수행합니다.
-- 타이머 만료 시 주최자(Organizer) 클라이언트가 `awardPlayer` 액션을 트리거하여 서버에서 원자적으로 낙찰 처리를 수행합니다.
+- organizer는 항상 경매에 참여한다는 운영 가정을 둡니다.
+- 팀장 연결이 끊기면 organizer presence guard가 경매를 즉시 일시정지하고, 재연결 시 organizer가 다시 재개합니다.
+- `/api/auction-watchdog`는 선택적 backup route로만 유지합니다. 실시간 경매 품질이나 500ms 입찰 SLA의 핵심 메커니즘은 아닙니다.
+
+### 관측 (Observability)
+- representative bid 전파 품질은 DOM 변화만이 아니라 `eventId` 기반 latency marker로도 본다.
+- fixture 경로는 `appliedAt - clickedAt <= 500ms`를 직접 검증한다.
+- production 경로는 네트워크 편차를 고려해 우선 `client-response -> rtdb` 또는 `client-response -> room-fallback`의 동일 `eventId` correlation을 확인한다.
 
 ---
 

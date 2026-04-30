@@ -7,7 +7,11 @@ import type {
   Team,
 } from '@/features/auction/store/useAuctionStore'
 import type { CaptainMode } from '@/features/auction/utils/roster'
-import { getAuctionDerivedState } from '@/features/auction/utils/auctionRealtime'
+import {
+  getAuctionBidState,
+  type AuctionEventEnvelope,
+  type AuctionEventType,
+} from '@/features/auction/utils/auctionRealtime'
 
 type FixtureRoom = {
   id: string
@@ -30,6 +34,7 @@ type FixtureRoom = {
   presences: PresenceUser[]
   lotteryPlayer: Player | null
   liveBid: LiveBidState | null
+  lastAuctionEvent: AuctionEventEnvelope | null
   revision: number
 }
 
@@ -55,6 +60,7 @@ export type FixtureRoomSnapshot = {
   presences: PresenceUser[]
   lotteryPlayer: Player | null
   liveBid: LiveBidState | null
+  lastAuctionEvent: AuctionEventEnvelope | null
   revision: number
 }
 
@@ -64,6 +70,35 @@ type ResetResult = {
   organizerLink: string
   viewerLink: string
   captainLinks: Array<{ teamId: string; teamName: string; link: string }>
+}
+
+type FixtureCreateRoomPayload = {
+  name: string
+  totalTeams: number
+  basePoint: number
+  membersPerTeam: number
+  captainMode?: CaptainMode
+  captains: Array<{
+    teamName: string
+    name: string
+    position: string
+    description: string
+    captainPoints: number
+  }>
+  players: Array<{
+    name: string
+    tier: string
+    mainPosition: string
+    subPosition: string
+    description: string
+  }>
+}
+
+type FixtureCreateRoomResult = {
+  roomId: string
+  organizerToken: string
+  viewerToken: string
+  teams: Array<{ id: string; name: string; leader_token: string }>
 }
 
 type ResetOptions = {
@@ -82,6 +117,9 @@ const EXTEND_THRESHOLD_MS = 5_000
 const EXTEND_DURATION_MS = 5_000
 
 function clone<T>(value: T): T {
+  if (value === undefined || value === null) {
+    return value
+  }
   return JSON.parse(JSON.stringify(value)) as T
 }
 
@@ -101,6 +139,10 @@ function getFixtureState(): FixtureState {
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+function randomId(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`
 }
 
 function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
@@ -208,6 +250,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     ],
     lotteryPlayer: null,
     liveBid: null,
+    lastAuctionEvent: null,
     revision: 1,
   }
 
@@ -273,6 +316,25 @@ function nextRevision(room: FixtureRoom) {
   room.revision += 1
 }
 
+function recordFixtureAuctionEvent(
+  room: FixtureRoom,
+  type: AuctionEventType,
+  overrides: Partial<AuctionEventEnvelope> = {},
+) {
+  nextRevision(room)
+  room.lastAuctionEvent = {
+    eventId: `${type.toLowerCase()}-${room.id}-${room.revision}`,
+    revision: room.revision,
+    roomId: room.id,
+    type,
+    serverCreatedAt: nowIso(),
+    currentPlayerId: room.currentPlayerId,
+    timerEndsAt: room.timerEndsAt,
+    liveBid: room.liveBid,
+    ...overrides,
+  }
+}
+
 function getRoomOrThrow(roomId: string): FixtureRoom {
   const room = getFixtureState().rooms.get(roomId)
   if (!room || room.roomDeleted) {
@@ -312,6 +374,7 @@ function toSnapshot(room: FixtureRoom): FixtureRoomSnapshot {
     presences: clone(room.presences),
     lotteryPlayer: clone(room.lotteryPlayer),
     liveBid: clone(room.liveBid),
+    lastAuctionEvent: clone(room.lastAuctionEvent),
     revision: room.revision,
   }
 }
@@ -358,6 +421,85 @@ export function getE2EAuctionFixtureRoomLinks(roomId: string) {
   }
 }
 
+export function createE2EAuctionFixtureRoom(
+  payload: FixtureCreateRoomPayload,
+): FixtureCreateRoomResult {
+  const state = getFixtureState()
+  const roomId = randomId('fixture-room')
+  const createdAt = nowIso()
+  const organizerToken = randomId('fixture-organizer-token')
+  const viewerToken = randomId('fixture-viewer-token')
+
+  const teams: Team[] = payload.captains.map((captain, index) => ({
+    id: randomId(`team-${index + 1}`),
+    room_id: roomId,
+    name: captain.teamName,
+    point_balance: payload.basePoint - captain.captainPoints,
+    leader_name: captain.name,
+    leader_position: captain.position,
+    leader_description: captain.description || '',
+    captain_points: captain.captainPoints || 0,
+  }))
+
+  const leaderTokens = Object.fromEntries(
+    teams.map((team) => [team.id, randomId(`fixture-leader-token-${team.id}`)]),
+  )
+
+  const players: Player[] = payload.players.map((player, index) => ({
+    id: randomId(`player-${index + 1}`),
+    room_id: roomId,
+    name: player.name,
+    tier: player.tier,
+    main_position: player.mainPosition,
+    sub_position: player.subPosition || '',
+    status: 'WAITING',
+    team_id: null,
+    sold_price: null,
+    description: player.description || '',
+  }))
+
+  const room: FixtureRoom = {
+    id: roomId,
+    name: payload.name,
+    basePoint: payload.basePoint,
+    totalTeams: payload.totalTeams,
+    membersPerTeam: payload.membersPerTeam,
+    captainMode: payload.captainMode ?? 'IN_ROSTER',
+    currentPlayerId: null,
+    timerEndsAt: null,
+    createdAt,
+    roomDeleted: false,
+    organizerToken,
+    viewerToken,
+    leaderTokens,
+    teams,
+    players,
+    bids: [],
+    messages: [],
+    presences: [
+      { role: 'ORGANIZER', teamId: null },
+      ...teams.map((team) => ({ role: 'LEADER' as const, teamId: team.id })),
+    ],
+    lotteryPlayer: null,
+    liveBid: null,
+    lastAuctionEvent: null,
+    revision: 1,
+  }
+
+  state.rooms.set(room.id, room)
+
+  return {
+    roomId,
+    organizerToken,
+    viewerToken,
+    teams: teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      leader_token: leaderTokens[team.id],
+    })),
+  }
+}
+
 export function verifyE2EAuctionFixtureAccess(args: {
   roomId: string
   role: 'ORGANIZER' | 'LEADER' | 'VIEWER'
@@ -381,7 +523,11 @@ export async function drawFixtureNextPlayer(roomId: string): Promise<{ error?: s
     room.currentPlayerId = candidate.id
     room.lotteryPlayer = clone(candidate)
     room.liveBid = null
-    nextRevision(room)
+    recordFixtureAuctionEvent(room, 'LOTTERY_DRAWN', {
+      currentPlayerId: candidate.id,
+      lotteryPlayer: clone(candidate),
+      liveBid: null,
+    })
     return {}
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
@@ -393,7 +539,9 @@ export async function closeFixtureLottery(roomId: string, playerName: string): P
     const room = getRoomOrThrow(roomId)
     room.lotteryPlayer = null
     appendMessage(room, '시스템', 'SYSTEM', `🎲 ${playerName} 선수 추첨!`)
-    nextRevision(room)
+    recordFixtureAuctionEvent(room, 'LOTTERY_CLOSED', {
+      lotteryPlayer: null,
+    })
     return {}
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
@@ -405,7 +553,37 @@ export async function startFixtureAuction(roomId: string, durationMs: number): P
     const room = getRoomOrThrow(roomId)
     room.timerEndsAt = new Date(Date.now() + durationMs).toISOString()
     appendMessage(room, '시스템', 'SYSTEM', '⏱️ 경매가 시작되었습니다!')
-    nextRevision(room)
+    recordFixtureAuctionEvent(room, 'AUCTION_STARTED')
+    return { timerEndsAt: room.timerEndsAt }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
+  }
+}
+
+export async function pauseFixtureAuction(roomId: string): Promise<{ error?: string }> {
+  try {
+    const room = getRoomOrThrow(roomId)
+    if (!room.currentPlayerId || !room.timerEndsAt) return {}
+    room.timerEndsAt = null
+    appendMessage(room, '시스템', 'SYSTEM', '⚠️ 팀장 연결이 끊겼습니다. 경매가 일시 정지됩니다.')
+    recordFixtureAuctionEvent(room, 'AUCTION_PAUSED', {
+      timerEndsAt: null,
+    })
+    return {}
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
+  }
+}
+
+export async function resumeFixtureAuction(
+  roomId: string,
+): Promise<{ error?: string; timerEndsAt?: string }> {
+  try {
+    const room = getRoomOrThrow(roomId)
+    if (!room.currentPlayerId) return { error: '현재 경매 중인 선수가 없습니다.' }
+    room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
+    appendMessage(room, '시스템', 'SYSTEM', '✅ 팀장이 재연결되었습니다. 5초 후 경매가 재개됩니다.')
+    recordFixtureAuctionEvent(room, 'AUCTION_RESUMED')
     return { timerEndsAt: room.timerEndsAt }
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
@@ -417,7 +595,15 @@ export async function placeFixtureBid(
   playerId: string,
   teamId: string,
   amount: number,
-): Promise<{ error?: string; timerEndsAt?: string }> {
+): Promise<{
+  error?: string
+  timerEndsAt?: string
+  debug?: {
+    eventId?: string
+    serverReceivedAt: number
+    serverCompletedAt: number
+  }
+}> {
   try {
     const room = getRoomOrThrow(roomId)
     if (room.currentPlayerId !== playerId) return { error: '현재 경매 중인 선수가 아닙니다.' }
@@ -429,16 +615,23 @@ export async function placeFixtureBid(
     const team = room.teams.find((entry) => entry.id === teamId)
     if (!team) return { error: '팀을 찾을 수 없습니다.' }
 
-    const { topBid, minBid } = getAuctionDerivedState({
-      bids: room.bids,
-      currentPlayerId: playerId,
-      liveBid: room.liveBid,
-      teams: room.teams,
+    const activeBid =
+      room.liveBid?.player_id === playerId ? room.liveBid : null
+    const bidState = getAuctionBidState({
+      currentBidAmount: activeBid?.amount ?? null,
+      currentBidTeamId: activeBid?.team_id ?? null,
+      teamId,
     })
 
-    if (topBid?.team_id === teamId) return { error: '현재 최고 입찰자입니다. 추가 입찰이 불가합니다.' }
-    if (amount < minBid) return { error: `최소 입찰액은 ${minBid}P입니다.` }
-    if (team.point_balance < amount) return { error: `포인트 부족 (보유: ${team.point_balance}P)` }
+    if (bidState.topBidTeamId === teamId) {
+      return { error: '현재 최고 입찰자입니다. 추가 입찰이 불가합니다.' }
+    }
+    if (amount < bidState.minBid) {
+      return { error: `최소 입찰액은 ${bidState.minBid}P입니다.` }
+    }
+    if (team.point_balance < amount) {
+      return { error: `포인트 부족 (보유: ${team.point_balance}P)` }
+    }
 
     const bid: Bid = {
       id: `bid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -462,9 +655,19 @@ export async function placeFixtureBid(
     }
 
     appendMessage(room, '시스템', 'SYSTEM', `💰 ${team.name}이 ${amount}P에 입찰했습니다!`)
-    nextRevision(room)
+    recordFixtureAuctionEvent(room, 'BID_PLACED', {
+      currentPlayerId: playerId,
+      liveBid: clone(room.liveBid),
+    })
 
-    return { timerEndsAt: room.timerEndsAt }
+    return {
+      timerEndsAt: room.timerEndsAt,
+      debug: {
+        eventId: room.lastAuctionEvent?.eventId,
+        serverReceivedAt: Date.now(),
+        serverCompletedAt: Date.now(),
+      },
+    }
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
   }
@@ -478,8 +681,12 @@ export async function awardFixturePlayer(roomId: string, playerId: string): Prom
     if (player.status === 'SOLD' || player.status === 'UNSOLD') return {}
     if (room.timerEndsAt && new Date(room.timerEndsAt).getTime() > Date.now()) return {}
 
-    const playerBids = room.bids.filter((bid) => bid.player_id === playerId)
-    const topBid = playerBids.sort((a, b) => b.amount - a.amount)[0] ?? null
+    const topBid =
+      room.liveBid?.player_id === playerId
+        ? room.liveBid
+        : room.bids
+            .filter((bid) => bid.player_id === playerId)
+            .sort((a, b) => b.amount - a.amount)[0] ?? null
 
     room.currentPlayerId = null
     room.timerEndsAt = null
@@ -494,14 +701,25 @@ export async function awardFixturePlayer(roomId: string, playerId: string): Prom
       player.sold_price = topBid.amount
       team.point_balance -= topBid.amount
       appendMessage(room, '시스템', 'SYSTEM', `🏆 ${team.name}이 ${player.name} 선수를 ${topBid.amount}P에 낙찰!`)
+      recordFixtureAuctionEvent(room, 'PLAYER_AWARDED', {
+        player: clone(player),
+        team: clone(team),
+        currentPlayerId: null,
+        timerEndsAt: null,
+        liveBid: null,
+      })
     } else {
       player.status = 'UNSOLD'
       player.team_id = null
       player.sold_price = null
       appendMessage(room, '시스템', 'SYSTEM', `❌ ${player.name} 선수 유찰`)
+      recordFixtureAuctionEvent(room, 'PLAYER_UNSOLD', {
+        player: clone(player),
+        currentPlayerId: null,
+        timerEndsAt: null,
+        liveBid: null,
+      })
     }
-
-    nextRevision(room)
     return {}
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
@@ -516,6 +734,32 @@ export async function recoverFixtureExpiredAuction(roomId: string): Promise<{ er
     const result = await awardFixturePlayer(roomId, room.currentPlayerId)
     if (result.error) return result
     return { recovered: true }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
+  }
+}
+
+export async function setFixtureLeaderPresence(
+  roomId: string,
+  teamId: string,
+  connected: boolean,
+): Promise<{ error?: string }> {
+  try {
+    const room = getRoomOrThrow(roomId)
+    const hasTeam = room.teams.some((team) => team.id === teamId)
+    if (!hasTeam) return { error: '팀을 찾을 수 없습니다.' }
+
+    room.presences = room.presences.filter(
+      (presence) => !(presence.role === 'LEADER' && presence.teamId === teamId),
+    )
+    if (connected) {
+      room.presences.push({
+        role: 'LEADER',
+        teamId,
+      })
+    }
+    nextRevision(room)
+    return {}
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
   }

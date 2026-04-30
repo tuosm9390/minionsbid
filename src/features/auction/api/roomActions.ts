@@ -4,7 +4,11 @@ import * as admin from 'firebase-admin'
 import type { CaptainMode } from '@/features/auction/utils/roster'
 import { normalizeCaptainMode } from '@/features/auction/utils/roster'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
-import { deleteFixtureRoom, isE2EAuctionFixtureEnabled } from '@/features/auction/api/e2eAuctionFixture'
+import {
+  createE2EAuctionFixtureRoom,
+  deleteFixtureRoom,
+  isE2EAuctionFixtureEnabled,
+} from '@/features/auction/api/e2eAuctionFixture'
 
 // ---------- 타입 ----------
 
@@ -48,6 +52,9 @@ export interface CreateRoomResult {
 
 const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
 const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
+const LATENCY_DEBUG =
+  process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1' ||
+  process.env.DEBUG_LATENCY === '1'
 
 export interface ArchiveTeam {
   id: string
@@ -76,7 +83,20 @@ export interface AuctionArchivePayload {
 
 /** 방 + 팀 + 선수를 Firestore에 생성 */
 export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoomResult> {
+  const startedAt = Date.now()
   try {
+    if (isE2EAuctionFixtureEnabled()) {
+      return createE2EAuctionFixtureRoom({
+        name: payload.name,
+        totalTeams: payload.totalTeams,
+        basePoint: payload.basePoint,
+        membersPerTeam: payload.membersPerTeam,
+        captainMode: normalizeCaptainMode(payload.captainMode),
+        captains: payload.captains,
+        players: payload.players,
+      })
+    }
+
     const { firestore } = getAuctionServerServices()
     const roomId = crypto.randomUUID()
     const organizerToken = crypto.randomUUID()
@@ -150,6 +170,15 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
 
     await batch.commit()
 
+    if (LATENCY_DEBUG) {
+      console.info('[latency][server] createRoom', {
+        roomId,
+        totalTeams: payload.captains.length,
+        playerCount: payload.players.length,
+        totalMs: Date.now() - startedAt,
+      })
+    }
+
     return {
       roomId,
       organizerToken,
@@ -158,6 +187,13 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : '알 수 없는 오류'
+    console.error('[room] createRoom failed', {
+      roomName: payload.name,
+      totalTeams: payload.captains.length,
+      playerCount: payload.players.length,
+      totalMs: Date.now() - startedAt,
+      error: message,
+    })
     return { error: message }
   }
 }

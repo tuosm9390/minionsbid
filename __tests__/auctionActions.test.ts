@@ -222,11 +222,11 @@ describe('placeBid', () => {
       makeSnap({
         timer_ends_at: makeTimestamp(Date.now() + 10000),
         current_player_id: playerId,
+        active_bid: { team_id: teamId, amount: 100 },
       })
     )
-    mockQueryGet.mockResolvedValueOnce(
-      makeQuerySnap([{ team_id: teamId, amount: 100 }])
-    )
+    mockDocGet.mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' }))
+    mockQueryGet.mockResolvedValueOnce(makeQuerySnap([]))
     const result = await placeBid(roomId, playerId, teamId, 110)
     expect(result.error).toMatch(/현재 최고 입찰자/)
   })
@@ -236,11 +236,11 @@ describe('placeBid', () => {
       makeSnap({
         timer_ends_at: makeTimestamp(Date.now() + 10000),
         current_player_id: playerId,
+        active_bid: { team_id: 'other-team', amount: 100 },
       })
     )
-    mockQueryGet.mockResolvedValueOnce(
-      makeQuerySnap([{ team_id: 'other-team', amount: 100 }])
-    )
+    mockDocGet.mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' }))
+    mockQueryGet.mockResolvedValueOnce(makeQuerySnap([]))
     const result = await placeBid(roomId, playerId, teamId, 100)
     expect(result.error).toMatch(/최소 입찰액/)
   })
@@ -251,10 +251,12 @@ describe('placeBid', () => {
         makeSnap({
           timer_ends_at: makeTimestamp(Date.now() + 10000),
           current_player_id: playerId,
+          members_per_team: 5,
+          captain_mode: 'IN_ROSTER',
         })
       )
       .mockResolvedValueOnce(makeSnap({ point_balance: 5, name: '팀A' })) // team
-    mockQueryGet.mockResolvedValueOnce(makeQuerySnap([])) // no topBid
+    mockQueryGet.mockResolvedValueOnce(makeQuerySnap([])) // soldCount=0
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toMatch(/포인트 부족/)
   })
@@ -265,12 +267,12 @@ describe('placeBid', () => {
         makeSnap({
           timer_ends_at: makeTimestamp(Date.now() + 10000),
           current_player_id: playerId,
+          members_per_team: 4,
+          captain_mode: 'IN_ROSTER',
         })
       )
       .mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' })) // team
-      .mockResolvedValueOnce(makeSnap({ members_per_team: 4, captain_mode: 'IN_ROSTER' })) // room2
     mockQueryGet
-      .mockResolvedValueOnce(makeQuerySnap([])) // no topBid
       .mockResolvedValueOnce(makeQuerySnap(new Array(4).fill({ status: 'SOLD' }))) // soldCount=4
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toMatch(/팀 인원이 가득/)
@@ -280,25 +282,30 @@ describe('placeBid', () => {
 
   it('GREEN: 유효한 입찰 → {} 반환', async () => {
     mockDocGet
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 10000), current_player_id: playerId }))
+      .mockResolvedValueOnce(makeSnap({
+        timer_ends_at: makeTimestamp(Date.now() + 10000),
+        current_player_id: playerId,
+        members_per_team: 5,
+        captain_mode: 'IN_ROSTER',
+      }))
       .mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' })) // team
-      .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'IN_ROSTER' })) // room2
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 10000) })) // currentTimer (>5s, no extend)
     mockQueryGet
-      .mockResolvedValueOnce(makeQuerySnap([])) // no topBid
       .mockResolvedValueOnce(makeQuerySnap([])) // soldCount=0
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toBeUndefined()
-    expect(mockCollectionAdd).toHaveBeenCalled() // bid insert
+    expect(mockRunTransaction).toHaveBeenCalled()
   })
 
   it('GREEN: 남은 시간 ≤ 5초이면 타이머 연장', async () => {
     mockDocGet
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 3000), current_player_id: playerId }))
+      .mockResolvedValueOnce(makeSnap({
+        timer_ends_at: makeTimestamp(Date.now() + 3000),
+        current_player_id: playerId,
+        members_per_team: 5,
+        captain_mode: 'IN_ROSTER',
+      }))
       .mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' }))
-      .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'IN_ROSTER' }))
     mockQueryGet
-      .mockResolvedValueOnce(makeQuerySnap([]))
       .mockResolvedValueOnce(makeQuerySnap([]))
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toBeUndefined()
@@ -307,12 +314,14 @@ describe('placeBid', () => {
 
   it('GREEN: 남은 시간 > 5초이면 타이머 연장 미실행', async () => {
     mockDocGet
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 10000), current_player_id: playerId }))
+      .mockResolvedValueOnce(makeSnap({
+        timer_ends_at: makeTimestamp(Date.now() + 10000),
+        current_player_id: playerId,
+        members_per_team: 5,
+        captain_mode: 'IN_ROSTER',
+      }))
       .mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' }))
-      .mockResolvedValueOnce(makeSnap({ members_per_team: 5, captain_mode: 'IN_ROSTER' }))
-      .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 10000) })) // 10초 → 연장 없음
     mockQueryGet
-      .mockResolvedValueOnce(makeQuerySnap([]))
       .mockResolvedValueOnce(makeQuerySnap([]))
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toBeUndefined()

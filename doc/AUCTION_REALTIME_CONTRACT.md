@@ -5,8 +5,13 @@
 ## Canonical Sources
 
 - Firestore는 정본이다.
-  - `rooms/{roomId}`: 현재 선수, 타이머, 방 메타데이터
-  - `rooms/{roomId}/bids`: 정식 입찰 기록
+  - `rooms/{roomId}`: 현재 경매 hot state, 타이머, 방 메타데이터
+    - `current_player_id`
+    - `active_bid`
+    - `timer_ends_at`
+    - `auction_revision`
+    - `last_auction_event`
+  - `rooms/{roomId}/bids`: 정식 입찰 history / audit trail
   - `rooms/{roomId}/players`: 선수 상태
   - `rooms/{roomId}/teams`: 팀 포인트 및 팀 메타데이터
   - `rooms/{roomId}/messages`: 정식 채팅 및 시스템 메시지
@@ -19,8 +24,9 @@
 1. 경매 상태를 RTDB에 쓰는 주체는 서버뿐이다.
 2. 클라이언트는 local optimistic UI만 수행한다.
 3. Firestore snapshot은 항상 최종 수렴 지점이다.
-4. 만료 복구 트리거는 `ORGANIZER` 클라이언트 한 명만 수행한다.
-5. 파생 상태(`highestBid`, `topBid`, `minBid`, `leadingTeam`)는 공통 helper로만 계산한다.
+4. organizer는 항상 경매에 참여하며, 팀장 연결이 끊기면 organizer presence guard가 즉시 경매를 일시정지한다.
+5. 파생 상태(`highestBid`, `topBid`, `minBid`, `leadingTeam`, `canBid`)는 공통 helper로만 계산한다.
+6. `auction_revision`은 timestamp가 아니라 방 단위 단조 증가 counter다.
 
 ## Auction Event Envelope
 
@@ -43,6 +49,7 @@ type AuctionEventEnvelope = {
     | 'DRAFT_ASSIGNED'
     | 'RE_AUCTION_STARTED'
   serverCreatedAt: string
+  currentPlayerId?: string | null
   timerEndsAt?: string | null
   liveBid?: LiveBidState | null
   player?: Partial<Player> & Pick<Player, 'id'>
@@ -86,18 +93,40 @@ else:
 ```text
 leader click bid
   -> client local optimistic UI
-  -> server placeBid()
-  -> Firestore canonical write
+  -> server placeBid() transaction
+  -> Firestore room canonical state update
+  -> bid history append
   -> RTDB auctionEvent publish
   -> all clients apply newer revision
-  -> Firestore snapshots reconcile
+  -> Firestore room snapshot / last_auction_event fallback heal
+  -> Firestore players/teams/messages reconcile
 ```
 
 핵심 원칙:
 
 - 입찰자는 즉시 반응해도 된다.
 - 다른 화면이 같은 상태를 보는 기준은 서버가 발행한 envelope다.
+- RTDB를 놓친 화면은 `rooms/{roomId}.last_auction_event`와 room canonical fields로 빠르게 회복해야 한다.
 - Firestore snapshot은 나중에 와도 같은 결과로 수렴해야 한다.
+
+## Expiry Ownership
+
+```text
+leader disconnect
+  -> organizer presence guard
+  -> pauseAuction(roomId)
+  -> RTDB publish + Firestore reconcile
+
+auction timer expires while organizer is active
+  -> organizer/client recover path
+  -> recoverExpiredAuction(roomId)
+  -> awardPlayer transaction
+  -> RTDB publish + Firestore reconcile
+```
+
+- organizer 상시 참여가 기본 운영 가정이다.
+- 팀장 연결 끊김 대응은 organizer presence guard가 1차 ownership을 가진다.
+- `/api/auction-watchdog`는 선택적 backup/manual sweep 경로일 뿐, 기본 실시간 경매 contract의 필수 구성요소는 아니다.
 
 ## Observability Rules
 
@@ -106,6 +135,21 @@ leader click bid
   - client -> server round trip
   - server canonical write + envelope publish
   - envelope receive / Firestore reconcile
+- 브라우저 디버그 계측은 `window.__auctionLatencyMarkers__`에 최근 marker를 남긴다.
+  - `client-response`: 입찰자가 `placeBid()` 응답에서 받은 `eventId`
+  - `rtdb`: 다른 클라이언트가 RTDB `auctionEvent`로 같은 입찰을 적용한 시점
+  - `room-fallback`: RTDB를 놓친 클라이언트가 `last_auction_event`로 같은 입찰을 회복한 시점
+- marker는 운영 기능이 아니라 디버그/Playwright 검증용이다. 하지만 `eventId` 연쇄는 contract의 일부로 본다.
+
+예시:
+
+```text
+leader click bid
+  -> placeBid response carries eventId=bid_123
+  -> bidder page records source=client-response
+  -> peer page records source=rtdb
+  -> fallback page records source=room-fallback
+```
 
 ## Testing Requirements
 
@@ -119,6 +163,8 @@ leader click bid
   - 막판 `1초 미만` 입찰 연장
   - 타 클라이언트 `5초` 재시작 동기화
   - 낙찰/유찰 후 화면 일치
+  - representative bid `500ms` 회귀는 DOM 변화와 latency marker를 같이 확인
+  - production-path 회귀는 `client-response -> rtdb` 또는 `client-response -> room-fallback`의 동일 `eventId`를 확인
 
 ## Change Policy
 
@@ -128,4 +174,5 @@ leader click bid
 - `revision` 생성 규칙 변경
 - 클라이언트 optimistic 범위 변경
 - organizer-only recovery 정책 변경
+- organizer presence pause/resume 정책 변경
 - 파생 상태 계산 규칙 변경

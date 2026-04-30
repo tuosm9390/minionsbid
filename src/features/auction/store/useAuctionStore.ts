@@ -72,6 +72,7 @@ interface AuctionState {
   totalTeams: number
   membersPerTeam: number
   timerEndsAt: string | null
+  currentPlayerId: string | null
   createdAt: string | null
   roomExists: boolean
   isRoomLoaded: boolean
@@ -118,6 +119,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   totalTeams: 5,
   membersPerTeam: 5,
   timerEndsAt: null,
+  currentPlayerId: null,
   createdAt: null,
   roomExists: true,
   isRoomLoaded: false,
