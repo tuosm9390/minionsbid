@@ -97,6 +97,13 @@ export function TeamList() {
     setEditingTeamId(null);
   }
 
+  const canEditTeam = (teamId: string) =>
+    role === "ORGANIZER" || (role === "LEADER" && teamId === myTeamId);
+  const { soldPlayersByTeam } = useMemo(
+    () => bucketAuctionPlayers(players),
+    [players],
+  );
+
   if (teams.length === 0)
     return (
       <div className="text-gray-400 text-fluid-xs text-center py-20 font-heading opacity-50">
@@ -109,13 +116,6 @@ export function TeamList() {
     if (b.id === myTeamId) return 1;
     return a.name.localeCompare(b.name, undefined, { numeric: true });
   });
-
-  const canEditTeam = (teamId: string) =>
-    role === "ORGANIZER" || (role === "LEADER" && teamId === myTeamId);
-  const { soldPlayersByTeam } = useMemo(
-    () => bucketAuctionPlayers(players),
-    [players],
-  );
 
   return (
     <div className="flex flex-col gap-6">
