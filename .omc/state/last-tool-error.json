@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"rtk next build 2>&1\",\"timeout\":120000,\"description\":\"Next.js 프로덕션 빌드\"}",
-  "error": "Exit code 1\n[rtk] /!\\ No hook installed — run `rtk init -g` for automatic token savings\nNext.js Build\n═══════════════════════════════════════\nErrors: 0 | Warnings: 0",
-  "timestamp": "2026-04-09T07:10:06.057Z",
+  "tool_input_preview": "{\"command\":\"cd \\\"D:\\\\development\\\\league-auction\\\" && npx vitest run 2>&1\",\"timeout\":120000,\"description\":\"Vitest 단위 테스트 실행\"}",
+  "error": "Exit code 1\n\n\u001b[1m\u001b[7m\u001b[36m RUN \u001b[39m\u001b[27m\u001b[22m \u001b[36mv2.1.9 \u001b[39m\u001b[90mD:/development/league-auction\u001b[39m\n\n \u001b[32m✓\u001b[39m src/features/schedules/utils/leagueRecords.test.ts \u001b[2m(\u001b[22m\u001b[2m6 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 27\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m __tests__/auctionRealtimeUtils.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 6\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/features/schedules/utils/leagueNextMatches.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 11\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m __tests__/roomAu...",
+  "timestamp": "2026-05-03T19:33:53.702Z",
   "retry_count": 1
 }

@@ -36,7 +36,11 @@ export function useAuctionControl({
       const currActive = curr.find(p => p.status === 'IN_AUCTION')
 
       if (!prevActive && currActive) {
-        setLotteryPlayer(currActive)
+        // RTDB LOTTERY_DRAWN 이벤트가 이미 같은 선수를 설정했으면 재호출 방지
+        const currentLotteryPlayer = useAuctionStore.getState().lotteryPlayer
+        if (currentLotteryPlayer?.id !== currActive.id) {
+          setLotteryPlayer(currActive)
+        }
       }
     }
     prevPlayersRef.current = curr

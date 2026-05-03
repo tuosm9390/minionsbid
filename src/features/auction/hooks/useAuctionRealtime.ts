@@ -297,19 +297,26 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         return
       }
 
+      const roomRevision = data.auction_revision ?? 0
+      // RTDB 이벤트가 이미 더 최신 상태를 적용했으면 Firestore 스냅샷의 경매 상태값으로 덮어쓰지 않음
+      const snapshotIsCurrentOrNewer = roomRevision >= useAuctionStore.getState().auctionEventRevision
+
       setRealtimeData({
         roomName: data.name ?? null,
         basePoint: data.base_point ?? 1000,
         membersPerTeam: data.members_per_team ?? 5,
         captainMode: normalizeCaptainMode(data.captain_mode),
         totalTeams: data.total_teams ?? 0,
-        timerEndsAt: timestampToISO(data.timer_ends_at),
-        currentPlayerId: data.current_player_id ?? null,
         createdAt: timestampToISO(data.created_at),
+        ...(snapshotIsCurrentOrNewer && {
+          timerEndsAt: timestampToISO(data.timer_ends_at),
+          currentPlayerId: data.current_player_id ?? null,
+        }),
       })
-      setLiveBid(data.active_bid ?? null)
+      if (snapshotIsCurrentOrNewer) {
+        setLiveBid(data.active_bid ?? null)
+      }
 
-      const roomRevision = data.auction_revision ?? 0
       const fallbackEvent = data.last_auction_event ?? null
       if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
         const next = applyAuctionEventToState(useAuctionStore.getState(), fallbackEvent)
@@ -447,7 +454,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
         if (
           state.currentPlayerId &&
-          state.timerEndsAt &&
           playersById.has(state.currentPlayerId)
         ) {
           setRealtimeData({

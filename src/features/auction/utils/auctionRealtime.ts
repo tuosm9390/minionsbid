@@ -193,8 +193,8 @@ export function shouldRecoverExpiredAuction(args: {
   }
 
   const isExpired = new Date(args.timerEndsAt).getTime() <= Date.now()
+  // 모든 역할이 복구 트리거 가능 — 서버 액션(awardPlayer)이 멱등성 보장
   const shouldRecover =
-    args.effectiveRole === 'ORGANIZER' &&
     isExpired &&
     args.lastRecoveryKey !== recoveryKey
 

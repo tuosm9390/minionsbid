@@ -217,7 +217,8 @@ describe('useFirebaseRealtime', () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(20)
   })
 
-  it('만료 복구는 ORGANIZER에서만 시도한다', () => {
+  it('만료 복구는 모든 역할에서 시도한다', () => {
+    // VIEWER도 만료된 경매를 감지하면 복구 시도 (서버 액션 멱등성 보장)
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
     act(() => {
@@ -233,13 +234,14 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    expect(recoverExpiredAuction).not.toHaveBeenCalled()
+    expect(recoverExpiredAuction).toHaveBeenCalledWith('room-1')
 
     roomSnapshotListeners.length = 0
     genericSnapshotListeners.length = 0
     valueListeners.clear()
     recoverExpiredAuction.mockReset()
 
+    // ORGANIZER도 동일하게 복구 시도
     renderHook(() => useFirebaseRealtime('room-1', 'ORGANIZER'))
 
     act(() => {
