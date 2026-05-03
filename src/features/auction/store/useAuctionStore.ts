@@ -1,5 +1,10 @@
 import { create } from 'zustand'
 import type { CaptainMode } from '@/features/auction/utils/roster'
+import {
+  appendOrderedMessage,
+  buildOrderedMessageState,
+  removeOrderedMessage,
+} from '@/features/auction/store/auctionSelectors'
 
 export type Role = 'ORGANIZER' | 'LEADER' | 'VIEWER' | null
 export type PlayerStatus = 'WAITING' | 'IN_AUCTION' | 'SOLD' | 'UNSOLD'
@@ -82,7 +87,8 @@ interface AuctionState {
   bids: Bid[]
   liveBid: LiveBidState | null
   players: Player[]
-  messages: Message[]
+  messagesById: Record<string, Message>
+  orderedMessageIds: string[]
 
   // Presence (실시간 접속 현황)
   presences: PresenceUser[]
@@ -101,9 +107,8 @@ interface AuctionState {
   setAuctionEventRevision: (revision: number) => void
   setPresenceLoaded: (loaded: boolean) => void
   setLocalConnected: (connected: boolean) => void
-  appendBid: (bid: Bid) => void
-  removeBid: (bidId: string) => void
   setLiveBid: (bid: LiveBidState | null) => void
+  setMessages: (messages: Message[]) => void
   appendMessage: (message: Message) => void
   removeMessage: (messageId: string) => void
 }
@@ -129,7 +134,8 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   bids: [],
   liveBid: null,
   players: [],
-  messages: [],
+  messagesById: {},
+  orderedMessageIds: [],
   presences: [],
   isPresenceLoaded: false,
   isLocalConnected: true,
@@ -152,15 +158,22 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   setAuctionEventRevision: (revision) => set({ auctionEventRevision: revision }),
   setPresenceLoaded: (loaded) => set({ isPresenceLoaded: loaded }),
   setLocalConnected: (connected) => set({ isLocalConnected: connected }),
-  appendBid: (bid) => set((state) => ({ bids: [...state.bids, bid] })),
-  removeBid: (bidId) => set((state) => ({
-    bids: state.bids.filter((bid) => bid.id !== bidId),
-  })),
   setLiveBid: (bid) => set({ liveBid: bid }),
-  appendMessage: (message) => set((state) => ({
-    messages: [...state.messages, message],
-  })),
-  removeMessage: (messageId) => set((state) => ({
-    messages: state.messages.filter((message) => message.id !== messageId),
-  })),
+  setMessages: (messages) => set(buildOrderedMessageState(messages)),
+  appendMessage: (message) =>
+    set((state) =>
+      appendOrderedMessage({
+        messagesById: state.messagesById,
+        orderedMessageIds: state.orderedMessageIds,
+        message,
+      }),
+    ),
+  removeMessage: (messageId) =>
+    set((state) =>
+      removeOrderedMessage({
+        messagesById: state.messagesById,
+        orderedMessageIds: state.orderedMessageIds,
+        messageId,
+      }),
+    ),
 }))

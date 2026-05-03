@@ -37,6 +37,14 @@ describe('useAuctionPresenceGuard', () => {
   })
 
   it('pause 이후 재연결되면 resumeAuction을 한 번 호출한다', async () => {
+    const initialProps: {
+      allConnected: boolean
+      timerEndsAt: string | null
+    } = {
+      allConnected: false,
+      timerEndsAt: new Date(Date.now() + 5000).toISOString(),
+    }
+
     const { rerender } = renderHook(
       (props: {
         allConnected: boolean
@@ -52,10 +60,7 @@ describe('useAuctionPresenceGuard', () => {
           lotteryPlayerId: null,
         }),
       {
-        initialProps: {
-          allConnected: false,
-          timerEndsAt: new Date(Date.now() + 5000).toISOString(),
-        },
+        initialProps,
       },
     )
 

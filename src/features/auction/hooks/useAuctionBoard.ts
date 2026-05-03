@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   useAuctionStore,
   type PresenceUser,
@@ -13,6 +13,12 @@ import {
 } from '@/features/auction/api/auctionActions'
 import { getAuctionSlotsPerTeam } from '../utils/roster'
 import { getAuctionBidState } from '../utils/auctionRealtime'
+import {
+  buildTeamMap,
+  bucketAuctionPlayers,
+  findLatestNotice,
+  isAuctionRoomComplete,
+} from '@/features/auction/store/auctionSelectors'
 
 const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
@@ -38,7 +44,8 @@ export function useAuctionBoard({
   const liveBid = useAuctionStore((s) => s.liveBid)
   const teams = useAuctionStore((s) => s.teams)
   const presences = useAuctionStore((s) => s.presences)
-  const messages = useAuctionStore((s) => s.messages)
+  const messagesById = useAuctionStore((s) => s.messagesById)
+  const orderedMessageIds = useAuctionStore((s) => s.orderedMessageIds)
   const teamId = useAuctionStore((s) => s.teamId)
   const roomId = useAuctionStore((s) => s.roomId)
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt)
@@ -66,12 +73,13 @@ export function useAuctionBoard({
       .map((p: PresenceUser) => p.teamId),
   )
 
-  const currentPlayer = isLotteryActive
-    ? undefined
-    : players.find((p) => p.id === currentPlayerId) ??
-      players.find((p) => p.status === 'IN_AUCTION')
+  const { currentPlayer: bucketedCurrentPlayer, unsoldPlayers, waitingPlayers, soldPlayers, soldCountByTeam, playersById } =
+    useMemo(() => bucketAuctionPlayers(players, currentPlayerId), [players, currentPlayerId])
+  const teamMap = useMemo(() => buildTeamMap(teams), [teams])
 
-  const latestNotice = messages.findLast((m) => m.sender_role === 'NOTICE')
+  const currentPlayer = isLotteryActive ? undefined : bucketedCurrentPlayer
+
+  const latestNotice = findLatestNotice(messagesById, orderedMessageIds)
   const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id
 
   const { highestBid, topBidTeamId } = getAuctionBidState({
@@ -80,26 +88,34 @@ export function useAuctionBoard({
   })
   const topBid =
     topBidTeamId && liveBid?.team_id === topBidTeamId ? liveBid : null
-  const leadingTeam = teams.find((team) => team.id === topBidTeamId) ?? null
+  const leadingTeam = (topBidTeamId ? teamMap.get(topBidTeamId) : null) ?? null
 
-  const unsoldPlayers = players.filter((p) => p.status === 'UNSOLD')
-  const waitingPlayersList = players.filter((p) => p.status === 'WAITING')
-  const soldPlayers = players.filter((p) => p.status === 'SOLD')
+  const waitingPlayersList = waitingPlayers
 
-  const teamPlayerCounts = teams.map((t) => ({
-    ...t,
-    soldCount: players.filter((p) => p.team_id === t.id && p.status === 'SOLD').length,
-  }))
+  const teamPlayerCounts = useMemo(
+    () =>
+      teams.map((team) => ({
+        ...team,
+        soldCount: soldCountByTeam.get(team.id) ?? 0,
+      })),
+    [teams, soldCountByTeam],
+  )
 
   const auctionSlotsPerTeam = getAuctionSlotsPerTeam(membersPerTeam, captainMode)
   const needyTeams = teamPlayerCounts.filter(
     (t) => t.soldCount < auctionSlotsPerTeam,
   )
-  const isRoomComplete = teams.length > 0 && needyTeams.length === 0
+  const isRoomComplete = isAuctionRoomComplete({
+    teamIds: teams.map((team) => team.id),
+    soldCountByTeam,
+    membersPerTeam,
+    captainMode,
+  })
 
   const isAuctionFinished =
     players.length > 0 &&
-    players.filter((p) => p.status === 'WAITING' || p.status === 'IN_AUCTION').length === 0
+    waitingPlayersList.length === 0 &&
+    !currentPlayer
 
   const biddableTeams = teamPlayerCounts.filter(
     (t) => t.soldCount < auctionSlotsPerTeam && t.point_balance >= 10,
@@ -131,17 +147,19 @@ export function useAuctionBoard({
   const currentTurnTeam = needyTeams.length > 0 ? needyTeams[0] : null
 
   // ── SOLD 감지 ──
-  const prevCurrentPlayerRef = useRef<Player | undefined>(undefined)
+  const prevCurrentPlayerRef = useRef<Player | null | undefined>(undefined)
 
   useEffect(() => {
     const prev = prevCurrentPlayerRef.current
     // IN_AUCTION이었던 선수가 사라졌을 때 → SOLD 상태로 전환됐는지 확인
     if (prev && !currentPlayer) {
-      const justSold = players.find(
-        (p) => p.id === prev.id && p.status === 'SOLD',
-      )
+      const justSold = playersById.get(prev.id)
+      if (justSold?.status !== 'SOLD') {
+        prevCurrentPlayerRef.current = currentPlayer
+        return
+      }
       if (justSold) {
-        const team = teams.find((t) => t.id === justSold.team_id)
+        const team = justSold.team_id ? teamMap.get(justSold.team_id) : null
         setSoldOverlayData({
           playerName: justSold.name,
           teamName: team?.name ?? '팀 미정',
@@ -152,7 +170,7 @@ export function useAuctionBoard({
       }
     }
     prevCurrentPlayerRef.current = currentPlayer
-  }, [currentPlayer, players, teams])
+  }, [currentPlayer, playersById, teamMap])
 
   useEffect(() => {
     setLotteryDone(false)

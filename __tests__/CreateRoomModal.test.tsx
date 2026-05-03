@@ -35,17 +35,55 @@ vi.mock("@/lib/firebase", () => ({
   app: {},
 }));
 
+vi.mock("@/features/schedules/api/scheduleActions", () => ({
+  getLeagueScheduleCatalog: vi.fn().mockResolvedValue({
+    leagueOptions: [],
+    schedules: [],
+  }),
+}));
+
+vi.mock("@/features/auction/realtime/clientAdapter", () => ({
+  getAuctionClientServices: vi.fn().mockReturnValue({
+    firestore: {},
+    rtdb: {},
+  }),
+}));
+
+vi.mock("@/features/auction/api/auctionActions", () => ({
+  createRoom: vi.fn().mockResolvedValue({
+    roomId: "room-1",
+    organizerToken: "organizer-token",
+    viewerToken: "viewer-token",
+    teams: [],
+  }),
+}));
+
+vi.mock("firebase/firestore", () => ({
+  doc: vi.fn(() => ({})),
+  getDoc: vi.fn().mockResolvedValue({
+    exists: () => false,
+    data: () => ({}),
+  }),
+  collection: vi.fn(() => ({})),
+  getDocs: vi.fn().mockResolvedValue({
+    docs: [],
+  }),
+}));
+
 describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("should render create room button and open modal", async () => {
+    const user = userEvent.setup();
     render(<CreateRoomModal />);
     const openButton = screen.getByRole("button", { name: /MAKE ROOM/i });
-    fireEvent.click(openButton);
+    await user.click(openButton);
 
-    expect(screen.getByTestId("room-title-input")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("room-title-input")).toBeInTheDocument();
+    });
   });
 
   it("should load xlsx library dynamically and parse players on excel upload", async () => {

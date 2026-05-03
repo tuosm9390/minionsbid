@@ -50,6 +50,7 @@ function createBaseState(): AuctionRealtimeStateSlice {
       },
     ],
     timerEndsAt: '2026-04-29T00:00:05.000Z',
+    currentPlayerId: 'player-1',
     liveBid: null,
     lotteryPlayer: null,
   }
@@ -74,8 +75,6 @@ describe('applyAuctionEventToState', () => {
       createEvent({
         revision: 2,
         liveBid: {
-          id: 'bid-1',
-          room_id: 'room-1',
           player_id: 'player-1',
           team_id: 'team-1',
           amount: 110,
@@ -95,8 +94,6 @@ describe('applyAuctionEventToState', () => {
       createEvent({
         timerEndsAt: '2026-04-29T00:00:08.000Z',
         liveBid: {
-          id: 'bid-2',
-          room_id: 'room-1',
           player_id: 'player-1',
           team_id: 'team-1',
           amount: 130,

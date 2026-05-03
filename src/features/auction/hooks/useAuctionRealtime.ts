@@ -25,6 +25,7 @@ import {
 } from '../utils/auctionRealtime'
 import { recordAuctionLatencyMarker } from '../utils/latencyDebug'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
+import { bucketAuctionPlayers, findCurrentAuctionPlayerId } from '../store/auctionSelectors'
 
 // Firestore 문서 데이터 → Store 타입 변환 헬퍼
 interface FirestoreRoomData {
@@ -127,6 +128,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const setRoomNotFound = useAuctionStore(s => s.setRoomNotFound)
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
   const setLiveBid = useAuctionStore(s => s.setLiveBid)
+  const setMessages = useAuctionStore(s => s.setMessages)
   const appendMessage = useAuctionStore(s => s.appendMessage)
   const setAuctionEventRevision = useAuctionStore(s => s.setAuctionEventRevision)
 
@@ -187,15 +189,14 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             membersPerTeam: data.membersPerTeam,
             captainMode: normalizeCaptainMode(data.captainMode),
             timerEndsAt: data.timerEndsAt,
-            currentPlayerId:
-              data.players.find((player) => player.status === 'IN_AUCTION')?.id ?? null,
+            currentPlayerId: findCurrentAuctionPlayerId(data.players),
             createdAt: data.createdAt,
             teams: data.teams,
             players: data.players,
             bids: data.bids,
-            messages: data.messages,
             presences: data.presences,
           })
+          setMessages(data.messages)
 
           if (fixtureFallbackMode && data.lastAuctionEvent?.eventId) {
             const next = applyAuctionEventToState(useAuctionStore.getState(), data.lastAuctionEvent)
@@ -220,8 +221,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             recordBidLatencyFromEvent(data.lastAuctionEvent, 'rtdb')
           }
 
-          const currentPlayerId =
-            data.players.find((player) => player.status === 'IN_AUCTION')?.id ?? null
+          const currentPlayerId = findCurrentAuctionPlayerId(data.players)
           if (data.timerEndsAt && currentPlayerId) {
             const recovery = shouldRecoverExpiredAuction({
               effectiveRole,
@@ -437,8 +437,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           }
         })
         const state = useAuctionStore.getState()
-        const snapshotCurrentPlayerId =
-          players.find((player) => player.status === 'IN_AUCTION')?.id ?? null
+        const { playersById } = bucketAuctionPlayers(players)
+        const snapshotCurrentPlayerId = findCurrentAuctionPlayerId(players)
 
         if (snapshotCurrentPlayerId) {
           setRealtimeData({ players, currentPlayerId: snapshotCurrentPlayerId })
@@ -448,7 +448,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         if (
           state.currentPlayerId &&
           state.timerEndsAt &&
-          players.some((player) => player.id === state.currentPlayerId)
+          playersById.has(state.currentPlayerId)
         ) {
           setRealtimeData({
             players: players.map((player) =>
@@ -487,7 +487,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           created_at: timestampToISO(md.created_at) ?? new Date().toISOString(),
         }
       })
-      setRealtimeData({ messages })
+      setMessages(messages)
     })
     unsubs.push(messagesUnsub)
 
@@ -541,11 +541,14 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         return
       }
 
-      const existingMessages = useAuctionStore.getState().messages
+      const existingState = useAuctionStore.getState()
       const liveEventId = data.event_id ?? data.id
-      const alreadyExists = existingMessages.some(
-        (message) => (message.event_id ?? message.id) === liveEventId,
-      )
+      const alreadyExists =
+        !!existingState.messagesById[liveEventId] ||
+        existingState.orderedMessageIds.some((id) => {
+          const message = existingState.messagesById[id]
+          return (message?.event_id ?? message?.id) === liveEventId
+        })
       if (alreadyExists) {
         lastLiveMessageIdRef.current = data.id
         return
@@ -567,6 +570,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     setRoomNotFound,
     setLotteryPlayer,
     setLiveBid,
+    setMessages,
     appendMessage,
     setAuctionEventRevision,
   ])

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useAuctionStore,
   Team,
@@ -10,6 +10,7 @@ import {
   buildRosterWithCaptain,
   getAuctionSlotsPerTeam,
 } from "@/features/auction/utils/roster";
+import { bucketAuctionPlayers } from "@/features/auction/store/auctionSelectors";
 
 const TIER_COLOR: Record<string, string> = {
   챌린저: "text-cyan-400",
@@ -25,7 +26,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export function UnsoldPanel() {
   const players = useAuctionStore((state) => state.players || []);
-  const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
+  const { unsoldPlayers } = useMemo(() => bucketAuctionPlayers(players), [players]);
 
   if (unsoldPlayers.length === 0)
     return (
@@ -111,13 +112,15 @@ export function TeamList() {
 
   const canEditTeam = (teamId: string) =>
     role === "ORGANIZER" || (role === "LEADER" && teamId === myTeamId);
+  const { soldPlayersByTeam } = useMemo(
+    () => bucketAuctionPlayers(players),
+    [players],
+  );
 
   return (
     <div className="flex flex-col gap-6">
       {sortedTeams.map((team: Team) => {
-        const teamPlayers = players.filter(
-          (p) => p.team_id === team.id && p.status === "SOLD",
-        );
+        const teamPlayers = soldPlayersByTeam.get(team.id) ?? [];
         const rosterPlayers = buildRosterWithCaptain(
           teamPlayers.map((p) => ({ ...p, sold_price: p.sold_price })),
           {

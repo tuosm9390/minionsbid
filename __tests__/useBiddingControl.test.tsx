@@ -129,6 +129,7 @@ describe("useBiddingControl", () => {
 
     // Store state updated optimistically for timer
     expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
+    expect(useAuctionStore.getState().bids).toEqual([]);
   });
 
   it("handleBid 에러 발생 시 bidError 설정", async () => {
@@ -145,10 +146,10 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid는 성공 전에도 local liveBid를 optimistic하게 세팅한다", async () => {
-    let resolveBid: ((value: { error?: string }) => void) | null = null;
+    let resolveBid!: (value: { error?: string }) => void;
     (placeBid as Mock).mockImplementation(
       () =>
-        new Promise((resolve) => {
+        new Promise<{ error?: string }>((resolve) => {
           resolveBid = resolve;
         }),
     );
@@ -164,8 +165,9 @@ describe("useBiddingControl", () => {
       team_id: "team-1",
       amount: 10,
     });
+    expect(useAuctionStore.getState().bids).toEqual([]);
 
-    resolveBid?.({ error: undefined });
+    resolveBid({ error: undefined });
     await pending;
   });
 
@@ -191,5 +193,6 @@ describe("useBiddingControl", () => {
       team_id: "team-2",
       amount: 20,
     });
+    expect(useAuctionStore.getState().bids).toEqual([]);
   });
 });

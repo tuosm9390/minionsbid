@@ -17,6 +17,7 @@ vi.mock('framer-motion', () => ({
           React.createElement('div', props, children),
     },
   ),
+  useReducedMotion: () => false,
 }))
 
 describe('SoldOverlay', () => {

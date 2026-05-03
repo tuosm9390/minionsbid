@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   useAuctionStore,
   type LiveBidState,
@@ -10,6 +10,7 @@ import {
 import { placeBid } from '@/features/auction/api/auctionActions'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
+import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 
 interface UseBiddingControlProps {
   roomId: string
@@ -57,9 +58,11 @@ export function useBiddingControl({
   const liveBid = useAuctionStore((s) => s.liveBid)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
-  const appendBid = useAuctionStore((s) => s.appendBid)
-  const removeBid = useAuctionStore((s) => s.removeBid)
   const players = useAuctionStore((s) => s.players)
+  const { waitingPlayers, soldPlayers } = useMemo(
+    () => bucketAuctionPlayers(players),
+    [players],
+  )
 
   // ── 파생 데이터 ──
   const activeLiveBid =
@@ -78,8 +81,8 @@ export function useBiddingControl({
     typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
   const canSubmitBid = canBid && !isBidding
 
-  const waitingCount = players.filter((p) => p.status === 'WAITING').length
-  const soldCount = players.filter((p) => p.status === 'SOLD').length
+  const waitingCount = waitingPlayers.length
+  const soldCount = soldPlayers.length
 
   // ── Effects ──
   useEffect(() => {
@@ -138,7 +141,6 @@ export function useBiddingControl({
     const numericAmount =
       typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
     const finalAmount = Math.max(numericAmount, minBid)
-    const optimisticBidId = `temp-bid-${teamId}-${Date.now()}`
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
     const bidClickedAt = Date.now()
@@ -163,19 +165,9 @@ export function useBiddingControl({
       ).toISOString()
       setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
     }
-
-    appendBid({
-      id: optimisticBidId,
-      room_id: roomId,
-      player_id: currentPlayer.id,
-      team_id: teamId,
-      amount: finalAmount,
-      created_at: new Date().toISOString(),
-    })
     try {
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
       if (res.error) {
-        removeBid(optimisticBidId)
         setLiveBid(previousLiveBid ?? null)
         if (shouldOptimisticallyExtend) {
           setRealtimeData({ timerEndsAt: previousTimerEndsAt })
@@ -212,7 +204,10 @@ export function useBiddingControl({
         }
       }
     } catch (error) {
-      removeBid(optimisticBidId)
+      setLiveBid(previousLiveBid ?? null)
+      if (shouldOptimisticallyExtend) {
+        setRealtimeData({ timerEndsAt: previousTimerEndsAt })
+      }
       throw error
     } finally {
       setIsBidding(false)

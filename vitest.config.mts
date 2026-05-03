@@ -7,5 +7,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./__tests__/setup.ts'],
     globals: true,
+    exclude: ['playwright/**', 'node_modules/**', '.next/**'],
   },
 })

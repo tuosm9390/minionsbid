@@ -60,7 +60,8 @@ describe("useAuctionBoard", () => {
       bids: [],
       teams: [],
       presences: [],
-      messages: [],
+      messagesById: {},
+      orderedMessageIds: [],
       membersPerTeam: 5,
       captainMode: "IN_ROSTER",
     });
@@ -78,7 +79,7 @@ describe("useAuctionBoard", () => {
     const { result } = renderHook(() => useAuctionBoard(defaultProps));
 
     expect(result.current.isAuctionComplete).toBe(false);
-    expect(result.current.currentPlayer).toBeUndefined();
+    expect(result.current.currentPlayer).toBeNull();
     expect(result.current.isAutoDraftMode).toBe(false); // 아직 조건 불충족
     expect(result.current.needyTeams).toHaveLength(2);
   });

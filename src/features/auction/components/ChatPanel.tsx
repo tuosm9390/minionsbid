@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState, useRef, useEffect } from "react";
+import React, { memo, useState, useRef, useEffect, useMemo } from "react";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import {
@@ -8,6 +8,7 @@ import {
   type Message,
 } from "@/features/auction/store/useAuctionStore";
 import { sendChatMessage } from "@/features/auction/api/auctionActions";
+import { selectOrderedMessages } from "@/features/auction/store/auctionSelectors";
 
 const MAX_MESSAGE_LENGTH = 200;
 
@@ -261,7 +262,12 @@ const ChatComposer = memo(function ChatComposer() {
 });
 
 export function ChatPanel() {
-  const messages = useAuctionStore((s) => s.messages);
+  const messagesById = useAuctionStore((s) => s.messagesById);
+  const orderedMessageIds = useAuctionStore((s) => s.orderedMessageIds);
+  const messages = useMemo(
+    () => selectOrderedMessages(messagesById, orderedMessageIds),
+    [messagesById, orderedMessageIds],
+  );
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-white border-4 border-black shadow-[inset_0_0_20px_rgba(0,0,0,0.05)]">

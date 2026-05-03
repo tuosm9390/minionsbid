@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuctionStore, Role, PresenceUser } from "@/features/auction/store/useAuctionStore";
 import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
@@ -33,6 +33,10 @@ import {
   getAuctionSlotsPerTeam,
 } from "@/features/auction/utils/roster";
 import { getAuctionBidState } from "@/features/auction/utils/auctionRealtime";
+import {
+  bucketAuctionPlayers,
+  isAuctionRoomComplete,
+} from "@/features/auction/store/auctionSelectors";
 
 export function RoomClient({
   roomId,
@@ -94,12 +98,11 @@ export function RoomClient({
   );
   const allConnected =
     teams.length > 0 && connectedLeaderIds.size >= teams.length;
-  const currentPlayer =
-    players.find((p) => p.id === currentPlayerId) ??
-    players.find((p) => p.status === "IN_AUCTION");
-  const waitingPlayers = players.filter((p) => p.status === "WAITING");
-  const soldPlayers = players.filter((p) => p.status === "SOLD");
-  const unsoldPlayers = players.filter((p) => p.status === "UNSOLD");
+  const { currentPlayer, waitingPlayers, soldPlayers, unsoldPlayers, soldCountByTeam } =
+    useMemo(
+      () => bucketAuctionPlayers(players, currentPlayerId),
+      [players, currentPlayerId],
+    );
 
   const liveBid = useAuctionStore((s) => s.liveBid);
   const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id;
@@ -129,9 +132,7 @@ export function RoomClient({
   );
   const myTeam = teams.find((t) => t.id === storeTeamId);
   const isTeamFull = myTeam
-    ? players.filter((p) => p.team_id === myTeam.id && p.status === "SOLD")
-        .length >=
-      auctionSlotsPerTeam
+    ? (soldCountByTeam.get(myTeam.id) ?? 0) >= auctionSlotsPerTeam
     : false;
   const lotteryPlayer = useAuctionStore((s) => s.lotteryPlayer);
 
@@ -187,14 +188,12 @@ export function RoomClient({
     await handleCloseLottery();
   };
 
-  const isRoomComplete =
-    teams.length > 0 &&
-    teams.every(
-      (t) =>
-        players.filter((p) => p.team_id === t.id && p.status === "SOLD")
-          .length ===
-        auctionSlotsPerTeam,
-    );
+  const isRoomComplete = isAuctionRoomComplete({
+    teamIds: teams.map((team) => team.id),
+    soldCountByTeam,
+    membersPerTeam,
+    captainMode,
+  });
   const allDone =
     waitingPlayers.length === 0 &&
     !currentPlayer &&

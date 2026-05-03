@@ -14,33 +14,29 @@ import {
   getAuctionSlotsPerTeam,
   type CaptainMode,
 } from "@/features/auction/utils/roster";
+import { bucketAuctionPlayers } from "@/features/auction/store/auctionSelectors";
 
 // 개별 팀 카드를 별도 컴포넌트로 분리하여 메모이제이션
 const TeamResultCard = memo(
   ({
     team,
-    players,
+    soldPlayers,
     rosterSlots,
     captainMode,
   }: {
     team: Team;
-    players: Player[];
+    soldPlayers: Player[];
     rosterSlots: number;
     captainMode: CaptainMode;
   }) => {
     const teamPlayers = useMemo(
       () =>
-        buildRosterWithCaptain(
-          players
-            .filter((p) => p.team_id === team.id)
-            .map((p) => ({ ...p, sold_price: p.sold_price })),
-          {
-            captainMode,
-            leaderName: team.leader_name,
-            leaderPosition: team.leader_position,
-          },
-        ),
-      [captainMode, players, team.id, team.leader_name, team.leader_position],
+        buildRosterWithCaptain(soldPlayers.map((p) => ({ ...p, sold_price: p.sold_price })), {
+          captainMode,
+          leaderName: team.leader_name,
+          leaderPosition: team.leader_position,
+        }),
+      [captainMode, soldPlayers, team.leader_name, team.leader_position],
     );
 
     const slots = useMemo(
@@ -150,6 +146,7 @@ export function AuctionResultModal({
   const players = useAuctionStore((state) => state.players);
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
   const captainMode = useAuctionStore((state) => state.captainMode);
+  const { soldPlayersByTeam } = useMemo(() => bucketAuctionPlayers(players), [players]);
 
   // 팀 정렬 결과 메모이제이션
   const sortedTeams = useMemo(
@@ -215,7 +212,7 @@ export function AuctionResultModal({
                 <TeamResultCard
                   key={team.id}
                   team={team}
-                  players={players}
+                  soldPlayers={soldPlayersByTeam.get(team.id) ?? []}
                   rosterSlots={rosterSlots}
                   captainMode={captainMode}
                 />

@@ -30,8 +30,11 @@ const waitingPlayer: Player = {
 }
 
 describe('useAuctionControl', () => {
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
   beforeEach(() => {
     vi.clearAllMocks()
+    consoleErrorSpy.mockClear()
     useAuctionStore.setState({
       lotteryPlayer: inAuctionPlayer,
       players: [],
