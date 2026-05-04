@@ -27,7 +27,7 @@ export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
   }, [isUrgent]);
 
   useEffect(() => {
-    setInitialDuration(target - Date.now());
+    setInitialDuration(Math.max(target - Date.now(), 1));
     hasExpiredRef.current = false;
   }, [target]);
 
@@ -38,7 +38,9 @@ export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
   }, [onExpire, timeLeftMs]);
 
   const displayTime = Math.ceil(timeLeftSec);
-  const progress = initialDuration ? (timeLeftMs / initialDuration) * 100 : 0;
+  const progress = initialDuration
+    ? Math.min(100, Math.max(0, (timeLeftMs / initialDuration) * 100))
+    : 0;
   const pad = (n: number) => String(n).padStart(2, "0");
 
   // 매 초 변경 시에만 단발성 shake 트리거 (무한 반복 없음)

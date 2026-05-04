@@ -260,6 +260,227 @@ describe('useFirebaseRealtime', () => {
     expect(recoverExpiredAuction).toHaveBeenCalledWith('room-1')
   })
 
+  it('타이머 5초 미만 입찰 시 RTDB BID_PLACED 이벤트로 timerEndsAt이 갱신된다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    // 경매 시작: 10초 타이머, revision 5
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:10.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-04-29T00:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:10.000Z',
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(5)
+
+    // 타이머 4초 남은 상황에서 다른 팀장 입찰 → 서버가 5초로 연장
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-6',
+        revision: 6,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2026-04-29T00:00:06.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-04-29T00:00:11.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:06.000Z',
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:11.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 110,
+    })
+  })
+
+  it('Firestore snapshot이 RTDB보다 먼저 도착해도 timerEndsAt이 올바르게 갱신된다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    // 경매 시작: 10초 타이머, revision 5
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:10.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-04-29T00:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:10.000Z',
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+    })
+
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(5)
+
+    // Firestore snapshot이 먼저 도착 (타이머 연장 포함, revision 6)
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:11.000Z') },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:06.000Z',
+        },
+        auction_revision: 6,
+        last_auction_event: {
+          eventId: 'bid-6',
+          revision: 6,
+          roomId: 'room-1',
+          type: 'BID_PLACED',
+          serverCreatedAt: '2026-04-29T00:00:06.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:11.000Z',
+          liveBid: {
+            player_id: 'player-1',
+            team_id: 'team-2',
+            amount: 110,
+            created_at: '2026-04-29T00:00:06.000Z',
+          },
+        },
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+    })
+
+    // Firestore fallback으로 타이머와 revision이 올바르게 설정
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:11.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+
+    // RTDB가 뒤늦게 도착 - revision 이미 6이므로 SKIP
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-6',
+        revision: 6,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2026-04-29T00:00:06.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-04-29T00:00:11.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:06.000Z',
+        },
+      })
+    })
+
+    // RTDB 스킵 후에도 타이머는 올바른 연장된 값 유지
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:11.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 110,
+    })
+  })
+
+  it('RTDB가 먼저 적용된 후 오래된 Firestore 스냅샷이 와도 timerEndsAt을 덮어쓰지 않는다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    // 경매 시작: revision 5, 타이머 10초
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:10.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-04-29T00:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:10.000Z',
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+    })
+
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(5)
+
+    // RTDB가 먼저 도착: revision 6, 타이머 연장 (3s → 5s)
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-6',
+        revision: 6,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2026-04-29T00:00:07.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-04-29T00:00:12.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:07.000Z',
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:12.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+
+    // 오래된 Firestore 스냅샷 도착 (revision 5, 구형 타이머) → snapshotIsCurrentOrNewer=false → 무시
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:10.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-04-29T00:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:10.000Z',
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+    })
+
+    // RTDB가 설정한 연장된 timerEndsAt이 유지되어야 함
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:12.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+  })
+
   it('RTDB 이벤트를 놓쳐도 room snapshot의 last_auction_event로 즉시 복구한다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
@@ -382,5 +603,168 @@ describe('useFirebaseRealtime', () => {
     })
     expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:05.000Z')
     expect(useAuctionStore.getState().auctionEventRevision).toBe(10)
+  })
+
+  it('클라이언트 타이머 만료 후 지연된 RTDB BID_PLACED 도착 시 timerEndsAt이 5초로 갱신된다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    // 경매 시작: 타이머가 이미 만료된 과거 시간 (RTDB 지연 시뮬레이션)
+    const expiredTimerAt = '2020-01-01T00:00:02.000Z' // 클라이언트 기준 만료된 시간
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date(expiredTimerAt) },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2020-01-01T00:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: expiredTimerAt,
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2020-01-01T00:00:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe(expiredTimerAt)
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(5)
+
+    // 지연된 RTDB BID_PLACED 도착 — 서버는 이미 타이머를 5초 연장해둔 상태
+    const extendedTimerAt = '2099-12-31T23:59:59.000Z' // 명확히 미래 시간
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-late-1',
+        revision: 6,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2020-01-01T00:00:02.500Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: extendedTimerAt,
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 120,
+          created_at: '2020-01-01T00:00:02.500Z',
+        },
+      })
+    })
+
+    // 만료됐던 타이머가 연장된 미래 시간으로 갱신되어야 함
+    expect(useAuctionStore.getState().timerEndsAt).toBe(extendedTimerAt)
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 120,
+    })
+  })
+
+  it('RTDB-first와 Firestore-first 두 경로가 동일한 최종 상태를 만든다 (다중 클라이언트 일관성)', () => {
+    // ── Client A 시뮬레이션: RTDB 먼저 ──
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-05-04T12:00:03.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-05-04T12:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-05-04T12:00:03.000Z',
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+    })
+
+    // RTDB 먼저 도착
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-mc-1',
+        revision: 6,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2026-05-04T12:00:02.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-05-04T12:00:07.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 200,
+          created_at: '2026-05-04T12:00:02.000Z',
+        },
+      })
+    })
+
+    const clientAState = {
+      timerEndsAt: useAuctionStore.getState().timerEndsAt,
+      auctionEventRevision: useAuctionStore.getState().auctionEventRevision,
+      liveBidAmount: useAuctionStore.getState().liveBid?.amount,
+    }
+
+    // ── Client B 시뮬레이션: Firestore 먼저 ──
+    useAuctionStore.setState({
+      timerEndsAt: null,
+      auctionEventRevision: 0,
+      liveBid: null,
+      players: [],
+      teams: [],
+    })
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-05-04T12:00:07.000Z') },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 200,
+          created_at: '2026-05-04T12:00:02.000Z',
+        },
+        auction_revision: 6,
+        last_auction_event: {
+          eventId: 'bid-mc-1',
+          revision: 6,
+          roomId: 'room-1',
+          type: 'BID_PLACED',
+          serverCreatedAt: '2026-05-04T12:00:02.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-05-04T12:00:07.000Z',
+          liveBid: {
+            player_id: 'player-1',
+            team_id: 'team-2',
+            amount: 200,
+            created_at: '2026-05-04T12:00:02.000Z',
+          },
+        },
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+    })
+
+    const clientBState = {
+      timerEndsAt: useAuctionStore.getState().timerEndsAt,
+      auctionEventRevision: useAuctionStore.getState().auctionEventRevision,
+      liveBidAmount: useAuctionStore.getState().liveBid?.amount,
+    }
+
+    // 두 클라이언트의 최종 상태가 동일해야 함
+    expect(clientAState.timerEndsAt).toBe(clientBState.timerEndsAt)
+    expect(clientAState.auctionEventRevision).toBe(clientBState.auctionEventRevision)
+    expect(clientAState.liveBidAmount).toBe(clientBState.liveBidAmount)
+    expect(clientAState.timerEndsAt).toBe('2026-05-04T12:00:07.000Z')
+    expect(clientAState.auctionEventRevision).toBe(6)
+    expect(clientAState.liveBidAmount).toBe(200)
   })
 })
