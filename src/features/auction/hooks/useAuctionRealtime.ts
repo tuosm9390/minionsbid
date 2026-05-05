@@ -19,7 +19,9 @@ import { normalizeCaptainMode } from '../utils/roster'
 import { recoverExpiredAuction } from '../api/auctionActions'
 import {
   applyAuctionEventToState,
+  getAuctionExpiryWakeUpDelay,
   getAuctionRecoveryKey,
+  getNextReAuctionRoundState,
   shouldRecoverExpiredAuction,
   type AuctionEventEnvelope,
 } from '../utils/auctionRealtime'
@@ -131,15 +133,68 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const setMessages = useAuctionStore(s => s.setMessages)
   const appendMessage = useAuctionStore(s => s.appendMessage)
   const setAuctionEventRevision = useAuctionStore(s => s.setAuctionEventRevision)
+  const setReAuctionRound = useAuctionStore(s => s.setReAuctionRound)
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
   const lastRecoveryKeyRef = useRef<string | null>(null)
+  const expiryWakeUpTimeoutRef = useRef<number | null>(null)
   const latestMessageInitRef = useRef(true)
   const lastLiveMessageIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!roomId) return
+
+    const clearExpiryWakeUp = () => {
+      if (expiryWakeUpTimeoutRef.current !== null) {
+        window.clearTimeout(expiryWakeUpTimeoutRef.current)
+        expiryWakeUpTimeoutRef.current = null
+      }
+    }
+
+    const triggerRecovery = (
+      timerEndsAt: string | null,
+      currentPlayerId: string | null,
+      revision: number,
+    ) => {
+      if (!timerEndsAt || !currentPlayerId) {
+        lastRecoveryKeyRef.current = null
+        return
+      }
+      const recovery = shouldRecoverExpiredAuction({
+        effectiveRole,
+        currentPlayerId,
+        timerEndsAt,
+        recoveryKey: getAuctionRecoveryKey({
+          currentPlayerId,
+          timerEndsAt,
+          revision,
+        }),
+        lastRecoveryKey: lastRecoveryKeyRef.current,
+      })
+      if (recovery.shouldRecover && recovery.recoveryKey) {
+        lastRecoveryKeyRef.current = recovery.recoveryKey
+        void recoverExpiredAuction(roomId)
+      }
+    }
+
+    const scheduleExpiryWakeUp = (
+      timerEndsAt: string | null,
+      currentPlayerId: string | null,
+      revision: number,
+    ) => {
+      clearExpiryWakeUp()
+      if (!timerEndsAt || !currentPlayerId) {
+        lastRecoveryKeyRef.current = null
+        return
+      }
+
+      const delay = getAuctionExpiryWakeUpDelay(timerEndsAt)
+      expiryWakeUpTimeoutRef.current = window.setTimeout(() => {
+        expiryWakeUpTimeoutRef.current = null
+        triggerRecovery(timerEndsAt, currentPlayerId, revision)
+      }, delay)
+    }
 
     if (E2E_AUCTION_FIXTURE) {
       let cancelled = false
@@ -223,24 +278,9 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
           const currentPlayerId = findCurrentAuctionPlayerId(data.players)
           if (data.timerEndsAt && currentPlayerId) {
-            const recovery = shouldRecoverExpiredAuction({
-              effectiveRole,
-              currentPlayerId,
-              timerEndsAt: data.timerEndsAt,
-              recoveryKey: getAuctionRecoveryKey({
-                currentPlayerId,
-                timerEndsAt: data.timerEndsAt,
-                revision: data.revision,
-              }),
-              lastRecoveryKey: lastRecoveryKeyRef.current,
-            })
-            if (recovery.shouldRecover && recovery.recoveryKey) {
-              lastRecoveryKeyRef.current = recovery.recoveryKey
-              void recoverExpiredAuction(roomId)
-            }
-          } else {
-            lastRecoveryKeyRef.current = null
           }
+          scheduleExpiryWakeUp(data.timerEndsAt, currentPlayerId, data.revision)
+          triggerRecovery(data.timerEndsAt, currentPlayerId, data.revision)
         } catch {
           // polling retry on next tick
         }
@@ -321,6 +361,12 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
         const next = applyAuctionEventToState(useAuctionStore.getState(), fallbackEvent)
         if (next.applied) {
+          setReAuctionRound(
+            getNextReAuctionRoundState({
+              current: useAuctionStore.getState().isReAuctionRound,
+              eventType: fallbackEvent.type,
+            }),
+          )
           recordBidLatencyFromEvent(fallbackEvent, 'room-fallback')
           setLiveBid(next.liveBid)
           setLotteryPlayer(next.lotteryPlayer)
@@ -346,25 +392,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
       const timerEndsAtIso = timestampToISO(data.timer_ends_at)
       const currentPlayerId = data.current_player_id ?? null
-      if (timerEndsAtIso && currentPlayerId) {
-        const recovery = shouldRecoverExpiredAuction({
-          effectiveRole,
-          currentPlayerId,
-          timerEndsAt: timerEndsAtIso,
-          recoveryKey: getAuctionRecoveryKey({
-            currentPlayerId,
-            timerEndsAt: timerEndsAtIso,
-            revision: roomRevision,
-          }),
-          lastRecoveryKey: lastRecoveryKeyRef.current,
-        })
-        if (recovery.shouldRecover && recovery.recoveryKey) {
-          lastRecoveryKeyRef.current = recovery.recoveryKey
-          void recoverExpiredAuction(roomId)
-        }
-      } else {
-        lastRecoveryKeyRef.current = null
-      }
+      scheduleExpiryWakeUp(timerEndsAtIso, currentPlayerId, roomRevision)
+      triggerRecovery(timerEndsAtIso, currentPlayerId, roomRevision)
 
       // current_player_id 변경 시 bids 구독 갱신
       const newPlayerId = currentPlayerId
@@ -509,6 +538,12 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (!next.applied) {
         return
       }
+      setReAuctionRound(
+        getNextReAuctionRoundState({
+          current: state.isReAuctionRound,
+          eventType: event.type,
+        }),
+      )
       recordBidLatencyFromEvent(event, 'rtdb')
       setLiveBid(next.liveBid)
       setLotteryPlayer(next.lotteryPlayer)
@@ -519,6 +554,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         timerEndsAt: next.timerEndsAt,
         currentPlayerId: next.currentPlayerId,
       })
+      scheduleExpiryWakeUp(next.timerEndsAt, next.currentPlayerId, next.revision)
+      triggerRecovery(next.timerEndsAt, next.currentPlayerId, next.revision)
     }
 
     // 5. RTDB: 단일 경매 이벤트 감시
@@ -572,6 +609,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     unsubs.push(() => latestMessageUnsub())
 
     return () => {
+      clearExpiryWakeUp()
       unsubs.forEach((unsub) => unsub())
       bidsUnsubRef.current?.()
     }
@@ -585,5 +623,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     setMessages,
     appendMessage,
     setAuctionEventRevision,
+    setReAuctionRound,
   ])
 }

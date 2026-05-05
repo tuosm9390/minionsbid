@@ -87,6 +87,7 @@ function emitAuctionEvent(path: string, value: unknown) {
 
 describe('useFirebaseRealtime', () => {
   beforeEach(() => {
+    vi.useRealTimers()
     window.history.replaceState({}, '', '/')
     window.localStorage.clear()
     roomSnapshotListeners.length = 0
@@ -258,6 +259,106 @@ describe('useFirebaseRealtime', () => {
     })
 
     expect(recoverExpiredAuction).toHaveBeenCalledWith('room-1')
+  })
+
+  it('미래 만료 시각은 시간 경과만으로 recoverExpiredAuction을 깨운다', async () => {
+    vi.useFakeTimers()
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => new Date(Date.now() + 3_000),
+        },
+        current_player_id: 'player-1',
+        auction_revision: 7,
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+    })
+
+    expect(recoverExpiredAuction).not.toHaveBeenCalled()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000)
+    })
+
+    expect(recoverExpiredAuction).toHaveBeenCalledTimes(1)
+    expect(recoverExpiredAuction).toHaveBeenCalledWith('room-1')
+  })
+
+  it('같은 recovery key에서는 wake-up과 snapshot이 겹쳐도 중복 복구를 막는다', async () => {
+    vi.useFakeTimers()
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    const expiredAt = new Date(Date.now() + 2_000)
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => expiredAt,
+        },
+        current_player_id: 'player-1',
+        auction_revision: 9,
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000)
+    })
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => expiredAt,
+        },
+        current_player_id: 'player-1',
+        auction_revision: 9,
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+    })
+
+    expect(recoverExpiredAuction).toHaveBeenCalledTimes(1)
+  })
+
+  it('재경매 플래그는 RE_AUCTION_STARTED에서 올라오고 AUCTION_STARTED에서 내려온다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'reauction-1',
+        revision: 3,
+        roomId: 'room-1',
+        type: 'RE_AUCTION_STARTED',
+        serverCreatedAt: '2026-04-29T00:00:00.000Z',
+        playerIdsToWaiting: ['player-1'],
+      })
+    })
+
+    expect(useAuctionStore.getState().isReAuctionRound).toBe(true)
+
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'start-4',
+        revision: 4,
+        roomId: 'room-1',
+        type: 'AUCTION_STARTED',
+        serverCreatedAt: '2026-04-29T00:00:01.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-04-29T00:00:06.000Z',
+      })
+    })
+
+    expect(useAuctionStore.getState().isReAuctionRound).toBe(false)
   })
 
   it('타이머 5초 미만 입찰 시 RTDB BID_PLACED 이벤트로 timerEndsAt이 갱신된다', () => {

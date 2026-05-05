@@ -172,6 +172,17 @@ export function getAuctionRecoveryKey(args: {
   return `${args.currentPlayerId}:${args.timerEndsAt}:${args.revision ?? 0}`
 }
 
+export function getAuctionExpiryWakeUpDelay(
+  timerEndsAt: string,
+  now = Date.now(),
+) {
+  const MAX_TIMEOUT_MS = 2_147_483_647
+  return Math.min(
+    MAX_TIMEOUT_MS,
+    Math.max(0, new Date(timerEndsAt).getTime() - now),
+  )
+}
+
 export function shouldRecoverExpiredAuction(args: {
   effectiveRole?: string | null
   currentPlayerId?: string | null
@@ -201,6 +212,22 @@ export function shouldRecoverExpiredAuction(args: {
   return {
     shouldRecover,
     recoveryKey,
+  }
+}
+
+export function getNextReAuctionRoundState(args: {
+  current: boolean
+  eventType: AuctionEventType
+}) {
+  switch (args.eventType) {
+    case 'RE_AUCTION_STARTED':
+      return true
+    case 'AUCTION_STARTED':
+    case 'PLAYER_AWARDED':
+    case 'PLAYER_UNSOLD':
+      return false
+    default:
+      return args.current
   }
 }
 

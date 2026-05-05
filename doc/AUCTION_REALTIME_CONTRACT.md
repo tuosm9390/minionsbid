@@ -109,6 +109,13 @@ leader click bid
 - RTDB를 놓친 화면은 `rooms/{roomId}.last_auction_event`와 room canonical fields로 빠르게 회복해야 한다.
 - Firestore snapshot은 나중에 와도 같은 결과로 수렴해야 한다.
 
+## Timer Rules
+
+- 일반 경매 시작 타이머는 `10초`다.
+- 재경매에서 실제 경매를 시작할 때의 첫 타이머는 `5초`다.
+- 입찰이 들어와도 매번 리셋하지 않는다.
+- 남은 시간이 `5초 미만`일 때만 타이머를 다시 `5초`로 연장한다.
+
 ## Expiry Ownership
 
 ```text
@@ -117,8 +124,8 @@ leader disconnect
   -> pauseAuction(roomId)
   -> RTDB publish + Firestore reconcile
 
-auction timer expires while organizer is active
-  -> organizer/client recover path
+auction timer expires while any client is active
+  -> organizer local timer or multi-client wake-up
   -> recoverExpiredAuction(roomId)
   -> awardPlayer transaction
   -> RTDB publish + Firestore reconcile
@@ -126,6 +133,9 @@ auction timer expires while organizer is active
 
 - organizer 상시 참여가 기본 운영 가정이다.
 - 팀장 연결 끊김 대응은 organizer presence guard가 1차 ownership을 가진다.
+- 경매 만료 복구는 organizer 전용이 아니다.
+- `timerEndsAt + currentPlayerId`를 본 어떤 활성 클라이언트든 만료 시각에 `recoverExpiredAuction(roomId)`를 깨울 수 있다.
+- 중복 호출은 클라이언트 `recoveryKey`와 서버 `awardPlayer()` 멱등성으로 흡수한다.
 - `/api/auction-watchdog`는 선택적 backup/manual sweep 경로일 뿐, 기본 실시간 경매 contract의 필수 구성요소는 아니다.
 
 ## Observability Rules
@@ -158,10 +168,11 @@ leader click bid
 - 훅/유틸 테스트
   - stale revision 무시
   - `BID_PLACED` 타이머/입찰 반영
-  - organizer-only recover path
+  - time-based expiry wake-up
+  - recovery key 중복 방지
 - 멀티클라이언트 E2E
   - 막판 `1초 미만` 입찰 연장
-  - 타 클라이언트 `5초` 재시작 동기화
+  - 일반 경매 `10초` 시작 / 재경매 `5초` 시작 동기화
   - 낙찰/유찰 후 화면 일치
   - representative bid `500ms` 회귀는 DOM 변화와 latency marker를 같이 확인
   - production-path 회귀는 `client-response -> rtdb` 또는 `client-response -> room-fallback`의 동일 `eventId`를 확인
@@ -173,6 +184,6 @@ leader click bid
 - auction event 타입 추가/삭제
 - `revision` 생성 규칙 변경
 - 클라이언트 optimistic 범위 변경
-- organizer-only recovery 정책 변경
+- multi-client recovery 정책 변경
 - organizer presence pause/resume 정책 변경
 - 파생 상태 계산 규칙 변경

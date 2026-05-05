@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyAuctionEventToState,
+  getAuctionExpiryWakeUpDelay,
   getAuctionBidEligibility,
   getAuctionRecoveryKey,
+  getNextReAuctionRoundState,
   shouldRecoverExpiredAuction,
   type AuctionEventEnvelope,
   type AuctionRealtimeStateSlice,
@@ -158,5 +160,32 @@ describe('applyAuctionEventToState', () => {
 
     expect(recoveryKey).toBe('player-1:2026-04-29T00:00:00.000Z:42')
     expect(result.shouldRecover).toBe(false)
+  })
+
+  it('expiry wake-up delay는 남은 시간을 0 이하로 내리지 않는다', () => {
+    expect(getAuctionExpiryWakeUpDelay('2026-04-29T00:00:05.000Z', Date.parse('2026-04-29T00:00:03.000Z'))).toBe(2000)
+    expect(getAuctionExpiryWakeUpDelay('2026-04-29T00:00:05.000Z', Date.parse('2026-04-29T00:00:06.000Z'))).toBe(0)
+    expect(getAuctionExpiryWakeUpDelay('2099-12-31T23:59:59.000Z', 0)).toBe(2147483647)
+  })
+
+  it('재경매 플래그는 시작 이벤트에서만 true가 되고 실제 경매 시작 후 false로 닫힌다', () => {
+    expect(
+      getNextReAuctionRoundState({
+        current: false,
+        eventType: 'RE_AUCTION_STARTED',
+      }),
+    ).toBe(true)
+    expect(
+      getNextReAuctionRoundState({
+        current: true,
+        eventType: 'AUCTION_STARTED',
+      }),
+    ).toBe(false)
+    expect(
+      getNextReAuctionRoundState({
+        current: true,
+        eventType: 'PLAYER_UNSOLD',
+      }),
+    ).toBe(false)
   })
 })
