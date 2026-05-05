@@ -147,17 +147,16 @@ export function useAuctionBoard({
   const currentTurnTeam = needyTeams.length > 0 ? needyTeams[0] : null
 
   // ── SOLD 감지 ──
-  const prevCurrentPlayerRef = useRef<Player | null | undefined>(undefined)
+  // room/players 스냅샷 도달 순서에 무관하게 IN_AUCTION→SOLD 전환을 직접 감지
+  const prevPlayersRef = useRef<Player[] | null>(null)
 
   useEffect(() => {
-    const prev = prevCurrentPlayerRef.current
-    // IN_AUCTION이었던 선수가 사라졌을 때 → SOLD 상태로 전환됐는지 확인
-    if (prev && !currentPlayer) {
-      const justSold = playersById.get(prev.id)
-      if (justSold?.status !== 'SOLD') {
-        prevCurrentPlayerRef.current = currentPlayer
-        return
-      }
+    const prev = prevPlayersRef.current
+    if (prev !== null) {
+      const justSold = players.find((player) => {
+        const prevPlayer = prev.find((p) => p.id === player.id)
+        return player.status === 'SOLD' && prevPlayer?.status === 'IN_AUCTION'
+      })
       if (justSold) {
         const team = justSold.team_id ? teamMap.get(justSold.team_id) : null
         setSoldOverlayData({
@@ -169,8 +168,8 @@ export function useAuctionBoard({
         })
       }
     }
-    prevCurrentPlayerRef.current = currentPlayer
-  }, [currentPlayer, playersById, teamMap])
+    prevPlayersRef.current = players
+  }, [players, teamMap])
 
   useEffect(() => {
     setLotteryDone(false)

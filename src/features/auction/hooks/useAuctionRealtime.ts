@@ -456,6 +456,12 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           state.currentPlayerId &&
           playersById.has(state.currentPlayerId)
         ) {
+          const snapshotStatus = playersById.get(state.currentPlayerId)?.status
+          // SOLD/UNSOLD는 터미널 상태 — Firestore 정본을 그대로 신뢰하고 IN_AUCTION 강제 금지
+          if (snapshotStatus === 'SOLD' || snapshotStatus === 'UNSOLD') {
+            setRealtimeData({ players })
+            return
+          }
           setRealtimeData({
             players: players.map((player) =>
               player.id === state.currentPlayerId

@@ -90,6 +90,9 @@ export function useAuctionControl({
   useEffect(() => {
     if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
 
+    // 타이머가 갱신(연장)됐으므로 이전 낙찰 시도의 lock을 초기화
+    awardLock.current = false
+
     const cp =
       playersRef.current.find((p) => p.id === currentPlayerId) ??
       playersRef.current.find(p => p.status === 'IN_AUCTION')

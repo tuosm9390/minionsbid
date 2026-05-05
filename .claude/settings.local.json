@@ -34,7 +34,13 @@
       "Bash(rtk vitest:*)",
       "Bash(rtk tsc:*)",
       "Bash(rtk next:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(npx playwright *)",
+      "Bash(rtk git *)",
+      "Bash(not exist *)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\development\\\\league-auction\\\\.omc\\\\plans\")",
+      "Bash(Out-Null)",
+      "Bash(E2E_AUCTION_FIXTURE=1 npx playwright test playwright/auction-realtime.spec.ts)"
     ]
   }
 }

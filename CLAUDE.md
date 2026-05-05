@@ -27,9 +27,15 @@ A high-stakes League of Legends player auction system built with **Next.js**, **
 - `npm run build`: Build for production
 - `npm test`: Run unit tests (Vitest)
 - `npx playwright test`: Run E2E tests
+- `E2E_AUCTION_FIXTURE=1 npx playwright test playwright/auction-realtime.spec.ts`: E2E with in-memory fixture (no real Firebase required)
 
 ## Coding Principles
 - **No `any`**: Strictly use TypeScript interfaces for all data models.
 - **Framer Motion**: Use `AnimatePresence` for all scene transitions.
 - **Fluid Design**: Prefer `text-fluid-*` tokens over fixed pixel sizes.
 - **Server Actions**: All DB mutations must go through `src/features/auction/api/`.
+
+## Realtime Auction Timing Constraints
+- `AWARD_GRACE_MS` in `useAuctionControl.ts`: must stay ≤1500ms — the `active-auction-expiring` E2E fixture uses a 4s timer with a 5000ms assertion timeout
+- `CenterTimer`: always clamp `initialDuration ≥ 1` and `progress` to 0–100% to handle RTDB timer rebound (delayed BID_PLACED arriving after client timer hits 0)
+- Production validation = Playwright E2E (`playwright/auction-realtime.spec.ts`), not local unit tests
