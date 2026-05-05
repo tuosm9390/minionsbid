@@ -22,6 +22,7 @@ type FixtureRoom = {
   captainMode: CaptainMode
   currentPlayerId: string | null
   timerEndsAt: string | null
+  nextAuctionDurationMs: number | null
   createdAt: string
   roomDeleted: boolean
   organizerToken: string
@@ -231,6 +232,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     captainMode: 'COACH_ONLY',
     currentPlayerId: null,
     timerEndsAt: null,
+    nextAuctionDurationMs: null,
     createdAt,
     roomDeleted: false,
     organizerToken: 'fixture-organizer-token',
@@ -548,10 +550,12 @@ export async function closeFixtureLottery(roomId: string, playerName: string): P
   }
 }
 
-export async function startFixtureAuction(roomId: string, durationMs: number): Promise<{ error?: string; timerEndsAt?: string }> {
+export async function startFixtureAuction(roomId: string, durationMs: number = AUCTION_DURATION_MS): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     const room = getRoomOrThrow(roomId)
-    room.timerEndsAt = new Date(Date.now() + durationMs).toISOString()
+    const nextDurationMs = room.nextAuctionDurationMs ?? durationMs ?? AUCTION_DURATION_MS
+    room.timerEndsAt = new Date(Date.now() + nextDurationMs).toISOString()
+    room.nextAuctionDurationMs = null
     appendMessage(room, '시스템', 'SYSTEM', '⏱️ 경매가 시작되었습니다!')
     recordFixtureAuctionEvent(room, 'AUCTION_STARTED')
     return { timerEndsAt: room.timerEndsAt }
@@ -828,6 +832,7 @@ export async function restartFixtureAuctionWithUnsold(
       player.team_id = null
       player.sold_price = null
     }
+    room.nextAuctionDurationMs = EXTEND_DURATION_MS
 
     appendMessage(
       room,

@@ -175,11 +175,12 @@ export function getAuctionRecoveryKey(args: {
 export function getAuctionExpiryWakeUpDelay(
   timerEndsAt: string,
   now = Date.now(),
+  graceMs = 0,
 ) {
   const MAX_TIMEOUT_MS = 2_147_483_647
   return Math.min(
     MAX_TIMEOUT_MS,
-    Math.max(0, new Date(timerEndsAt).getTime() - now),
+    Math.max(0, new Date(timerEndsAt).getTime() - now + graceMs),
   )
 }
 
@@ -189,6 +190,7 @@ export function shouldRecoverExpiredAuction(args: {
   timerEndsAt?: string | null
   recoveryKey?: string | null
   lastRecoveryKey?: string | null
+  graceMs?: number
 }) {
   if (!args.currentPlayerId || !args.timerEndsAt) {
     return { shouldRecover: false, recoveryKey: null as string | null }
@@ -203,7 +205,8 @@ export function shouldRecoverExpiredAuction(args: {
     return { shouldRecover: false, recoveryKey: null as string | null }
   }
 
-  const isExpired = new Date(args.timerEndsAt).getTime() <= Date.now()
+  const isExpired =
+    new Date(args.timerEndsAt).getTime() + (args.graceMs ?? 0) <= Date.now()
   // 모든 역할이 복구 트리거 가능 — 서버 액션(awardPlayer)이 멱등성 보장
   const shouldRecover =
     isExpired &&

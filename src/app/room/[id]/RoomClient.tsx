@@ -60,7 +60,6 @@ export function RoomClient({
   const presences = useAuctionStore((s) => s.presences);
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
-  const isReAuctionRound = useAuctionStore((s) => s.isReAuctionRound);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData);
   const setReAuctionRound = useAuctionStore((s) => s.setReAuctionRound);
@@ -177,10 +176,9 @@ export function RoomClient({
   };
 
   const handleStart = async () => {
-    const durationMs = isReAuctionRound ? 5000 : 10000;
     setReAuctionRound(false);
     try {
-      const res = await startAuction(roomId, durationMs);
+      const res = await startAuction(roomId);
       if (res.timerEndsAt) setRealtimeData({ timerEndsAt: res.timerEndsAt });
     } finally {
       // isStarting removed as it was unused in UI

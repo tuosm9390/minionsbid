@@ -164,6 +164,7 @@ describe('applyAuctionEventToState', () => {
 
   it('expiry wake-up delay는 남은 시간을 0 이하로 내리지 않는다', () => {
     expect(getAuctionExpiryWakeUpDelay('2026-04-29T00:00:05.000Z', Date.parse('2026-04-29T00:00:03.000Z'))).toBe(2000)
+    expect(getAuctionExpiryWakeUpDelay('2026-04-29T00:00:05.000Z', Date.parse('2026-04-29T00:00:03.000Z'), 1500)).toBe(3500)
     expect(getAuctionExpiryWakeUpDelay('2026-04-29T00:00:05.000Z', Date.parse('2026-04-29T00:00:06.000Z'))).toBe(0)
     expect(getAuctionExpiryWakeUpDelay('2099-12-31T23:59:59.000Z', 0)).toBe(2147483647)
   })

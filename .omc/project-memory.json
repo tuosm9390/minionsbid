@@ -277,14 +277,14 @@
   "hotPaths": [
     {
       "path": "src",
-      "accessCount": 2,
-      "lastAccessed": 1777981360280,
+      "accessCount": 4,
+      "lastAccessed": 1777993817404,
       "type": "directory"
     },
     {
       "path": "src\\features\\auction\\hooks\\useAuctionControl.ts",
-      "accessCount": 2,
-      "lastAccessed": 1777984245873,
+      "accessCount": 3,
+      "lastAccessed": 1777993728519,
       "type": "file"
     },
     {
@@ -300,15 +300,15 @@
       "type": "file"
     },
     {
-      "path": "src\\features\\auction\\components\\board\\CenterTimer.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1777981359858,
+      "path": "src\\features\\auction\\components\\AuctionBoard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1777993756541,
       "type": "file"
     },
     {
-      "path": "src\\features\\auction\\components\\AuctionBoard.tsx",
+      "path": "src\\features\\auction\\components\\board\\CenterTimer.tsx",
       "accessCount": 1,
-      "lastAccessed": 1777981370653,
+      "lastAccessed": 1777981359858,
       "type": "file"
     },
     {
@@ -316,6 +316,36 @@
       "accessCount": 1,
       "lastAccessed": 1777982572602,
       "type": "directory"
+    },
+    {
+      "path": "src\\features\\auction\\api\\auctionFlowActions.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777993728381,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\room\\[id]\\RoomClient.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777993764408,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\useAuctionPresenceGuard.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777993888067,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\store\\useAuctionStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777993888644,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\room\\[id]\\components\\OrganizerControlPanel.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777993973025,
+      "type": "file"
     }
   ],
   "userDirectives": []

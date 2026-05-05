@@ -10,6 +10,7 @@ import {
   placeBid,
   awardPlayer,
   recoverExpiredAuction,
+  startAuction,
   draftPlayer,
   deleteRoom,
   saveAuctionArchive,
@@ -422,6 +423,59 @@ describe('recoverExpiredAuction', () => {
 
     expect(result.error).toBeUndefined()
     expect(result.recovered).toBe(true)
+  })
+})
+
+describe('startAuction', () => {
+  const roomId = 'room-1'
+
+  beforeEach(resetMocks)
+
+  it('기본 경매 시작은 10초 타이머를 사용한다', async () => {
+    mockDocGet
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+          next_auction_duration_ms: null,
+          active_bid: null,
+        }),
+      )
+
+    const result = await startAuction(roomId)
+
+    expect(result.error).toBeUndefined()
+    expect(result.timerEndsAt).toBeDefined()
+    const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
+    expect(remainingMs).toBeGreaterThan(8_500)
+  })
+
+  it('재경매 직후에는 room 정본의 다음 시작 5초 규칙을 사용한다', async () => {
+    mockDocGet
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+          next_auction_duration_ms: 5_000,
+          active_bid: null,
+        }),
+      )
+
+    const result = await startAuction(roomId)
+
+    expect(result.error).toBeUndefined()
+    expect(result.timerEndsAt).toBeDefined()
+    const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
+    expect(remainingMs).toBeLessThanOrEqual(5_000)
+    expect(remainingMs).toBeGreaterThan(3_500)
   })
 })
 

@@ -83,6 +83,7 @@ interface FirestoreMessageData {
 
 const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
 const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
+const RECOVERY_GRACE_MS = 1_500
 
 function timestampToISO(ts: Timestamp | null | undefined): string | null {
   if (!ts) return null
@@ -165,6 +166,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         effectiveRole,
         currentPlayerId,
         timerEndsAt,
+        graceMs: RECOVERY_GRACE_MS,
         recoveryKey: getAuctionRecoveryKey({
           currentPlayerId,
           timerEndsAt,
@@ -189,7 +191,11 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         return
       }
 
-      const delay = getAuctionExpiryWakeUpDelay(timerEndsAt)
+      const delay = getAuctionExpiryWakeUpDelay(
+        timerEndsAt,
+        Date.now(),
+        RECOVERY_GRACE_MS,
+      )
       expiryWakeUpTimeoutRef.current = window.setTimeout(() => {
         expiryWakeUpTimeoutRef.current = null
         triggerRecovery(timerEndsAt, currentPlayerId, revision)

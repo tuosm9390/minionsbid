@@ -226,7 +226,7 @@ describe('useFirebaseRealtime', () => {
       emitRoomSnapshot({
         name: '테스트방',
         timer_ends_at: {
-          toDate: () => new Date(Date.now() - 1000),
+          toDate: () => new Date(Date.now() - 2_000),
         },
         current_player_id: 'player-1',
         created_at: {
@@ -249,7 +249,7 @@ describe('useFirebaseRealtime', () => {
       emitRoomSnapshot({
         name: '테스트방',
         timer_ends_at: {
-          toDate: () => new Date(Date.now() - 1000),
+          toDate: () => new Date(Date.now() - 2_000),
         },
         current_player_id: 'player-1',
         created_at: {
@@ -282,7 +282,7 @@ describe('useFirebaseRealtime', () => {
     expect(recoverExpiredAuction).not.toHaveBeenCalled()
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000)
+      await vi.advanceTimersByTimeAsync(4_500)
     })
 
     expect(recoverExpiredAuction).toHaveBeenCalledTimes(1)
@@ -309,7 +309,7 @@ describe('useFirebaseRealtime', () => {
     })
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(2_000)
+      await vi.advanceTimersByTimeAsync(3_500)
     })
 
     act(() => {

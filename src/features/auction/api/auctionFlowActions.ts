@@ -49,6 +49,7 @@ function getAuctionFirestore() {
 type AuctionRoomState = {
   current_player_id?: string | null;
   timer_ends_at?: admin.firestore.Timestamp | null;
+  next_auction_duration_ms?: number | null;
   active_bid?: {
     player_id: string;
     team_id: string;
@@ -265,8 +266,8 @@ export async function startAuction(
     if (!currentPlayerId) {
       return { error: "현재 경매 중인 선수가 없습니다." };
     }
-    const timerEndsAt = new Date(Date.now() + durationMs);
     let startEvent: AuctionEventEnvelope | null = null;
+    let resolvedTimerEndsAt: Date | null = null
     await getAuctionFirestore().runTransaction(async (tx) => {
       const freshRoomSnap = await tx.get(roomRef);
       const freshRoomData = (freshRoomSnap.data() ?? {}) as AuctionRoomState;
@@ -274,6 +275,10 @@ export async function startAuction(
       if (!freshPlayerId) {
         throw new Error("현재 경매 중인 선수가 없습니다.");
       }
+      const nextDurationMs =
+        freshRoomData.next_auction_duration_ms ?? durationMs
+      const timerEndsAt = new Date(Date.now() + nextDurationMs);
+      resolvedTimerEndsAt = timerEndsAt
 
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
@@ -291,6 +296,7 @@ export async function startAuction(
       );
       tx.update(roomRef, {
         timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
+        next_auction_duration_ms: null,
         ...roomPatch,
       });
       startEvent = event;
@@ -300,7 +306,9 @@ export async function startAuction(
       await publishAuctionEvent(event);
       queueSystemMessage(roomId, "⏱️ 경매가 시작되었습니다!", event.eventId);
     }
-    return { timerEndsAt: timerEndsAt.toISOString() };
+    return {
+      timerEndsAt: resolvedTimerEndsAt?.toISOString(),
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
     return { error: message };
@@ -1018,7 +1026,10 @@ export async function restartAuctionWithUnsold(
       for (const doc of unsoldSnap.docs) {
         tx.update(doc.ref, { status: "WAITING" });
       }
-      tx.update(roomRef, roomPatch);
+      tx.update(roomRef, {
+        next_auction_duration_ms: EXTEND_DURATION_MS,
+        ...roomPatch,
+      });
       restartEvent = event;
     });
 
