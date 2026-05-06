@@ -7,7 +7,7 @@ import {
   type Player,
   type Team,
 } from '@/features/auction/store/useAuctionStore'
-import { placeBid } from '@/features/auction/api/auctionActions'
+import { placeBid, sendChatMessage } from '@/features/auction/api/auctionActions'
 import { placeBidDirect } from '@/features/auction/api/placeBidClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
@@ -214,6 +214,14 @@ export function useBiddingControl({
         if (directRes.timerEndsAt) {
           setRealtimeData({ timerEndsAt: directRes.timerEndsAt })
         }
+        // 시스템 메시지 비동기 전송 (fire-and-forget, 레이턴시에 영향 없음)
+        const teamName = myTeam?.name ?? teamId
+        void sendChatMessage(
+          roomId,
+          '시스템',
+          'SYSTEM',
+          `💰 ${teamName}이 ${finalAmount}P에 입찰했습니다!`,
+        ).catch(() => { /* 입찰 성공에는 영향 없음 */ })
       }
     } catch (error) {
       setLiveBid(previousLiveBid ?? null)

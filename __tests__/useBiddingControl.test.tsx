@@ -8,6 +8,7 @@ import type { Player, Team } from "@/features/auction/store/useAuctionStore";
 
 vi.mock("@/features/auction/api/auctionActions", () => ({
   placeBid: vi.fn(),
+  sendChatMessage: vi.fn().mockResolvedValue({}),
 }));
 
 // placeBidDirect는 기본적으로 성공 반환 (클라이언트 직접 입찰 경로 테스트)
