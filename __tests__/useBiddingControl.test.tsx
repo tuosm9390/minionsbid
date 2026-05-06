@@ -2,11 +2,17 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { useBiddingControl } from "@/features/auction/hooks/useBiddingControl";
 import { placeBid } from "@/features/auction/api/auctionActions";
+import { placeBidDirect } from "@/features/auction/api/placeBidClient";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
 import type { Player, Team } from "@/features/auction/store/useAuctionStore";
 
 vi.mock("@/features/auction/api/auctionActions", () => ({
   placeBid: vi.fn(),
+}));
+
+// placeBidDirect는 기본적으로 성공 반환 (클라이언트 직접 입찰 경로 테스트)
+vi.mock("@/features/auction/api/placeBidClient", () => ({
+  placeBidDirect: vi.fn().mockResolvedValue({ timerEndsAt: null }),
 }));
 
 describe("useBiddingControl", () => {
@@ -114,7 +120,7 @@ describe("useBiddingControl", () => {
 
   it("handleBid 성공 시 Optimistic Update", async () => {
     const newTimerEndsAt = new Date(Date.now() + 5000).toISOString();
-    (placeBid as Mock).mockResolvedValue({ error: undefined, timerEndsAt: newTimerEndsAt });
+    (placeBidDirect as Mock).mockResolvedValue({ timerEndsAt: newTimerEndsAt });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));
 
@@ -122,7 +128,14 @@ describe("useBiddingControl", () => {
       await result.current.handleBid();
     });
 
-    expect(placeBid).toHaveBeenCalledWith("room-1", "p1", "team-1", 10);
+    expect(placeBidDirect).toHaveBeenCalledWith({
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 10,
+    });
+    // Server Action은 호출되지 않음 (클라이언트 직접 입찰 성공)
+    expect(placeBid).not.toHaveBeenCalled();
     // 입찰 성공 후 금액 자동 10 추가
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
@@ -133,10 +146,10 @@ describe("useBiddingControl", () => {
   });
 
   it("남은 시간 < 5초(4800ms)이면 서버 응답 전에도 timerEndsAt을 낙관 연장한다", async () => {
-    let resolveBid!: (value: { error?: string }) => void;
-    (placeBid as Mock).mockImplementation(
+    let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
+    (placeBidDirect as Mock).mockImplementation(
       () =>
-        new Promise<{ error?: string }>((resolve) => {
+        new Promise<{ timerEndsAt?: string | null; error?: string }>((resolve) => {
           resolveBid = resolve;
         }),
     );
@@ -158,11 +171,13 @@ describe("useBiddingControl", () => {
         Date.now(),
     ).toBeGreaterThan(4000);
 
-    resolveBid({ error: undefined });
+    resolveBid({ timerEndsAt: null });
     await pending;
   });
 
   it("handleBid 에러 발생 시 bidError 설정", async () => {
+    // 클라이언트 직접 입찰 실패 → Server Action 폴백 → 폴백도 에러
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct-failed" });
     (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));
@@ -176,10 +191,10 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid는 성공 전에도 local liveBid를 optimistic하게 세팅한다", async () => {
-    let resolveBid!: (value: { error?: string }) => void;
-    (placeBid as Mock).mockImplementation(
+    let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
+    (placeBidDirect as Mock).mockImplementation(
       () =>
-        new Promise<{ error?: string }>((resolve) => {
+        new Promise<{ timerEndsAt?: string | null; error?: string }>((resolve) => {
           resolveBid = resolve;
         }),
     );
@@ -197,7 +212,7 @@ describe("useBiddingControl", () => {
     });
     expect(useAuctionStore.getState().bids).toEqual([]);
 
-    resolveBid({ error: undefined });
+    resolveBid({ timerEndsAt: null });
     await pending;
   });
 
@@ -210,6 +225,8 @@ describe("useBiddingControl", () => {
         created_at: new Date().toISOString(),
       },
     });
+    // 클라이언트 직접 입찰 실패 → Server Action 폴백 → 폴백도 에러
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct-failed" });
     (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));

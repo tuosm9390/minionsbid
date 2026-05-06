@@ -8,6 +8,7 @@ import {
   type Team,
 } from '@/features/auction/store/useAuctionStore'
 import { placeBid } from '@/features/auction/api/auctionActions'
+import { placeBidDirect } from '@/features/auction/api/placeBidClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
@@ -169,41 +170,49 @@ export function useBiddingControl({
       setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
     }
     try {
-      const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
-      if (res.error) {
-        setLiveBid(previousLiveBid ?? null)
-        if (shouldOptimisticallyExtend) {
-          setRealtimeData({ timerEndsAt: previousTimerEndsAt })
-        }
-        setBidError(res.error)
-      } else {
-        setLiveBid(optimisticLiveBid)
-        if (res.debug?.eventId) {
-          recordAuctionLatencyMarker({
-            eventId: res.debug.eventId,
-            roomId,
-            playerId: currentPlayer.id,
-            teamId,
-            amount: finalAmount,
-            clickedAt: bidClickedAt,
-            respondedAt: Date.now(),
-            source: 'client-response',
-          })
-        }
+      // 1차: 클라이언트 직접 입찰 (Vercel Function 경유 없이 Firestore 직접 트랜잭션)
+      const directRes = await placeBidDirect({
+        roomId,
+        playerId: currentPlayer.id,
+        teamId,
+        amount: finalAmount,
+      })
+
+      if (directRes.error) {
+        // 클라이언트 직접 입찰 실패 → Server Action 폴백
         if (LATENCY_DEBUG) {
-          console.info('[latency][client] placeBid response', {
+          console.info('[bid] direct failed, falling back to server action', directRes.error)
+        }
+        const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
+        if (res.error) {
+          setLiveBid(previousLiveBid ?? null)
+          if (shouldOptimisticallyExtend) {
+            setRealtimeData({ timerEndsAt: previousTimerEndsAt })
+          }
+          setBidError(res.error)
+        } else {
+          setLiveBid(optimisticLiveBid)
+          setBidAmount(finalAmount + 10)
+          if (res.timerEndsAt) {
+            setRealtimeData({ timerEndsAt: res.timerEndsAt })
+          }
+        }
+      } else {
+        // 클라이언트 직접 입찰 성공
+        setLiveBid(optimisticLiveBid)
+        if (LATENCY_DEBUG) {
+          console.info('[latency][client] placeBidDirect success', {
             roomId,
             teamId,
             amount: finalAmount,
             clientRoundTripMs: Date.now() - bidClickedAt,
-            server: res.debug ?? null,
             optimisticExtend: shouldOptimisticallyExtend,
           })
         }
         setBidAmount(finalAmount + 10)
-        // 타이머 연장 시 실시간 이벤트 대기 없이 즉시 반영 (Optimistic Update)
-        if (res.timerEndsAt) {
-          setRealtimeData({ timerEndsAt: res.timerEndsAt })
+        // Firestore onSnapshot이 자동으로 다른 클라이언트에 전파
+        if (directRes.timerEndsAt) {
+          setRealtimeData({ timerEndsAt: directRes.timerEndsAt })
         }
       }
     } catch (error) {

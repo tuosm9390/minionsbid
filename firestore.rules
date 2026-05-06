@@ -24,12 +24,68 @@ service cloud.firestore {
       }
     }
 
+    // ── 입찰 검증 함수 ──
+    // LEADER가 클라이언트에서 직접 입찰할 때 Firestore 보안 규칙으로 검증
+    function isBidUpdate(roomId) {
+      let auth = request.auth;
+      let before = resource.data;
+      let after = request.resource.data;
+      let newBid = after.active_bid;
+
+      return auth != null
+        // 인증된 LEADER만 허용
+        && auth.token.role == 'LEADER'
+        && auth.token.roomId == roomId
+        // 허용된 필드만 변경 가능
+        && after.diff(before).affectedKeys().hasOnly(['active_bid', 'timer_ends_at', 'auction_revision'])
+        // 경매가 진행 중이어야 함
+        && before.current_player_id != null
+        && before.timer_ends_at > request.time
+        // 입찰 데이터 구조 검증
+        && newBid.player_id == before.current_player_id
+        && newBid.team_id == auth.token.teamId
+        && newBid.amount is int
+        && newBid.amount > 0
+        // 현재 입찰보다 높아야 함
+        && (before.active_bid == null || newBid.amount > before.active_bid.amount)
+        // 자기 팀이 최고 입찰자일 때 재입찰 불가
+        && (before.active_bid == null || before.active_bid.team_id != auth.token.teamId)
+        // revision 정확히 +1
+        && after.auction_revision == before.auction_revision + 1
+        // 타이머 연장 검증
+        && (
+          // 남은 시간 >= 5초: timer 변경 불가
+          (before.timer_ends_at.toMillis() - request.time.toMillis() >= 5000
+            && after.timer_ends_at == before.timer_ends_at)
+          ||
+          // 남은 시간 < 5초: now+3s ~ now+7s 범위만 허용
+          (before.timer_ends_at.toMillis() - request.time.toMillis() < 5000
+            && after.timer_ends_at.toMillis() > request.time.toMillis() + 3000
+            && after.timer_ends_at.toMillis() <= request.time.toMillis() + 7000)
+        )
+        // 팀 포인트 잔액 >= 입찰액
+        && get(/databases/$(database)/documents/rooms/$(roomId)/teams/$(auth.token.teamId)).data.point_balance >= newBid.amount;
+    }
+
+    function isBidHistoryCreate(roomId) {
+      let auth = request.auth;
+      let data = request.resource.data;
+      return auth != null
+        && auth.token.role == 'LEADER'
+        && auth.token.roomId == roomId
+        && data.team_id == auth.token.teamId
+        && data.amount is int
+        && data.amount > 0;
+    }
+
     match /rooms/{roomId} {
       // room 문서는 클라이언트가 단건 구독한다.
       // 전체 rooms 컬렉션 나열은 막고, 개별 room id를 아는 경우에만 get 허용.
       allow get: if true;
       allow list: if false;
-      allow create, update, delete: if isAdmin() || isServerWrite();
+      allow create, delete: if isAdmin() || isServerWrite();
+      // 업데이트: 서버/관리자 또는 유효한 입찰
+      allow update: if isAdmin() || isServerWrite() || isBidUpdate(roomId);
 
       match /teams/{teamId} {
         allow get, list: if true;
@@ -48,7 +104,9 @@ service cloud.firestore {
 
       match /bids/{bidId} {
         allow get, list: if true;
-        allow create, update, delete: if isAdmin() || isServerWrite();
+        // LEADER가 입찰 기록을 직접 생성할 수 있도록 허용
+        allow create: if isAdmin() || isServerWrite() || isBidHistoryCreate(roomId);
+        allow update, delete: if isAdmin() || isServerWrite();
       }
 
       match /{document=**} {
