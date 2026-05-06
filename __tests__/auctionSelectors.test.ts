@@ -89,6 +89,20 @@ describe("auctionSelectors", () => {
     expect(result.currentPlayer?.id).toBe("p2");
   });
 
+  it("stale currentPlayerId가 SOLD 선수를 가리켜도 currentPlayer로 취급하지 않는다", () => {
+    const result = bucketAuctionPlayers(
+      players.map((player) =>
+        player.id === "p2"
+          ? { ...player, status: "SOLD", team_id: "team-2", sold_price: 150 }
+          : player,
+      ),
+      "p2",
+    );
+
+    expect(result.currentPlayer).toBeNull();
+    expect(result.soldPlayers.find((player) => player.id === "p2")?.sold_price).toBe(150);
+  });
+
   it("room complete 여부를 팀별 sold count로 판단한다", () => {
     const soldCountByTeam = new Map<string, number>([
       ["team-1", 4],

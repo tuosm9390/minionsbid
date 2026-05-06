@@ -33,7 +33,11 @@ export function bucketAuctionPlayers(
 
   for (const player of players) {
     playersById.set(player.id, player)
-    if (currentPlayerId && player.id === currentPlayerId) {
+    if (
+      currentPlayerId &&
+      player.id === currentPlayerId &&
+      player.status === 'IN_AUCTION'
+    ) {
       currentPlayer = player
     } else if (!fallbackCurrentPlayer && player.status === 'IN_AUCTION') {
       fallbackCurrentPlayer = player

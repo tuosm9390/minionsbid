@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "presence": {
+      "$roomId": {
+        ".read": true,
+        "$sessionId": {
+          ".write": "auth != null && auth.uid === $sessionId && auth.token.roomId === $roomId && (newData.val() == null || (newData.hasChildren(['role', 'teamName', 'connectedAt']) && newData.child('role').val() === auth.token.role && (newData.child('role').val() === 'LEADER' || newData.child('role').val() === 'ORGANIZER') && (newData.child('role').val() !== 'LEADER' || newData.child('teamId').val() === auth.token.teamId) && (newData.child('role').val() !== 'ORGANIZER' || !newData.child('teamId').exists()) && newData.child('teamName').isString() && newData.child('connectedAt').exists()))"
+        }
+      }
+    },
+    "signals": {
+      "$roomId": {
+        ".read": true,
+        ".write": false
+      }
+    }
+  }
+}

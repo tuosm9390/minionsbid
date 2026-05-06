@@ -469,6 +469,7 @@ export function createE2EAuctionFixtureRoom(
     captainMode: payload.captainMode ?? 'IN_ROSTER',
     currentPlayerId: null,
     timerEndsAt: null,
+    nextAuctionDurationMs: null,
     createdAt,
     roomDeleted: false,
     organizerToken,

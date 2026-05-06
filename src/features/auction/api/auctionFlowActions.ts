@@ -104,7 +104,10 @@ async function publishAuctionEvent(
   event: AuctionEventEnvelope,
 ): Promise<void> {
   const { rtdb } = getAuctionServerServices();
-  await rtdb.ref(`signals/${event.roomId}/auctionEvent`).set(event);
+  await Promise.all([
+    rtdb.ref(`signals/${event.roomId}/auctionEvent`).set(event),
+    rtdb.ref(`signals/${event.roomId}/auctionEvents/${event.eventId}`).set(event),
+  ]);
 }
 
 function createEventId(type: AuctionEventEnvelope["type"]): string {
@@ -267,7 +270,7 @@ export async function startAuction(
       return { error: "현재 경매 중인 선수가 없습니다." };
     }
     let startEvent: AuctionEventEnvelope | null = null;
-    let resolvedTimerEndsAt: Date | null = null
+    let resolvedTimerEndsAt: string | undefined
     await getAuctionFirestore().runTransaction(async (tx) => {
       const freshRoomSnap = await tx.get(roomRef);
       const freshRoomData = (freshRoomSnap.data() ?? {}) as AuctionRoomState;
@@ -278,7 +281,7 @@ export async function startAuction(
       const nextDurationMs =
         freshRoomData.next_auction_duration_ms ?? durationMs
       const timerEndsAt = new Date(Date.now() + nextDurationMs);
-      resolvedTimerEndsAt = timerEndsAt
+      resolvedTimerEndsAt = timerEndsAt.toISOString()
 
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
@@ -286,7 +289,7 @@ export async function startAuction(
         "AUCTION_STARTED",
         {
           currentPlayerId: freshPlayerId,
-          timerEndsAt: timerEndsAt.toISOString(),
+          timerEndsAt: resolvedTimerEndsAt,
           player: {
             id: freshPlayerId,
             status: "IN_AUCTION",
@@ -307,7 +310,7 @@ export async function startAuction(
       queueSystemMessage(roomId, "⏱️ 경매가 시작되었습니다!", event.eventId);
     }
     return {
-      timerEndsAt: resolvedTimerEndsAt?.toISOString(),
+      timerEndsAt: resolvedTimerEndsAt,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";

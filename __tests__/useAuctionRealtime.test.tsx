@@ -85,6 +85,29 @@ function emitAuctionEvent(path: string, value: unknown) {
   })
 }
 
+function emitAuctionEventHistory(roomId: string, events: Array<Record<string, unknown>>) {
+  emitAuctionEvent(
+    `signals/${roomId}/auctionEvents`,
+    Object.fromEntries(events.map((event) => [String(event.eventId), event])),
+  )
+}
+
+function emitCollectionSnapshot(
+  index: number,
+  docs: Array<{ id: string; data: Record<string, unknown> }>,
+) {
+  const listener = genericSnapshotListeners[index]
+  if (!listener) {
+    throw new Error(`No generic snapshot listener at index ${index}`)
+  }
+  listener({
+    docs: docs.map((doc) => ({
+      id: doc.id,
+      data: () => doc.data,
+    })),
+  })
+}
+
 describe('useFirebaseRealtime', () => {
   beforeEach(() => {
     vi.useRealTimers()
@@ -163,6 +186,47 @@ describe('useFirebaseRealtime', () => {
       amount: 110,
     })
     expect(useAuctionStore.getState().auctionEventRevision).toBe(10)
+  })
+
+  it('append-only auctionEvents history도 더 최신 revision을 적용한다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+        current_player_id: 'player-1',
+        created_at: {
+          toDate: () => new Date('2026-04-29T00:00:00.000Z'),
+        },
+      })
+      emitAuctionEventHistory('room-1', [
+        {
+          eventId: 'bid-history-1',
+          revision: 11,
+          roomId: 'room-1',
+          type: 'BID_PLACED',
+          serverCreatedAt: '2026-04-29T00:00:01.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:05.000Z',
+          liveBid: {
+            player_id: 'player-1',
+            team_id: 'team-2',
+            amount: 110,
+            created_at: '2026-04-29T00:00:01.000Z',
+          },
+        },
+      ])
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:05.000Z')
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 110,
+    })
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(11)
   })
 
   it('더 낮은 revision의 auctionEvent는 무시한다', () => {
@@ -359,6 +423,54 @@ describe('useFirebaseRealtime', () => {
     })
 
     expect(useAuctionStore.getState().isReAuctionRound).toBe(false)
+  })
+
+  it('players snapshot이 SOLD terminal 상태를 내리면 stale currentPlayerId를 비운다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    useAuctionStore.setState({
+      currentPlayerId: 'player-1',
+      players: [
+        {
+          id: 'player-1',
+          room_id: 'room-1',
+          name: 'Alpha',
+          tier: 'S',
+          main_position: 'TOP',
+          sub_position: '',
+          status: 'IN_AUCTION',
+          team_id: null,
+          sold_price: null,
+          description: '',
+        },
+      ],
+    })
+
+    act(() => {
+      emitCollectionSnapshot(1, [
+        {
+          id: 'player-1',
+          data: {
+            room_id: 'room-1',
+            name: 'Alpha',
+            tier: 'S',
+            main_position: 'TOP',
+            sub_position: '',
+            status: 'SOLD',
+            team_id: 'team-1',
+            sold_price: 100,
+            description: '',
+          },
+        },
+      ])
+    })
+
+    expect(useAuctionStore.getState().currentPlayerId).toBeNull()
+    expect(useAuctionStore.getState().players[0]).toMatchObject({
+      status: 'SOLD',
+      team_id: 'team-1',
+      sold_price: 100,
+    })
   })
 
   it('타이머 5초 미만 입찰 시 RTDB BID_PLACED 이벤트로 timerEndsAt이 갱신된다', () => {

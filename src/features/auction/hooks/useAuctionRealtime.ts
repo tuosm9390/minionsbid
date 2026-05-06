@@ -142,6 +142,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const expiryWakeUpTimeoutRef = useRef<number | null>(null)
   const latestMessageInitRef = useRef(true)
   const lastLiveMessageIdRef = useRef<string | null>(null)
+  const auctionEventHistoryInitRef = useRef(true)
 
   useEffect(() => {
     if (!roomId) return
@@ -494,7 +495,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           const snapshotStatus = playersById.get(state.currentPlayerId)?.status
           // SOLD/UNSOLD는 터미널 상태 — Firestore 정본을 그대로 신뢰하고 IN_AUCTION 강제 금지
           if (snapshotStatus === 'SOLD' || snapshotStatus === 'UNSOLD') {
-            setRealtimeData({ players })
+            setRealtimeData({ players, currentPlayerId: null })
             return
           }
           setRealtimeData({
@@ -510,7 +511,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           return
         }
 
-        setRealtimeData({ players })
+        setRealtimeData({ players, currentPlayerId: null })
       },
     )
     unsubs.push(playersUnsub)
@@ -564,6 +565,18 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       triggerRecovery(next.timerEndsAt, next.currentPlayerId, next.revision)
     }
 
+    const applyAuctionEventHistory = (events: AuctionEventEnvelope[]) => {
+      const nextEvents = [...events]
+        .filter((event) => !!event?.eventId)
+        .sort((a, b) => a.revision - b.revision)
+
+      for (const event of nextEvents) {
+        if (event.revision > useAuctionStore.getState().auctionEventRevision) {
+          applyAuctionEvent(event)
+        }
+      }
+    }
+
     // 5. RTDB: 단일 경매 이벤트 감시
     const auctionEventRef = ref(rtdb, `signals/${roomId}/auctionEvent`)
     const auctionEventUnsub = onValue(auctionEventRef, (snapshot) => {
@@ -577,6 +590,20 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       applyAuctionEvent(data)
     })
     unsubs.push(() => auctionEventUnsub())
+
+    const auctionEventHistoryRef = ref(rtdb, `signals/${roomId}/auctionEvents`)
+    auctionEventHistoryInitRef.current = true
+    const auctionEventHistoryUnsub = onValue(auctionEventHistoryRef, (snapshot) => {
+      const data = snapshot.val() as Record<string, AuctionEventEnvelope> | null
+      if (auctionEventHistoryInitRef.current) {
+        auctionEventHistoryInitRef.current = false
+      }
+      if (!data) {
+        return
+      }
+      applyAuctionEventHistory(Object.values(data))
+    })
+    unsubs.push(() => auctionEventHistoryUnsub())
 
     // 6. RTDB: 실시간 시스템 메시지 감시
     const latestMessageRef = ref(rtdb, `signals/${roomId}/latestMessage`)

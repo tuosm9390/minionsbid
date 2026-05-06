@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { ref, set, onDisconnect, onValue, serverTimestamp } from 'firebase/database'
 import { useAuctionStore, type PresenceUser } from '../store/useAuctionStore'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
+import { ensureRoomFirebaseAuth } from '@/lib/firebase'
 const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
 interface PresenceOptions {
@@ -37,58 +38,71 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
       return
     }
 
+    let cancelled = false
     const { rtdb } = getAuctionClientServices()
     const unsubs: (() => void)[] = []
-
-    // 1. 로컬 연결 상태 모니터링 (FR-006)
-    const connectedRef = ref(rtdb, '.info/connected')
-    const unsubConnected = onValue(connectedRef, (snap) => {
-      setLocalConnected(snap.val() === true)
-    })
-    unsubs.push(unsubConnected)
-
-    // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
     let myPresenceRef: ReturnType<typeof ref> | null = null
-    if (role === 'LEADER' || role === 'ORGANIZER') {
-      const sessionId = `${teamId ?? 'organizer'}_${Date.now()}`
-      myPresenceRef = ref(rtdb, `presence/${roomId}/${sessionId}`)
 
-      // 연결 시 존재 기록
-      const record: PresenceRecord = {
-        teamId: teamId ?? null,
-        teamName: teamName ?? '',
-        role,
-        connectedAt: serverTimestamp(),
+    const run = async () => {
+      try {
+        const authUid = await ensureRoomFirebaseAuth({
+          roomId,
+          role,
+          teamId,
+        })
+        if (cancelled) return
+
+        // 1. 로컬 연결 상태 모니터링 (FR-006)
+        const connectedRef = ref(rtdb, '.info/connected')
+        const unsubConnected = onValue(connectedRef, (snap) => {
+          setLocalConnected(snap.val() === true)
+        })
+        unsubs.push(unsubConnected)
+
+        // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
+        if (authUid && (role === 'LEADER' || role === 'ORGANIZER')) {
+          myPresenceRef = ref(rtdb, `presence/${roomId}/${authUid}`)
+
+          const record: PresenceRecord = {
+            teamId: teamId ?? null,
+            teamName: teamName ?? '',
+            role,
+            connectedAt: serverTimestamp(),
+          }
+          set(myPresenceRef, record)
+          onDisconnect(myPresenceRef).remove()
+        }
+
+        // 3. 전체 presence 구독 (모든 역할 수행, FR-001)
+        const allPresenceRef = ref(rtdb, `presence/${roomId}`)
+        const unsubPresence = onValue(allPresenceRef, (snapshot) => {
+          const data = snapshot.val()
+
+          setPresenceLoaded(true)
+
+          if (!data) {
+            setRealtimeData({ presences: [] })
+            return
+          }
+          const presences: PresenceUser[] = Object.values(
+            data as Record<string, { teamId: string | null; role: string | null }>,
+          ).map((p) => ({
+            teamId: p.teamId ?? null,
+            role: (p.role as PresenceUser['role']) ?? null,
+          }))
+          setRealtimeData({ presences })
+        })
+        unsubs.push(unsubPresence)
+      } catch (error) {
+        console.error('[presence] anonymous auth failed', error)
+        setPresenceLoaded(true)
       }
-      set(myPresenceRef, record)
-
-      // 연결 끊기면 자동 삭제
-      onDisconnect(myPresenceRef).remove()
     }
 
-    // 3. 전체 presence 구독 (모든 역할 수행, FR-001)
-    const allPresenceRef = ref(rtdb, `presence/${roomId}`)
-    const unsubPresence = onValue(allPresenceRef, (snapshot) => {
-      const data = snapshot.val()
-      
-      // 첫 데이터 수신 시 로딩 완료 표시 (FR-005)
-      setPresenceLoaded(true)
-
-      if (!data) {
-        setRealtimeData({ presences: [] })
-        return
-      }
-      const presences: PresenceUser[] = Object.values(
-        data as Record<string, { teamId: string | null; role: string | null }>,
-      ).map((p) => ({
-        teamId: p.teamId ?? null,
-        role: (p.role as PresenceUser['role']) ?? null,
-      }))
-      setRealtimeData({ presences })
-    })
-    unsubs.push(unsubPresence)
+    void run()
 
     return () => {
+      cancelled = true
       if (myPresenceRef) {
         set(myPresenceRef, null)
       }
