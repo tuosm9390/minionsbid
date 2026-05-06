@@ -309,6 +309,7 @@ export async function startAuction(
     });
     if (startEvent) {
       const event = startEvent as AuctionEventEnvelope;
+      // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
       queueSystemMessage(roomId, "⏱️ 경매가 시작되었습니다!", event.eventId);
     }
@@ -623,6 +624,7 @@ export async function placeBid(
     if (bidEvent) {
       const event = bidEvent as AuctionEventEnvelope;
       bidEventId = event.eventId;
+      // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
       timerSignalSentAt = nowMs();
       queueSystemMessage(
@@ -796,11 +798,11 @@ export async function awardPlayer(
 
     if (awardEvent) {
       const event = awardEvent as AuctionEventEnvelope;
+      // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
-    }
-    if (msgContent && awardEvent) {
-      const event = awardEvent as AuctionEventEnvelope;
-      queueSystemMessage(roomId, msgContent, event.eventId);
+      if (msgContent) {
+        queueSystemMessage(roomId, msgContent, event.eventId);
+      }
     }
     return {};
   } catch (err) {
