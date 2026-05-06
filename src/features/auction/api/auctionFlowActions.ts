@@ -304,7 +304,6 @@ export async function startAuction(
       );
       tx.update(roomRef, {
         timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
-        next_auction_duration_ms: null,
         ...roomPatch,
       });
       startEvent = event;

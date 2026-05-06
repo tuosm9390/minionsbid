@@ -169,7 +169,7 @@ describe('applyAuctionEventToState', () => {
     expect(getAuctionExpiryWakeUpDelay('2099-12-31T23:59:59.000Z', 0)).toBe(2147483647)
   })
 
-  it('재경매 플래그는 시작 이벤트에서만 true가 되고 실제 경매 시작 후 false로 닫힌다', () => {
+  it('재경매 플래그는 RE_AUCTION_STARTED에서 true가 되고 PLAYER_AWARDED/UNSOLD에서 false로 닫힌다', () => {
     expect(
       getNextReAuctionRoundState({
         current: false,
@@ -181,7 +181,7 @@ describe('applyAuctionEventToState', () => {
         current: true,
         eventType: 'AUCTION_STARTED',
       }),
-    ).toBe(false)
+    ).toBe(true)
     expect(
       getNextReAuctionRoundState({
         current: true,

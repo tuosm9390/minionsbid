@@ -43,6 +43,7 @@ interface FirestoreRoomData {
   last_auction_event?: AuctionEventEnvelope | null
   created_at?: Timestamp | null
   roomDeleted?: boolean
+  next_auction_duration_ms?: number | null
 }
 
 interface FirestoreTeamData {
@@ -355,6 +356,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         captainMode: normalizeCaptainMode(data.captain_mode),
         totalTeams: data.total_teams ?? 0,
         createdAt: timestampToISO(data.created_at),
+        nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
         ...(snapshotIsCurrentOrNewer && {
           timerEndsAt: timestampToISO(data.timer_ends_at),
           currentPlayerId: data.current_player_id ?? null,

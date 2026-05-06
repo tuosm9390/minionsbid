@@ -277,33 +277,45 @@
   "hotPaths": [
     {
       "path": "src\\features\\auction\\api\\auctionFlowActions.ts",
-      "accessCount": 7,
-      "lastAccessed": 1778035237876,
+      "accessCount": 10,
+      "lastAccessed": 1778052721464,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\room\\[id]\\RoomClient.tsx",
+      "accessCount": 10,
+      "lastAccessed": 1778052765583,
       "type": "file"
     },
     {
       "path": "src",
-      "accessCount": 5,
-      "lastAccessed": 1778034937594,
+      "accessCount": 9,
+      "lastAccessed": 1778044821577,
       "type": "directory"
     },
     {
-      "path": "src\\app\\room\\[id]\\RoomClient.tsx",
-      "accessCount": 5,
-      "lastAccessed": 1778035262682,
+      "path": "src\\features\\auction\\utils\\auctionRealtime.ts",
+      "accessCount": 8,
+      "lastAccessed": 1778052722386,
+      "type": "directory"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\useAuctionRealtime.ts",
+      "accessCount": 7,
+      "lastAccessed": 1778052731664,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\store\\useAuctionStore.ts",
+      "accessCount": 6,
+      "lastAccessed": 1778052710508,
       "type": "file"
     },
     {
       "path": "src\\features\\auction\\hooks\\useAuctionControl.ts",
-      "accessCount": 4,
-      "lastAccessed": 1778034921521,
+      "accessCount": 5,
+      "lastAccessed": 1778044440346,
       "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\utils\\auctionRealtime.ts",
-      "accessCount": 4,
-      "lastAccessed": 1778035043145,
-      "type": "directory"
     },
     {
       "path": "",
@@ -318,45 +330,51 @@
       "type": "file"
     },
     {
-      "path": "src\\features\\auction\\hooks\\useAuctionRealtime.ts",
-      "accessCount": 3,
-      "lastAccessed": 1778034921567,
-      "type": "file"
-    },
-    {
       "path": "src\\features\\auction\\components\\AuctionBoard.tsx",
-      "accessCount": 3,
-      "lastAccessed": 1778034936774,
+      "accessCount": 4,
+      "lastAccessed": 1778044447752,
       "type": "file"
     },
     {
       "path": "src\\features\\auction\\hooks\\useAuctionBoard.ts",
+      "accessCount": 4,
+      "lastAccessed": 1778044634488,
+      "type": "file"
+    },
+    {
+      "path": "__tests__\\useAuctionRealtime.test.tsx",
       "accessCount": 3,
-      "lastAccessed": 1778034979470,
+      "lastAccessed": 1778053100941,
       "type": "file"
     },
     {
       "path": "src\\features\\auction\\components\\board\\CenterTimer.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1777981359858,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\useAuctionPresenceGuard.ts",
-      "accessCount": 1,
-      "lastAccessed": 1777993888067,
-      "type": "file"
-    },
-    {
-      "path": "src\\features\\auction\\store\\useAuctionStore.ts",
-      "accessCount": 1,
-      "lastAccessed": 1777993888644,
+      "accessCount": 2,
+      "lastAccessed": 1778044144994,
       "type": "file"
     },
     {
       "path": "src\\app\\room\\[id]\\components\\OrganizerControlPanel.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1777993973025,
+      "accessCount": 2,
+      "lastAccessed": 1778044639563,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\useAuctionPresenceGuard.ts",
+      "accessCount": 2,
+      "lastAccessed": 1778044824798,
+      "type": "file"
+    },
+    {
+      "path": "__tests__\\auctionRealtimeUtils.test.ts",
+      "accessCount": 2,
+      "lastAccessed": 1778053098616,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 2,
+      "lastAccessed": 1778054454890,
       "type": "file"
     },
     {
@@ -405,6 +423,42 @@
       "path": "src\\features\\auction\\constants\\auctionTimings.ts",
       "accessCount": 1,
       "lastAccessed": 1778035187883,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\tuosm\\.claude\\plugins\\cache\\omc\\oh-my-claudecode\\4.6.7\\docs\\shared\\agent-tiers.md",
+      "accessCount": 1,
+      "lastAccessed": 1778044054664,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\api",
+      "accessCount": 1,
+      "lastAccessed": 1778044065936,
+      "type": "directory"
+    },
+    {
+      "path": "src\\features\\auction\\api\\auctionActions.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778044139511,
+      "type": "file"
+    },
+    {
+      "path": "database.rules.json",
+      "accessCount": 1,
+      "lastAccessed": 1778044139922,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\usePresence.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778044821698,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\firebase.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778045225797,
       "type": "file"
     }
   ],

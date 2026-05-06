@@ -394,7 +394,7 @@ describe('useFirebaseRealtime', () => {
     expect(recoverExpiredAuction).toHaveBeenCalledTimes(1)
   })
 
-  it('재경매 플래그는 RE_AUCTION_STARTED에서 올라오고 AUCTION_STARTED에서 내려온다', () => {
+  it('재경매 플래그는 RE_AUCTION_STARTED에서 올라오고 AUCTION_STARTED에서도 유지된다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
     act(() => {
@@ -423,7 +423,7 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    expect(useAuctionStore.getState().isReAuctionRound).toBe(false)
+    expect(useAuctionStore.getState().isReAuctionRound).toBe(true)
   })
 
   it('players snapshot이 SOLD terminal 상태를 내리면 stale currentPlayerId를 비운다', () => {

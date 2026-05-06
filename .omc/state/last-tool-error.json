@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /mnt/d/development/league-auction && npx vitest run 2>&1 | tail -30\",\"timeout\":60000,\"description\":\"단위 테스트 실행\"}",
-  "error": "Exit code 1\n/usr/bin/bash: line 3: cd: /mnt/d/development/league-auction: No such file or directory",
-  "timestamp": "2026-05-05T12:36:16.184Z",
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"D:\\\\development\\\\league-auction\\\\src\\\\features\\\\auction\\\\components\\\\board\\\\AuctionBoard.tsx\"}",
+  "error": "File does not exist. Note: your current working directory is D:\\development\\league-auction.",
+  "timestamp": "2026-05-06T05:14:00.364Z",
   "retry_count": 1
 }

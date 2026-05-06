@@ -39,3 +39,9 @@ A high-stakes League of Legends player auction system built with **Next.js**, **
 - `AWARD_GRACE_MS` in `useAuctionControl.ts`: must stay ≤1500ms — the `active-auction-expiring` E2E fixture uses a 4s timer with a 5000ms assertion timeout
 - `CenterTimer`: always clamp `initialDuration ≥ 1` and `progress` to 0–100% to handle RTDB timer rebound (delayed BID_PLACED arriving after client timer hits 0)
 - Production validation = Playwright E2E (`playwright/auction-realtime.spec.ts`), not local unit tests
+
+## Re-Auction Timer Architecture
+- `next_auction_duration_ms` (Firestore room field): set to `RE_AUCTION_DURATION_MS=5000` by `restartAuctionWithUnsold`, persists for entire re-auction round — do NOT clear it in `startAuction` transaction
+- Client reads `next_auction_duration_ms` → `nextAuctionDurationMs` in Zustand (via `useAuctionRealtime.ts` room snapshot)
+- `handleStart` in `RoomClient.tsx` uses `nextAuctionDurationMs ?? AUCTION_DURATION_MS` for optimistic timer — do NOT use `isReAuctionRound` flag for duration (it resets after each PLAYER_AWARDED/UNSOLD event)
+- `getNextReAuctionRoundState`: `AUCTION_STARTED` does NOT reset `isReAuctionRound` (only `PLAYER_AWARDED/UNSOLD` resets it)

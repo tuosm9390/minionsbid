@@ -39,7 +39,6 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
     }
 
     let cancelled = false
-    const { rtdb } = getAuctionClientServices()
     const unsubs: (() => void)[] = []
     let myPresenceRef: ReturnType<typeof ref> | null = null
 
@@ -56,6 +55,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
           teamId,
         })
         if (cancelled) return
+        const { rtdb } = getAuctionClientServices()
 
         // 1. 로컬 연결 상태 모니터링 (FR-006)
         const connectedRef = ref(rtdb, '.info/connected')

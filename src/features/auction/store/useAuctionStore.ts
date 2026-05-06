@@ -82,6 +82,7 @@ interface AuctionState {
   roomExists: boolean
   isRoomLoaded: boolean
   isReAuctionRound: boolean
+  nextAuctionDurationMs: number | null
   auctionEventRevision: number
   teams: Team[]
   bids: Bid[]
@@ -129,6 +130,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomExists: true,
   isRoomLoaded: false,
   isReAuctionRound: false,
+  nextAuctionDurationMs: null,
   auctionEventRevision: 0,
   teams: [],
   bids: [],
@@ -147,6 +149,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     teamId: teamId || null,
     roomExists: true,
     isReAuctionRound: false,
+    nextAuctionDurationMs: null,
     auctionEventRevision: 0,
   }),
   setRealtimeData: (data) => set((state) => ({

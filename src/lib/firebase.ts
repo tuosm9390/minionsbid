@@ -29,7 +29,10 @@ export async function ensureRoomFirebaseAuth(args: {
   if (!args.role) return null
 
   const key = `${args.roomId}:${args.role}:${args.teamId ?? ''}`
-  if (auth.currentUser?.uid && roomAuthKey === key) return auth.currentUser.uid
+  if (auth.currentUser?.uid && roomAuthKey === key) {
+    await auth.currentUser.getIdToken()
+    return auth.currentUser.uid
+  }
 
   if (!roomAuthPromise || roomAuthKey !== key) {
     roomAuthKey = key
@@ -48,7 +51,10 @@ export async function ensureRoomFirebaseAuth(args: {
         if (!token) throw new Error('Firebase auth token response missing token')
         return signInWithCustomToken(auth, token)
       })
-      .then((credential) => credential.user.uid)
+      .then(async (credential) => {
+        await credential.user.getIdToken(true)
+        return credential.user.uid
+      })
       .catch((error) => {
         roomAuthPromise = null
         roomAuthKey = null

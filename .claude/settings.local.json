@@ -41,7 +41,9 @@
       "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\development\\\\league-auction\\\\.omc\\\\plans\")",
       "Bash(Out-Null)",
       "Bash(E2E_AUCTION_FIXTURE=1 npx playwright test playwright/auction-realtime.spec.ts)",
-      "mcp__plugin_oh-my-claudecode_t__state_clear"
+      "mcp__plugin_oh-my-claudecode_t__state_clear",
+      "Bash(rtk npx *)",
+      "Bash(rtk npm *)"
     ]
   }
 }

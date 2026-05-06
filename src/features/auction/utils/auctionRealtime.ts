@@ -225,7 +225,6 @@ export function getNextReAuctionRoundState(args: {
   switch (args.eventType) {
     case 'RE_AUCTION_STARTED':
       return true
-    case 'AUCTION_STARTED':
     case 'PLAYER_AWARDED':
     case 'PLAYER_UNSOLD':
       return false
