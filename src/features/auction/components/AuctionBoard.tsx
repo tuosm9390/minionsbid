@@ -19,6 +19,7 @@ import { AuctionWaitingState } from "./board/AuctionWaitingState";
 import { useAuctionStore, Player, Role } from "../store/useAuctionStore";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
 
 interface AuctionBoardProps {
   isLotteryActive: boolean;
@@ -114,6 +115,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const shouldReduceMotion = useReducedMotion();
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const isLocalConnected = useAuctionStore((s) => s.isLocalConnected);
+  const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
 
   const {
     teams,
@@ -284,6 +286,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   {timerEndsAt && currentPlayer && (
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
+                      auctionDurationMs={nextAuctionDurationMs ?? AUCTION_DURATION_MS}
                       onExpire={props.onTimerExpire}
                     />
                   )}

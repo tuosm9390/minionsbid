@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -178,7 +178,6 @@ export function RoomClient({
 
   const handleStart = async () => {
     const optimisticDurationMs = nextAuctionDurationMs ?? AUCTION_DURATION_MS;
-    const previousTimerEndsAt = timerEndsAt;
     const optimisticTimerEndsAt = new Date(
       Date.now() + optimisticDurationMs,
     ).toISOString();
@@ -186,25 +185,24 @@ export function RoomClient({
     try {
       const res = await startAuction(roomId);
       if (res.error) {
-        setRealtimeData({ timerEndsAt: previousTimerEndsAt });
+        // 경매 시작 실패 — 타이머를 원래 상태(null)로 롤백
+        setRealtimeData({ timerEndsAt: null });
         alert(res.error);
         return;
       }
+      // 서버 정본 적용: RTDB 이벤트가 이미 더 최신 값을 적용했을 수 있으므로 가드
       if (res.timerEndsAt) {
         const currentTimerEndsAt = useAuctionStore.getState().timerEndsAt;
-        const nextTimerEndsAt =
-          currentTimerEndsAt &&
-          new Date(currentTimerEndsAt).getTime() >
-            new Date(res.timerEndsAt).getTime()
-            ? currentTimerEndsAt
-            : res.timerEndsAt;
-        setRealtimeData({ timerEndsAt: nextTimerEndsAt });
+        if (
+          !currentTimerEndsAt ||
+          new Date(res.timerEndsAt).getTime() >= new Date(currentTimerEndsAt).getTime()
+        ) {
+          setRealtimeData({ timerEndsAt: res.timerEndsAt });
+        }
       }
     } catch (error) {
-      setRealtimeData({ timerEndsAt: previousTimerEndsAt });
+      setRealtimeData({ timerEndsAt: null });
       throw error;
-    } finally {
-      // isStarting removed as it was unused in UI
     }
   };
 

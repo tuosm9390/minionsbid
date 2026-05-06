@@ -88,7 +88,11 @@ export function useAuctionControl({
   }
 
   useEffect(() => {
-    if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
+    // ORGANIZER와 LEADER 모두 자동 낙찰을 시도한다.
+    // 서버의 awardPlayer는 멱등성을 보장하므로(타이머 미만료/이미 처리 시 무시) 다중 호출에 안전.
+    // LEADER가 참여하면 ORGANIZER 탭이 백그라운드이거나 크래시되어도 복구 가능.
+    const shouldAutoAward = effectiveRole === 'ORGANIZER' || effectiveRole === 'LEADER'
+    if (!shouldAutoAward || !timerEndsAt || !roomId) return
 
     // 타이머가 갱신(연장)됐으므로 이전 낙찰 시도의 lock을 초기화
     awardLock.current = false
@@ -99,8 +103,9 @@ export function useAuctionControl({
     if (!cp) return
 
     const playerId = cp.id
-    // 짧은 grace만 두고 종료 직후 바로 낙찰 처리한다.
-    const delay = Math.max(0, new Date(timerEndsAt).getTime() - Date.now()) + AWARD_GRACE_MS
+    // ORGANIZER는 즉시, LEADER는 추가 대기 후 시도 (중복 최소화)
+    const roleGraceMs = effectiveRole === 'ORGANIZER' ? AWARD_GRACE_MS : AWARD_GRACE_MS + 1_000
+    const delay = Math.max(0, new Date(timerEndsAt).getTime() - Date.now()) + roleGraceMs
 
     let cancelled = false
     const t = setTimeout(async () => {

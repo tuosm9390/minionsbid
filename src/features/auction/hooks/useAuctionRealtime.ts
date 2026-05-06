@@ -347,7 +347,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
       const roomRevision = data.auction_revision ?? 0
       // RTDB 이벤트가 이미 더 최신 상태를 적용했으면 Firestore 스냅샷의 경매 상태값으로 덮어쓰지 않음
-      const snapshotIsCurrentOrNewer = roomRevision >= useAuctionStore.getState().auctionEventRevision
+      // >= 대신 > 사용: 같은 revision의 RTDB 이벤트가 먼저 적용되었을 때 Firestore snapshot이 덮어쓰는 것 방지
+      const snapshotIsCurrentOrNewer = roomRevision > useAuctionStore.getState().auctionEventRevision
 
       setRealtimeData({
         roomName: data.name ?? null,
@@ -358,7 +359,19 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         createdAt: timestampToISO(data.created_at),
         nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
         ...(snapshotIsCurrentOrNewer && {
-          timerEndsAt: timestampToISO(data.timer_ends_at),
+          // 타이머가 연장된 경우 더 과거 값으로 롤백하지 않도록 가드
+          timerEndsAt: (() => {
+            const newTimer = timestampToISO(data.timer_ends_at)
+            const newPlayerId = data.current_player_id ?? null
+            const currentTimer = useAuctionStore.getState().timerEndsAt
+            // 경매 종료(currentPlayerId=null) 시에는 timerEndsAt도 null로 정리
+            if (!newPlayerId) return null
+            // 현재 타이머가 없거나, 새 값이 없거나, 새 값이 현재보다 미래면 적용
+            if (!currentTimer || !newTimer) return newTimer
+            return new Date(newTimer).getTime() >= new Date(currentTimer).getTime()
+              ? newTimer
+              : currentTimer
+          })(),
           currentPlayerId: data.current_player_id ?? null,
         }),
       })

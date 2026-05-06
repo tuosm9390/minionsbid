@@ -7,13 +7,16 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface CenterTimerProps {
   timerEndsAt: string;
+  auctionDurationMs?: number;
   onExpire?: () => void;
 }
 
-export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
+export function CenterTimer({ timerEndsAt, auctionDurationMs, onExpire }: CenterTimerProps) {
   const [now, setNow] = useState(() => Date.now());
+  // auctionDurationMs가 주어지면 progress bar 계산에 사용 (연장 시에도 일관된 비율)
+  // 주어지지 않으면 기존 로직대로 timerEndsAt에서 역산
   const [initialDuration, setInitialDuration] = useState<number>(() =>
-    Math.max(new Date(timerEndsAt).getTime() - Date.now(), 1)
+    auctionDurationMs ?? Math.max(new Date(timerEndsAt).getTime() - Date.now(), 1)
   );
   const hasExpiredRef = useRef(false);
 
@@ -29,9 +32,11 @@ export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
   }, [isUrgent]);
 
   useEffect(() => {
-    setInitialDuration(Math.max(target - Date.now(), 1));
+    // 입찰 연장 시에는 남은 시간으로 initialDuration을 갱신하되,
+    // auctionDurationMs가 있으면 그 값을 우선 사용
+    setInitialDuration(auctionDurationMs ?? Math.max(target - Date.now(), 1));
     hasExpiredRef.current = false;
-  }, [target]);
+  }, [target, auctionDurationMs]);
 
   useEffect(() => {
     if (timeLeftMs > 0 || hasExpiredRef.current) return;
