@@ -9,6 +9,7 @@ import {
 } from '@/features/auction/api/e2eAuctionFixture'
 import {
   buildRoomAuthCookieName,
+  isRoomAuthCookieMatch,
   isValidRoomRole,
   parseRoomAuthCookie,
   ROOM_AUTH_COLLECTION,
@@ -58,11 +59,11 @@ export default async function RoomPage(props: {
 
     if (authCookie) {
       const parsed = parseRoomAuthCookie(authCookie.value)
-      if (parsed) {
+      if (parsed && isRoomAuthCookieMatch({ parsed, role: roleParam, teamId: teamIdParam })) {
         role = parsed.role
         teamId = parsed.teamId
       } else {
-        console.error('Failed to parse auth cookie')
+        console.error('[room-page] auth cookie mismatch')
       }
     }
 

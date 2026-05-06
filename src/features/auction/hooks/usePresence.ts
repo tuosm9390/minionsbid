@@ -45,6 +45,11 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
 
     const run = async () => {
       try {
+        if (role === 'LEADER' && !teamId) {
+          setPresenceLoaded(true)
+          return
+        }
+
         const authUid = await ensureRoomFirebaseAuth({
           roomId,
           role,

@@ -87,6 +87,19 @@ describe('useFirebasePresence', () => {
     expect(set).toHaveBeenCalled()
   })
 
+  it('should not request Firebase auth if leader team id is missing', async () => {
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: null,
+      role: 'LEADER',
+    }))
+
+    await Promise.resolve()
+
+    expect(ensureRoomFirebaseAuth).not.toHaveBeenCalled()
+    expect(setPresenceLoaded).toHaveBeenCalledWith(true)
+  })
+
   it('should subscribe to all presence even if role is VIEWER (FR-001)', async () => {
     renderHook(() => useFirebasePresence({
       roomId: 'room1',

@@ -63,6 +63,23 @@ export function parseRoomAuthCookie(cookieValue: string | undefined) {
   }
 }
 
+export function isRoomAuthCookieMatch(args: {
+  parsed: ReturnType<typeof parseRoomAuthCookie>
+  role: RoomAuthRole
+  teamId?: string | null
+}) {
+  const { parsed, role, teamId } = args
+  if (!parsed || parsed.role !== role) {
+    return false
+  }
+
+  if (role === 'LEADER') {
+    return Boolean(parsed.teamId) && (!teamId || parsed.teamId === teamId)
+  }
+
+  return parsed.teamId === null
+}
+
 function getOrganizerToken(roomData?: Record<string, unknown> | null, roomAuthData?: Record<string, unknown> | null) {
   return typeof roomAuthData?.organizer_token === 'string'
     ? roomAuthData.organizer_token
