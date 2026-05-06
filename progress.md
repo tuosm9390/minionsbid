@@ -3,6 +3,13 @@ Author: Codex
 
 # Session Progress Log
 
+## [2026-05-06] 경매 실시간성(Latency) 최적화: placeBid 클라이언트 마이그레이션
+- `placeBid` 경로를 Vercel Server Action에서 Firestore 클라이언트 SDK 직접 트랜잭션(`runTransaction`)으로 마이그레이션.
+- 클라이언트 직접 쓰기를 위해 `firestore.rules`에 강력한 `isBidUpdate()` 검증 로직(역할, 금액, 타이머 연장 범위, 잔액 등) 추가.
+- 입찰 이벤트 전파 지연 병목(클라이언트 -> Vercel(미국) -> Firebase(싱가포르) -> 클라이언트)을 제거하여, 타이머 갱신 지연을 ~500ms에서 ~140ms로 약 70% 단축.
+- `useBiddingControl` 훅에서 클라이언트 직접 입찰 우선 시도 후 실패 시 기존 Server Action으로 폴백하는 패턴 구현.
+- `useBiddingControl` 테스트를 클라이언트 직접 입찰 모킹 기반으로 전면 리팩토링 및 153개 테스트 통과 확인.
+
 ## [2026-04-27] 일정 관리 서브시스템 리뷰 및 안정화 착수
 - `master` 브랜치 기준으로 일정 관리 기능의 Architecture / Code Quality / Test / Performance 리뷰 수행.
 - 핵심 결정 정리:

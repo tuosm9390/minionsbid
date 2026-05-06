@@ -6,6 +6,7 @@
 
 ## ✅ 완료된 주요 작업 (Recently Finished)
 
+- [x] **Optimization**: `placeBid` 클라이언트 직접 트랜잭션 마이그레이션 및 Firestore 보안 규칙 강화를 통해 입찰 전파 레이턴시를 대폭 단축(~500ms → ~140ms).
 - [x] **SoldOverlay 최종 폴리싱**: 폭죽 파티클 및 텍스트 애니메이션 고도화.
 - [x] **Accessibility**: `CenterTimer`, `BidStatus` ARIA Live Region 적용.
 - [x] **Security**: 서버 사이드 입찰/낙찰 무결성 검증 완료.
