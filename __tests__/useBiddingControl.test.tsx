@@ -132,7 +132,7 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().bids).toEqual([]);
   });
 
-  it("화면상 5초 경계 입찰은 서버 응답 전에도 timerEndsAt을 낙관 연장한다", async () => {
+  it("남은 시간 < 5초(4800ms)이면 서버 응답 전에도 timerEndsAt을 낙관 연장한다", async () => {
     let resolveBid!: (value: { error?: string }) => void;
     (placeBid as Mock).mockImplementation(
       () =>
@@ -144,7 +144,7 @@ describe("useBiddingControl", () => {
     const { result } = renderHook(() =>
       useBiddingControl({
         ...defaultProps,
-        timerEndsAt: new Date(Date.now() + 5200).toISOString(),
+        timerEndsAt: new Date(Date.now() + 4800).toISOString(),
       }),
     );
 

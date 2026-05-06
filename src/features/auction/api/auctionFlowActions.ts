@@ -26,7 +26,6 @@ import {
 import {
   AUCTION_DURATION_MS,
   EXTEND_THRESHOLD_MS,
-  EXTEND_THRESHOLD_GRACE_MS,
   EXTEND_DURATION_MS,
   RE_AUCTION_DURATION_MS,
 } from "@/features/auction/constants/auctionTimings";
@@ -583,7 +582,7 @@ export async function placeBid(
 
       const currentRemaining = timerField.toMillis() - Date.now();
       let nextTimerTimestamp = timerField;
-      if (currentRemaining <= EXTEND_THRESHOLD_MS + EXTEND_THRESHOLD_GRACE_MS) {
+      if (currentRemaining < EXTEND_THRESHOLD_MS) {
         const extended = new Date(Date.now() + EXTEND_DURATION_MS);
         nextTimerTimestamp = admin.firestore.Timestamp.fromDate(extended);
         newTimerEndsAt = extended.toISOString();

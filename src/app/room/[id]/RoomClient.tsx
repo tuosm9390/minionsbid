@@ -147,7 +147,7 @@ export function RoomClient({
     lotteryPlayerId: lotteryPlayer?.id ?? null,
   });
 
-  const { handleCloseLottery } = useAuctionControl({
+  const { handleCloseLottery, triggerAward } = useAuctionControl({
     roomId,
     effectiveRole: effectiveRole ?? "VIEWER",
     players,
@@ -379,6 +379,11 @@ export function RoomClient({
               onCloseLottery={handleStartFromLottery}
               onShowResult={() => setShowResultModal(true)}
               roomId={roomId}
+              onTimerExpire={
+                effectiveRole === "ORGANIZER" && currentPlayerId
+                  ? () => triggerAward(currentPlayerId)
+                  : undefined
+              }
             />
           </div>
 

@@ -315,10 +315,10 @@ describe('placeBid', () => {
     expect(result.timerEndsAt).toBeDefined()
   })
 
-  it('화면상 5초 경계 입찰도 지연 보정으로 타이머 연장', async () => {
+  it('남은 시간 < 5초(4800ms)이면 타이머 연장', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({
-        timer_ends_at: makeTimestamp(Date.now() + 5200),
+        timer_ends_at: makeTimestamp(Date.now() + 4800),
         current_player_id: playerId,
         members_per_team: 5,
         captain_mode: 'IN_ROSTER',

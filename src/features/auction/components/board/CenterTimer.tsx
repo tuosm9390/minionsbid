@@ -12,7 +12,9 @@ interface CenterTimerProps {
 
 export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
   const [now, setNow] = useState(() => Date.now());
-  const [initialDuration, setInitialDuration] = useState<number | null>(null);
+  const [initialDuration, setInitialDuration] = useState<number>(() =>
+    Math.max(new Date(timerEndsAt).getTime() - Date.now(), 1)
+  );
   const hasExpiredRef = useRef(false);
 
   const target = new Date(timerEndsAt).getTime();
@@ -38,9 +40,7 @@ export function CenterTimer({ timerEndsAt, onExpire }: CenterTimerProps) {
   }, [onExpire, timeLeftMs]);
 
   const displayTime = Math.ceil(timeLeftSec);
-  const progress = initialDuration
-    ? Math.min(100, Math.max(0, (timeLeftMs / initialDuration) * 100))
-    : 0;
+  const progress = Math.min(100, Math.max(0, (timeLeftMs / initialDuration) * 100));
   const pad = (n: number) => String(n).padStart(2, "0");
 
   // 매 초 변경 시에만 단발성 shake 트리거 (무한 반복 없음)

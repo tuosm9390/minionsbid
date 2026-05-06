@@ -65,6 +65,7 @@ export function useAuctionBoard({
     tier?: string
     position?: string
   } | null>(null)
+  const [unsoldPlayerName, setUnsoldPlayerName] = useState<string | null>(null)
 
   // ── 파생 데이터 ──
   const connectedLeaderIds = new Set(
@@ -172,6 +173,17 @@ export function useAuctionBoard({
           position: justSold.main_position,
         })
       }
+
+      const justUnsold = players.find((player) => {
+        const prevPlayer = prev.find((p) => p.id === player.id)
+        const wasAuctionTarget =
+          prevPlayer?.status === 'IN_AUCTION' ||
+          prevCurrentPlayerId === player.id
+        return player.status === 'UNSOLD' && wasAuctionTarget
+      })
+      if (justUnsold) {
+        setUnsoldPlayerName(justUnsold.name)
+      }
     }
     prevPlayersRef.current = players
     prevCurrentPlayerIdRef.current = currentPlayerId
@@ -243,6 +255,8 @@ export function useAuctionBoard({
     // 로컬 상태
     soldOverlayData,
     setSoldOverlayData,
+    unsoldPlayerName,
+    setUnsoldPlayerName,
     isProcessingAction,
     isRestarting,
     lotteryDone,

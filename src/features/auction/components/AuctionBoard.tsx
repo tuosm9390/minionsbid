@@ -9,6 +9,7 @@ import {
 import { useAuctionBoard } from "@/features/auction/hooks/useAuctionBoard";
 import { LotteryAnimation } from "./LotteryAnimation";
 import { SoldOverlay } from "./SoldOverlay";
+import { UnsoldNotice } from "./UnsoldNotice";
 import { NoticeBanner } from "./board/NoticeBanner";
 import { CenterTimer } from "./board/CenterTimer";
 import { PlayerInAuction } from "./board/PlayerInAuction";
@@ -28,6 +29,7 @@ interface AuctionBoardProps {
   onCloseLottery: () => void;
   onShowResult: () => void;
   roomId: string;
+  onTimerExpire?: () => void;
 }
 
 type SceneName = "lottery" | "bidding" | "draft" | "finished" | "waiting";
@@ -139,6 +141,8 @@ export function AuctionBoard(props: AuctionBoardProps) {
     handleRestartAuction,
     soldOverlayData,
     setSoldOverlayData,
+    unsoldPlayerName,
+    setUnsoldPlayerName,
     isRestarting,
   } = useAuctionBoard({
     isLotteryActive: props.isLotteryActive,
@@ -280,9 +284,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   {timerEndsAt && currentPlayer && (
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
-                      onExpire={
-                        props.role === "ORGANIZER" ? () => undefined : undefined
-                      }
+                      onExpire={props.onTimerExpire}
                     />
                   )}
                 </div>
@@ -355,16 +357,27 @@ export function AuctionBoard(props: AuctionBoardProps) {
         </AnimatePresence>
       </div>
 
-      {soldOverlayData && (
-        <SoldOverlay
-          playerName={soldOverlayData.playerName}
-          teamName={soldOverlayData.teamName}
-          price={soldOverlayData.price}
-          tier={soldOverlayData.tier}
-          position={soldOverlayData.position}
-          onDismiss={() => setSoldOverlayData(null)}
-        />
-      )}
+      <AnimatePresence>
+        {soldOverlayData && (
+          <SoldOverlay
+            playerName={soldOverlayData.playerName}
+            teamName={soldOverlayData.teamName}
+            price={soldOverlayData.price}
+            tier={soldOverlayData.tier}
+            position={soldOverlayData.position}
+            onDismiss={() => setSoldOverlayData(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {unsoldPlayerName && (
+          <UnsoldNotice
+            playerName={unsoldPlayerName}
+            onDismiss={() => setUnsoldPlayerName(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
