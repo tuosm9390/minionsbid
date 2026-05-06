@@ -37,6 +37,10 @@ import {
   bucketAuctionPlayers,
   isAuctionRoomComplete,
 } from "@/features/auction/store/auctionSelectors";
+import {
+  AUCTION_DURATION_MS,
+  RE_AUCTION_DURATION_MS,
+} from "@/features/auction/constants/auctionTimings";
 
 export function RoomClient({
   roomId,
@@ -62,6 +66,7 @@ export function RoomClient({
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData);
+  const isReAuctionRound = useAuctionStore((s) => s.isReAuctionRound);
   const setReAuctionRound = useAuctionStore((s) => s.setReAuctionRound);
 
   const [isLeaveRoomOpen, setIsLeaveRoomOpen] = useState(false);
@@ -176,10 +181,35 @@ export function RoomClient({
   };
 
   const handleStart = async () => {
+    const optimisticDurationMs = isReAuctionRound
+      ? RE_AUCTION_DURATION_MS
+      : AUCTION_DURATION_MS;
     setReAuctionRound(false);
+    const previousTimerEndsAt = timerEndsAt;
+    const optimisticTimerEndsAt = new Date(
+      Date.now() + optimisticDurationMs,
+    ).toISOString();
+    setRealtimeData({ timerEndsAt: optimisticTimerEndsAt });
     try {
       const res = await startAuction(roomId);
-      if (res.timerEndsAt) setRealtimeData({ timerEndsAt: res.timerEndsAt });
+      if (res.error) {
+        setRealtimeData({ timerEndsAt: previousTimerEndsAt });
+        alert(res.error);
+        return;
+      }
+      if (res.timerEndsAt) {
+        const currentTimerEndsAt = useAuctionStore.getState().timerEndsAt;
+        const nextTimerEndsAt =
+          currentTimerEndsAt &&
+          new Date(currentTimerEndsAt).getTime() >
+            new Date(res.timerEndsAt).getTime()
+            ? currentTimerEndsAt
+            : res.timerEndsAt;
+        setRealtimeData({ timerEndsAt: nextTimerEndsAt });
+      }
+    } catch (error) {
+      setRealtimeData({ timerEndsAt: previousTimerEndsAt });
+      throw error;
     } finally {
       // isStarting removed as it was unused in UI
     }

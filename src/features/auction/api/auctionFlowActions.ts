@@ -23,12 +23,16 @@ import {
   resumeFixtureAuction,
   startFixtureAuction,
 } from "@/features/auction/api/e2eAuctionFixture";
+import {
+  AUCTION_DURATION_MS,
+  EXTEND_THRESHOLD_MS,
+  EXTEND_THRESHOLD_GRACE_MS,
+  EXTEND_DURATION_MS,
+  RE_AUCTION_DURATION_MS,
+} from "@/features/auction/constants/auctionTimings";
 
 // ---------- 상수 ----------
 
-const AUCTION_DURATION_MS = 10_000;
-const EXTEND_THRESHOLD_MS = 5_000;
-const EXTEND_DURATION_MS = 5_000;
 const LATENCY_DEBUG =
   process.env.NEXT_PUBLIC_DEBUG_LATENCY === "1" ||
   process.env.DEBUG_LATENCY === "1";
@@ -580,7 +584,7 @@ export async function placeBid(
 
       const currentRemaining = timerField.toMillis() - Date.now();
       let nextTimerTimestamp = timerField;
-      if (currentRemaining < EXTEND_THRESHOLD_MS) {
+      if (currentRemaining <= EXTEND_THRESHOLD_MS + EXTEND_THRESHOLD_GRACE_MS) {
         const extended = new Date(Date.now() + EXTEND_DURATION_MS);
         nextTimerTimestamp = admin.firestore.Timestamp.fromDate(extended);
         newTimerEndsAt = extended.toISOString();
@@ -1042,7 +1046,7 @@ export async function restartAuctionWithUnsold(
         tx.update(doc.ref, { status: "WAITING" });
       }
       tx.update(roomRef, {
-        next_auction_duration_ms: EXTEND_DURATION_MS,
+        next_auction_duration_ms: RE_AUCTION_DURATION_MS,
         ...roomPatch,
       });
       restartEvent = event;

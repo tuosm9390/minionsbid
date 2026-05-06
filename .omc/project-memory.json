@@ -276,57 +276,69 @@
   },
   "hotPaths": [
     {
-      "path": "src",
-      "accessCount": 4,
-      "lastAccessed": 1777993817404,
-      "type": "directory"
-    },
-    {
-      "path": "src\\features\\auction\\hooks\\useAuctionControl.ts",
-      "accessCount": 3,
-      "lastAccessed": 1777993728519,
+      "path": "src\\features\\auction\\api\\auctionFlowActions.ts",
+      "accessCount": 7,
+      "lastAccessed": 1778035237876,
       "type": "file"
     },
     {
-      "path": "src\\features\\auction\\hooks\\useAuctionBoard.ts",
-      "accessCount": 2,
-      "lastAccessed": 1777984246226,
+      "path": "src",
+      "accessCount": 5,
+      "lastAccessed": 1778034937594,
+      "type": "directory"
+    },
+    {
+      "path": "src\\app\\room\\[id]\\RoomClient.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1778035262682,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\useAuctionControl.ts",
+      "accessCount": 4,
+      "lastAccessed": 1778034921521,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\utils\\auctionRealtime.ts",
+      "accessCount": 4,
+      "lastAccessed": 1778035043145,
+      "type": "directory"
+    },
+    {
+      "path": "",
+      "accessCount": 4,
+      "lastAccessed": 1778035163362,
+      "type": "directory"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\useBiddingControl.ts",
+      "accessCount": 4,
+      "lastAccessed": 1778035288278,
       "type": "file"
     },
     {
       "path": "src\\features\\auction\\hooks\\useAuctionRealtime.ts",
-      "accessCount": 2,
-      "lastAccessed": 1777984246792,
+      "accessCount": 3,
+      "lastAccessed": 1778034921567,
       "type": "file"
     },
     {
       "path": "src\\features\\auction\\components\\AuctionBoard.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1777993756541,
+      "accessCount": 3,
+      "lastAccessed": 1778034936774,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\hooks\\useAuctionBoard.ts",
+      "accessCount": 3,
+      "lastAccessed": 1778034979470,
       "type": "file"
     },
     {
       "path": "src\\features\\auction\\components\\board\\CenterTimer.tsx",
       "accessCount": 1,
       "lastAccessed": 1777981359858,
-      "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 1,
-      "lastAccessed": 1777982572602,
-      "type": "directory"
-    },
-    {
-      "path": "src\\features\\auction\\api\\auctionFlowActions.ts",
-      "accessCount": 1,
-      "lastAccessed": 1777993728381,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\room\\[id]\\RoomClient.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1777993764408,
       "type": "file"
     },
     {
@@ -345,6 +357,54 @@
       "path": "src\\app\\room\\[id]\\components\\OrganizerControlPanel.tsx",
       "accessCount": 1,
       "lastAccessed": 1777993973025,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\tuosm\\.claude\\skills\\gstack\\gstack-upgrade\\SKILL.md",
+      "accessCount": 1,
+      "lastAccessed": 1778034878945,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\tuosm\\.claude\\skills\\review\\checklist.md",
+      "accessCount": 1,
+      "lastAccessed": 1778034909511,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\realtime\\serverAdapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778034930495,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\realtime\\clientAdapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778034930703,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\components\\SoldOverlay.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778034941838,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\hooks",
+      "accessCount": 1,
+      "lastAccessed": 1778034942978,
+      "type": "directory"
+    },
+    {
+      "path": "src\\features\\auction\\constants\\room.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778035170502,
+      "type": "file"
+    },
+    {
+      "path": "src\\features\\auction\\constants\\auctionTimings.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778035187883,
       "type": "file"
     }
   ],

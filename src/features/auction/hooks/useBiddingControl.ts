@@ -11,6 +11,11 @@ import { placeBid } from '@/features/auction/api/auctionActions'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
+import {
+  EXTEND_THRESHOLD_MS,
+  EXTEND_THRESHOLD_GRACE_MS,
+  EXTEND_DURATION_MS,
+} from '@/features/auction/constants/auctionTimings'
 
 interface UseBiddingControlProps {
   roomId: string
@@ -23,8 +28,6 @@ interface UseBiddingControlProps {
   isTeamFull: boolean
 }
 
-const EXTEND_THRESHOLD_MS = 5_000
-const EXTEND_DURATION_MS = 5_000
 const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
 
 function isRealtimeDebugEnabled() {
@@ -146,7 +149,8 @@ export function useBiddingControl({
     const bidClickedAt = Date.now()
     const shouldOptimisticallyExtend =
       !!timerEndsAt &&
-      new Date(timerEndsAt).getTime() - Date.now() < EXTEND_THRESHOLD_MS
+      new Date(timerEndsAt).getTime() - Date.now() <=
+        EXTEND_THRESHOLD_MS + EXTEND_THRESHOLD_GRACE_MS
     const optimisticLiveBid: LiveBidState = {
       player_id: currentPlayer.id,
       team_id: teamId,

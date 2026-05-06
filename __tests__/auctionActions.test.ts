@@ -315,6 +315,22 @@ describe('placeBid', () => {
     expect(result.timerEndsAt).toBeDefined()
   })
 
+  it('화면상 5초 경계 입찰도 지연 보정으로 타이머 연장', async () => {
+    mockDocGet
+      .mockResolvedValueOnce(makeSnap({
+        timer_ends_at: makeTimestamp(Date.now() + 5200),
+        current_player_id: playerId,
+        members_per_team: 5,
+        captain_mode: 'IN_ROSTER',
+      }))
+      .mockResolvedValueOnce(makeSnap({ point_balance: 1000, name: '팀A' }))
+    mockQueryGet
+      .mockResolvedValueOnce(makeQuerySnap([]))
+    const result = await placeBid(roomId, playerId, teamId, 10)
+    expect(result.error).toBeUndefined()
+    expect(result.timerEndsAt).toBeDefined()
+  })
+
   it('GREEN: 남은 시간 > 5초이면 타이머 연장 미실행', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({

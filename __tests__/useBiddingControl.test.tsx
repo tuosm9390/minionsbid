@@ -132,6 +132,36 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().bids).toEqual([]);
   });
 
+  it("화면상 5초 경계 입찰은 서버 응답 전에도 timerEndsAt을 낙관 연장한다", async () => {
+    let resolveBid!: (value: { error?: string }) => void;
+    (placeBid as Mock).mockImplementation(
+      () =>
+        new Promise<{ error?: string }>((resolve) => {
+          resolveBid = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() =>
+      useBiddingControl({
+        ...defaultProps,
+        timerEndsAt: new Date(Date.now() + 5200).toISOString(),
+      }),
+    );
+
+    const pending = act(async () => {
+      await result.current.handleBid();
+    });
+
+    expect(useAuctionStore.getState().timerEndsAt).toBeTruthy();
+    expect(
+      new Date(useAuctionStore.getState().timerEndsAt as string).getTime() -
+        Date.now(),
+    ).toBeGreaterThan(4000);
+
+    resolveBid({ error: undefined });
+    await pending;
+  });
+
   it("handleBid 에러 발생 시 bidError 설정", async () => {
     (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
 
