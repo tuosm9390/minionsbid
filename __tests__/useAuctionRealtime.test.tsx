@@ -23,6 +23,7 @@ const {
 }))
 
 vi.mock('@/lib/firebase', () => ({
+  app: {},
   db: {},
 }))
 

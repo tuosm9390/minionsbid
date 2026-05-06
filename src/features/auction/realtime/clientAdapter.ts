@@ -1,4 +1,4 @@
-import { db as firestoreDb } from '@/lib/firebase'
+import { app, db as firestoreDb } from '@/lib/firebase'
 import { getDatabase, type Database } from 'firebase/database'
 import type { Firestore } from 'firebase/firestore'
 
@@ -21,6 +21,8 @@ export function getAuctionClientServices(): AuctionClientServices {
 
   return {
     firestore: firestoreDb,
-    rtdb: getDatabase(),
+    rtdb: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+      ? getDatabase(app, process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL)
+      : getDatabase(app),
   }
 }

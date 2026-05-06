@@ -56,6 +56,7 @@ type AuctionRoomState = {
     amount: number;
     created_at: string;
   } | null;
+  paused_remaining_ms?: number | null;
   auction_revision?: number;
   last_auction_event?: AuctionEventEnvelope | null;
   members_per_team?: number;
@@ -331,6 +332,9 @@ export async function pauseAuction(
     await getAuctionFirestore().runTransaction(async (tx) => {
       const roomSnap = await tx.get(roomRef);
       const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+      const pausedRemainingMs = roomData.timer_ends_at
+        ? Math.max(0, roomData.timer_ends_at.toMillis() - Date.now())
+        : null;
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
         roomData,
@@ -343,6 +347,7 @@ export async function pauseAuction(
       );
       tx.update(roomRef, {
         timer_ends_at: null,
+        paused_remaining_ms: pausedRemainingMs,
         ...roomPatch,
       });
       pauseEvent = event;
@@ -371,24 +376,31 @@ export async function resumeAuction(
     if (isE2EAuctionFixtureEnabled()) {
       return resumeFixtureAuction(roomId)
     }
-    const timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS);
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     let resumeEvent: AuctionEventEnvelope | null = null;
+    let resolvedTimerEndsAt: string | undefined;
     await getAuctionFirestore().runTransaction(async (tx) => {
       const roomSnap = await tx.get(roomRef);
       const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+      const resumeDurationMs = Math.max(
+        roomData.paused_remaining_ms ?? EXTEND_DURATION_MS,
+        EXTEND_DURATION_MS,
+      );
+      const timerEndsAt = new Date(Date.now() + resumeDurationMs);
+      resolvedTimerEndsAt = timerEndsAt.toISOString();
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
         roomData,
         "AUCTION_RESUMED",
         {
           currentPlayerId: roomData.current_player_id ?? null,
-          timerEndsAt: timerEndsAt.toISOString(),
+          timerEndsAt: resolvedTimerEndsAt,
           liveBid: roomData.active_bid ?? null,
         },
       );
       tx.update(roomRef, {
         timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
+        paused_remaining_ms: null,
         ...roomPatch,
       });
       resumeEvent = event;
@@ -398,11 +410,11 @@ export async function resumeAuction(
       await publishAuctionEvent(event);
       queueSystemMessage(
         roomId,
-        "✅ 팀장이 재연결되었습니다. 5초 후 경매가 재개됩니다.",
+        "✅ 팀장이 재연결되었습니다. 남은 시간으로 경매가 재개됩니다.",
         event.eventId,
       );
     }
-    return { timerEndsAt: timerEndsAt.toISOString() };
+    return { timerEndsAt: resolvedTimerEndsAt };
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
     return { error: message };

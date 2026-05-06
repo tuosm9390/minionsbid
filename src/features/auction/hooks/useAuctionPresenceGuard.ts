@@ -15,6 +15,7 @@ interface UseAuctionPresenceGuardProps {
 }
 
 type GuardPhase = 'idle' | 'pausing' | 'paused' | 'resuming'
+const PRESENCE_DISCONNECT_GRACE_MS = 3_000
 
 export function useAuctionPresenceGuard({
   roomId,
@@ -26,13 +27,36 @@ export function useAuctionPresenceGuard({
   lotteryPlayerId,
 }: UseAuctionPresenceGuardProps) {
   const phaseRef = useRef<GuardPhase>('idle')
+  const pauseTimeoutRef = useRef<number | null>(null)
+  const latestStateRef = useRef({
+    allConnected,
+    currentPlayerId,
+    timerEndsAt,
+    lotteryPlayerId,
+  })
+
+  latestStateRef.current = {
+    allConnected,
+    currentPlayerId,
+    timerEndsAt,
+    lotteryPlayerId,
+  }
 
   useEffect(() => {
+    const clearPendingPause = () => {
+      if (pauseTimeoutRef.current !== null) {
+        window.clearTimeout(pauseTimeoutRef.current)
+        pauseTimeoutRef.current = null
+      }
+    }
+
     if (effectiveRole !== 'ORGANIZER' || !roomId || !isPresenceLoaded) {
+      clearPendingPause()
       return
     }
 
     if (!currentPlayerId) {
+      clearPendingPause()
       phaseRef.current = 'idle'
       return
     }
@@ -41,15 +65,37 @@ export function useAuctionPresenceGuard({
     const isLotteryPhase = !!lotteryPlayerId
 
     if (!allConnected && isAuctionRunning && phaseRef.current === 'idle') {
-      phaseRef.current = 'pausing'
-      void pauseAuction(roomId).then((result) => {
-        if (result.error) {
-          phaseRef.current = 'idle'
-          return
-        }
-        phaseRef.current = 'paused'
-      })
-      return
+      if (pauseTimeoutRef.current === null) {
+        pauseTimeoutRef.current = window.setTimeout(() => {
+          pauseTimeoutRef.current = null
+          const latest = latestStateRef.current
+          if (
+            latest.allConnected ||
+            !latest.currentPlayerId ||
+            !latest.timerEndsAt ||
+            latest.lotteryPlayerId ||
+            phaseRef.current !== 'idle'
+          ) {
+            return
+          }
+
+          phaseRef.current = 'pausing'
+          void pauseAuction(roomId).then((result) => {
+            if (result.error) {
+              phaseRef.current = 'idle'
+              return
+            }
+            phaseRef.current = 'paused'
+          })
+        }, PRESENCE_DISCONNECT_GRACE_MS)
+      }
+      return () => {
+        clearPendingPause()
+      }
+    }
+
+    if (allConnected || !isAuctionRunning || isLotteryPhase) {
+      clearPendingPause()
     }
 
     if (
@@ -66,6 +112,11 @@ export function useAuctionPresenceGuard({
         }
         phaseRef.current = 'idle'
       })
+      return
+    }
+
+    return () => {
+      clearPendingPause()
     }
   }, [
     allConnected,

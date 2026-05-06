@@ -1,5 +1,5 @@
-import { renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuctionPresenceGuard } from './useAuctionPresenceGuard'
 
 const pauseAuction = vi.fn()
@@ -12,9 +12,14 @@ vi.mock('@/features/auction/api/auctionActions', () => ({
 
 describe('useAuctionPresenceGuard', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     vi.clearAllMocks()
     pauseAuction.mockResolvedValue({})
     resumeAuction.mockResolvedValue({ timerEndsAt: new Date().toISOString() })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('organizer가 진행 중 경매에서 연결 이탈을 감지하면 pauseAuction을 호출한다', async () => {
@@ -30,9 +35,12 @@ describe('useAuctionPresenceGuard', () => {
       }),
     )
 
-    await waitFor(() => {
-      expect(pauseAuction).toHaveBeenCalledWith('room-1')
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+      await Promise.resolve()
     })
+
+    expect(pauseAuction).toHaveBeenCalledWith('room-1')
     expect(resumeAuction).not.toHaveBeenCalled()
   })
 
@@ -64,18 +72,22 @@ describe('useAuctionPresenceGuard', () => {
       },
     )
 
-    await waitFor(() => {
-      expect(pauseAuction).toHaveBeenCalledWith('room-1')
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+      await Promise.resolve()
     })
+
+    expect(pauseAuction).toHaveBeenCalledWith('room-1')
 
     rerender({
       allConnected: true,
       timerEndsAt: null,
     })
 
-    await waitFor(() => {
-      expect(resumeAuction).toHaveBeenCalledWith('room-1')
+    await act(async () => {
+      await Promise.resolve()
     })
+    expect(resumeAuction).toHaveBeenCalledWith('room-1')
   })
 
   it('lottery 단계나 organizer가 아닌 경우에는 자동 pause/resume을 호출하지 않는다', async () => {
@@ -92,6 +104,37 @@ describe('useAuctionPresenceGuard', () => {
     )
 
     await Promise.resolve()
+    expect(pauseAuction).not.toHaveBeenCalled()
+    expect(resumeAuction).not.toHaveBeenCalled()
+  })
+
+  it('일시적인 presence 누락은 자동 pause로 처리하지 않는다', async () => {
+    const { rerender } = renderHook(
+      (props: { allConnected: boolean }) =>
+        useAuctionPresenceGuard({
+          roomId: 'room-1',
+          effectiveRole: 'ORGANIZER',
+          isPresenceLoaded: true,
+          allConnected: props.allConnected,
+          currentPlayerId: 'player-1',
+          timerEndsAt: new Date(Date.now() + 10000).toISOString(),
+          lotteryPlayerId: null,
+        }),
+      {
+        initialProps: { allConnected: false },
+      },
+    )
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500)
+    })
+
+    rerender({ allConnected: true })
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+    })
+
     expect(pauseAuction).not.toHaveBeenCalled()
     expect(resumeAuction).not.toHaveBeenCalled()
   })

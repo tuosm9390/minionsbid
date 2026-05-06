@@ -11,6 +11,8 @@ import {
   awardPlayer,
   recoverExpiredAuction,
   startAuction,
+  pauseAuction,
+  resumeAuction,
   draftPlayer,
   deleteRoom,
   saveAuctionArchive,
@@ -423,6 +425,38 @@ describe('recoverExpiredAuction', () => {
 
     expect(result.error).toBeUndefined()
     expect(result.recovered).toBe(true)
+  })
+})
+
+describe('pauseAuction/resumeAuction', () => {
+  const roomId = 'room-1'
+
+  beforeEach(resetMocks)
+
+  it('pause 시 남은 시간을 기록하고 resume 시 5초로 줄이지 않는다', async () => {
+    const pausedAt = Date.now()
+    mockDocGet.mockResolvedValueOnce(
+      makeSnap({
+        current_player_id: 'player-1',
+        timer_ends_at: makeTimestamp(pausedAt + 9000),
+      }),
+    )
+
+    const pauseResult = await pauseAuction(roomId)
+    expect(pauseResult.error).toBeUndefined()
+
+    mockDocGet.mockResolvedValueOnce(
+      makeSnap({
+        current_player_id: 'player-1',
+        paused_remaining_ms: 9000,
+      }),
+    )
+
+    const resumeResult = await resumeAuction(roomId)
+    expect(resumeResult.error).toBeUndefined()
+    expect(resumeResult.timerEndsAt).toBeDefined()
+    const remainingMs = new Date(resumeResult.timerEndsAt as string).getTime() - Date.now()
+    expect(remainingMs).toBeGreaterThan(8000)
   })
 })
 
