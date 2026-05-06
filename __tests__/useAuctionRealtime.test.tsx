@@ -739,6 +739,94 @@ describe('useFirebaseRealtime', () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(11)
   })
 
+  it('last_auction_event 없는 room snapshot이 먼저 와도 같은 revision RTDB 낙찰 이벤트를 무시하지 않는다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    useAuctionStore.setState({
+      auctionEventRevision: 37,
+      timerEndsAt: '2026-05-06T00:39:28.161Z',
+      currentPlayerId: 'player-1',
+      players: [
+        {
+          id: 'player-1',
+          room_id: 'room-1',
+          name: 'Alpha',
+          tier: 'S',
+          main_position: 'TOP',
+          sub_position: '',
+          status: 'IN_AUCTION',
+          team_id: null,
+          sold_price: null,
+          description: '',
+        },
+      ],
+      teams: [
+        {
+          id: 'team-1',
+          room_id: 'room-1',
+          name: 'Team A',
+          point_balance: 100,
+          leader_name: '',
+          leader_position: '',
+          leader_description: '',
+          captain_points: 0,
+        },
+      ],
+      liveBid: {
+        player_id: 'player-1',
+        team_id: 'team-1',
+        amount: 30,
+        created_at: '2026-05-06T00:39:23.091Z',
+      },
+    })
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: null,
+        current_player_id: null,
+        active_bid: null,
+        auction_revision: 38,
+        created_at: { toDate: () => new Date('2026-05-06T00:00:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(37)
+
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'award-38',
+        revision: 38,
+        roomId: 'room-1',
+        type: 'PLAYER_AWARDED',
+        serverCreatedAt: '2026-05-06T00:39:29.700Z',
+        currentPlayerId: null,
+        timerEndsAt: null,
+        liveBid: null,
+        player: {
+          id: 'player-1',
+          status: 'SOLD',
+          team_id: 'team-1',
+          sold_price: 30,
+        },
+        team: {
+          id: 'team-1',
+          point_balance: 70,
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(38)
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull()
+    expect(useAuctionStore.getState().currentPlayerId).toBeNull()
+    expect(useAuctionStore.getState().players[0]).toMatchObject({
+      status: 'SOLD',
+      team_id: 'team-1',
+      sold_price: 30,
+    })
+    expect(useAuctionStore.getState().teams[0].point_balance).toBe(70)
+  })
+
   it('RTDB auctionEvent를 의도적으로 건너뛰어도 room snapshot fallback으로 복구한다', () => {
     window.history.replaceState({}, '', '/?skipAuctionEvent=1')
 

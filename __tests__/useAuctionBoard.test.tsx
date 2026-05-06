@@ -169,6 +169,31 @@ describe("useAuctionBoard", () => {
     });
   });
 
+  it("currentPlayerId만 이전 경매 대상을 가리켜도 SOLD 전환 시 soldOverlayData가 설정된다", () => {
+    useAuctionStore.setState({
+      teams: [makeTeam("team-1", "팀1")],
+      currentPlayerId: "p1",
+      players: [makePlayer("p1", "선수1", "WAITING")],
+    });
+
+    const { result } = renderHook(() => useAuctionBoard(defaultProps));
+
+    act(() => {
+      useAuctionStore.setState({
+        currentPlayerId: null,
+        players: [
+          makePlayer("p1", "선수1", "SOLD", "team-1", 100),
+        ],
+      });
+    });
+
+    expect(result.current.soldOverlayData).toMatchObject({
+      playerName: "선수1",
+      teamName: "팀1",
+      price: 100,
+    });
+  });
+
   it("TC-2: IN_AUCTION→UNSOLD 전환 시 soldOverlayData가 null로 유지된다", () => {
     useAuctionStore.setState({
       teams: [makeTeam("team-1", "팀1")],

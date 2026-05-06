@@ -149,13 +149,18 @@ export function useAuctionBoard({
   // ── SOLD 감지 ──
   // room/players 스냅샷 도달 순서에 무관하게 IN_AUCTION→SOLD 전환을 직접 감지
   const prevPlayersRef = useRef<Player[] | null>(null)
+  const prevCurrentPlayerIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const prev = prevPlayersRef.current
+    const prevCurrentPlayerId = prevCurrentPlayerIdRef.current
     if (prev !== null) {
       const justSold = players.find((player) => {
         const prevPlayer = prev.find((p) => p.id === player.id)
-        return player.status === 'SOLD' && prevPlayer?.status === 'IN_AUCTION'
+        const wasAuctionTarget =
+          prevPlayer?.status === 'IN_AUCTION' ||
+          prevCurrentPlayerId === player.id
+        return player.status === 'SOLD' && wasAuctionTarget
       })
       if (justSold) {
         const team = justSold.team_id ? teamMap.get(justSold.team_id) : null
@@ -169,7 +174,8 @@ export function useAuctionBoard({
       }
     }
     prevPlayersRef.current = players
-  }, [players, teamMap])
+    prevCurrentPlayerIdRef.current = currentPlayerId
+  }, [players, teamMap, currentPlayerId])
 
   useEffect(() => {
     setLotteryDone(false)

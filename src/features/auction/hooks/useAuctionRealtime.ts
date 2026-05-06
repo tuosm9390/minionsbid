@@ -385,8 +385,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             currentPlayerId: next.currentPlayerId,
           })
         }
-      } else if (roomRevision > useAuctionStore.getState().auctionEventRevision) {
-        setAuctionEventRevision(roomRevision)
       }
 
       if (LATENCY_DEBUG && data.timer_ends_at) {
