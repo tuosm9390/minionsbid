@@ -4,7 +4,7 @@
       "$roomId": {
         ".read": true,
         "$sessionId": {
-          ".write": "auth != null && auth.uid === $sessionId && auth.token.roomId === $roomId && (newData.val() == null || ((auth.token.role === 'LEADER' && newData.hasChildren(['role', 'teamId', 'teamName', 'connectedAt']) && newData.child('role').val() === 'LEADER' && newData.child('teamId').val() === auth.token.teamId && newData.child('teamName').isString() && newData.child('connectedAt').exists()) || (auth.token.role === 'ORGANIZER' && newData.hasChildren(['role', 'teamName', 'connectedAt']) && newData.child('role').val() === 'ORGANIZER' && !newData.child('teamId').exists() && newData.child('teamName').isString() && newData.child('connectedAt').exists())))"
+          ".write": "auth != null && auth.uid === $sessionId && (newData.val() == null || newData.child('role').val() === 'LEADER' || newData.child('role').val() === 'ORGANIZER')"
         }
       }
     },
