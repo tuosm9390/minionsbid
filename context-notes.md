@@ -15,3 +15,9 @@
 - After forcing rebuild, `next build` failed because the runner also forced `NODE_ENV=development`. The script no longer overrides `NODE_ENV`; Next can set the correct production build environment while fixture flags remain enabled.
 - After direct fixture bid routing, auction E2E improved to 11/13 passing. The remaining failures are fixture-only issues: concurrent fixture bid requests are not serialized, and chat message revision bumps can mask the latest auction event latency marker. The fix stays inside `e2eAuctionFixture.ts`.
 - Final `npm run test:e2e:auction` passed all 13 Playwright auction realtime tests after the fixture-only fixes.
+- New issue: the user reports player draw / auction start UI appears to progress only while the auction window is focused.
+- Initial code evidence points to `LotteryAnimation`: it calls `onFinished` only after Framer Motion `controls.start()` resolves. Browsers can throttle or pause animation frames for background tabs/windows, so the logical "draw finished" state can wait until focus returns.
+- Keep the fix surgical: do not change Firestore/RTDB contracts or auction actions. Make the UI completion callback advance by elapsed wall-clock time, while preserving the existing animation when the window is focused.
+- Implemented the fix in `LotteryAnimation` only. A guarded wall-clock fallback now marks the draw complete after the same configured duration even if Framer Motion's animation promise is delayed by focus/background throttling.
+- Added `__tests__/LotteryAnimation.test.tsx`, mocking a never-resolving animation promise to verify the completion callback still fires once.
+- Verification command passed: `npx vitest run __tests__/LotteryAnimation.test.tsx __tests__/useAuctionBoard.test.tsx src/features/auction/hooks/useAuctionControl.test.ts`.

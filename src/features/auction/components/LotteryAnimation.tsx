@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   motion,
   AnimatePresence,
@@ -33,6 +33,7 @@ export function LotteryAnimation({
   const [isSpinning, setIsSpinning] = useState(true);
   const [hasFinished, setHasFinished] = useState(false);
   const controls = useAnimationControls();
+  const finishHandledRef = useRef(false);
   const spinItemCount = E2E_AUCTION_FIXTURE ? 2 : shouldReduceMotion ? 8 : VISIBLE_ITEMS;
   const spinDuration = E2E_AUCTION_FIXTURE ? 0.05 : shouldReduceMotion ? 1.05 : 3.6;
   const revealDelay = E2E_AUCTION_FIXTURE ? 50 : shouldReduceMotion ? 180 : 700;
@@ -62,11 +63,35 @@ export function LotteryAnimation({
 
   useEffect(() => {
     let isMounted = true;
+    finishHandledRef.current = false;
+    setIsSpinning(true);
+    setHasFinished(false);
+
+    const finishLottery = () => {
+      if (!isMounted || finishHandledRef.current) return;
+      finishHandledRef.current = true;
+      setIsSpinning(false);
+      setHasFinished(true);
+      onFinished?.();
+    };
+
+    const finishAfterReveal = () => {
+      if (!isMounted || finishHandledRef.current) return;
+      setIsSpinning(false);
+      setHasFinished(true);
+
+      if (E2E_AUCTION_FIXTURE) {
+        finishLottery();
+        return;
+      }
+
+      window.setTimeout(finishLottery, revealDelay);
+    };
 
     const startAnimation = async () => {
       // Small delay before starting to ensure Framer Motion is ready
       await new Promise((resolve) =>
-        setTimeout(resolve, shouldReduceMotion ? 120 : 240),
+        window.setTimeout(resolve, shouldReduceMotion ? 120 : 240),
       );
 
       if (!isMounted) return;
@@ -83,27 +108,21 @@ export function LotteryAnimation({
 
         if (!isMounted) return;
 
-        setIsSpinning(false);
-        setHasFinished(true);
-
-        if (E2E_AUCTION_FIXTURE) {
-          onFinished?.();
-          return;
-        }
-
-        // Additional delay for the winning moment
-        setTimeout(() => {
-          if (isMounted) onFinished?.();
-        }, revealDelay);
+        finishAfterReveal();
       } catch (error) {
         console.error("Animation failed:", error);
       }
     };
 
+    const fallbackDelay =
+      (shouldReduceMotion ? 120 : 240) + spinDuration * 1000 + revealDelay;
+    const fallbackTimer = window.setTimeout(finishLottery, fallbackDelay);
+
     startAnimation();
 
     return () => {
       isMounted = false;
+      window.clearTimeout(fallbackTimer);
       controls.stop();
     };
   }, [
