@@ -41,6 +41,7 @@ type FixtureRoom = {
 
 type FixtureState = {
   rooms: Map<string, FixtureRoom>
+  mutationQueue: Promise<void>
 }
 
 export type FixtureRoomSnapshot = {
@@ -133,9 +134,19 @@ function getGlobalStore() {
 function getFixtureState(): FixtureState {
   const globalStore = getGlobalStore()
   if (!globalStore[FIXTURE_KEY]) {
-    globalStore[FIXTURE_KEY] = { rooms: new Map() }
+    globalStore[FIXTURE_KEY] = { rooms: new Map(), mutationQueue: Promise.resolve() }
   }
   return globalStore[FIXTURE_KEY] as FixtureState
+}
+
+function enqueueFixtureMutation<T>(mutation: () => T | Promise<T>): Promise<T> {
+  const state = getFixtureState()
+  const next = state.mutationQueue.then(mutation, mutation)
+  state.mutationQueue = next.then(
+    () => undefined,
+    () => undefined,
+  )
+  return next
 }
 
 function nowIso() {
@@ -609,73 +620,75 @@ export async function placeFixtureBid(
     serverCompletedAt: number
   }
 }> {
-  try {
-    const room = getRoomOrThrow(roomId)
-    if (room.currentPlayerId !== playerId) return { error: '현재 경매 중인 선수가 아닙니다.' }
-    if (!room.timerEndsAt) return { error: '경매가 진행 중이지 않습니다.' }
-    if (new Date(room.timerEndsAt).getTime() < Date.now() - 500) {
-      return { error: '경매 시간이 종료되었습니다.' }
-    }
+  return enqueueFixtureMutation(() => {
+    try {
+      const room = getRoomOrThrow(roomId)
+      if (room.currentPlayerId !== playerId) return { error: '현재 경매 중인 선수가 아닙니다.' }
+      if (!room.timerEndsAt) return { error: '경매가 진행 중이지 않습니다.' }
+      if (new Date(room.timerEndsAt).getTime() < Date.now() - 500) {
+        return { error: '경매 시간이 종료되었습니다.' }
+      }
 
-    const team = room.teams.find((entry) => entry.id === teamId)
-    if (!team) return { error: '팀을 찾을 수 없습니다.' }
+      const team = room.teams.find((entry) => entry.id === teamId)
+      if (!team) return { error: '팀을 찾을 수 없습니다.' }
 
-    const activeBid =
-      room.liveBid?.player_id === playerId ? room.liveBid : null
-    const bidState = getAuctionBidState({
-      currentBidAmount: activeBid?.amount ?? null,
-      currentBidTeamId: activeBid?.team_id ?? null,
-      teamId,
-    })
+      const activeBid =
+        room.liveBid?.player_id === playerId ? room.liveBid : null
+      const bidState = getAuctionBidState({
+        currentBidAmount: activeBid?.amount ?? null,
+        currentBidTeamId: activeBid?.team_id ?? null,
+        teamId,
+      })
 
-    if (bidState.topBidTeamId === teamId) {
-      return { error: '현재 최고 입찰자입니다. 추가 입찰이 불가합니다.' }
-    }
-    if (amount < bidState.minBid) {
-      return { error: `최소 입찰액은 ${bidState.minBid}P입니다.` }
-    }
-    if (team.point_balance < amount) {
-      return { error: `포인트 부족 (보유: ${team.point_balance}P)` }
-    }
+      if (bidState.topBidTeamId === teamId) {
+        return { error: '현재 최고 입찰자입니다. 추가 입찰이 불가합니다.' }
+      }
+      if (amount < bidState.minBid) {
+        return { error: `최소 입찰액은 ${bidState.minBid}P입니다.` }
+      }
+      if (team.point_balance < amount) {
+        return { error: `포인트 부족 (보유: ${team.point_balance}P)` }
+      }
 
-    const bid: Bid = {
-      id: `bid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      room_id: roomId,
-      player_id: playerId,
-      team_id: teamId,
-      amount,
-      created_at: nowIso(),
-    }
-    room.bids.push(bid)
-    room.liveBid = {
-      player_id: playerId,
-      team_id: teamId,
-      amount,
-      created_at: bid.created_at,
-    }
+      const bid: Bid = {
+        id: `bid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        room_id: roomId,
+        player_id: playerId,
+        team_id: teamId,
+        amount,
+        created_at: nowIso(),
+      }
+      room.bids.push(bid)
+      room.liveBid = {
+        player_id: playerId,
+        team_id: teamId,
+        amount,
+        created_at: bid.created_at,
+      }
 
-    const remainingMs = new Date(room.timerEndsAt).getTime() - Date.now()
-    if (remainingMs < EXTEND_THRESHOLD_MS) {
-      room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
-    }
+      const remainingMs = new Date(room.timerEndsAt).getTime() - Date.now()
+      if (remainingMs < EXTEND_THRESHOLD_MS) {
+        room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
+      }
 
-    appendMessage(room, '시스템', 'SYSTEM', `💰 ${team.name}이 ${amount}P에 입찰했습니다!`)
-    recordFixtureAuctionEvent(room, 'BID_PLACED', {
-      currentPlayerId: playerId,
-      liveBid: clone(room.liveBid),
-    })
+      appendMessage(room, '시스템', 'SYSTEM', `💰 ${team.name}이 ${amount}P에 입찰했습니다!`)
+      recordFixtureAuctionEvent(room, 'BID_PLACED', {
+        currentPlayerId: playerId,
+        liveBid: clone(room.liveBid),
+      })
 
-    return {
-      timerEndsAt: room.timerEndsAt,
-      debug: {
-        eventId: room.lastAuctionEvent?.eventId,
-        serverReceivedAt: Date.now(),
-        serverCompletedAt: Date.now(),
-      },
+      return {
+        timerEndsAt: room.timerEndsAt,
+        debug: {
+          eventId: room.lastAuctionEvent?.eventId,
+          serverReceivedAt: Date.now(),
+          serverCompletedAt: Date.now(),
+        },
+      }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
     }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : '알 수 없는 오류' }
-  }
+  })
 }
 
 export async function awardFixturePlayer(roomId: string, playerId: string): Promise<{ error?: string }> {
@@ -866,7 +879,6 @@ export async function sendFixtureChatMessage(
       content: content.trim(),
       created_at: nowIso(),
     })
-    nextRevision(room)
     return {}
   } catch (err) {
     return { error: err instanceof Error ? err.message : '알 수 없는 오류' }

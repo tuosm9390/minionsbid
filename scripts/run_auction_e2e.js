@@ -1,7 +1,5 @@
 const { spawn } = require('node:child_process')
 const net = require('node:net')
-const fs = require('node:fs')
-const path = require('node:path')
 const process = require('node:process')
 
 const port = 3015
@@ -11,7 +9,6 @@ const nodeExec = process.execPath
 
 const sharedEnv = {
   ...process.env,
-  NODE_ENV: 'development',
   E2E_SCHEDULE_FIXTURE: '1',
   E2E_AUCTION_FIXTURE: '1',
   NEXT_PUBLIC_E2E_AUCTION_FIXTURE: '1',
@@ -54,21 +51,18 @@ function waitForServer(timeoutMs = 30_000) {
 }
 
 async function main() {
-  const buildIdPath = path.join(process.cwd(), '.next', 'BUILD_ID')
-  if (!fs.existsSync(buildIdPath)) {
-    const build = spawn(nodeExec, ['./node_modules/next/dist/bin/next', 'build'], {
-      cwd: process.cwd(),
-      env: sharedEnv,
-      stdio: 'inherit',
-      windowsHide: true,
-    })
-    const buildExitCode = await new Promise((resolve, reject) => {
-      build.once('error', reject)
-      build.once('exit', (code) => resolve(code ?? 1))
-    })
-    if (buildExitCode !== 0) {
-      process.exit(buildExitCode)
-    }
+  const build = spawn(nodeExec, ['./node_modules/next/dist/bin/next', 'build'], {
+    cwd: process.cwd(),
+    env: sharedEnv,
+    stdio: 'inherit',
+    windowsHide: true,
+  })
+  const buildExitCode = await new Promise((resolve, reject) => {
+    build.once('error', reject)
+    build.once('exit', (code) => resolve(code ?? 1))
+  })
+  if (buildExitCode !== 0) {
+    process.exit(buildExitCode)
   }
 
   const server = spawn(

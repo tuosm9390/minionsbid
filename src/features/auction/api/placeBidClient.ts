@@ -21,6 +21,11 @@ interface PlaceBidDirectResult {
   error?: string
 }
 
+type FixtureBidResponse = {
+  timerEndsAt?: string | null
+  error?: string
+}
+
 /**
  * Firestore 클라이언트 SDK를 사용하여 직접 입찰하는 함수.
  * Vercel Server Action을 경유하지 않으므로 지연이 크게 감소한다.
@@ -32,6 +37,30 @@ export async function placeBidDirect(
   args: PlaceBidDirectArgs,
 ): Promise<PlaceBidDirectResult> {
   const { roomId, playerId, teamId, amount } = args
+  if (process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1') {
+    const response = await fetch('/api/e2e/auction-fixture/command', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        roomId,
+        action: 'placeBid',
+        playerId,
+        teamId,
+        amount,
+      }),
+    })
+    const result = (await response.json().catch(() => ({
+      error: 'fixture bid failed',
+    }))) as FixtureBidResponse
+    if (!response.ok) {
+      return { error: result.error ?? 'fixture bid failed' }
+    }
+    return {
+      timerEndsAt: result.timerEndsAt ?? null,
+      error: result.error,
+    }
+  }
+
   const { firestore } = getAuctionClientServices()
   const roomRef = doc(firestore, 'rooms', roomId)
 

@@ -208,7 +208,20 @@ function buildCollectionRef(collectionName: string, parentId?: string) {
   }
 }
 
-const mockRunTransaction = vi.fn(async (fn: (tx: any) => Promise<void>) => {
+type MockTransaction = {
+  get: (ref: { get: () => Promise<unknown> }) => Promise<unknown>
+  set: (
+    ref: { set: (data: DocData, options?: { merge?: boolean }) => Promise<void> },
+    data: DocData,
+    options?: { merge?: boolean },
+  ) => Promise<void>
+  update: (
+    ref: { update: (data: DocData) => Promise<void> },
+    data: DocData,
+  ) => Promise<void>
+}
+
+const mockRunTransaction = vi.fn(async (fn: (tx: MockTransaction) => Promise<unknown>) => {
   const tx = {
     get: (ref: { get: () => Promise<unknown> }) => ref.get(),
     set: (ref: { set: (data: DocData, options?: { merge?: boolean }) => Promise<void> }, data: DocData, options?: { merge?: boolean }) =>
