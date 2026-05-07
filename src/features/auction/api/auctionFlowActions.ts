@@ -517,6 +517,7 @@ export async function placeBid(
 ): Promise<{
   error?: string;
   timerEndsAt?: string;
+  revision?: number;
   debug?: {
     eventId?: string;
     serverReceivedAt: number;
@@ -553,6 +554,7 @@ export async function placeBid(
     let timerSignalSentAt: number | undefined;
     let messagePersistedAt: number | undefined;
     let newTimerEndsAt: string | undefined;
+    let newRevision: number | undefined;
     let bidEvent: AuctionEventEnvelope | null = null;
     let bidEventId: string | undefined;
     let winningTeamName = "";
@@ -647,6 +649,7 @@ export async function placeBid(
           liveBid,
         },
       );
+      newRevision = event.revision;
 
       tx.set(bidHistoryRef.doc(event.eventId), {
         event_id: event.eventId,
@@ -715,6 +718,7 @@ export async function placeBid(
 
     return {
       timerEndsAt: newTimerEndsAt,
+      revision: newRevision,
       debug: {
         eventId: bidEventId,
         serverReceivedAt,

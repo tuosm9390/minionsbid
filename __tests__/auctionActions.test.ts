@@ -296,6 +296,7 @@ describe('placeBid', () => {
       .mockResolvedValueOnce(makeQuerySnap([])) // soldCount=0
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toBeUndefined()
+    expect(result.revision).toBe(1)
     expect(mockRunTransaction).toHaveBeenCalled()
   })
 

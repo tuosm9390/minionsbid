@@ -29,3 +29,7 @@
 - [x] Align fixture direct-bid command with forced timer reset intent.
 - [x] Add focused tests for forced reset intent on short timers.
 - [x] Run relevant bidding/action tests.
+- [x] Confirm whether chat updates can directly mutate auction timer state.
+- [x] Add a regression test for non-first bidder timer staying extended after chat/event fanout.
+- [x] Apply the smallest realtime convergence fix if the test exposes a stale overwrite path.
+- [x] Run relevant auction realtime tests and build.

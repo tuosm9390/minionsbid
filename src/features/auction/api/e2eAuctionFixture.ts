@@ -615,6 +615,7 @@ export async function placeFixtureBid(
 ): Promise<{
   error?: string
   timerEndsAt?: string
+  revision?: number
   debug?: {
     eventId?: string
     serverReceivedAt: number
@@ -680,6 +681,7 @@ export async function placeFixtureBid(
 
       return {
         timerEndsAt: room.timerEndsAt,
+        revision: room.revision,
         debug: {
           eventId: room.lastAuctionEvent?.eventId,
           serverReceivedAt: Date.now(),

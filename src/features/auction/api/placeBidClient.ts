@@ -28,6 +28,7 @@ interface PlaceBidDirectResult {
 
 type FixtureBidResponse = {
   timerEndsAt?: string | null
+  revision?: number
   error?: string
 }
 
@@ -63,6 +64,7 @@ export async function placeBidDirect(
     }
     return {
       timerEndsAt: result.timerEndsAt ?? null,
+      revision: result.revision,
       error: result.error,
     }
   }

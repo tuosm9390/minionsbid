@@ -197,6 +197,9 @@ export function useBiddingControl({
           if (res.timerEndsAt) {
             setRealtimeData({ timerEndsAt: res.timerEndsAt })
           }
+          if (typeof res.revision === 'number' && res.revision > 0) {
+            setAuctionEventRevision(res.revision)
+          }
         }
       } else {
         // 클라이언트 직접 입찰 성공

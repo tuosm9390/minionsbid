@@ -165,6 +165,24 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(12);
   });
 
+  it("Server Action 폴백 성공 시 반환된 revision을 로컬 적용 revision으로 기록한다", async () => {
+    const newTimerEndsAt = new Date(Date.now() + 5000).toISOString();
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct-failed" });
+    (placeBid as Mock).mockResolvedValue({
+      timerEndsAt: newTimerEndsAt,
+      revision: 13,
+    });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+
+    await act(async () => {
+      await result.current.handleBid();
+    });
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(13);
+  });
+
   it("남은 시간이 5초보다 길면 서버 응답 전 timerEndsAt을 낙관 리셋하지 않는다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
