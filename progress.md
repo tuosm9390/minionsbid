@@ -3,6 +3,21 @@ Author: Codex
 
 # Session Progress Log
 
+## [2026-05-07] 프로젝트 상태 재점검 및 문서 동기화
+- `master` 기준 워킹 트리가 깨끗한 상태임을 확인.
+- 현재 단위 테스트 전체 실행 결과:
+  - `npm run test`
+  - 21개 test file / 153개 test 모두 통과
+- 경매 E2E 확인 시도:
+  - `npm run test:e2e:auction`
+  - 184초 제한에서 timeout되어 이번 문서 갱신 시점에는 완료 검증하지 못함
+- 현재 구현 기준 핵심 상태를 문서에 반영:
+  - 입찰 1차 경로는 `placeBidDirect()`의 Firestore 클라이언트 SDK 직접 transaction
+  - 실패 시 기존 `placeBid` Server Action으로 fallback
+  - direct bid 보안 경계는 `/api/room-auth/firebase-token` custom token claim과 `firestore.rules`의 `isBidUpdate()` / `isBidHistoryCreate()`가 담당
+  - Firestore room 문서는 canonical hot state, RTDB는 서버 발행 이벤트 fanout이라는 원칙은 유지
+- 경매 E2E timeout과 운영 latency 관측 부재는 후속 추적 항목으로 유지.
+
 ## [2026-05-06] 경매 실시간성(Latency) 최적화: placeBid 클라이언트 마이그레이션
 - `placeBid` 경로를 Vercel Server Action에서 Firestore 클라이언트 SDK 직접 트랜잭션(`runTransaction`)으로 마이그레이션.
 - 클라이언트 직접 쓰기를 위해 `firestore.rules`에 강력한 `isBidUpdate()` 검증 로직(역할, 금액, 타이머 연장 범위, 잔액 등) 추가.

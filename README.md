@@ -79,6 +79,15 @@ npm run migrate:room-auth-secrets
 
 ## 운영 스크립트
 
+### Direct bid hot path
+
+입찰은 레이턴시를 줄이기 위해 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction으로 먼저 처리합니다.
+
+- 성공 시 Firestore room canonical state와 `bids` history가 직접 갱신된다.
+- 실패 시 기존 `placeBid` Server Action으로 fallback한다.
+- direct bid 보안은 `/api/room-auth/firebase-token` custom token claim과 `firestore.rules`의 `isBidUpdate()` / `isBidHistoryCreate()`가 담당한다.
+- 추첨, 시작, 일시정지, 낙찰, 유찰, 재경매 같은 운영 액션은 계속 Server Action 경유다.
+
 ### Optional auction watchdog
 
 기본 경매 흐름은 organizer 상시 참여 + presence guard를 전제로 동작합니다. 팀장 연결이 끊기면 organizer 화면이 즉시 경매를 일시정지하고, 재연결되면 다시 재개합니다.
@@ -172,8 +181,13 @@ src/
 - [`DESIGN.md`](./DESIGN.md): Cyber-Pixel 디자인 시스템
 - [`doc/ARCHITECTURE.md`](./doc/ARCHITECTURE.md): 아키텍처 메모
 - [`doc/AUCTION_LOGIC.md`](./doc/AUCTION_LOGIC.md): 경매 로직 설명
+- [`doc/AUCTION_REALTIME_CONTRACT.md`](./doc/AUCTION_REALTIME_CONTRACT.md): 경매 실시간 정합성 계약
+- [`doc/SECURITY.md`](./doc/SECURITY.md): Firebase / Server Action / direct bid 보안 경계
+- [`doc/TECH_STATE_SNAPSHOT.md`](./doc/TECH_STATE_SNAPSHOT.md): 현재 기술 상태 스냅샷
+- [`progress.md`](./progress.md): 세션별 진행 로그
+- [`TODOS.md`](./TODOS.md): 완료 항목과 후속 작업 추적
 
 ## 비고
 
 이 프로젝트는 일반적인 계정 시스템 대신 역할 기반 토큰 링크를 사용해 방에 입장합니다.  
-중요한 상태 변경은 Next.js Server Actions와 Firebase Admin SDK를 통해 서버에서 처리됩니다.
+대부분의 상태 변경은 Next.js Server Actions와 Firebase Admin SDK를 통해 서버에서 처리됩니다. 입찰 hot path만 레이턴시 최적화를 위해 Firestore client transaction을 허용하며, 이 경로는 custom token claim과 Firestore Security Rules가 검증합니다.

@@ -1,15 +1,18 @@
 # 보안 메모 — Minions Bid
 
 작성일: 2026-04-27
+최근 갱신: 2026-05-07
 대상: Firebase / Server Action 경계
 
 ---
 
 ## 1. 현재 보안 모델
 
-- 중요한 변경은 Next.js Server Actions + Firebase Admin SDK로 처리한다.
+- 중요한 변경은 기본적으로 Next.js Server Actions + Firebase Admin SDK로 처리한다.
+- 예외적으로 입찰 hot path는 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction을 1차 경로로 사용한다.
+- direct bid 쓰기는 `/api/room-auth/firebase-token`이 발급한 Firebase custom token claim과 `firestore.rules`의 `isBidUpdate()` / `isBidHistoryCreate()`로 제한한다.
 - 리그 일정 관리 변경은 서버 공통 관리자 가드로 보호된다.
-- Firestore rules는 공개 읽기 컬렉션과 관리자 쓰기 컬렉션을 구분하는 최소 경계만 담당한다.
+- Firestore rules는 공개 읽기 컬렉션, 서버/관리자 쓰기 컬렉션, LEADER direct bid 쓰기 예외를 구분한다.
 
 현재 공개 읽기 대상:
 - `league_schedules`
@@ -24,6 +27,7 @@
 
 현재 쓰기 대상:
 - 위 컬렉션의 쓰기는 `admin` custom claim 또는 서버 경유만 허용하는 방향을 유지한다.
+- 예외: `rooms/{roomId}`의 `active_bid`, `timer_ends_at`, `auction_revision` 변경과 `rooms/{roomId}/bids` 생성은 LEADER custom token claim이 있고 rules 검증을 통과한 경우에만 클라이언트 직접 쓰기를 허용한다.
 
 ---
 
@@ -43,20 +47,21 @@
 
 ---
 
-## 3. 경매방 Firestore 리스크
+## 3. 경매방 Firestore 상태
 
-현재 가장 큰 보안 부채는 `rooms` 계층이다.
+2026-04-27 이후 `rooms` 계층의 역할 토큰 노출 리스크는 1차 정리되었다.
 
-문제:
-- legacy 데이터에서는 `rooms` 문서에 `organizer_token`, `viewer_token`이 함께 저장될 수 있음
-- legacy 데이터에서는 `rooms/{roomId}/teams/{teamId}` 문서에 `leader_token`이 함께 저장될 수 있음
-- 동시에 클라이언트는 Firestore `onSnapshot`으로 `rooms`, `teams`, `players`, `messages`, `bids`를 직접 구독함
+완료된 조치:
+- 신규 방 생성은 `room_auth_secrets/{roomId}` + `team_tokens/{teamId}`에 역할 토큰을 저장한다.
+- 공개 `rooms` / `teams` 문서에는 신규 토큰 필드를 더 이상 쓰지 않는다.
+- legacy cleanup으로 기존 public room/team token 필드를 제거했다.
+- `room_auth_secrets`와 `team_tokens`는 client read/write를 모두 차단한다.
+- top-level `rooms` list는 차단하고, room id를 아는 클라이언트의 단건 read와 하위 구독 read만 허용한다.
+- LEADER direct bid는 custom token claim 기반 rules로 쓰기 범위를 좁혔다.
 
-의미:
-- `rooms/*`를 공개 read로 열면 역할 토큰이 그대로 노출된다
-- `rooms/*`를 닫으면 현재 클라이언트 실시간 구독 구조가 동작하지 않는다
-
-즉, 이 문제는 rules 한 줄로 해결되지 않는다.
+남은 리스크:
+- room id를 아는 클라이언트는 `rooms/{roomId}` 단건과 `teams`, `players`, `messages`, `bids` 하위 컬렉션을 읽을 수 있다.
+- direct bid rules는 Firestore rules 표현력 안에서 방/역할/팀/금액/타이머/잔액을 검증하지만, 더 세밀한 read authorization까지 완성한 상태는 아니다.
 
 ---
 
@@ -64,21 +69,7 @@
 
 ### 4.1. 1순위
 
-`rooms` 계층에서 민감 토큰을 분리해야 한다.
-
-권장 방향:
-- 공개 문서: 화면 렌더링에 필요한 room/team/player/message/bid 정보만 유지
-- 비공개 문서: organizer/viewer/leader token과 권한 판별 정보 저장
-- `/api/room-auth`는 비공개 문서를 기준으로 검증
-
-예시 구조:
-
-```text
-rooms/{roomId}
-rooms/{roomId}/teams/{teamId}
-rooms_private/{roomId}
-rooms_private/{roomId}/team_auth/{teamId}
-```
+`rooms` 계층의 민감 토큰 분리는 완료된 상태로 유지해야 한다.
 
 2026-04-27 구현 상태:
 - 신규 방 생성은 `room_auth_secrets/{roomId}` + `team_tokens/{teamId}`에 토큰 저장
@@ -89,9 +80,15 @@ rooms_private/{roomId}/team_auth/{teamId}
 - legacy cleanup 실행 결과: 4개 room, 8개 team 문서의 public token 필드 정리 완료
 - auth 감사 스크립트: `npm run audit:room-auth-secrets`
 
+2026-05-06 추가 구현 상태:
+- `/api/room-auth/firebase-token`이 room cookie 검증 후 Firebase custom token을 발급
+- LEADER token claim: `roomId`, `role`, `teamId`
+- `isBidUpdate(roomId)`는 변경 가능 필드를 `active_bid`, `timer_ends_at`, `auction_revision`으로 제한
+- `isBidHistoryCreate(roomId)`는 LEADER의 bid history 생성만 제한적으로 허용
+
 ### 4.2. 2순위
 
-Firebase client auth 또는 최소한 custom token 기반 식별을 도입해 rules에서 역할별 읽기 범위를 더 세밀하게 제한할지 검토.
+현재 direct bid에 도입된 custom token 기반 식별을 read rules까지 확장할지 검토.
 
 ### 4.3. 3순위
 
@@ -108,6 +105,7 @@ Firebase client auth 또는 최소한 custom token 기반 식별을 도입해 ru
 - 경매방 쪽은 신규 데이터 기준 token segregation의 핵심 경로를 반영했다.
 - legacy room/team 문서에 남아 있던 public token 필드도 정리 완료했다.
 - Firestore rules는 `rooms` 컬렉션 전체 list는 막고, `roomId`를 아는 경우의 room 단건 조회와 하위 실시간 구독 컬렉션만 공개 read로 허용하도록 좁혔다.
+- 입찰 hot path는 client direct transaction을 허용하지만, LEADER custom token claim과 rules 검증을 통과한 제한된 필드/문서 쓰기만 가능하다.
 - 위 rules는 2026-04-27에 Firebase 프로젝트 `gen-lang-client-0499827443`의 `minionsbid` named database까지 배포 완료.
 - 라이브 스모크 검증 결과:
   - `rooms/{roomId}` 단건 조회 허용

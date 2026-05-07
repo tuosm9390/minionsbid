@@ -6,6 +6,7 @@
 
 ## ✅ 완료된 주요 작업 (Recently Finished)
 
+- [x] **Documentation**: 2026-05-07 기준 프로젝트 상태를 재점검하고 진행/아키텍처/보안/실시간 계약 문서를 현재 direct bid 구조에 맞게 동기화.
 - [x] **Optimization**: `placeBid` 클라이언트 직접 트랜잭션 마이그레이션 및 Firestore 보안 규칙 강화를 통해 입찰 전파 레이턴시를 대폭 단축(~500ms → ~140ms).
 - [x] **Security**: `rooms` / `teams` 공개 문서에서 토큰을 분리하고(rooms token segregation), Firestore read rules를 재설계하여 보안 강화 및 토큰 노출 완벽 차단.
 - [x] **Documentation**: 경매 실시간 동기화 상태와 규칙(Firestore 정본, RTDB 역할 등)을 정리한 `AUCTION_REALTIME_CONTRACT.md` 문서화 완료.
@@ -40,11 +41,11 @@
 
 ### [ ] Firebase client identity 모델 고도화
 
-- **What**: Firebase Auth 또는 custom token 기반 식별을 도입해 room read 범위를 역할별로 더 세밀하게 제한할지 검토한다.
-- **Why**: 현재는 `roomId`를 아는 클라이언트의 room 단건 read와 하위 구독 read를 허용한다. 토큰 노출은 막았지만, 장기적으로는 식별 기반 rules가 더 안전하다.
+- **What**: 현재 direct bid에 쓰는 custom token claim 모델을 확장해 room read 범위까지 역할별로 더 세밀하게 제한할지 검토한다.
+- **Why**: 2026-05-07 기준 LEADER 직접 입찰은 `/api/room-auth/firebase-token`이 발급한 custom token과 Firestore rules claim 검증으로 보호된다. 다만 room 단건 read와 하위 구독 read는 여전히 `roomId`를 아는 클라이언트에게 열려 있다. 토큰 노출은 막았지만, 장기적으로는 읽기 범위도 식별 기반 rules가 더 안전하다.
 - **Pros**: room read 범위를 더 줄일 수 있고, 역할별 접근 제어가 rules 수준에서 더 명확해진다.
 - **Cons**: 계정/세션/토큰 발급 흐름이 복잡해지고 기존 링크 입장 모델과의 조율이 필요하다.
-- **Context**: 2026-04-27 기준 private auth 문서 분리, legacy cleanup, named database `minionsbid` rules 배포, live smoke 검증은 끝났다. 다음 단계는 “누가 읽는가”를 rules가 더 정확히 알게 하는 것이다.
+- **Context**: 2026-04-27 기준 private auth 문서 분리, legacy cleanup, named database `minionsbid` rules 배포, live smoke 검증은 끝났다. 2026-05-06에는 direct bid를 위해 LEADER custom token 쓰기 경계가 추가됐다. 다음 단계는 “누가 읽는가”를 rules가 더 정확히 알게 하는 것이다.
 
 ### [ ] final-second 경매 E2E flaky 추가 완화
 
@@ -52,7 +53,7 @@
 - **Why**: 현재 `master` 기준 CI는 통과하지만, `auction-realtime-ci` PR 환경에서는 runner 속도 차이 때문에 final-second 시나리오가 간헐적으로 흔들렸다.
 - **Pros**: PR CI false negative를 줄이고, 실시간 경매 핵심 회귀 테스트의 신뢰도를 더 높일 수 있다.
 - **Cons**: 테스트 전용 fixture/clock 제어가 늘어나면 구현이 조금 더 복잡해질 수 있다.
-- **Context**: 2026-04-29 기준 마지막 1초 시나리오는 입찰자 화면 기준 타이머와 버튼 활성 상태를 확인하도록 안정화했고, `master` merge CI는 성공했다. 다만 runner 성능 의존성이 남아 있을 수 있으므로 장기적으로는 mock clock, 명시적 fixture phase, 또는 timer freeze 훅 같은 더 강한 제어 수단을 검토할 가치가 있다.
+- **Context**: 2026-04-29 기준 마지막 1초 시나리오는 입찰자 화면 기준 타이머와 버튼 활성 상태를 확인하도록 안정화했고, `master` merge CI는 성공했다. 2026-05-07 로컬 확인에서는 `npm run test:e2e:auction`이 184초 제한에서 timeout되어 완료 결과를 확보하지 못했다. runner 성능 의존성이 남아 있으므로 mock clock, 명시적 fixture phase, 또는 timer freeze 훅 같은 더 강한 제어 수단을 검토할 가치가 있다.
 
 ### [ ] 경매 realtime 운영 latency 관측 체계
 
