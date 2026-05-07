@@ -66,6 +66,7 @@ export function useAuctionBoard({
     position?: string
   } | null>(null)
   const [unsoldPlayerName, setUnsoldPlayerName] = useState<string | null>(null)
+  const lotteryPlayerId = lotteryPlayer?.id ?? null
 
   // ── 파생 데이터 ──
   const connectedLeaderIds = new Set(
@@ -191,7 +192,7 @@ export function useAuctionBoard({
 
   useEffect(() => {
     setLotteryDone(false)
-  }, [lotteryPlayer])
+  }, [lotteryPlayerId])
 
   useEffect(() => {
     if (E2E_AUCTION_FIXTURE && isLotteryActive) {

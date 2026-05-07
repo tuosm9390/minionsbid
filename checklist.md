@@ -45,3 +45,7 @@
 - [x] Comment out existing bid timer overwrite behavior in realtime convergence.
 - [x] Update focused realtime tests for the accumulation experiment.
 - [x] Run focused auction realtime tests and build if needed.
+- [x] Reproduce lottery completion reset when unrelated chat/message state changes.
+- [x] Make lottery completion state reset only when the drawn player identity changes.
+- [x] Add regression coverage for chat-independent lottery completion.
+- [x] Run focused auction board and realtime checks.
