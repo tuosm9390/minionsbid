@@ -96,11 +96,17 @@ else:
 leader click bid
   -> client local optimistic UI
   -> client placeBidDirect() Firestore transaction
-  -> Firestore room canonical state update
-  -> bid history append
-  -> Firestore room snapshot propagates to clients
+  -> Firestore room canonical state update (active_bid, timer_ends_at, auction_revision)
+  -> bid history append (rooms/{roomId}/bids)
   -> if direct bid fails: fallback to server placeBid() transaction
-  -> server fallback path publishes RTDB auctionEvent
+       -> server publishes RTDB auctionEvent + system message (동기)
+  -> if direct bid succeeds:
+       -> fire-and-forget broadcastBidEvent() Server Action
+            -> last_auction_event 저장
+            -> RTDB auctionEvent 발행
+            -> system message 생성
+       -> Firestore onSnapshot이 즉시 전파 (1차 전파)
+       -> broadcastBidEvent의 RTDB 이벤트가 뒤따라 전파 (2차 전파)
   -> all clients converge on newer revision
   -> Firestore room snapshot / last_auction_event fallback heal where applicable
   -> Firestore players/teams/messages reconcile
@@ -110,7 +116,8 @@ leader click bid
 
 - 입찰자는 즉시 반응해도 된다.
 - 다른 화면이 같은 상태를 보는 기준은 Firestore room canonical fields와 `auction_revision`이다.
-- Server Action fallback 경로에서는 서버가 발행한 RTDB envelope가 빠른 fanout 기준이 된다.
+- direct bid 경로에서도 `broadcastBidEvent`를 통해 RTDB envelope를 비동기 발행하여 타이머와 입찰 로그가 모든 클라이언트에 빠르게 전파된다.
+- Server Action fallback 경로에서는 서버가 동기적으로 발행한 RTDB envelope가 빠른 fanout 기준이 된다.
 - RTDB를 놓친 화면은 `rooms/{roomId}.last_auction_event`와 room canonical fields로 빠르게 회복해야 한다.
 - Firestore snapshot은 나중에 와도 같은 결과로 수렴해야 한다.
 

@@ -8,12 +8,12 @@ import type { Player, Team } from "@/features/auction/store/useAuctionStore";
 
 vi.mock("@/features/auction/api/auctionActions", () => ({
   placeBid: vi.fn(),
-  sendChatMessage: vi.fn().mockResolvedValue({}),
+  broadcastBidEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 // placeBidDirect는 기본적으로 성공 반환 (클라이언트 직접 입찰 경로 테스트)
 vi.mock("@/features/auction/api/placeBidClient", () => ({
-  placeBidDirect: vi.fn().mockResolvedValue({ timerEndsAt: null }),
+  placeBidDirect: vi.fn().mockResolvedValue({ timerEndsAt: null, revision: 1 }),
 }));
 
 describe("useBiddingControl", () => {

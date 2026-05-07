@@ -169,6 +169,51 @@ function queueSystemMessage(roomId: string, content: string, eventId: string) {
   });
 }
 
+/**
+ * 클라이언트 직접 입찰(placeBidDirect) 성공 후 호출.
+ * RTDB에 BID_PLACED 이벤트를 전파하고 시스템 메시지를 생성한다.
+ * fire-and-forget으로 호출되므로 입찰 레이턴시에 영향을 주지 않는다.
+ */
+export async function broadcastBidEvent(
+  roomId: string,
+  playerId: string,
+  teamId: string,
+  teamName: string,
+  amount: number,
+  timerEndsAt: string | null,
+  revision: number,
+): Promise<void> {
+  try {
+    const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
+      currentPlayerId: playerId,
+      timerEndsAt,
+      liveBid: {
+        player_id: playerId,
+        team_id: teamId,
+        amount,
+        created_at: new Date().toISOString(),
+      },
+    });
+
+    // room 문서에 last_auction_event 저장 (onSnapshot fallback용)
+    await getAuctionFirestore()
+      .collection("rooms")
+      .doc(roomId)
+      .update({ last_auction_event: event });
+
+    // RTDB 이벤트 발행 + 시스템 메시지 (병렬)
+    await publishAuctionEvent(event);
+    queueSystemMessage(
+      roomId,
+      `💰 ${teamName}이 ${amount}P에 입찰했습니다!`,
+      event.eventId,
+    );
+  } catch (error) {
+    // fire-and-forget이므로 에러가 입찰 결과에 영향을 주지 않음
+    console.error("[auction] broadcastBidEvent failed", { roomId, error });
+  }
+}
+
 // ---------- 경매 흐름 ----------
 
 /** 랜덤으로 WAITING 선수 1명을 IN_AUCTION으로 전환 */

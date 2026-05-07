@@ -21,7 +21,7 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 1. **Mutation**: 입찰은 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction으로 먼저 시도하고, 실패하면 기존 Server Action `placeBid`로 fallback한다. 추첨/시작/일시정지/낙찰/유찰/재경매 등 운영 액션은 Server Action을 경유한다.
 2. **Validation**: direct bid는 Firebase custom token claim과 `firestore.rules`의 `isBidUpdate()` / `isBidHistoryCreate()`가 최종 검증한다. Server Action 경로는 서버 transaction 안에서 권한, 포인트 잔액, 타이머 유효성, 현재 선두 상태를 검증한다.
 3. **Write**: Firestore room canonical state와 필요한 하위 문서를 업데이트한다.
-4. **Broadcast**: 서버 액션 경로는 RTDB `auctionEvent`를 발행한다. direct bid 경로는 Firestore snapshot을 1차 전파로 사용하고 시스템 메시지는 비동기 Server Action으로 보낸다.
+4. **Broadcast**: 서버 액션 경로는 RTDB `auctionEvent`를 동기 발행한다. direct bid 경로는 Firestore snapshot을 1차 전파로 사용하고, 비동기 `broadcastBidEvent` Server Action이 RTDB 이벤트 + `last_auction_event` 저장 + 시스템 메시지를 뒤따라 전파한다.
 5. **Heal**: RTDB 이벤트를 놓친 화면은 Firestore room snapshot의 `last_auction_event`와 `auction_revision`으로 빠르게 복구한다.
 6. **UI Update**: `useAuctionRealtime` 훅이 새로운 상태를 감지하고 Zustand 스토어 업데이트 → UI 리렌더링.
 

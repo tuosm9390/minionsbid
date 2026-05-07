@@ -3,6 +3,19 @@ Author: Codex
 
 # Session Progress Log
 
+## [2026-05-07] 클라이언트 직접 입찰 후 RTDB 이벤트 전파 누락 수정
+- **문제**: `placeBidDirect` 성공 후 RTDB `publishAuctionEvent`와 시스템 메시지(`queueSystemMessage`)가 호출되지 않아,
+  다른 참가자 화면에서 입찰 채팅 로그와 타이머 5초 갱신이 반영되지 않던 버그 수정.
+- **원인**: 클라이언트 직접 입찰 경로에서 Firestore `rooms` 문서와 `bids`만 업데이트하고,
+  RTDB fanout과 `last_auction_event` 저장, 시스템 메시지 생성이 빠져 있었음.
+- **수정**:
+  - `broadcastBidEvent` Server Action 신규 추가 (`auctionFlowActions.ts`)
+    - RTDB `BID_PLACED` 이벤트 발행 + `last_auction_event` 저장 + 시스템 메시지 생성을 한 번에 처리
+  - `placeBidDirect` 성공 후 `broadcastBidEvent`를 **fire-and-forget**으로 호출 (`useBiddingControl.ts`)
+    - 입찰 자체의 레이턴시(~140ms)에는 영향 없음
+  - `placeBidDirect`가 `revision`을 리턴하도록 개선하여 정확한 이벤트 버전 정보 전달
+- **테스트**: TypeScript 타입 체크 통과, 153개 단위 테스트 전체 통과.
+
 ## [2026-05-07] 프로젝트 상태 재점검 및 문서 동기화
 - `master` 기준 워킹 트리가 깨끗한 상태임을 확인.
 - 현재 단위 테스트 전체 실행 결과:
