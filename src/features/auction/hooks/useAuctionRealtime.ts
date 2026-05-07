@@ -359,18 +359,14 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         createdAt: timestampToISO(data.created_at),
         nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
         ...(snapshotIsCurrentOrNewer && {
-          // 타이머가 연장된 경우 더 과거 값으로 롤백하지 않도록 가드
+          // 더 최신 revision의 Firestore snapshot은 정본이다.
+          // 입찰은 남은 시간과 관계없이 5초 리셋이므로 새 정본 타이머가 현재 로컬 타이머보다 짧을 수 있다.
           timerEndsAt: (() => {
             const newTimer = timestampToISO(data.timer_ends_at)
             const newPlayerId = data.current_player_id ?? null
-            const currentTimer = useAuctionStore.getState().timerEndsAt
             // 경매 종료(currentPlayerId=null) 시에는 timerEndsAt도 null로 정리
             if (!newPlayerId) return null
-            // 현재 타이머가 없거나, 새 값이 없거나, 새 값이 현재보다 미래면 적용
-            if (!currentTimer || !newTimer) return newTimer
-            return new Date(newTimer).getTime() >= new Date(currentTimer).getTime()
-              ? newTimer
-              : currentTimer
+            return newTimer
           })(),
           currentPlayerId: data.current_player_id ?? null,
         }),

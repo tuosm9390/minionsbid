@@ -21,3 +21,11 @@
 - Implemented the fix in `LotteryAnimation` only. A guarded wall-clock fallback now marks the draw complete after the same configured duration even if Framer Motion's animation promise is delayed by focus/background throttling.
 - Added `__tests__/LotteryAnimation.test.tsx`, mocking a never-resolving animation promise to verify the completion callback still fires once.
 - Verification command passed: `npx vitest run __tests__/LotteryAnimation.test.tsx __tests__/useAuctionBoard.test.tsx src/features/auction/hooks/useAuctionControl.test.ts`.
+- New issue: the user reports that bids from some leaders briefly show a 5-second timer reset and then rebound to the pre-bid timer value. This points to disagreement between optimistic/RTDB state and Firestore canonical snapshot.
+- Existing contract says bids only extend when remaining time is below 5 seconds. The user is explicitly asking to change the behavior so every accepted leader bid resets the auction timer to 5 seconds.
+- Because this changes timer behavior, update code, Firestore rules, fixture, tests, and `doc/AUCTION_REALTIME_CONTRACT.md` together without changing the event envelope shape or Firestore/RTDB paths.
+- Implemented reset-to-5 for every successful bid in `placeBidDirect`, Server Action `placeBid`, and E2E fixture `placeFixtureBid`.
+- Updated Firestore rules so direct leader bids must write `timer_ends_at` near request time + 5s, instead of allowing unchanged timers.
+- Updated `useAuctionRealtime` convergence so a newer Firestore revision can shorten the local timer. This is required because a valid bid reset can move a 10s start timer down to 5s.
+- Verification passed: `npx vitest run __tests__/auctionActions.test.ts __tests__/useBiddingControl.test.tsx __tests__/useAuctionRealtime.test.tsx`, `npm run test:e2e:auction`, and `git diff --check`.
+- E2E passed all 13 auction tests. Fixture mode still logs fire-and-forget `broadcastBidEvent` Firebase Admin warnings after completion, but the tested flows pass and converge.

@@ -474,7 +474,7 @@ describe('useFirebaseRealtime', () => {
     })
   })
 
-  it('타이머 5초 미만 입찰 시 RTDB BID_PLACED 이벤트로 timerEndsAt이 갱신된다', () => {
+  it('입찰 시 RTDB BID_PLACED 이벤트로 timerEndsAt이 5초 리셋 값으로 갱신된다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
     // 경매 시작: 10초 타이머, revision 5
@@ -693,6 +693,54 @@ describe('useFirebaseRealtime', () => {
     // RTDB가 설정한 연장된 timerEndsAt이 유지되어야 함
     expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:12.000Z')
     expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+  })
+
+  it('더 최신 Firestore snapshot이면 입찰 5초 리셋으로 짧아진 timerEndsAt도 정본으로 적용한다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:10.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        last_auction_event: {
+          eventId: 'start-1',
+          revision: 5,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-04-29T00:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:10.000Z',
+          liveBid: null,
+        },
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-04-29T00:00:06.000Z') },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-04-29T00:00:01.000Z',
+        },
+        auction_revision: 6,
+        created_at: { toDate: () => new Date('2026-04-29T00:00:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:06.000Z')
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-2',
+      amount: 110,
+    })
   })
 
   it('RTDB 이벤트를 놓쳐도 room snapshot의 last_auction_event로 즉시 복구한다', () => {

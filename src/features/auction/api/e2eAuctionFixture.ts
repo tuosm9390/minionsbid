@@ -115,7 +115,6 @@ type ResetOptions = {
 
 const FIXTURE_KEY = '__auctionE2EFixture__'
 const AUCTION_DURATION_MS = 10_000
-const EXTEND_THRESHOLD_MS = 5_000
 const EXTEND_DURATION_MS = 5_000
 
 function clone<T>(value: T): T {
@@ -666,10 +665,7 @@ export async function placeFixtureBid(
         created_at: bid.created_at,
       }
 
-      const remainingMs = new Date(room.timerEndsAt).getTime() - Date.now()
-      if (remainingMs < EXTEND_THRESHOLD_MS) {
-        room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
-      }
+      room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
 
       appendMessage(room, '시스템', 'SYSTEM', `💰 ${team.name}이 ${amount}P에 입찰했습니다!`)
       recordFixtureAuctionEvent(room, 'BID_PLACED', {

@@ -12,3 +12,7 @@
 - [x] Decouple lottery completion state from animation-frame completion.
 - [x] Add focused test coverage for timer-based lottery completion.
 - [x] Run the smallest relevant auction tests.
+- [x] Update bid timer contract so every accepted bid resets the timer to 5 seconds.
+- [x] Align direct bid, server-action fallback, fixture, and Firestore rules with the reset-to-5 behavior.
+- [x] Add focused tests for every-bid timer reset and stale snapshot convergence.
+- [x] Run relevant Vitest checks and auction E2E if feasible.

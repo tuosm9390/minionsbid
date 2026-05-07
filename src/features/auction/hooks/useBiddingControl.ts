@@ -13,7 +13,6 @@ import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealti
 import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
-  EXTEND_THRESHOLD_MS,
   EXTEND_DURATION_MS,
 } from '@/features/auction/constants/auctionTimings'
 
@@ -147,10 +146,7 @@ export function useBiddingControl({
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
     const bidClickedAt = Date.now()
-    const shouldOptimisticallyExtend =
-      !!timerEndsAt &&
-      new Date(timerEndsAt).getTime() - Date.now() <
-        EXTEND_THRESHOLD_MS
+    const shouldOptimisticallyResetTimer = !!timerEndsAt
     const optimisticLiveBid: LiveBidState = {
       player_id: currentPlayer.id,
       team_id: teamId,
@@ -163,7 +159,7 @@ export function useBiddingControl({
 
     setLiveBid(optimisticLiveBid)
 
-    if (shouldOptimisticallyExtend) {
+    if (shouldOptimisticallyResetTimer) {
       const optimisticTimerEndsAt = new Date(
         Date.now() + EXTEND_DURATION_MS,
       ).toISOString()
@@ -186,7 +182,7 @@ export function useBiddingControl({
         const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
         if (res.error) {
           setLiveBid(previousLiveBid ?? null)
-          if (shouldOptimisticallyExtend) {
+          if (shouldOptimisticallyResetTimer) {
             setRealtimeData({ timerEndsAt: previousTimerEndsAt })
           }
           setBidError(res.error)
@@ -206,7 +202,7 @@ export function useBiddingControl({
             teamId,
             amount: finalAmount,
             clientRoundTripMs: Date.now() - bidClickedAt,
-            optimisticExtend: shouldOptimisticallyExtend,
+            optimisticTimerReset: shouldOptimisticallyResetTimer,
           })
         }
         setBidAmount(finalAmount + 10)
@@ -229,7 +225,7 @@ export function useBiddingControl({
       }
     } catch (error) {
       setLiveBid(previousLiveBid ?? null)
-      if (shouldOptimisticallyExtend) {
+      if (shouldOptimisticallyResetTimer) {
         setRealtimeData({ timerEndsAt: previousTimerEndsAt })
       }
       throw error

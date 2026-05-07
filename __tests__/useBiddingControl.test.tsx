@@ -146,7 +146,7 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().bids).toEqual([]);
   });
 
-  it("남은 시간 < 5초(4800ms)이면 서버 응답 전에도 timerEndsAt을 낙관 연장한다", async () => {
+  it("남은 시간이 5초보다 길어도 서버 응답 전부터 timerEndsAt을 5초로 낙관 리셋한다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () =>
@@ -158,7 +158,7 @@ describe("useBiddingControl", () => {
     const { result } = renderHook(() =>
       useBiddingControl({
         ...defaultProps,
-        timerEndsAt: new Date(Date.now() + 4800).toISOString(),
+        timerEndsAt: new Date(Date.now() + 10000).toISOString(),
       }),
     );
 
@@ -170,7 +170,11 @@ describe("useBiddingControl", () => {
     expect(
       new Date(useAuctionStore.getState().timerEndsAt as string).getTime() -
         Date.now(),
-    ).toBeGreaterThan(4000);
+    ).toBeLessThanOrEqual(5000);
+    expect(
+      new Date(useAuctionStore.getState().timerEndsAt as string).getTime() -
+        Date.now(),
+    ).toBeGreaterThan(3500);
 
     resolveBid({ timerEndsAt: null });
     await pending;

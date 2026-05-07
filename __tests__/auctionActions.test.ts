@@ -331,7 +331,7 @@ describe('placeBid', () => {
     expect(result.timerEndsAt).toBeDefined()
   })
 
-  it('GREEN: 남은 시간 > 5초이면 타이머 연장 미실행', async () => {
+  it('GREEN: 남은 시간 > 5초이어도 입찰 시점부터 5초로 타이머를 리셋한다', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({
         timer_ends_at: makeTimestamp(Date.now() + 10000),
@@ -344,7 +344,10 @@ describe('placeBid', () => {
       .mockResolvedValueOnce(makeQuerySnap([]))
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toBeUndefined()
-    expect(result.timerEndsAt).toBeUndefined()
+    expect(result.timerEndsAt).toBeDefined()
+    const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
+    expect(remainingMs).toBeLessThanOrEqual(5_000)
+    expect(remainingMs).toBeGreaterThan(3_500)
   })
 })
 

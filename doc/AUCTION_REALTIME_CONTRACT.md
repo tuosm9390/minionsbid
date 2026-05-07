@@ -145,8 +145,8 @@ leader click bid
   - 새 금액이 기존 금액보다 큼
   - 팀 포인트 잔액이 입찰액 이상
   - `auction_revision == before + 1`
-  - 남은 시간이 5초 이상이면 timer 변경 불가
-  - 남은 시간이 5초 미만이면 request time 기준 3~7초 범위 연장만 허용
+  - 성공한 모든 입찰은 `timer_ends_at`을 request time 기준 5초 근처로 재설정
+  - 클라이언트와 서버 시계 차이를 흡수하기 위해 request time 기준 2~8초 범위만 허용
 
 클라이언트 사전 검증은 UX용이다. 최종 방어선은 Firestore rules다.
 
@@ -154,8 +154,8 @@ leader click bid
 
 - 일반 경매 시작 타이머는 `10초`다.
 - 재경매에서 실제 경매를 시작할 때의 첫 타이머는 `5초`다.
-- 입찰이 들어와도 매번 리셋하지 않는다.
-- 남은 시간이 `5초 미만`일 때만 타이머를 다시 `5초`로 연장한다.
+- 입찰이 들어오면 남은 시간과 관계없이 타이머를 다시 `5초`로 재설정한다.
+- 이 규칙은 direct bid와 Server Action fallback 경로 모두 동일하게 적용한다.
 
 ## Expiry Ownership
 
