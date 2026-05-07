@@ -161,11 +161,6 @@ export function useBiddingControl({
 
     setLiveBid(optimisticLiveBid)
 
-    if (shouldOptimisticallyResetTimer) {
-      // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 낙관적 timerEndsAt 반영을 막는다.
-      // const optimisticTimerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
-      // setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
-    }
     try {
       // 1차: 클라이언트 직접 입찰 (Vercel Function 경유 없이 Firestore 직접 트랜잭션)
       const directRes = await placeBidDirect({

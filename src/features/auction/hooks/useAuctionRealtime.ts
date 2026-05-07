@@ -372,9 +372,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           //   return newTimer
           // })(),
           timerEndsAt: data.current_player_id
-            ? data.active_bid
-              ? useAuctionStore.getState().timerEndsAt
-              : timestampToISO(data.timer_ends_at)
+            ? timestampToISO(data.timer_ends_at)
             : null,
           currentPlayerId: data.current_player_id ?? null,
         }),

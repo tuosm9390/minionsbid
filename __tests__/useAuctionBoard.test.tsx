@@ -262,4 +262,44 @@ describe("useAuctionBoard", () => {
     expect(result.current.isAuctionTerminal).toBe(true);
     expect(result.current.isAuctionComplete).toBe(true);
   });
+
+  it("추첨 중 같은 선수의 새 객체가 들어와도 추첨 완료 상태를 유지한다", () => {
+    const lotteryPlayer = makePlayer("p1", "선수1", "IN_AUCTION");
+    let props = {
+      ...defaultProps,
+      isLotteryActive: true,
+      lotteryPlayer,
+    };
+
+    const { result, rerender } = renderHook(() => useAuctionBoard(props));
+
+    act(() => {
+      result.current.setLotteryDone(true);
+    });
+
+    expect(result.current.lotteryDone).toBe(true);
+
+    act(() => {
+      useAuctionStore.setState({
+        messagesById: {
+          msg1: {
+            id: "msg1",
+            room_id: "room-1",
+            sender_name: "팀장",
+            sender_role: "LEADER",
+            content: "추첨 중 채팅",
+            created_at: "2026-05-08T00:00:00.000Z",
+          },
+        },
+        orderedMessageIds: ["msg1"],
+      });
+      props = {
+        ...props,
+        lotteryPlayer: { ...lotteryPlayer },
+      };
+      rerender();
+    });
+
+    expect(result.current.lotteryDone).toBe(true);
+  });
 });

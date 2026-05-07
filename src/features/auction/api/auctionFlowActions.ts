@@ -183,35 +183,37 @@ export async function broadcastBidEvent(
   timerEndsAt: string | null,
   revision: number,
 ): Promise<void> {
+  const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
+    currentPlayerId: playerId,
+    timerEndsAt,
+    liveBid: {
+      player_id: playerId,
+      team_id: teamId,
+      amount,
+      created_at: new Date().toISOString(),
+    },
+  });
+
+  // RTDB 이벤트 먼저 발행 — 채팅·Firestore 기록과 독립적으로 타이머를 갱신한다
   try {
-    const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
-      currentPlayerId: playerId,
-      timerEndsAt,
-      liveBid: {
-        player_id: playerId,
-        team_id: teamId,
-        amount,
-        created_at: new Date().toISOString(),
-      },
-    });
-
-    // room 문서에 last_auction_event 저장 (onSnapshot fallback용)
-    await getAuctionFirestore()
-      .collection("rooms")
-      .doc(roomId)
-      .update({ last_auction_event: event });
-
-    // RTDB 이벤트 발행 + 시스템 메시지 (병렬)
     await publishAuctionEvent(event);
-    queueSystemMessage(
-      roomId,
-      `💰 ${teamName}이 ${amount}P에 입찰했습니다!`,
-      event.eventId,
-    );
   } catch (error) {
-    // fire-and-forget이므로 에러가 입찰 결과에 영향을 주지 않음
-    console.error("[auction] broadcastBidEvent failed", { roomId, error });
+    console.error("[auction] broadcastBidEvent RTDB publish failed", { roomId, error });
   }
+
+  // Firestore last_auction_event 저장(onSnapshot fallback용) + 채팅은 독립 처리
+  getAuctionFirestore()
+    .collection("rooms")
+    .doc(roomId)
+    .update({ last_auction_event: event })
+    .catch((err) => {
+      console.error("[auction] last_auction_event update failed", { roomId, err });
+    });
+  queueSystemMessage(
+    roomId,
+    `💰 ${teamName}이 ${amount}P에 입찰했습니다!`,
+    event.eventId,
+  );
 }
 
 // ---------- 경매 흐름 ----------
