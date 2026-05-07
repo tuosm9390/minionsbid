@@ -61,6 +61,7 @@ export function useBiddingControl({
   const liveBid = useAuctionStore((s) => s.liveBid)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
+  const setAuctionEventRevision = useAuctionStore((s) => s.setAuctionEventRevision)
   const players = useAuctionStore((s) => s.players)
   const { waitingPlayers, soldPlayers } = useMemo(
     () => bucketAuctionPlayers(players),
@@ -212,6 +213,9 @@ export function useBiddingControl({
         // Firestore onSnapshot이 자동으로 다른 클라이언트에 전파
         if (directRes.timerEndsAt) {
           setRealtimeData({ timerEndsAt: directRes.timerEndsAt })
+        }
+        if (typeof directRes.revision === 'number' && directRes.revision > 0) {
+          setAuctionEventRevision(directRes.revision)
         }
         // RTDB 이벤트 전파 + 시스템 메시지 (fire-and-forget, 레이턴시에 영향 없음)
         const teamName = myTeam?.name ?? teamId

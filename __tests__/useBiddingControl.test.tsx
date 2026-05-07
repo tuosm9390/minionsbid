@@ -59,6 +59,7 @@ describe("useBiddingControl", () => {
       liveBid: null,
       timerEndsAt: null,
       players: [],
+      auctionEventRevision: 0,
     });
   });
 
@@ -144,6 +145,23 @@ describe("useBiddingControl", () => {
     // Store state updated optimistically for timer
     expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
     expect(useAuctionStore.getState().bids).toEqual([]);
+  });
+
+  it("직접 입찰 성공 시 반환된 revision을 로컬 적용 revision으로 기록한다", async () => {
+    const newTimerEndsAt = new Date(Date.now() + 5000).toISOString();
+    (placeBidDirect as Mock).mockResolvedValue({
+      timerEndsAt: newTimerEndsAt,
+      revision: 12,
+    });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+
+    await act(async () => {
+      await result.current.handleBid();
+    });
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(12);
   });
 
   it("남은 시간이 5초보다 길면 서버 응답 전 timerEndsAt을 낙관 리셋하지 않는다", async () => {

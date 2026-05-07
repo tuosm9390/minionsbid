@@ -22,3 +22,6 @@
 - [x] Allow Firebase RTDB sharded long-polling hosts in CSP script sources.
 - [x] Add a focused CSP test for RTDB `*.firebasedatabase.app` script allowance.
 - [x] Run the focused CSP test.
+- [x] Mark direct bid revisions as locally applied to block stale prior bid events.
+- [x] Add focused test coverage for direct-bid revision advancement.
+- [x] Run relevant auction realtime/bidding tests.
