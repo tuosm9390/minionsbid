@@ -41,3 +41,7 @@
 - [x] Explain what `firebase.json` deploys for this Firebase/Vercel setup.
 - [x] Restore Firestore rules config so both `(default)` and `minionsbid` databases are covered.
 - [x] Identify whether the remaining live timer rebound can be caused by Firebase config or deployment mismatch.
+- [x] Add a test-only RTDB BID_PLACED timer accumulation path.
+- [x] Comment out existing bid timer overwrite behavior in realtime convergence.
+- [x] Update focused realtime tests for the accumulation experiment.
+- [x] Run focused auction realtime tests and build if needed.

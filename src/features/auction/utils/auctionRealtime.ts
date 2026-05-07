@@ -287,7 +287,14 @@ export function applyAuctionEventToState(
       break
     case 'BID_PLACED':
       nextCurrentPlayerId = event.currentPlayerId ?? nextCurrentPlayerId
-      nextTimerEndsAt = event.timerEndsAt ?? nextTimerEndsAt
+      // 테스트용 누적 타이머: 기존 BID_PLACED timerEndsAt 덮어쓰기 로직을 막고 수신 시점부터 5초씩 더한다.
+      // nextTimerEndsAt = event.timerEndsAt ?? nextTimerEndsAt
+      nextTimerEndsAt = new Date(
+        Math.max(
+          nextTimerEndsAt ? new Date(nextTimerEndsAt).getTime() : 0,
+          Date.now(),
+        ) + 5_000,
+      ).toISOString()
       nextLiveBid = event.liveBid ?? null
       break
     case 'PLAYER_AWARDED':

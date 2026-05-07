@@ -363,13 +363,19 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         ...(snapshotIsCurrentOrNewer && {
           // 더 최신 revision의 Firestore snapshot은 정본이다.
           // threshold 기반 입찰 연장은 로컬 상태보다 짧은 타이머를 내릴 수 있다.
-          timerEndsAt: (() => {
-            const newTimer = timestampToISO(data.timer_ends_at)
-            const newPlayerId = data.current_player_id ?? null
-            // 경매 종료(currentPlayerId=null) 시에는 timerEndsAt도 null로 정리
-            if (!newPlayerId) return null
-            return newTimer
-          })(),
+          // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 입찰 snapshot의 timer 덮어쓰기를 막는다.
+          // timerEndsAt: (() => {
+          //   const newTimer = timestampToISO(data.timer_ends_at)
+          //   const newPlayerId = data.current_player_id ?? null
+          //   // 경매 종료(currentPlayerId=null) 시에는 timerEndsAt도 null로 정리
+          //   if (!newPlayerId) return null
+          //   return newTimer
+          // })(),
+          timerEndsAt: data.current_player_id
+            ? data.active_bid
+              ? useAuctionStore.getState().timerEndsAt
+              : timestampToISO(data.timer_ends_at)
+            : null,
           currentPlayerId: data.current_player_id ?? null,
         }),
       })
@@ -398,14 +404,15 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           })
         }
       }
-      if (
-        roomRevision > useAuctionStore.getState().auctionEventRevision &&
-        data.current_player_id &&
-        data.timer_ends_at &&
-        data.active_bid
-      ) {
-        setAuctionEventRevision(roomRevision)
-      }
+      // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 bid room snapshot의 revision 선반영을 막는다.
+      // if (
+      //   roomRevision > useAuctionStore.getState().auctionEventRevision &&
+      //   data.current_player_id &&
+      //   data.timer_ends_at &&
+      //   data.active_bid
+      // ) {
+      //   setAuctionEventRevision(roomRevision)
+      // }
 
       if (LATENCY_DEBUG && data.timer_ends_at) {
         console.info('[latency][client] room snapshot timer', {

@@ -13,7 +13,6 @@ import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealti
 import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
-  EXTEND_DURATION_MS,
   EXTEND_THRESHOLD_MS,
 } from '@/features/auction/constants/auctionTimings'
 
@@ -61,7 +60,6 @@ export function useBiddingControl({
   const liveBid = useAuctionStore((s) => s.liveBid)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
-  const setAuctionEventRevision = useAuctionStore((s) => s.setAuctionEventRevision)
   const players = useAuctionStore((s) => s.players)
   const { waitingPlayers, soldPlayers } = useMemo(
     () => bucketAuctionPlayers(players),
@@ -164,10 +162,9 @@ export function useBiddingControl({
     setLiveBid(optimisticLiveBid)
 
     if (shouldOptimisticallyResetTimer) {
-      const optimisticTimerEndsAt = new Date(
-        Date.now() + EXTEND_DURATION_MS,
-      ).toISOString()
-      setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
+      // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 낙관적 timerEndsAt 반영을 막는다.
+      // const optimisticTimerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
+      // setRealtimeData({ timerEndsAt: optimisticTimerEndsAt })
     }
     try {
       // 1차: 클라이언트 직접 입찰 (Vercel Function 경유 없이 Firestore 직접 트랜잭션)
@@ -194,12 +191,13 @@ export function useBiddingControl({
         } else {
           setLiveBid(optimisticLiveBid)
           setBidAmount(finalAmount + 10)
-          if (res.timerEndsAt) {
-            setRealtimeData({ timerEndsAt: res.timerEndsAt })
-          }
-          if (typeof res.revision === 'number' && res.revision > 0) {
-            setAuctionEventRevision(res.revision)
-          }
+          // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 Server Action 응답의 timer/revision 선반영을 막는다.
+          // if (res.timerEndsAt) {
+          //   setRealtimeData({ timerEndsAt: res.timerEndsAt })
+          // }
+          // if (typeof res.revision === 'number' && res.revision > 0) {
+          //   setAuctionEventRevision(res.revision)
+          // }
         }
       } else {
         // 클라이언트 직접 입찰 성공
@@ -215,12 +213,13 @@ export function useBiddingControl({
         }
         setBidAmount(finalAmount + 10)
         // Firestore onSnapshot이 자동으로 다른 클라이언트에 전파
-        if (directRes.timerEndsAt) {
-          setRealtimeData({ timerEndsAt: directRes.timerEndsAt })
-        }
-        if (typeof directRes.revision === 'number' && directRes.revision > 0) {
-          setAuctionEventRevision(directRes.revision)
-        }
+        // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 direct bid 응답의 timer/revision 선반영을 막는다.
+        // if (directRes.timerEndsAt) {
+        //   setRealtimeData({ timerEndsAt: directRes.timerEndsAt })
+        // }
+        // if (typeof directRes.revision === 'number' && directRes.revision > 0) {
+        //   setAuctionEventRevision(directRes.revision)
+        // }
         // RTDB 이벤트 전파 + 시스템 메시지 (fire-and-forget, 레이턴시에 영향 없음)
         const teamName = myTeam?.name ?? teamId
         const effectiveTimer = directRes.timerEndsAt ?? useAuctionStore.getState().timerEndsAt ?? null

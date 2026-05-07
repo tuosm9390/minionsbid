@@ -120,7 +120,7 @@ describe("useBiddingControl", () => {
     expect(result.current.canBid).toBe(false);
   });
 
-  it("handleBid 성공 시 Optimistic Update", async () => {
+  it("handleBid 성공 시 timerEndsAt은 RTDB 이벤트를 기다린다", async () => {
     const newTimerEndsAt = new Date(Date.now() + 5000).toISOString();
     (placeBidDirect as Mock).mockResolvedValue({ timerEndsAt: newTimerEndsAt });
 
@@ -143,12 +143,12 @@ describe("useBiddingControl", () => {
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
 
-    // Store state updated optimistically for timer
-    expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
+    // 테스트용 누적 타이머 실험에서는 direct bid 응답으로 timerEndsAt을 선반영하지 않는다.
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
     expect(useAuctionStore.getState().bids).toEqual([]);
   });
 
-  it("직접 입찰 성공 시 반환된 revision을 로컬 적용 revision으로 기록한다", async () => {
+  it("직접 입찰 성공 시 반환된 revision은 RTDB BID_PLACED 전까지 로컬 적용하지 않는다", async () => {
     const newTimerEndsAt = new Date(Date.now() + 5000).toISOString();
     (placeBidDirect as Mock).mockResolvedValue({
       timerEndsAt: newTimerEndsAt,
@@ -161,11 +161,11 @@ describe("useBiddingControl", () => {
       await result.current.handleBid();
     });
 
-    expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
-    expect(useAuctionStore.getState().auctionEventRevision).toBe(12);
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(0);
   });
 
-  it("Server Action 폴백 성공 시 반환된 revision을 로컬 적용 revision으로 기록한다", async () => {
+  it("Server Action 폴백 성공 시 반환된 revision도 RTDB BID_PLACED 전까지 로컬 적용하지 않는다", async () => {
     const newTimerEndsAt = new Date(Date.now() + 5000).toISOString();
     (placeBidDirect as Mock).mockResolvedValue({ error: "direct-failed" });
     (placeBid as Mock).mockResolvedValue({
@@ -179,8 +179,8 @@ describe("useBiddingControl", () => {
       await result.current.handleBid();
     });
 
-    expect(useAuctionStore.getState().timerEndsAt).toBe(newTimerEndsAt);
-    expect(useAuctionStore.getState().auctionEventRevision).toBe(13);
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(0);
   });
 
   it("남은 시간이 5초보다 길면 서버 응답 전 timerEndsAt을 낙관 리셋하지 않는다", async () => {
@@ -213,7 +213,7 @@ describe("useBiddingControl", () => {
     });
   });
 
-  it("남은 시간이 5초 미만이면 서버 응답 전 timerEndsAt을 5초로 낙관 리셋한다", async () => {
+  it("남은 시간이 5초 미만이어도 서버 응답 전 timerEndsAt을 낙관 리셋하지 않는다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () =>
@@ -234,15 +234,7 @@ describe("useBiddingControl", () => {
       pending = result.current.handleBid();
     });
 
-    expect(useAuctionStore.getState().timerEndsAt).toBeTruthy();
-    expect(
-      new Date(useAuctionStore.getState().timerEndsAt as string).getTime() -
-        Date.now(),
-    ).toBeLessThanOrEqual(5000);
-    expect(
-      new Date(useAuctionStore.getState().timerEndsAt as string).getTime() -
-        Date.now(),
-    ).toBeGreaterThan(3500);
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
     expect(placeBidDirect).toHaveBeenCalledWith({
       roomId: "room-1",
       playerId: "p1",
