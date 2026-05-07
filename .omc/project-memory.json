@@ -275,6 +275,13 @@
       ]
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "__tests__\\useAuctionRealtime.test.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778168491041,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }
