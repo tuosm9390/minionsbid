@@ -53,3 +53,5 @@
 - [x] Decouple lottery animation lifecycle from callback/object identity churn.
 - [x] Add regression coverage for pre-complete and post-complete chat rerenders.
 - [x] Run focused lottery and board tests.
+- [x] Fix broadcastBidEvent so RTDB timer event publishes before Firestore/chat writes.
+- [x] Run focused realtime and bidding tests.
