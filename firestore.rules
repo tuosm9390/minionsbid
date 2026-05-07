@@ -54,14 +54,18 @@ service cloud.firestore {
         && after.auction_revision == before.auction_revision + 1
         // 남은 시간이 5초 미만이면 request time 기준 5초 근처로 재설정하고,
         // 5초 이상 남아 있으면 기존 타이머를 유지해야 함
+        // (주의: 클라이언트와 서버의 시계가 다를 수 있으므로 5초 경계선에서 ±1.5초 마진 허용)
         && (
+          // 케이스 1: 서버 기준 6.5초 미만일 때 타이머를 연장하는 것 허용 (클라이언트는 5초 미만으로 판단했을 수 있음)
           (
-            before.timer_ends_at.toMillis() < request.time.toMillis() + 5000
+            before.timer_ends_at.toMillis() < request.time.toMillis() + 6500
             && after.timer_ends_at.toMillis() > request.time.toMillis() + 2000
             && after.timer_ends_at.toMillis() <= request.time.toMillis() + 8000
           )
-          || (
-            before.timer_ends_at.toMillis() >= request.time.toMillis() + 5000
+          ||
+          // 케이스 2: 타이머를 유지하는 것은 서버 기준 3.5초 이상일 때 허용 (클라이언트는 5초 이상으로 판단했을 수 있음)
+          (
+            before.timer_ends_at.toMillis() >= request.time.toMillis() + 3500
             && after.timer_ends_at == before.timer_ends_at
           )
         )
