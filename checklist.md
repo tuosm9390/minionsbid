@@ -38,3 +38,6 @@
 - [x] Add regression coverage for stale message/bid/player snapshot fanout after a non-first bid.
 - [x] Harden confirmed stale realtime side effects without changing the realtime contract shape.
 - [x] Run focused Vitest checks, build, and auction E2E if feasible.
+- [x] Explain what `firebase.json` deploys for this Firebase/Vercel setup.
+- [x] Restore Firestore rules config so both `(default)` and `minionsbid` databases are covered.
+- [x] Identify whether the remaining live timer rebound can be caused by Firebase config or deployment mismatch.
