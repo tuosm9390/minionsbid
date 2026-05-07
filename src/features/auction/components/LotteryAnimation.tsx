@@ -34,9 +34,15 @@ export function LotteryAnimation({
   const [hasFinished, setHasFinished] = useState(false);
   const controls = useAnimationControls();
   const finishHandledRef = useRef(false);
+  const onFinishedRef = useRef(onFinished);
+  const targetPlayerId = targetPlayer.id;
   const spinItemCount = E2E_AUCTION_FIXTURE ? 2 : shouldReduceMotion ? 8 : VISIBLE_ITEMS;
   const spinDuration = E2E_AUCTION_FIXTURE ? 0.05 : shouldReduceMotion ? 1.05 : 3.6;
   const revealDelay = E2E_AUCTION_FIXTURE ? 50 : shouldReduceMotion ? 180 : 700;
+
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
 
   // Generate a sequence of items that ends with the target player
   const trackItems = useMemo(() => {
@@ -72,7 +78,7 @@ export function LotteryAnimation({
       finishHandledRef.current = true;
       setIsSpinning(false);
       setHasFinished(true);
-      onFinished?.();
+      onFinishedRef.current?.();
     };
 
     const finishAfterReveal = () => {
@@ -127,11 +133,11 @@ export function LotteryAnimation({
     };
   }, [
     controls,
-    onFinished,
     revealDelay,
     shouldReduceMotion,
     spinDuration,
     spinItemCount,
+    targetPlayerId,
   ]);
 
   return (

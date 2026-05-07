@@ -1,7 +1,7 @@
 // 추첨 애니메이션의 포커스 비의존 완료 동작을 검증한다.
 import React, { type HTMLAttributes, type ImgHTMLAttributes, type ReactNode } from 'react'
 import { act, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LotteryAnimation } from '@/features/auction/components/LotteryAnimation'
 import type { Player } from '@/features/auction/store/useAuctionStore'
 
@@ -51,6 +51,10 @@ const player: Player = {
 }
 
 describe('LotteryAnimation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   afterEach(() => {
     vi.useRealTimers()
   })
@@ -76,5 +80,75 @@ describe('LotteryAnimation', () => {
 
     expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
     expect(onFinished).toHaveBeenCalledTimes(1)
+  })
+
+  it('같은 선수 추첨 중 부모가 재렌더되어도 완료 타이머를 다시 시작하지 않는다', async () => {
+    vi.useFakeTimers()
+    const onFinished = vi.fn()
+    const nextOnFinished = vi.fn()
+
+    const { rerender } = render(
+      <LotteryAnimation
+        candidates={[player]}
+        targetPlayer={player}
+        onFinished={onFinished}
+      />,
+    )
+
+    await act(async () => {})
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000)
+    })
+
+    rerender(
+      <LotteryAnimation
+        candidates={[{ ...player }]}
+        targetPlayer={{ ...player }}
+        onFinished={nextOnFinished}
+      />,
+    )
+
+    expect(screen.getByText('추첨 중...')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2600)
+    })
+
+    expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
+    expect(onFinished).not.toHaveBeenCalled()
+    expect(nextOnFinished).toHaveBeenCalledTimes(1)
+    expect(animationControls.start).toHaveBeenCalledTimes(1)
+  })
+
+  it('추첨 완료 후 부모가 재렌더되어도 완료 화면을 유지한다', async () => {
+    vi.useFakeTimers()
+    const onFinished = vi.fn()
+
+    const { rerender } = render(
+      <LotteryAnimation
+        candidates={[player]}
+        targetPlayer={player}
+        onFinished={onFinished}
+      />,
+    )
+
+    await act(async () => {})
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4600)
+    })
+
+    expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
+
+    rerender(
+      <LotteryAnimation
+        candidates={[{ ...player }]}
+        targetPlayer={{ ...player }}
+        onFinished={() => undefined}
+      />,
+    )
+
+    expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
+    expect(screen.queryByText('추첨 중...')).not.toBeInTheDocument()
+    expect(animationControls.start).toHaveBeenCalledTimes(1)
   })
 })
