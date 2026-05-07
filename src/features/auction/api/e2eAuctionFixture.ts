@@ -611,6 +611,7 @@ export async function placeFixtureBid(
   playerId: string,
   teamId: string,
   amount: number,
+  resetTimer: boolean = false,
 ): Promise<{
   error?: string
   timerEndsAt?: string
@@ -667,7 +668,7 @@ export async function placeFixtureBid(
       }
 
       const remainingMs = new Date(room.timerEndsAt).getTime() - Date.now()
-      if (remainingMs < EXTEND_THRESHOLD_MS) {
+      if (resetTimer || remainingMs < EXTEND_THRESHOLD_MS) {
         room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
       }
 

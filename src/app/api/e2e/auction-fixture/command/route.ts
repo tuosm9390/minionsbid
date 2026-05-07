@@ -12,7 +12,7 @@ type CommandPayload =
   | { roomId?: string; action?: 'draw' }
   | { roomId?: string; action?: 'closeLottery'; playerName?: string }
   | { roomId?: string; action?: 'startAuction'; durationMs?: number }
-  | { roomId?: string; action?: 'placeBid'; playerId?: string; teamId?: string; amount?: number }
+  | { roomId?: string; action?: 'placeBid'; playerId?: string; teamId?: string; amount?: number; resetTimer?: boolean }
   | { roomId?: string; action?: 'setLeaderPresence'; teamId?: string; connected?: boolean }
 
 export async function POST(request: NextRequest) {
@@ -62,7 +62,13 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
-    const result = await placeFixtureBid(roomId, playerId, teamId, amount)
+    const result = await placeFixtureBid(
+      roomId,
+      playerId,
+      teamId,
+      amount,
+      payload.resetTimer === true,
+    )
     return NextResponse.json(result, { status: result.error ? 400 : 200 })
   }
 

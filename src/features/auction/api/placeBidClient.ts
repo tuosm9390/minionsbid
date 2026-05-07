@@ -17,6 +17,7 @@ interface PlaceBidDirectArgs {
   playerId: string
   teamId: string
   amount: number
+  resetTimer?: boolean
 }
 
 interface PlaceBidDirectResult {
@@ -40,7 +41,7 @@ type FixtureBidResponse = {
 export async function placeBidDirect(
   args: PlaceBidDirectArgs,
 ): Promise<PlaceBidDirectResult> {
-  const { roomId, playerId, teamId, amount } = args
+  const { roomId, playerId, teamId, amount, resetTimer = false } = args
   if (process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1') {
     const response = await fetch('/api/e2e/auction-fixture/command', {
       method: 'POST',
@@ -51,6 +52,7 @@ export async function placeBidDirect(
         playerId,
         teamId,
         amount,
+        resetTimer,
       }),
     })
     const result = (await response.json().catch(() => ({
@@ -101,10 +103,10 @@ export async function placeBidDirect(
         throw new Error(`최소 입찰액은 ${minBid}P입니다.`)
       }
 
-      const shouldExtendTimer =
+      const shouldExtendTimer = resetTimer ||
         timerEndsAt.toMillis() - now < EXTEND_THRESHOLD_MS
       const nextTimerEndsAt = shouldExtendTimer
-        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+        ? Timestamp.fromDate(new Date(Math.max(timerEndsAt.toMillis(), now + EXTEND_DURATION_MS)))
         : timerEndsAt
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
 

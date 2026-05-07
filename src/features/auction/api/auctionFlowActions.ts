@@ -630,7 +630,7 @@ export async function placeBid(
       const shouldExtendTimer =
         timerField.toMillis() - now < EXTEND_THRESHOLD_MS;
       const nextTimerTimestamp = shouldExtendTimer
-        ? admin.firestore.Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+        ? admin.firestore.Timestamp.fromDate(new Date(Math.max(timerField.toMillis(), now + EXTEND_DURATION_MS)))
         : timerField;
       newTimerEndsAt = nextTimerTimestamp.toDate().toISOString();
       if (shouldExtendTimer) {

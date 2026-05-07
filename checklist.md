@@ -25,3 +25,7 @@
 - [x] Mark direct bid revisions as locally applied to block stale prior bid events.
 - [x] Add focused test coverage for direct-bid revision advancement.
 - [x] Run relevant auction realtime/bidding tests.
+- [x] Pass local under-5s timer intent into the direct bid transaction.
+- [x] Align fixture direct-bid command with forced timer reset intent.
+- [x] Add focused tests for forced reset intent on short timers.
+- [x] Run relevant bidding/action tests.

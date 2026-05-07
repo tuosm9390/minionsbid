@@ -176,6 +176,7 @@ export function useBiddingControl({
         playerId: currentPlayer.id,
         teamId,
         amount: finalAmount,
+        resetTimer: shouldOptimisticallyResetTimer,
       })
 
       if (directRes.error) {

@@ -135,6 +135,7 @@ describe("useBiddingControl", () => {
       playerId: "p1",
       teamId: "team-1",
       amount: 10,
+      resetTimer: false,
     });
     // Server Action은 호출되지 않음 (클라이언트 직접 입찰 성공)
     expect(placeBid).not.toHaveBeenCalled();
@@ -224,6 +225,13 @@ describe("useBiddingControl", () => {
       new Date(useAuctionStore.getState().timerEndsAt as string).getTime() -
         Date.now(),
     ).toBeGreaterThan(3500);
+    expect(placeBidDirect).toHaveBeenCalledWith({
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 10,
+      resetTimer: true,
+    });
 
     resolveBid({ timerEndsAt: null });
     await act(async () => {
