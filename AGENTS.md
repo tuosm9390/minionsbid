@@ -32,6 +32,13 @@ Minions Bid는 리그 오브 레전드 선수 경매와 리그 운영을 위한 
 - `auction_revision`은 timestamp가 아니라 단조 증가 room counter로 다룬다.
 - Firebase Admin SDK가 필요한 작업은 서버 전용 경계에 둔다.
 
+## 실시간 경매 데이터 동결
+
+- 실시간 경매 데이터 계약은 현재 코드의 Firestore room hot state, RTDB signal path, event envelope, revision ordering, Firestore convergence 동작을 기준으로 고정한다.
+- 입찰, 낙찰, 타이머, 추첨, 시스템 메시지, presence 흐름에서 기존 필드 이름, 경로, 이벤트 타입, revision 비교 규칙을 임의로 바꾸지 않는다.
+- 필요한 변경이 있으면 먼저 `doc/AUCTION_REALTIME_CONTRACT.md`, `doc/ARCHITECTURE.md`, 관련 테스트, 마이그레이션/호환 계획을 함께 업데이트한 뒤 진행한다.
+- 성능 개선이나 리팩토링은 데이터 모양을 바꾸지 않는 내부 구현 변경으로 제한한다.
+
 ## 디자인 규칙
 
 - Cyber-Pixel 방향성을 유지한다: 두꺼운 테두리, 고대비 색, 픽셀 감성, 기술적인 긴장감.

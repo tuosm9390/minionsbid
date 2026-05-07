@@ -12,6 +12,8 @@
 - 서버만 RTDB 경매 상태를 쓴다는 경계를 유지한다.
 - `auction_revision`은 timestamp가 아니라 단조 증가 counter다.
 - `AWARD_GRACE_MS`는 `1500ms` 이하를 유지한다.
+- 현재 코드의 실시간 경매 데이터 계약을 고정한다. `rooms/{roomId}` hot state 필드, `signals/{roomId}` RTDB 경로, `AuctionEventEnvelope` 형태, event type, revision 비교/복구 규칙을 부수 변경으로 수정하지 않는다.
+- 계약 변경이 정말 필요하면 이전 클라이언트 호환성, fixture, Firestore/RTDB rules, E2E 경로를 포함한 마이그레이션 계획을 먼저 문서화한다.
 
 ## 구현 규칙
 
