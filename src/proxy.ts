@@ -32,6 +32,8 @@ export function proxy(request: NextRequest) {
     'https://www.google.com',
     'https://apis.google.com',
     // Firebase RTDB long-polling fallback은 script 로드로 동작할 수 있다.
+    'https://*.firebasedatabase.app',
+    'https://*.firebaseio.com',
     firebaseRtdbHttpsOrigin,
   ]
     .filter(Boolean)
