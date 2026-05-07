@@ -58,4 +58,6 @@ gha-creds-*.json
 !.github/workflows/auction-realtime-ci.yml
 /.claude
 /.omc/
-/
+.omc
+.omc/state/idle-notif-cooldown.json
+.omc/project-memory.json
