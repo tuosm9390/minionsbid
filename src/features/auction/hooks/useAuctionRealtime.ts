@@ -360,7 +360,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
         ...(snapshotIsCurrentOrNewer && {
           // 더 최신 revision의 Firestore snapshot은 정본이다.
-          // 입찰은 남은 시간과 관계없이 5초 리셋이므로 새 정본 타이머가 현재 로컬 타이머보다 짧을 수 있다.
+          // threshold 기반 입찰 연장은 로컬 상태보다 짧은 타이머를 내릴 수 있다.
           timerEndsAt: (() => {
             const newTimer = timestampToISO(data.timer_ends_at)
             const newPlayerId = data.current_player_id ?? null

@@ -29,3 +29,6 @@
 - Updated `useAuctionRealtime` convergence so a newer Firestore revision can shorten the local timer. This is required because a valid bid reset can move a 10s start timer down to 5s.
 - Verification passed: `npx vitest run __tests__/auctionActions.test.ts __tests__/useBiddingControl.test.tsx __tests__/useAuctionRealtime.test.tsx`, `npm run test:e2e:auction`, and `git diff --check`.
 - E2E passed all 13 auction tests. Fixture mode still logs fire-and-forget `broadcastBidEvent` Firebase Admin warnings after completion, but the tested flows pass and converge.
+- Follow-up correction: the desired bid timer policy is not every-bid reset. A successful bid should reset the timer to 5 seconds only when the remaining canonical timer is under 5 seconds. If at least 5 seconds remain, the canonical `timer_ends_at` should stay unchanged while `active_bid` and revision still advance.
+- Keep the previous convergence fix that lets newer Firestore snapshots apply shorter timers, because threshold extension can still produce shorter values in stale local states.
+- Verification passed after the correction: `npm run test -- __tests__/auctionActions.test.ts __tests__/useBiddingControl.test.tsx __tests__/useAuctionRealtime.test.tsx`. `git diff --check` reported only existing line-ending normalization warnings.

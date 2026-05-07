@@ -7,7 +7,10 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
-import { EXTEND_DURATION_MS } from '../constants/auctionTimings'
+import {
+  EXTEND_DURATION_MS,
+  EXTEND_THRESHOLD_MS,
+} from '../constants/auctionTimings'
 
 interface PlaceBidDirectArgs {
   roomId: string
@@ -98,8 +101,11 @@ export async function placeBidDirect(
         throw new Error(`최소 입찰액은 ${minBid}P입니다.`)
       }
 
-      // 성공한 모든 입찰은 입찰 시점부터 5초로 타이머를 재설정한다.
-      const nextTimerEndsAt = Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+      const shouldExtendTimer =
+        timerEndsAt.toMillis() - now < EXTEND_THRESHOLD_MS
+      const nextTimerEndsAt = shouldExtendTimer
+        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+        : timerEndsAt
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
 
       const liveBid = {

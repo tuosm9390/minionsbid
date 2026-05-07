@@ -146,7 +146,37 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().bids).toEqual([]);
   });
 
-  it("남은 시간이 5초보다 길어도 서버 응답 전부터 timerEndsAt을 5초로 낙관 리셋한다", async () => {
+  it("남은 시간이 5초보다 길면 서버 응답 전 timerEndsAt을 낙관 리셋하지 않는다", async () => {
+    let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
+    (placeBidDirect as Mock).mockImplementation(
+      () =>
+        new Promise<{ timerEndsAt?: string | null; error?: string }>((resolve) => {
+          resolveBid = resolve;
+        }),
+    );
+
+    const existingTimerEndsAt = new Date(Date.now() + 10000).toISOString();
+    const { result } = renderHook(() =>
+      useBiddingControl({
+        ...defaultProps,
+        timerEndsAt: existingTimerEndsAt,
+      }),
+    );
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleBid();
+    });
+
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
+
+    resolveBid({ timerEndsAt: null });
+    await act(async () => {
+      await pending;
+    });
+  });
+
+  it("남은 시간이 5초 미만이면 서버 응답 전 timerEndsAt을 5초로 낙관 리셋한다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () =>
@@ -158,12 +188,13 @@ describe("useBiddingControl", () => {
     const { result } = renderHook(() =>
       useBiddingControl({
         ...defaultProps,
-        timerEndsAt: new Date(Date.now() + 10000).toISOString(),
+        timerEndsAt: new Date(Date.now() + 3000).toISOString(),
       }),
     );
 
-    const pending = act(async () => {
-      await result.current.handleBid();
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleBid();
     });
 
     expect(useAuctionStore.getState().timerEndsAt).toBeTruthy();
@@ -177,7 +208,9 @@ describe("useBiddingControl", () => {
     ).toBeGreaterThan(3500);
 
     resolveBid({ timerEndsAt: null });
-    await pending;
+    await act(async () => {
+      await pending;
+    });
   });
 
   it("handleBid 에러 발생 시 bidError 설정", async () => {
@@ -206,8 +239,9 @@ describe("useBiddingControl", () => {
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));
 
-    const pending = act(async () => {
-      await result.current.handleBid();
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.handleBid();
     });
 
     expect(useAuctionStore.getState().liveBid).toMatchObject({
@@ -218,7 +252,9 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().bids).toEqual([]);
 
     resolveBid({ timerEndsAt: null });
-    await pending;
+    await act(async () => {
+      await pending;
+    });
   });
 
   it("handleBid 실패 시 optimistic liveBid를 롤백한다", async () => {

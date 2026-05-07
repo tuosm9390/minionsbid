@@ -145,7 +145,8 @@ leader click bid
   - 새 금액이 기존 금액보다 큼
   - 팀 포인트 잔액이 입찰액 이상
   - `auction_revision == before + 1`
-  - 성공한 모든 입찰은 `timer_ends_at`을 request time 기준 5초 근처로 재설정
+- 성공한 입찰은 남은 시간이 5초 미만일 때만 `timer_ends_at`을 request time 기준 5초 근처로 재설정
+- 남은 시간이 5초 이상이면 입찰은 `active_bid`와 `auction_revision`만 갱신하고 기존 `timer_ends_at`을 유지
   - 클라이언트와 서버 시계 차이를 흡수하기 위해 request time 기준 2~8초 범위만 허용
 
 클라이언트 사전 검증은 UX용이다. 최종 방어선은 Firestore rules다.

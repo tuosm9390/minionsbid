@@ -695,7 +695,7 @@ describe('useFirebaseRealtime', () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
   })
 
-  it('더 최신 Firestore snapshot이면 입찰 5초 리셋으로 짧아진 timerEndsAt도 정본으로 적용한다', () => {
+  it('더 최신 Firestore snapshot이면 짧아진 timerEndsAt도 정본으로 적용한다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
     act(() => {

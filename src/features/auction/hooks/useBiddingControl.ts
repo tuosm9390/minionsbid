@@ -14,6 +14,7 @@ import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebu
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
   EXTEND_DURATION_MS,
+  EXTEND_THRESHOLD_MS,
 } from '@/features/auction/constants/auctionTimings'
 
 interface UseBiddingControlProps {
@@ -146,7 +147,9 @@ export function useBiddingControl({
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
     const bidClickedAt = Date.now()
-    const shouldOptimisticallyResetTimer = !!timerEndsAt
+    const shouldOptimisticallyResetTimer =
+      !!timerEndsAt &&
+      new Date(timerEndsAt).getTime() - bidClickedAt < EXTEND_THRESHOLD_MS
     const optimisticLiveBid: LiveBidState = {
       player_id: currentPlayer.id,
       team_id: teamId,

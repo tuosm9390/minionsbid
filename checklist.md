@@ -16,3 +16,6 @@
 - [x] Align direct bid, server-action fallback, fixture, and Firestore rules with the reset-to-5 behavior.
 - [x] Add focused tests for every-bid timer reset and stale snapshot convergence.
 - [x] Run relevant Vitest checks and auction E2E if feasible.
+- [x] Change bid timer policy to extend only when remaining time is under 5 seconds.
+- [x] Align direct bid, server-action fallback, fixture, rules, docs, and focused tests with threshold-only extension.
+- [x] Run relevant auction Vitest checks.
