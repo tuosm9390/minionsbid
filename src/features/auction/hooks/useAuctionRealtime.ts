@@ -346,9 +346,11 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       }
 
       const roomRevision = data.auction_revision ?? 0
+      const currentAuctionRevision = useAuctionStore.getState().auctionEventRevision
       // RTDB 이벤트가 이미 더 최신 상태를 적용했으면 Firestore 스냅샷의 경매 상태값으로 덮어쓰지 않음
       // >= 대신 > 사용: 같은 revision의 RTDB 이벤트가 먼저 적용되었을 때 Firestore snapshot이 덮어쓰는 것 방지
-      const snapshotIsCurrentOrNewer = roomRevision > useAuctionStore.getState().auctionEventRevision
+      const snapshotIsCurrentOrNewer = roomRevision > currentAuctionRevision
+      const fallbackEvent = data.last_auction_event ?? null
 
       setRealtimeData({
         roomName: data.name ?? null,
@@ -375,7 +377,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         setLiveBid(data.active_bid ?? null)
       }
 
-      const fallbackEvent = data.last_auction_event ?? null
       if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
         const next = applyAuctionEventToState(useAuctionStore.getState(), fallbackEvent)
         if (next.applied) {
@@ -397,6 +398,14 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           })
         }
       }
+      if (
+        roomRevision > useAuctionStore.getState().auctionEventRevision &&
+        data.current_player_id &&
+        data.timer_ends_at &&
+        data.active_bid
+      ) {
+        setAuctionEventRevision(roomRevision)
+      }
 
       if (LATENCY_DEBUG && data.timer_ends_at) {
         console.info('[latency][client] room snapshot timer', {
@@ -408,8 +417,10 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
       const timerEndsAtIso = timestampToISO(data.timer_ends_at)
       const currentPlayerId = data.current_player_id ?? null
-      scheduleExpiryWakeUp(timerEndsAtIso, currentPlayerId, roomRevision)
-      triggerRecovery(timerEndsAtIso, currentPlayerId, roomRevision)
+      if (roomRevision >= useAuctionStore.getState().auctionEventRevision) {
+        scheduleExpiryWakeUp(timerEndsAtIso, currentPlayerId, roomRevision)
+        triggerRecovery(timerEndsAtIso, currentPlayerId, roomRevision)
+      }
 
       // current_player_id 변경 시 bids 구독 갱신
       const newPlayerId = currentPlayerId

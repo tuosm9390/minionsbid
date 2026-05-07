@@ -743,6 +743,170 @@ describe('useFirebaseRealtime', () => {
     })
   })
 
+  it('direct bid room snapshot만 먼저 와도 같은 revision의 stale RTDB 이벤트가 timerEndsAt을 되돌리지 않는다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-05-04T12:00:03.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', null)
+    })
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-05-04T12:00:07.000Z') },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-05-04T12:00:02.000Z',
+        },
+        auction_revision: 6,
+        last_auction_event: null,
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-04T12:00:07.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'bid-stale-same-revision',
+        revision: 6,
+        roomId: 'room-1',
+        type: 'BID_PLACED',
+        serverCreatedAt: '2026-05-04T12:00:02.100Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-05-04T12:00:03.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-05-04T12:00:02.000Z',
+        },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-04T12:00:07.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+  })
+
+  it('이미 더 최신 revision을 적용한 뒤 오래된 room snapshot은 만료 복구 타이머도 예약하지 않는다', async () => {
+    vi.useFakeTimers()
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    useAuctionStore.setState({
+      auctionEventRevision: 6,
+      timerEndsAt: new Date(Date.now() + 8_000).toISOString(),
+      currentPlayerId: 'player-1',
+    })
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date(Date.now() + 1_000) },
+        current_player_id: 'player-1',
+        auction_revision: 5,
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000)
+    })
+
+    expect(recoverExpiredAuction).not.toHaveBeenCalled()
+  })
+
+  it('채팅, 입찰 기록, 선수 snapshot fanout은 적용된 timerEndsAt을 변경하지 않는다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2099-05-04T12:00:07.000Z') },
+        current_player_id: 'player-1',
+        auction_revision: 6,
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+    })
+
+    useAuctionStore.setState({
+      timerEndsAt: '2099-05-04T12:00:07.000Z',
+      auctionEventRevision: 6,
+      currentPlayerId: 'player-1',
+      liveBid: {
+        player_id: 'player-1',
+        team_id: 'team-2',
+        amount: 110,
+        created_at: '2026-05-04T12:00:02.000Z',
+      },
+    })
+
+    act(() => {
+      emitAuctionEvent('signals/room-1/latestMessage', null)
+      emitAuctionEvent('signals/room-1/latestMessage', {
+        id: 'msg-bid-6',
+        event_id: 'bid-6:system',
+        room_id: 'room-1',
+        sender_name: '시스템',
+        sender_role: 'SYSTEM',
+        content: '💰 Red이 20P에 입찰했습니다!',
+        created_at: '2026-05-04T12:00:02.100Z',
+      })
+      emitCollectionSnapshot(2, [
+        {
+          id: 'msg-bid-6',
+          data: {
+            event_id: 'bid-6:system',
+            sender_name: '시스템',
+            sender_role: 'SYSTEM',
+            content: '💰 Red이 20P에 입찰했습니다!',
+            created_at: { toDate: () => new Date('2026-05-04T12:00:02.100Z') },
+          },
+        },
+      ])
+      emitCollectionSnapshot(1, [
+        {
+          id: 'player-1',
+          data: {
+            room_id: 'room-1',
+            name: 'Alpha',
+            tier: 'S',
+            main_position: 'TOP',
+            sub_position: '',
+            status: 'IN_AUCTION',
+            team_id: null,
+            sold_price: null,
+            description: '',
+          },
+        },
+      ])
+      emitCollectionSnapshot(3, [
+        {
+          id: 'bid-6',
+          data: {
+            player_id: 'player-1',
+            team_id: 'team-2',
+            amount: 110,
+            created_at: { toDate: () => new Date('2026-05-04T12:00:02.000Z') },
+          },
+        },
+      ])
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2099-05-04T12:00:07.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+  })
+
   it('RTDB 이벤트를 놓쳐도 room snapshot의 last_auction_event로 즉시 복구한다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 

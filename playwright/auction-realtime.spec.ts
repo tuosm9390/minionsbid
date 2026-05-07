@@ -184,14 +184,17 @@ test('serializes concurrent bids so every client converges on one canonical winn
   await expect
     .poll(async () => {
       const state = await getFixtureState(request, fixture.roomId)
-      return state.bids.length === 1 && state.liveBid?.amount === 10 ? state.liveBid.team_id : null
+      if (!state.liveBid || state.bids.length === 0) return null
+      if (state.bids.length === 1 && state.liveBid.amount === 10) return state.liveBid.team_id
+      if (state.bids.length === 2 && state.liveBid.amount === 20) return state.liveBid.team_id
+      return null
     })
     .not.toBeNull()
 
   const state = await getFixtureState(request, fixture.roomId)
-  expect(state.revision).toBe(2)
-  expect(state.bids).toHaveLength(1)
-  expect(state.liveBid?.amount).toBe(10)
+  expect(state.revision).toBe(1 + state.bids.length)
+  expect([1, 2]).toContain(state.bids.length)
+  expect([10, 20]).toContain(state.liveBid?.amount)
   expect(state.liveBid?.team_id === 'team-blue' || state.liveBid?.team_id === 'team-red').toBe(
     true,
   )
@@ -200,13 +203,13 @@ test('serializes concurrent bids so every client converges on one canonical winn
     await expect(bluePage.getByRole('button', { name: '최고 입찰 유지 중' })).toBeVisible({
       timeout: 3000,
     })
-    await expect(redBidInput).toHaveValue('20', { timeout: 3000 })
+    await expect(redBidInput).toHaveValue(String((state.liveBid?.amount ?? 10) + 10), { timeout: 3000 })
     await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled()
   } else {
     await expect(redPage.getByRole('button', { name: '최고 입찰 유지 중' })).toBeVisible({
       timeout: 3000,
     })
-    await expect(blueBidInput).toHaveValue('20', { timeout: 3000 })
+    await expect(blueBidInput).toHaveValue(String((state.liveBid?.amount ?? 10) + 10), { timeout: 3000 })
     await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled()
   }
 
@@ -652,6 +655,90 @@ test('keeps the auction alive when a bid lands in the final second', async ({
   await expect(organizerPage.getByText(/Alpha 선수 유찰/)).toHaveCount(0)
   await expect(organizerPage.getByText(/다음 선수 추첨/)).toHaveCount(0)
   await expect(organizerPage.getByText('Fixture Auction')).toBeVisible()
+
+  await organizerContext.close()
+  await blueContext.close()
+  await redContext.close()
+})
+
+test('keeps every client timer extended when a non-first leader bids after chat fanout', async ({
+  request,
+  browser,
+}) => {
+  const response = await request.post('/api/e2e/auction-fixture/reset', {
+    data: { stage: 'active-auction-final-second' },
+  })
+  expect(response.ok()).toBeTruthy()
+  const fixture = (await response.json()) as AuctionFixtureResetResponse
+
+  const organizerContext = await browser.newContext({ reducedMotion: 'reduce' })
+  const blueContext = await browser.newContext({ reducedMotion: 'reduce' })
+  const redContext = await browser.newContext({ reducedMotion: 'reduce' })
+  const organizerPage = await organizerContext.newPage()
+  const bluePage = await blueContext.newPage()
+  const redPage = await redContext.newPage()
+
+  const blueLink = fixture.captainLinks.find((entry) => entry.teamName === 'Blue')?.link
+  const redLink = fixture.captainLinks.find((entry) => entry.teamName === 'Red')?.link
+
+  if (!blueLink || !redLink) {
+    throw new Error('fixture captain links are incomplete')
+  }
+
+  await organizerPage.goto(fixture.organizerLink)
+  await bluePage.goto(blueLink)
+  await redPage.goto(redLink)
+
+  const organizerTimer = organizerPage.locator('[role="timer"]')
+  const blueTimer = bluePage.locator('[role="timer"]')
+  const redTimer = redPage.locator('[role="timer"]')
+  const blueBidInput = bluePage.locator('input[type="number"]').first()
+  const redBidInput = redPage.locator('input[type="number"]').first()
+
+  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+  await expect
+    .poll(
+      async () => parseTimerSeconds(await blueTimer.textContent()),
+      { timeout: 15000 },
+    )
+    .toBeLessThanOrEqual(1.6)
+
+  await blueBidInput.fill('10')
+  await bluePage.getByRole('button', { name: '입찰하기' }).click()
+  await expect(redBidInput).toHaveValue('20', { timeout: 3000 })
+
+  await expect
+    .poll(
+      async () => parseTimerSeconds(await redTimer.textContent()),
+      { timeout: 7000 },
+    )
+    .toBeLessThanOrEqual(2.8)
+
+  await redBidInput.fill('20')
+  await redPage.getByRole('button', { name: '입찰하기' }).click()
+
+  await expect(redPage.getByRole('button', { name: '최고 입찰 유지 중' })).toBeVisible({
+    timeout: 3000,
+  })
+  await expect(blueBidInput).toHaveValue('30', { timeout: 3000 })
+  await expect(organizerPage.getByText(/Red이 20P에 입찰했습니다!/)).toBeVisible({
+    timeout: 3000,
+  })
+
+  await expect
+    .poll(
+      async () => {
+        const values = [
+          parseTimerSeconds(await organizerTimer.textContent()),
+          parseTimerSeconds(await blueTimer.textContent()),
+          parseTimerSeconds(await redTimer.textContent()),
+        ]
+        return Math.min(...values)
+      },
+      { timeout: 3000 },
+    )
+    .toBeGreaterThan(3)
 
   await organizerContext.close()
   await blueContext.close()

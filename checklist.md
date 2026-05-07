@@ -33,3 +33,8 @@
 - [x] Add a regression test for non-first bidder timer staying extended after chat/event fanout.
 - [x] Apply the smallest realtime convergence fix if the test exposes a stale overwrite path.
 - [x] Run relevant auction realtime tests and build.
+- [x] Enumerate every code path that can shorten or re-render the auction timer.
+- [x] Add regression coverage for stale room snapshot side effects after local bid revision advancement.
+- [x] Add regression coverage for stale message/bid/player snapshot fanout after a non-first bid.
+- [x] Harden confirmed stale realtime side effects without changing the realtime contract shape.
+- [x] Run focused Vitest checks, build, and auction E2E if feasible.
