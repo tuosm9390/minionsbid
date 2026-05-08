@@ -79,3 +79,9 @@
 - The test page should be a local simulator, not a Firebase writer. It verifies the policy mechanics without changing production room state, Firestore rules, or RTDB paths.
 - Added `doc/AUCTION_TIMER_IMPLEMENTATION_PLAN.md` and `/auction-timer-lab`. Verification: `npm run build` passed, `npx eslint src/app/auction-timer-lab/page.tsx` passed, `git diff --check` reported only existing LF-to-CRLF warnings for checklist/context notes. Full `npm run lint` still fails on pre-existing unrelated files.
 - The dev server is running at `http://localhost:3010/auction-timer-lab` after sandboxed `next dev` hit `spawn EPERM` and the command was approved to run outside the sandbox.
+- Follow-up request: make the deployed lab page use server actions and the already connected Firebase/RTDB stack without mixing with production auction rooms.
+- Implemented isolated paths: Firestore `timerLabs/{labId}` is canonical, RTDB `timerLabSignals/{labId}` is fanout. Existing `rooms/{roomId}` and `signals/{roomId}` are untouched.
+- Added `src/features/timer-lab/actions.ts` with `createTimerLab`, `startTimerLab`, `placeTimerLabBid`, and `closeExpiredTimerLab`. All writes happen through server actions via Admin SDK.
+- Converted `/auction-timer-lab` so a shared `?labId=` URL lets multiple browsers subscribe to the same lab state. The page reads Firestore and RTDB, and no longer keeps authoritative timer data in local state.
+- Updated `firestore.rules` and `database.rules.json` to allow public reads for isolated timer lab paths and keep client writes blocked. Verification passed: `npx eslint src/app/auction-timer-lab/page.tsx src/features/timer-lab/actions.ts`, `npm run build`.
+- Local smoke: Playwright create/start/bid flow passed against `http://localhost:3010/auction-timer-lab`. Current deployed Firestore rules still denied `timerLabs` reads until the updated rules are deployed, so the page also applies RTDB event fallback for immediate visual state.

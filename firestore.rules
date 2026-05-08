@@ -123,6 +123,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isServerWrite();
     }
 
+    match /timerLabs/{labId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() || isServerWrite();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

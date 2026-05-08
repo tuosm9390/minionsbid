@@ -138,4 +138,4 @@ Scheduled Functions는 구현이 단순하지만 주기 실행 모델이다. 초
 
 ## 이번 테스트 페이지 범위
 
-`/auction-timer-lab` 페이지는 Firebase에 쓰지 않는 로컬 시뮬레이터다. 서버 transaction을 흉내 내는 단일 상태 머신으로 정책을 빠르게 검증한다. 실제 Firebase 연동, Cloud Tasks 예약, Security Rules 적용은 별도 구현 단계에서 진행한다.
+`/auction-timer-lab` 페이지는 배포 환경에서 `timerLabs/{labId}`와 `timerLabSignals/{labId}`를 사용하는 전용 테스트 랩이다. 운영 `rooms/{roomId}`와 `signals/{roomId}` 경로는 사용하지 않는다. 쓰기는 서버 액션만 수행하고 클라이언트는 Firestore/RTDB를 구독한다.

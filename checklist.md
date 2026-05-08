@@ -73,3 +73,7 @@
 - [x] Write realtime auction timer implementation plan from the CTO policy discussion.
 - [x] Add a single-page local simulator for the 10s/5s timer and bid rules.
 - [x] Verify the new document and test page with the smallest available project checks.
+- [x] Add isolated `timerLabs` Firestore and `timerLabSignals` RTDB server-action flow.
+- [x] Convert `/auction-timer-lab` from local state simulation to shared labId realtime subscription.
+- [x] Add Firebase rules read access for the isolated timer lab paths while keeping client writes blocked.
+- [x] Verify timer lab files with focused lint and production build.

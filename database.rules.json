@@ -13,6 +13,12 @@
         ".read": true,
         ".write": false
       }
+    },
+    "timerLabSignals": {
+      "$labId": {
+        ".read": true,
+        ".write": false
+      }
     }
   }
 }
