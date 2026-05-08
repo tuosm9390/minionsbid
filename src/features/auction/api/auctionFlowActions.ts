@@ -26,7 +26,6 @@ import {
 import {
   AUCTION_DURATION_MS,
   EXTEND_DURATION_MS,
-  EXTEND_THRESHOLD_MS,
   RE_AUCTION_DURATION_MS,
 } from "@/features/auction/constants/auctionTimings";
 
@@ -631,15 +630,11 @@ export async function placeBid(
       };
 
       const now = Date.now();
-      const shouldExtendTimer =
-        timerField.toMillis() - now < EXTEND_THRESHOLD_MS;
-      const nextTimerTimestamp = shouldExtendTimer
-        ? admin.firestore.Timestamp.fromDate(new Date(Math.max(timerField.toMillis(), now + EXTEND_DURATION_MS)))
-        : timerField;
+      const nextTimerTimestamp = admin.firestore.Timestamp.fromDate(
+        new Date(now + EXTEND_DURATION_MS)
+      );
       newTimerEndsAt = nextTimerTimestamp.toDate().toISOString();
-      if (shouldExtendTimer) {
-        timerExtendedAt = nowMs();
-      }
+      timerExtendedAt = nowMs();
 
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,

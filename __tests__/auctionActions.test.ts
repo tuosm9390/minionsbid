@@ -332,7 +332,7 @@ describe('placeBid', () => {
     expect(result.timerEndsAt).toBeDefined()
   })
 
-  it('GREEN: 남은 시간 > 5초이면 기존 타이머를 유지한다', async () => {
+  it('GREEN: 남은 시간 > 5초이어도 타이머를 5초로 갱신한다', async () => {
     const existingTimerMs = Date.now() + 10000
     mockDocGet
       .mockResolvedValueOnce(makeSnap({
@@ -348,8 +348,8 @@ describe('placeBid', () => {
     expect(result.error).toBeUndefined()
     expect(result.timerEndsAt).toBeDefined()
     const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
-    expect(remainingMs).toBeGreaterThan(8_500)
-    expect(new Date(result.timerEndsAt as string).getTime()).toBe(existingTimerMs)
+    expect(remainingMs).toBeGreaterThan(4_000)
+    expect(remainingMs).toBeLessThanOrEqual(5_500)
   })
 })
 

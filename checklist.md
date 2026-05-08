@@ -55,3 +55,7 @@
 - [x] Run focused lottery and board tests.
 - [x] Fix broadcastBidEvent so RTDB timer event publishes before Firestore/chat writes.
 - [x] Run focused realtime and bidding tests.
+- [x] Remove shouldExtendTimer condition so every bid resets timer to now+5s.
+- [x] Update Firestore rules to allow timer shortening on any bid.
+- [x] Update affected test for every-bid timer reset.
+- [x] Run focused auction action, bidding control, and realtime tests (69/69 passed).
