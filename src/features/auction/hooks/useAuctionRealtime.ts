@@ -144,9 +144,11 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const latestMessageInitRef = useRef(true)
   const lastLiveMessageIdRef = useRef<string | null>(null)
   const auctionEventHistoryInitRef = useRef(true)
+  const auctionEventLiveRef = useRef(false)
 
   useEffect(() => {
     if (!roomId) return
+    auctionEventLiveRef.current = false
 
     const clearExpiryWakeUp = () => {
       if (expiryWakeUpTimeoutRef.current !== null) {
@@ -603,6 +605,23 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     }
 
     // 5. RTDB: 단일 경매 이벤트 감시
+    // 실시간 이벤트는 timerDurationMs로 클럭 스큐 없이 타이머를 브라우저 기준 리셋
+    const applyLiveAuctionEvent = (event: AuctionEventEnvelope) => {
+      const resolved: AuctionEventEnvelope =
+        event.timerDurationMs != null &&
+        (event.type === 'BID_PLACED' ||
+          event.type === 'AUCTION_STARTED' ||
+          event.type === 'AUCTION_RESUMED')
+          ? {
+              ...event,
+              timerEndsAt: new Date(
+                Date.now() + event.timerDurationMs,
+              ).toISOString(),
+            }
+          : event
+      applyAuctionEvent(resolved)
+    }
+
     const auctionEventRef = ref(rtdb, `signals/${roomId}/auctionEvent`)
     const auctionEventUnsub = onValue(auctionEventRef, (snapshot) => {
       if (shouldSkipRealtimeAuctionEvent()) {
@@ -612,7 +631,13 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (!data?.eventId) {
         return
       }
-      applyAuctionEvent(data)
+      if (!auctionEventLiveRef.current) {
+        // 최초 구독 시 수신되는 초기값은 절대 타임스탬프 사용 (과거 이벤트일 수 있음)
+        auctionEventLiveRef.current = true
+        applyAuctionEvent(data)
+      } else {
+        applyLiveAuctionEvent(data)
+      }
     })
     unsubs.push(() => auctionEventUnsub())
 

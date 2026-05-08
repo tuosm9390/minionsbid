@@ -26,6 +26,7 @@ export interface AuctionEventEnvelope {
   serverCreatedAt: string
   currentPlayerId?: string | null
   timerEndsAt?: string | null
+  timerDurationMs?: number | null
   liveBid?: LiveBidState | null
   player?: Partial<Player> & Pick<Player, 'id'>
   lotteryPlayer?: Player | null

@@ -341,6 +341,7 @@ export async function startAuction(
         {
           currentPlayerId: freshPlayerId,
           timerEndsAt: resolvedTimerEndsAt,
+          timerDurationMs: nextDurationMs,
           player: {
             id: freshPlayerId,
             status: "IN_AUCTION",
@@ -445,6 +446,7 @@ export async function resumeAuction(
         {
           currentPlayerId: roomData.current_player_id ?? null,
           timerEndsAt: resolvedTimerEndsAt,
+          timerDurationMs: resumeDurationMs,
           liveBid: roomData.active_bid ?? null,
         },
       );
@@ -646,6 +648,7 @@ export async function placeBid(
         {
           currentPlayerId: playerId,
           timerEndsAt: nextTimerTimestamp.toDate().toISOString(),
+          timerDurationMs: shouldExtendTimer ? EXTEND_DURATION_MS : null,
           liveBid,
         },
       );
