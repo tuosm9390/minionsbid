@@ -69,3 +69,7 @@
 - [x] Simplify firestore.rules isBidUpdate: client cannot write timer_ends_at (Admin SDK owns it).
 - [x] Rewrite useBiddingControl.test.tsx for server-action-only flow (11 tests, all passing).
 - [x] Run focused tests (68/68 passed).
+- [x] Run E2E auction tests (14/14 passed).
+- [x] Write realtime auction timer implementation plan from the CTO policy discussion.
+- [x] Add a single-page local simulator for the 10s/5s timer and bid rules.
+- [x] Verify the new document and test page with the smallest available project checks.

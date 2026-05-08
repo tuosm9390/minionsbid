@@ -74,3 +74,8 @@
 - Optimistic timer mitigation retained: if remaining < 5s, `handleBid` immediately calls `setRealtimeData({ timerEndsAt: now + 5s })` before `placeBid` resolves, preserving instant visual feedback. Rolled back on error.
 - `firestore.rules` `isBidUpdate` simplified: client can no longer write `timer_ends_at` at all (`after.timer_ends_at == before.timer_ends_at`). Timer is now exclusively set by Admin SDK in `placeBid`.
 - `useBiddingControl.test.tsx` rewritten for server-action-only flow (11 tests). Verification: 68/68 passed.
+- New request: write the timer implementation plan as a document and add a single-page test surface.
+- Existing repository contract differs from the earlier generic recommendation: Firestore is canonical and RTDB is fanout. The new plan follows the repo contract instead of introducing an RTDB-canonical schema.
+- The test page should be a local simulator, not a Firebase writer. It verifies the policy mechanics without changing production room state, Firestore rules, or RTDB paths.
+- Added `doc/AUCTION_TIMER_IMPLEMENTATION_PLAN.md` and `/auction-timer-lab`. Verification: `npm run build` passed, `npx eslint src/app/auction-timer-lab/page.tsx` passed, `git diff --check` reported only existing LF-to-CRLF warnings for checklist/context notes. Full `npm run lint` still fails on pre-existing unrelated files.
+- The dev server is running at `http://localhost:3010/auction-timer-lab` after sandboxed `next dev` hit `spawn EPERM` and the command was approved to run outside the sandbox.
