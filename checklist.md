@@ -63,3 +63,9 @@
 - [x] Update Firestore rules: allow timer unchanged when remaining > 5s, allow 2-8s extension when ≤ 5s.
 - [x] Update test: "남은 시간 > 5초이면 기존 타이머를 유지한다".
 - [x] Run focused tests (69/69 passed) and build (pass).
+- [x] Diagnose root cause: browser Date.now() clock skew vs server time causes timer_ends_at to be ~Δ seconds short.
+- [x] Remove placeBidDirect + broadcastBidEvent from useBiddingControl — use placeBid Server Action only.
+- [x] Add optimistic timer mitigation: set timerEndsAt=now+5s locally on bid click when remaining < 5s, rollback on error.
+- [x] Simplify firestore.rules isBidUpdate: client cannot write timer_ends_at (Admin SDK owns it).
+- [x] Rewrite useBiddingControl.test.tsx for server-action-only flow (11 tests, all passing).
+- [x] Run focused tests (68/68 passed).

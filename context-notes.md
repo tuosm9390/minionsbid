@@ -69,3 +69,8 @@
 - Verification passed: `npm test -- __tests__/auctionActions.test.ts __tests__/useBiddingControl.test.tsx __tests__/useAuctionRealtime.test.tsx` — 69/69 passed.
 - Follow-up correction: "항상 5s 갱신" 정책을 다시 threshold 기반으로 복원. 남은 시간 > 5s이면 타이머 유지, ≤ 5s이면 now+5s로 갱신. `placeBidClient.ts`와 `auctionFlowActions.ts`에 `shouldExtendTimer = resetTimer || remaining < EXTEND_THRESHOLD_MS` 복원. Firestore rules를 `before.remaining > 5s → after == before`, `before.remaining ≤ 5s → after in 2-8s range` 분기로 업데이트.
 - Verification passed: `npm test -- __tests__/auctionActions.test.ts __tests__/useBiddingControl.test.tsx __tests__/useAuctionRealtime.test.tsx` — 69/69, `npm run build` — pass.
+- Root cause of remaining timer rebound (2-3s instead of 5s): `placeBidDirect` used `Date.now()` (browser JS clock) which can lag server clock by Δ seconds, so `timer_ends_at = now + 5s` was actually `serverTime + 5s - Δ`. Other clients decoded this as `5 - Δ` seconds remaining.
+- Fix: Option 2 — bid + timer moved to `placeBid` Server Action only (Admin SDK uses Vercel server time). `placeBidDirect` and `broadcastBidEvent` removed from `useBiddingControl.handleBid` call path.
+- Optimistic timer mitigation retained: if remaining < 5s, `handleBid` immediately calls `setRealtimeData({ timerEndsAt: now + 5s })` before `placeBid` resolves, preserving instant visual feedback. Rolled back on error.
+- `firestore.rules` `isBidUpdate` simplified: client can no longer write `timer_ends_at` at all (`after.timer_ends_at == before.timer_ends_at`). Timer is now exclusively set by Admin SDK in `placeBid`.
+- `useBiddingControl.test.tsx` rewritten for server-action-only flow (11 tests). Verification: 68/68 passed.

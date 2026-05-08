@@ -7,13 +7,12 @@ import {
   type Player,
   type Team,
 } from '@/features/auction/store/useAuctionStore'
-import { placeBid, broadcastBidEvent } from '@/features/auction/api/auctionActions'
-import { placeBidDirect } from '@/features/auction/api/placeBidClient'
+import { placeBid } from '@/features/auction/api/auctionActions'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
-import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
   EXTEND_THRESHOLD_MS,
+  EXTEND_DURATION_MS,
 } from '@/features/auction/constants/auctionTimings'
 
 interface UseBiddingControlProps {
@@ -158,75 +157,36 @@ export function useBiddingControl({
 
     setBidError(null)
     setIsBidding(true)
-
     setLiveBid(optimisticLiveBid)
 
-    try {
-      // 1차: 클라이언트 직접 입찰 (Vercel Function 경유 없이 Firestore 직접 트랜잭션)
-      const directRes = await placeBidDirect({
-        roomId,
-        playerId: currentPlayer.id,
-        teamId,
-        amount: finalAmount,
-        resetTimer: shouldOptimisticallyResetTimer,
-      })
+    // 남은 시간 < 5s이면 즉시 낙관적 타이머 리셋 표시
+    if (shouldOptimisticallyResetTimer) {
+      setRealtimeData({ timerEndsAt: new Date(bidClickedAt + EXTEND_DURATION_MS).toISOString() })
+    }
 
-      if (directRes.error) {
-        // 클라이언트 직접 입찰 실패 → Server Action 폴백
-        if (LATENCY_DEBUG) {
-          console.info('[bid] direct failed, falling back to server action', directRes.error)
+    try {
+      const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
+      if (res.error) {
+        setLiveBid(previousLiveBid ?? null)
+        if (shouldOptimisticallyResetTimer) {
+          setRealtimeData({ timerEndsAt: previousTimerEndsAt })
         }
-        const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
-        if (res.error) {
-          setLiveBid(previousLiveBid ?? null)
-          if (shouldOptimisticallyResetTimer) {
-            setRealtimeData({ timerEndsAt: previousTimerEndsAt })
-          }
-          setBidError(res.error)
-        } else {
-          setLiveBid(optimisticLiveBid)
-          setBidAmount(finalAmount + 10)
-          // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 Server Action 응답의 timer/revision 선반영을 막는다.
-          // if (res.timerEndsAt) {
-          //   setRealtimeData({ timerEndsAt: res.timerEndsAt })
-          // }
-          // if (typeof res.revision === 'number' && res.revision > 0) {
-          //   setAuctionEventRevision(res.revision)
-          // }
-        }
+        setBidError(res.error)
       } else {
-        // 클라이언트 직접 입찰 성공
         setLiveBid(optimisticLiveBid)
+        setBidAmount(finalAmount + 10)
+        // 서버 시간 기준 정확한 타이머로 확정 (낙관값 보정)
+        if (res.timerEndsAt) {
+          setRealtimeData({ timerEndsAt: res.timerEndsAt })
+        }
         if (LATENCY_DEBUG) {
-          console.info('[latency][client] placeBidDirect success', {
+          console.info('[latency][client] placeBid success', {
             roomId,
             teamId,
             amount: finalAmount,
             clientRoundTripMs: Date.now() - bidClickedAt,
-            optimisticTimerReset: shouldOptimisticallyResetTimer,
           })
         }
-        setBidAmount(finalAmount + 10)
-        // Firestore onSnapshot이 자동으로 다른 클라이언트에 전파
-        // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 direct bid 응답의 timer/revision 선반영을 막는다.
-        // if (directRes.timerEndsAt) {
-        //   setRealtimeData({ timerEndsAt: directRes.timerEndsAt })
-        // }
-        // if (typeof directRes.revision === 'number' && directRes.revision > 0) {
-        //   setAuctionEventRevision(directRes.revision)
-        // }
-        // RTDB 이벤트 전파 + 시스템 메시지 (fire-and-forget, 레이턴시에 영향 없음)
-        const teamName = myTeam?.name ?? teamId
-        const effectiveTimer = directRes.timerEndsAt ?? useAuctionStore.getState().timerEndsAt ?? null
-        void broadcastBidEvent(
-          roomId,
-          currentPlayer.id,
-          teamId,
-          teamName,
-          finalAmount,
-          effectiveTimer,
-          directRes.revision ?? 0,
-        ).catch(() => { /* 입찰 성공에는 영향 없음 */ })
       }
     } catch (error) {
       setLiveBid(previousLiveBid ?? null)
