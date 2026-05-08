@@ -105,10 +105,10 @@ export async function placeBidDirect(
         throw new Error(`최소 입찰액은 ${minBid}P입니다.`)
       }
 
-      const shouldExtendTimer = resetTimer ||
-        timerEndsAt.toMillis() - now < EXTEND_THRESHOLD_MS
+      const remaining = timerEndsAt.toMillis() - now
+      const shouldExtendTimer = resetTimer || remaining < EXTEND_THRESHOLD_MS
       const nextTimerEndsAt = shouldExtendTimer
-        ? Timestamp.fromDate(new Date(Math.max(timerEndsAt.toMillis(), now + EXTEND_DURATION_MS)))
+        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
         : timerEndsAt
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
 

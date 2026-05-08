@@ -52,16 +52,13 @@ service cloud.firestore {
         && (before.active_bid == null || before.active_bid.team_id != auth.token.teamId)
         // revision 정확히 +1
         && after.auction_revision == before.auction_revision + 1
-        // 타이머 연장 검증
-        // 5초 경계에서 클라이언트와 서버 간의 미세한 시간 차이(Clock Skew)로 인해
-        // 연속 입찰 시 트랜잭션이 거부되는 현상을 방지하기 위해 조건을 단순화합니다.
+        // 타이머 검증: 남은 시간 > 5s이면 기존 타이머 유지, ≤ 5s이면 2~8초로 갱신
         && (
-          after.timer_ends_at == before.timer_ends_at
-          || (
-            after.timer_ends_at >= before.timer_ends_at
+          (before.timer_ends_at.toMillis() > request.time.toMillis() + 5000
+            && after.timer_ends_at == before.timer_ends_at)
+          || (before.timer_ends_at.toMillis() <= request.time.toMillis() + 5000
             && after.timer_ends_at.toMillis() > request.time.toMillis() + 2000
-            && after.timer_ends_at.toMillis() <= request.time.toMillis() + 8000
-          )
+            && after.timer_ends_at.toMillis() <= request.time.toMillis() + 8000)
         )
         // 팀 포인트 잔액 >= 입찰액
         && get(/databases/$(database)/documents/rooms/$(roomId)/teams/$(auth.token.teamId)).data.point_balance >= newBid.amount;

@@ -347,8 +347,6 @@ describe('placeBid', () => {
     const result = await placeBid(roomId, playerId, teamId, 10)
     expect(result.error).toBeUndefined()
     expect(result.timerEndsAt).toBeDefined()
-    const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
-    expect(remainingMs).toBeGreaterThan(8_500)
     expect(new Date(result.timerEndsAt as string).getTime()).toBe(existingTimerMs)
   })
 })

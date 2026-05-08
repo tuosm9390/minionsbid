@@ -631,15 +631,13 @@ export async function placeBid(
       };
 
       const now = Date.now();
-      const shouldExtendTimer =
-        timerField.toMillis() - now < EXTEND_THRESHOLD_MS;
+      const timerRemaining = timerField.toMillis() - now;
+      const shouldExtendTimer = timerRemaining < EXTEND_THRESHOLD_MS;
       const nextTimerTimestamp = shouldExtendTimer
-        ? admin.firestore.Timestamp.fromDate(new Date(Math.max(timerField.toMillis(), now + EXTEND_DURATION_MS)))
+        ? admin.firestore.Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
         : timerField;
       newTimerEndsAt = nextTimerTimestamp.toDate().toISOString();
-      if (shouldExtendTimer) {
-        timerExtendedAt = nowMs();
-      }
+      if (shouldExtendTimer) timerExtendedAt = nowMs();
 
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
