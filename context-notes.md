@@ -85,3 +85,4 @@
 - Converted `/auction-timer-lab` so a shared `?labId=` URL lets multiple browsers subscribe to the same lab state. The page reads Firestore and RTDB, and no longer keeps authoritative timer data in local state.
 - Updated `firestore.rules` and `database.rules.json` to allow public reads for isolated timer lab paths and keep client writes blocked. Verification passed: `npx eslint src/app/auction-timer-lab/page.tsx src/features/timer-lab/actions.ts`, `npm run build`.
 - Local smoke: Playwright create/start/bid flow passed against `http://localhost:3010/auction-timer-lab`. Current deployed Firestore rules still denied `timerLabs` reads until the updated rules are deployed, so the page also applies RTDB event fallback for immediate visual state.
+- The user deleted the Firestore `(default)` database. Updated `firebase.json` so Firestore rules deploy only to `minionsbid`, and updated README env examples/deploy notes so new environments do not fall back to `(default)`.

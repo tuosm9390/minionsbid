@@ -77,3 +77,5 @@
 - [x] Convert `/auction-timer-lab` from local state simulation to shared labId realtime subscription.
 - [x] Add Firebase rules read access for the isolated timer lab paths while keeping client writes blocked.
 - [x] Verify timer lab files with focused lint and production build.
+- [x] Remove deleted `(default)` Firestore database from Firebase deploy config.
+- [x] Update README env examples and deployment notes to use `minionsbid`.
