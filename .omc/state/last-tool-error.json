@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git worktree remove \\\"D:\\\\development\\\\league-auction\\\\.claude\\\\worktrees\\\\agent-a90a2c321f9890440\\\" --force && npm test 2>&1 | tail -8\",\"timeout\":120000,\"description\":\"Remove worktree and...",
-  "error": "Exit code 128\nfatal: cannot remove a locked working tree, lock reason: claude agent agent-a90a2c321f9890440 (pid 37188)\nuse 'remove -f -f' to override or unlock first",
-  "timestamp": "2026-05-07T15:52:07.030Z",
-  "retry_count": 1
-}
