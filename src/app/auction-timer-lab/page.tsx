@@ -70,6 +70,22 @@ const createStateFromEvent = (event: TimerLabEvent | null): TimerLabState => ({
   lastEvent: event,
 });
 
+function applyEventOverlay(state: TimerLabState | null, event: TimerLabEvent | null): TimerLabState {
+  const base = state ?? createStateFromEvent(event);
+  if (!event?.eventId || event.revision < base.revision) return base;
+
+  return {
+    ...base,
+    status: event.status,
+    endsAtMs: event.endsAtMs,
+    highestBidAmount: event.highestBidAmount,
+    highestBidderNickname: event.highestBidderNickname,
+    nextMinBidAmount: event.nextMinBidAmount,
+    revision: event.revision,
+    lastEvent: event,
+  };
+}
+
 const formatMs = (value: number) => `${Math.max(0, Math.floor(value / 1000))}초`;
 
 function readLabIdFromLocation() {
@@ -151,24 +167,25 @@ export default function AuctionTimerLabPage() {
     };
   }, [labId]);
 
-  useEffect(() => {
-    if (!labId || !labState?.endsAtMs || labState.status !== "auction_active") return;
-    if (labState.endsAtMs > serverNow) return;
+  const selectedParticipant = useMemo(
+    () => PARTICIPANTS.find((participant) => participant.id === selectedParticipantId) ?? PARTICIPANTS[1],
+    [selectedParticipantId],
+  );
+  const effectiveState = useMemo(() => applyEventOverlay(labState, lastEvent), [labState, lastEvent]);
 
-    const recoveryKey = `${labId}:${labState.revision}:${labState.endsAtMs}`;
+  useEffect(() => {
+    if (!labId || !effectiveState.endsAtMs || effectiveState.status !== "auction_active") return;
+    if (effectiveState.endsAtMs > serverNow) return;
+
+    const recoveryKey = `${labId}:${effectiveState.revision}:${effectiveState.endsAtMs}`;
     if (closeRequestedKeyRef.current === recoveryKey) return;
     closeRequestedKeyRef.current = recoveryKey;
 
     startTransition(async () => {
       await closeExpiredTimerLab(labId);
     });
-  }, [labId, labState?.endsAtMs, labState?.revision, labState?.status, serverNow]);
+  }, [effectiveState.endsAtMs, effectiveState.revision, effectiveState.status, labId, serverNow]);
 
-  const selectedParticipant = useMemo(
-    () => PARTICIPANTS.find((participant) => participant.id === selectedParticipantId) ?? PARTICIPANTS[1],
-    [selectedParticipantId],
-  );
-  const effectiveState = labState ?? createStateFromEvent(lastEvent);
   const remainingMs = effectiveState.endsAtMs === null ? 0 : Math.max(0, effectiveState.endsAtMs - serverNow);
   const displaySeconds = Math.max(0, Math.floor(remainingMs / 1000));
   const canBid =
@@ -194,6 +211,9 @@ export default function AuctionTimerLabPage() {
         return;
       }
 
+      setLabState(null);
+      setLastEvent(null);
+      closeRequestedKeyRef.current = null;
       writeLabIdToLocation(result.labId);
       setLabId(result.labId);
     });

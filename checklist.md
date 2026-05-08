@@ -79,3 +79,5 @@
 - [x] Verify timer lab files with focused lint and production build.
 - [x] Remove deleted `(default)` Firestore database from Firebase deploy config.
 - [x] Update README env examples and deployment notes to use `minionsbid`.
+- [x] Make timer lab display prefer latest RTDB timer events over older Firestore snapshots.
+- [x] Verify focused timer lab lint/build checks.
