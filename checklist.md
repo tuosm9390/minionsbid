@@ -59,3 +59,7 @@
 - [x] Update Firestore rules to allow timer shortening on any bid.
 - [x] Update affected test for every-bid timer reset.
 - [x] Run focused auction action, bidding control, and realtime tests (69/69 passed).
+- [x] Restore shouldExtendTimer — only reset timer to 5s when remaining < 5s (EXTEND_THRESHOLD_MS).
+- [x] Update Firestore rules: allow timer unchanged when remaining > 5s, allow 2-8s extension when ≤ 5s.
+- [x] Update test: "남은 시간 > 5초이면 기존 타이머를 유지한다".
+- [x] Run focused tests (69/69 passed) and build (pass).

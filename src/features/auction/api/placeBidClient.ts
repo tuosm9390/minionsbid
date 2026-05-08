@@ -9,6 +9,7 @@ import {
 import { getAuctionClientServices } from '../realtime/clientAdapter'
 import {
   EXTEND_DURATION_MS,
+  EXTEND_THRESHOLD_MS,
 } from '../constants/auctionTimings'
 
 interface PlaceBidDirectArgs {
@@ -104,7 +105,11 @@ export async function placeBidDirect(
         throw new Error(`최소 입찰액은 ${minBid}P입니다.`)
       }
 
-      const nextTimerEndsAt = Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+      const remaining = timerEndsAt.toMillis() - now
+      const shouldExtendTimer = resetTimer || remaining < EXTEND_THRESHOLD_MS
+      const nextTimerEndsAt = shouldExtendTimer
+        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+        : timerEndsAt
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
 
       const liveBid = {
