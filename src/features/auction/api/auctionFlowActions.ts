@@ -182,10 +182,12 @@ export async function broadcastBidEvent(
   amount: number,
   timerEndsAt: string | null,
   revision: number,
+  timerDurationMs: number | null = null,
 ): Promise<void> {
   const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
     currentPlayerId: playerId,
     timerEndsAt,
+    timerDurationMs,
     liveBid: {
       player_id: playerId,
       team_id: teamId,

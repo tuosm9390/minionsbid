@@ -7,7 +7,11 @@ import {
   type Player,
   type Team,
 } from '@/features/auction/store/useAuctionStore'
-import { placeBid } from '@/features/auction/api/auctionActions'
+import {
+  broadcastBidEvent,
+  placeBid,
+} from '@/features/auction/api/auctionActions'
+import { placeBidDirect } from '@/features/auction/api/placeBidClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
@@ -27,6 +31,7 @@ interface UseBiddingControlProps {
 }
 
 const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
+const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 
 function isRealtimeDebugEnabled() {
   if (typeof window === 'undefined') return false
@@ -59,6 +64,7 @@ export function useBiddingControl({
   const liveBid = useAuctionStore((s) => s.liveBid)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
+  const setAuctionEventRevision = useAuctionStore((s) => s.setAuctionEventRevision)
   const players = useAuctionStore((s) => s.players)
   const { waitingPlayers, soldPlayers } = useMemo(
     () => bucketAuctionPlayers(players),
@@ -165,6 +171,51 @@ export function useBiddingControl({
     }
 
     try {
+      const directResult = await placeBidDirect({
+        roomId,
+        playerId: currentPlayer.id,
+        teamId,
+        amount: finalAmount,
+        resetTimer: shouldOptimisticallyResetTimer,
+      })
+      if (!directResult.error) {
+        const directTimerChanged =
+          !!directResult.timerEndsAt &&
+          directResult.timerEndsAt !== previousTimerEndsAt
+
+        setLiveBid(optimisticLiveBid)
+        setBidAmount(finalAmount + 10)
+        if (directResult.revision) {
+          setAuctionEventRevision(directResult.revision)
+        }
+        if (directTimerChanged) {
+          setRealtimeData({
+            timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+          })
+        }
+        if (!E2E_AUCTION_FIXTURE) {
+          void broadcastBidEvent(
+            roomId,
+            currentPlayer.id,
+            teamId,
+            myTeam?.name ?? '팀',
+            finalAmount,
+            directResult.timerEndsAt ?? previousTimerEndsAt,
+            directResult.revision ?? useAuctionStore.getState().auctionEventRevision,
+            directTimerChanged ? EXTEND_DURATION_MS : null,
+          )
+        }
+        if (LATENCY_DEBUG) {
+          console.info('[latency][client] placeBidDirect success', {
+            roomId,
+            teamId,
+            amount: finalAmount,
+            clientRoundTripMs: Date.now() - bidClickedAt,
+          })
+        }
+        return
+      }
+
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
       if (res.error) {
         setLiveBid(previousLiveBid ?? null)
@@ -173,8 +224,20 @@ export function useBiddingControl({
         }
         setBidError(res.error)
       } else {
+        const serverTimerChanged =
+          !!res.timerEndsAt &&
+          res.timerEndsAt !== previousTimerEndsAt
+
         setLiveBid(optimisticLiveBid)
         setBidAmount(finalAmount + 10)
+        if (res.revision) {
+          setAuctionEventRevision(res.revision)
+        }
+        if (serverTimerChanged) {
+          setRealtimeData({
+            timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+          })
+        }
         // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음
         if (LATENCY_DEBUG) {
           console.info('[latency][client] placeBid success', {

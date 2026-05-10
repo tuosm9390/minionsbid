@@ -52,8 +52,8 @@ service cloud.firestore {
         && (before.active_bid == null || before.active_bid.team_id != auth.token.teamId)
         // revision 정확히 +1
         && after.auction_revision == before.auction_revision + 1
-        // 타이머는 서버(Admin SDK)에서만 갱신 — 클라이언트 SDK는 변경 불가
-        && after.timer_ends_at == before.timer_ends_at
+        // 남은 시간이 5초 미만인 direct bid만 request time 기준 5초 근처로 연장 가능
+        && isValidDirectBidTimerUpdate(before, after)
         // 팀 포인트 잔액 >= 입찰액
         && get(/databases/$(database)/documents/rooms/$(roomId)/teams/$(auth.token.teamId)).data.point_balance >= newBid.amount;
     }
@@ -67,6 +67,16 @@ service cloud.firestore {
         && data.team_id == auth.token.teamId
         && data.amount is int
         && data.amount > 0;
+    }
+
+    function isValidDirectBidTimerUpdate(before, after) {
+      return after.timer_ends_at == before.timer_ends_at
+        || (
+          before.timer_ends_at <= request.time + duration.value(5, 's')
+          && after.timer_ends_at >= before.timer_ends_at
+          && after.timer_ends_at >= request.time + duration.value(2, 's')
+          && after.timer_ends_at <= request.time + duration.value(8, 's')
+        );
     }
 
     match /rooms/{roomId} {

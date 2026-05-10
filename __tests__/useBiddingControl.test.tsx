@@ -1,12 +1,21 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { useBiddingControl } from "@/features/auction/hooks/useBiddingControl";
-import { placeBid } from "@/features/auction/api/auctionActions";
+import {
+  broadcastBidEvent,
+  placeBid,
+} from "@/features/auction/api/auctionActions";
+import { placeBidDirect } from "@/features/auction/api/placeBidClient";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
 import type { Player, Team } from "@/features/auction/store/useAuctionStore";
 
 vi.mock("@/features/auction/api/auctionActions", () => ({
+  broadcastBidEvent: vi.fn(),
   placeBid: vi.fn(),
+}));
+
+vi.mock("@/features/auction/api/placeBidClient", () => ({
+  placeBidDirect: vi.fn(),
 }));
 
 describe("useBiddingControl", () => {
@@ -47,6 +56,11 @@ describe("useBiddingControl", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    (placeBidDirect as Mock).mockResolvedValue({
+      timerEndsAt: null,
+      revision: 1,
+    });
+    (broadcastBidEvent as Mock).mockResolvedValue(undefined);
     useAuctionStore.setState({
       bids: [],
       liveBid: null,
@@ -113,23 +127,42 @@ describe("useBiddingControl", () => {
     expect(result.current.canBid).toBe(false);
   });
 
-  it("handleBid 성공 시 placeBid를 호출하고 bidAmount가 증가한다", async () => {
+  it("handleBid 성공 시 placeBidDirect를 호출하고 bidAmount가 증가한다", async () => {
     const serverTimerEndsAt = new Date(Date.now() + 5000).toISOString();
-    (placeBid as Mock).mockResolvedValue({ timerEndsAt: serverTimerEndsAt });
+    (placeBidDirect as Mock).mockResolvedValue({
+      timerEndsAt: serverTimerEndsAt,
+      revision: 3,
+    });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));
     await act(async () => { await result.current.handleBid(); });
 
-    expect(placeBid).toHaveBeenCalledWith("room-1", "p1", "team-1", 10);
+    expect(placeBidDirect).toHaveBeenCalledWith({
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 10,
+      resetTimer: false,
+    });
+    expect(placeBid).not.toHaveBeenCalled();
+    expect(broadcastBidEvent).toHaveBeenCalledWith(
+      "room-1",
+      "p1",
+      "team-1",
+      "팀1",
+      10,
+      serverTimerEndsAt,
+      3,
+      5000,
+    );
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
-    // timerEndsAt은 HTTP 응답으로 갱신하지 않음 — RTDB/Firestore 폴백이 브라우저 클럭 기준으로 처리
-    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(3);
   });
 
   it("남은 시간 < 5s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
-    (placeBid as Mock).mockImplementation(
+    (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
     const shortTimer = new Date(Date.now() + 3000).toISOString();
@@ -147,13 +180,13 @@ describe("useBiddingControl", () => {
     expect(remaining).toBeGreaterThan(4000);
     expect(remaining).toBeLessThan(6000);
 
-    resolveBid({ timerEndsAt: null });
+    resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
   });
 
   it("남은 시간 >= 5s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
-    (placeBid as Mock).mockImplementation(
+    (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
     const longTimer = new Date(Date.now() + 10000).toISOString();
@@ -167,11 +200,12 @@ describe("useBiddingControl", () => {
     // 낙관 타이머 적용 안 됨
     expect(useAuctionStore.getState().timerEndsAt).toBeNull();
 
-    resolveBid({ timerEndsAt: null });
+    resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
   });
 
   it("handleBid 에러 발생 시 bidError 설정", async () => {
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct failed" });
     (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
     const { result } = renderHook(() => useBiddingControl(defaultProps));
     await act(async () => { await result.current.handleBid(); });
@@ -181,7 +215,7 @@ describe("useBiddingControl", () => {
 
   it("handleBid는 성공 전에도 local liveBid를 optimistic하게 세팅한다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
-    (placeBid as Mock).mockImplementation(
+    (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
     const { result } = renderHook(() => useBiddingControl(defaultProps));
@@ -192,7 +226,7 @@ describe("useBiddingControl", () => {
       player_id: "p1", team_id: "team-1", amount: 10,
     });
 
-    resolveBid({ timerEndsAt: null });
+    resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
   });
 
@@ -205,6 +239,7 @@ describe("useBiddingControl", () => {
         created_at: "",
       },
     });
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct failed" });
     (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
     const { result } = renderHook(() => useBiddingControl(defaultProps));
     await act(async () => { await result.current.handleBid(); });
@@ -214,6 +249,7 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid 실패 시 낙관 타이머를 롤백한다", async () => {
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct failed" });
     (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
     const shortTimer = new Date(Date.now() + 3000).toISOString();
     useAuctionStore.setState({ timerEndsAt: shortTimer });
@@ -225,5 +261,17 @@ describe("useBiddingControl", () => {
 
     // 타이머 롤백됨
     expect(useAuctionStore.getState().timerEndsAt).toBe(shortTimer);
+  });
+
+  it("placeBidDirect 실패 시 placeBid fallback을 호출하고 revision을 반영한다", async () => {
+    (placeBidDirect as Mock).mockResolvedValue({ error: "direct failed" });
+    (placeBid as Mock).mockResolvedValue({ timerEndsAt: null, revision: 7 });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+    await act(async () => { await result.current.handleBid(); });
+
+    expect(placeBid).toHaveBeenCalledWith("room-1", "p1", "team-1", 10);
+    expect(result.current.bidAmount).toBe(20);
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(7);
   });
 });

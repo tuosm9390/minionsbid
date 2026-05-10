@@ -81,3 +81,7 @@
 - [x] Update README env examples and deployment notes to use `minionsbid`.
 - [x] Make timer lab display prefer latest RTDB timer events over older Firestore snapshots.
 - [x] Verify focused timer lab lint/build checks.
+- [x] Reconnect bid hot path to `placeBidDirect()` with Server Action fallback.
+- [x] Restore direct-bid RTDB fanout via `broadcastBidEvent()`.
+- [x] Update focused bidding tests for direct success, rollback, and fallback revision handling.
+- [x] Run focused auction bidding/realtime/action tests.
