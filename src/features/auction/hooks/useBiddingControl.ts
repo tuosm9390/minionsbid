@@ -175,10 +175,7 @@ export function useBiddingControl({
       } else {
         setLiveBid(optimisticLiveBid)
         setBidAmount(finalAmount + 10)
-        // 서버 시간 기준 정확한 타이머로 확정 (낙관값 보정)
-        if (res.timerEndsAt) {
-          setRealtimeData({ timerEndsAt: res.timerEndsAt })
-        }
+        // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음
         if (LATENCY_DEBUG) {
           console.info('[latency][client] placeBid success', {
             roomId,

@@ -123,8 +123,8 @@ describe("useBiddingControl", () => {
     expect(placeBid).toHaveBeenCalledWith("room-1", "p1", "team-1", 10);
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
-    // 서버 타이머로 확정됨
-    expect(useAuctionStore.getState().timerEndsAt).toBe(serverTimerEndsAt);
+    // timerEndsAt은 HTTP 응답으로 갱신하지 않음 — RTDB/Firestore 폴백이 브라우저 클럭 기준으로 처리
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
   });
 
   it("남은 시간 < 5s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {

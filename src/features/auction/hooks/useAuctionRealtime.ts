@@ -384,7 +384,19 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       }
 
       if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
-        const next = applyAuctionEventToState(useAuctionStore.getState(), fallbackEvent)
+        // Firestore 스냅샷이 RTDB보다 먼저 도착하는 레이스 컨디션 대응:
+        // timerDurationMs가 있으면 브라우저 클럭 기준 타이머로 변환 (RTDB live 이벤트와 동일 처리)
+        const resolvedFallbackEvent: AuctionEventEnvelope =
+          fallbackEvent.timerDurationMs != null &&
+          (fallbackEvent.type === 'BID_PLACED' ||
+            fallbackEvent.type === 'AUCTION_STARTED' ||
+            fallbackEvent.type === 'AUCTION_RESUMED')
+            ? {
+                ...fallbackEvent,
+                timerEndsAt: new Date(Date.now() + fallbackEvent.timerDurationMs).toISOString(),
+              }
+            : fallbackEvent
+        const next = applyAuctionEventToState(useAuctionStore.getState(), resolvedFallbackEvent)
         if (next.applied) {
           setReAuctionRound(
             getNextReAuctionRoundState({
