@@ -705,9 +705,10 @@ describe('useFirebaseRealtime', () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
   })
 
-  it('입찰 Firestore snapshot의 timer_ends_at을 권위값으로 적용한다', () => {
+  it('last_auction_event 없는 Firestore snapshot은 timerEndsAt과 liveBid를 덮어쓰지 않는다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
+    // step1: AUCTION_STARTED fallback event로 타이머 세팅
     act(() => {
       emitRoomSnapshot({
         name: '테스트방',
@@ -730,6 +731,7 @@ describe('useFirebaseRealtime', () => {
 
     expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
 
+    // step2: active_bid는 있지만 last_auction_event 없는 snapshot — timerEndsAt/liveBid 변경 안 됨
     act(() => {
       emitRoomSnapshot({
         name: '테스트방',
@@ -746,11 +748,10 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:06.000Z')
-    expect(useAuctionStore.getState().liveBid).toMatchObject({
-      team_id: 'team-2',
-      amount: 110,
-    })
+    // timerEndsAt은 step1 fallback 값 그대로 유지
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
+    // liveBid는 AUCTION_STARTED에 의해 null — active_bid로 덮어쓰지 않음
+    expect(useAuctionStore.getState().liveBid).toBeNull()
   })
 
   it('direct bid room snapshot만 먼저 와도 이후 RTDB BID_PLACED가 서버의 timerEndsAt을 올바르게 적용한다', () => {
@@ -787,8 +788,8 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    // Firestore가 active_bid를 가져왔으나 last_auction_event 없어 auctionEventRevision = 0
-    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-04T12:00:07.000Z')
+    // Firestore last_auction_event 없어 timerEndsAt 미갱신, auctionEventRevision = 0
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull()
     expect(useAuctionStore.getState().auctionEventRevision).toBe(0)
 
     // step3: RTDB BID_PLACED 도착, Firestore와 같은 서버 값 timerEndsAt = 12:00:07
@@ -904,17 +905,6 @@ describe('useFirebaseRealtime', () => {
             team_id: null,
             sold_price: null,
             description: '',
-          },
-        },
-      ])
-      emitCollectionSnapshot(3, [
-        {
-          id: 'bid-6',
-          data: {
-            player_id: 'player-1',
-            team_id: 'team-2',
-            amount: 110,
-            created_at: { toDate: () => new Date('2026-05-04T12:00:02.000Z') },
           },
         },
       ])

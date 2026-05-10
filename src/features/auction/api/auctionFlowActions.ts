@@ -550,10 +550,7 @@ export async function placeBid(
       .collection("players")
       .where("team_id", "==", teamId)
       .where("status", "==", "SOLD");
-    const bidHistoryRef = roomRef.collection("bids");
-
     let validationDoneAt: number | undefined;
-    let bidPersistedAt: number | undefined;
     let timerExtendedAt: number | undefined;
     let timerSignalSentAt: number | undefined;
     let messagePersistedAt: number | undefined;
@@ -654,16 +651,6 @@ export async function placeBid(
       );
       newRevision = event.revision;
 
-      tx.set(bidHistoryRef.doc(event.eventId), {
-        event_id: event.eventId,
-        player_id: playerId,
-        team_id: teamId,
-        room_id: roomId,
-        amount,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      bidPersistedAt = nowMs();
-
       tx.update(roomRef, {
         current_player_id: playerId,
         timer_ends_at: nextTimerTimestamp,
@@ -680,6 +667,20 @@ export async function placeBid(
       // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
       timerSignalSentAt = nowMs();
+      // RTDB에 입찰 내역 저장 (fire-and-forget)
+      getAuctionServerServices().rtdb
+        .ref(`bids/${roomId}/${playerId}/${event.eventId}`)
+        .set({
+          id: event.eventId,
+          room_id: roomId,
+          player_id: playerId,
+          team_id: teamId,
+          amount,
+          created_at: new Date().toISOString(),
+        })
+        .catch((err: unknown) =>
+          console.error("[auction] rtdb bid write failed", { roomId, err }),
+        );
       queueSystemMessage(
         roomId,
         `💰 ${winningTeamName}이 ${amount}P에 입찰했습니다!`,
@@ -699,23 +700,19 @@ export async function placeBid(
         typeof validationDoneAt === "number"
           ? validationDoneAt - serverReceivedAt
           : null,
-      bidPersistMs:
-        typeof validationDoneAt === "number" &&
-        typeof bidPersistedAt === "number"
-          ? bidPersistedAt - validationDoneAt
-          : null,
       timerExtendMs:
-        timerExtendedAt && bidPersistedAt
-          ? timerExtendedAt - bidPersistedAt
+        timerExtendedAt && validationDoneAt
+          ? timerExtendedAt - validationDoneAt
           : null,
       timerSignalMs:
-        timerSignalSentAt && timerExtendedAt
-          ? timerSignalSentAt - timerExtendedAt
+        timerSignalSentAt && (timerExtendedAt ?? validationDoneAt)
+          ? timerSignalSentAt - (timerExtendedAt ?? validationDoneAt ?? 0)
           : null,
       messagePersistMs:
         typeof messagePersistedAt === "number" &&
-        typeof (timerSignalSentAt ?? bidPersistedAt) === "number"
-          ? messagePersistedAt - (timerSignalSentAt ?? bidPersistedAt ?? 0)
+        typeof (timerSignalSentAt ?? validationDoneAt) === "number"
+          ? messagePersistedAt -
+            ((timerSignalSentAt ?? validationDoneAt) ?? 0)
           : null,
     });
 
@@ -726,7 +723,6 @@ export async function placeBid(
         eventId: bidEventId,
         serverReceivedAt,
         validationDoneAt,
-        bidPersistedAt,
         timerExtendedAt,
         timerSignalSentAt,
         messagePersistedAt,
@@ -854,6 +850,11 @@ export async function awardPlayer(
       const event = awardEvent as AuctionEventEnvelope;
       // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
+      // RTDB 입찰 내역 정리 (fire-and-forget)
+      getAuctionServerServices().rtdb
+        .ref(`bids/${roomId}/${playerId}`)
+        .remove()
+        .catch(() => {});
       if (msgContent) {
         queueSystemMessage(roomId, msgContent, event.eventId);
       }

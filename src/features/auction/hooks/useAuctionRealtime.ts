@@ -8,7 +8,6 @@ import {
   query,
   orderBy,
   limitToLast,
-  where,
   Unsubscribe,
   Timestamp,
 } from 'firebase/firestore'
@@ -65,13 +64,6 @@ interface FirestorePlayerData {
   sold_price?: number | null
   description?: string
   room_id?: string
-}
-
-interface FirestoreBidData {
-  player_id?: string
-  team_id?: string
-  amount?: number
-  created_at?: Timestamp | null
 }
 
 interface FirestoreMessageData {
@@ -363,24 +355,43 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         createdAt: timestampToISO(data.created_at),
         nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
         ...(snapshotIsCurrentOrNewer && {
-          // 더 최신 revision의 Firestore snapshot은 정본이다.
-          // threshold 기반 입찰 연장은 로컬 상태보다 짧은 타이머를 내릴 수 있다.
-          // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 입찰 snapshot의 timer 덮어쓰기를 막는다.
-          // timerEndsAt: (() => {
-          //   const newTimer = timestampToISO(data.timer_ends_at)
-          //   const newPlayerId = data.current_player_id ?? null
-          //   // 경매 종료(currentPlayerId=null) 시에는 timerEndsAt도 null로 정리
-          //   if (!newPlayerId) return null
-          //   return newTimer
-          // })(),
-          timerEndsAt: data.current_player_id
-            ? timestampToISO(data.timer_ends_at)
-            : null,
+          // timerEndsAt은 RTDB 이벤트(applyLiveAuctionEvent)가 브라우저 클럭 기준으로 관리
           currentPlayerId: data.current_player_id ?? null,
         }),
       })
-      if (snapshotIsCurrentOrNewer) {
-        setLiveBid(data.active_bid ?? null)
+      const currentPlayerId = data.current_player_id ?? null
+
+      // current_player_id 변경 시 bids 구독 갱신 — fallback event 적용보다 먼저 실행해야 setLiveBid(null)이 덮어쓰이지 않음
+      const newPlayerId = currentPlayerId
+      if (newPlayerId !== currentPlayerIdRef.current) {
+        currentPlayerIdRef.current = newPlayerId
+        setLiveBid(null)
+        projectCurrentPlayerIntoStore(newPlayerId)
+        bidsUnsubRef.current?.()
+
+        if (newPlayerId) {
+          const bidsRef = ref(rtdb, `bids/${roomId}/${newPlayerId}`)
+          bidsUnsubRef.current = onValue(bidsRef, (bidsSnapshot) => {
+            const bidsData = bidsSnapshot.val() as Record<
+              string,
+              {
+                id: string
+                room_id: string
+                player_id: string
+                team_id: string
+                amount: number
+                created_at: string
+              }
+            > | null
+            const bids: Bid[] = bidsData
+              ? Object.values(bidsData).sort((a, b) => b.amount - a.amount)
+              : []
+            setRealtimeData({ bids })
+          })
+        } else {
+          bidsUnsubRef.current = null
+          setRealtimeData({ bids: [] })
+        }
       }
 
       if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
@@ -435,44 +446,9 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       }
 
       const timerEndsAtIso = timestampToISO(data.timer_ends_at)
-      const currentPlayerId = data.current_player_id ?? null
       if (roomRevision >= useAuctionStore.getState().auctionEventRevision) {
         scheduleExpiryWakeUp(timerEndsAtIso, currentPlayerId, roomRevision)
         triggerRecovery(timerEndsAtIso, currentPlayerId, roomRevision)
-      }
-
-      // current_player_id 변경 시 bids 구독 갱신
-      const newPlayerId = currentPlayerId
-      if (newPlayerId !== currentPlayerIdRef.current) {
-        currentPlayerIdRef.current = newPlayerId
-        setLiveBid(data.active_bid ?? null)
-        projectCurrentPlayerIntoStore(newPlayerId)
-        bidsUnsubRef.current?.()
-
-        if (newPlayerId) {
-          const bidsQuery = query(
-            collection(firestore, 'rooms', roomId, 'bids'),
-            where('player_id', '==', newPlayerId),
-            orderBy('amount', 'desc'),
-          )
-          bidsUnsubRef.current = onSnapshot(bidsQuery, (bidsSnap) => {
-            const bids: Bid[] = bidsSnap.docs.map((d) => {
-              const bd = d.data() as FirestoreBidData
-              return {
-                id: d.id,
-                room_id: roomId,
-                player_id: bd.player_id ?? '',
-                team_id: bd.team_id ?? '',
-                amount: bd.amount ?? 0,
-                created_at: timestampToISO(bd.created_at) ?? new Date().toISOString(),
-              }
-            })
-            setRealtimeData({ bids })
-          })
-        } else {
-          bidsUnsubRef.current = null
-          setRealtimeData({ bids: [] })
-        }
       }
     })
     unsubs.push(roomUnsub)
