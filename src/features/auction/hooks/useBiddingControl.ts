@@ -207,7 +207,7 @@ export function useBiddingControl({
             teamId,
             myTeam?.name ?? '팀',
             finalAmount,
-            directResult.timerExtended ? directResult.timerEndsAt : null,
+            directResult.timerExtended ? (directResult.timerEndsAt ?? null) : null,
             directResult.revision ?? useAuctionStore.getState().auctionEventRevision,
             directResult.timerExtended ? EXTEND_DURATION_MS : null,
           )
