@@ -7,6 +7,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
+import { useAuctionStore } from '../store/useAuctionStore'
 import {
   EXTEND_DURATION_MS,
   EXTEND_THRESHOLD_MS,
@@ -24,6 +25,7 @@ interface PlaceBidDirectResult {
   timerEndsAt?: string | null
   revision?: number
   error?: string
+  timerExtended?: boolean
 }
 
 type FixtureBidResponse = {
@@ -76,6 +78,8 @@ export async function placeBidDirect(
     let newTimerEndsAt: string | null = null
     let newRevision = 0
 
+    const { serverTimeOffset = 0 } = useAuctionStore.getState()
+    
     await runTransaction(firestore, async (tx) => {
       const roomSnap = await tx.get(roomRef)
       if (!roomSnap.exists()) {
@@ -88,8 +92,9 @@ export async function placeBidDirect(
         throw new Error('경매가 진행 중이지 않습니다.')
       }
 
-      const now = Date.now()
-      if (timerEndsAt.toMillis() <= now) {
+      // 클라이언트 추정 서버 시간 사용
+      const estimatedNow = Date.now() + serverTimeOffset
+      if (timerEndsAt.toMillis() <= estimatedNow) {
         throw new Error('경매 시간이 종료되었습니다.')
       }
       if (roomData.current_player_id !== playerId) {
@@ -105,13 +110,14 @@ export async function placeBidDirect(
         throw new Error(`최소 입찰액은 ${minBid}P입니다.`)
       }
 
-      const remaining = timerEndsAt.toMillis() - now
+      const remaining = timerEndsAt.toMillis() - estimatedNow
       // 남은 시간이 5초 이하(<=)일 때만 타이머를 연장함
       const shouldExtendTimer = resetTimer || remaining <= EXTEND_THRESHOLD_MS
       const nextTimerEndsAt = shouldExtendTimer
-        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+        ? Timestamp.fromDate(new Date(estimatedNow + EXTEND_DURATION_MS))
         : timerEndsAt
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
+      const timerExtended = shouldExtendTimer
 
       const liveBid = {
         player_id: playerId,
@@ -143,7 +149,11 @@ export async function placeBidDirect(
       })
     })
 
-    return { timerEndsAt: newTimerEndsAt, revision: newRevision }
+    return { 
+      timerEndsAt: newTimerEndsAt, 
+      revision: newRevision,
+      timerExtended: newTimerEndsAt !== timerEndsAt?.toDate().toISOString()
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : '입찰 실패'
     // permission-denied → 보안 규칙 위반 (금액 부족, 팀 풀 등)

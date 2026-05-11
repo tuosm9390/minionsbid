@@ -186,7 +186,8 @@ export async function broadcastBidEvent(
 ): Promise<void> {
   const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
     currentPlayerId: playerId,
-    timerEndsAt,
+    // timerEndsAt이 제공된 경우에만 포함, 아니면 undefined로 설정하여 수신측에서 기존 값을 유지하게 함
+    ...(timerEndsAt ? { timerEndsAt } : {}),
     timerDurationMs,
     liveBid: {
       player_id: playerId,

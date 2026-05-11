@@ -200,15 +200,16 @@ export function useBiddingControl({
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
+          // 타이머가 실제로 연장되었을 때만 timerEndsAt을 이벤트에 포함하여 전송
           void broadcastBidEvent(
             roomId,
             currentPlayer.id,
             teamId,
             myTeam?.name ?? '팀',
             finalAmount,
-            directResult.timerEndsAt ?? previousTimerEndsAt,
+            directResult.timerExtended ? directResult.timerEndsAt : null,
             directResult.revision ?? useAuctionStore.getState().auctionEventRevision,
-            directTimerChanged ? EXTEND_DURATION_MS : null,
+            directResult.timerExtended ? EXTEND_DURATION_MS : null,
           )
         }
         if (LATENCY_DEBUG) {
