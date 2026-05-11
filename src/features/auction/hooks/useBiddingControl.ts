@@ -17,6 +17,7 @@ import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
   EXTEND_THRESHOLD_MS,
   EXTEND_DURATION_MS,
+  BID_INCREMENT,
 } from '@/features/auction/constants/auctionTimings'
 
 interface UseBiddingControlProps {
@@ -188,7 +189,7 @@ export function useBiddingControl({
           directResult.timerEndsAt !== previousTimerEndsAt
 
         setLiveBid(optimisticLiveBid)
-        setBidAmount(finalAmount + 10)
+        setBidAmount(finalAmount + BID_INCREMENT)
         if (directResult.revision) {
           setAuctionEventRevision(directResult.revision)
         }
@@ -234,7 +235,7 @@ export function useBiddingControl({
           res.timerEndsAt !== previousTimerEndsAt
 
         setLiveBid(optimisticLiveBid)
-        setBidAmount(finalAmount + 10)
+        setBidAmount(finalAmount + BID_INCREMENT)
         if (res.revision) {
           setAuctionEventRevision(res.revision)
         }
@@ -266,12 +267,12 @@ export function useBiddingControl({
   }
 
   const incrementBid = () => {
-    setBidAmount((v) => (typeof v === 'string' ? parseInt(v) || 0 : v) + 10)
+    setBidAmount((v) => (typeof v === 'string' ? parseInt(v) || 0 : v) + BID_INCREMENT)
   }
 
   const decrementBid = () => {
     setBidAmount((v) =>
-      Math.max(minBid, (typeof v === 'string' ? parseInt(v) || 0 : v) - 10),
+      Math.max(minBid, (typeof v === 'string' ? parseInt(v) || 0 : v) - BID_INCREMENT),
     )
   }
 

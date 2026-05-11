@@ -114,9 +114,11 @@ type ResetOptions = {
 }
 
 const FIXTURE_KEY = '__auctionE2EFixture__'
-const AUCTION_DURATION_MS = 10_000
-const EXTEND_DURATION_MS = 5_000
-const EXTEND_THRESHOLD_MS = 5_000
+import {
+  AUCTION_DURATION_MS,
+  EXTEND_DURATION_MS,
+  EXTEND_THRESHOLD_MS,
+} from '../constants/auctionTimings'
 
 function clone<T>(value: T): T {
   if (value === undefined || value === null) {
@@ -270,17 +272,17 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
   if (options.stage === 'active-auction') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 15_000).toISOString()
+    room.timerEndsAt = new Date(Date.now() + AUCTION_DURATION_MS + EXTEND_DURATION_MS).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-expiring') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 4_000).toISOString()
+    room.timerEndsAt = new Date(Date.now() + EXTEND_THRESHOLD_MS - 1000).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-final-second') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + 10_000).toISOString()
+    room.timerEndsAt = new Date(Date.now() + AUCTION_DURATION_MS).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'draft-last-slot') {
     room.membersPerTeam = 2

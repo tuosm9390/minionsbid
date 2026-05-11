@@ -5,6 +5,7 @@ import type {
   Player,
   Team,
 } from '@/features/auction/store/useAuctionStore'
+import { BID_INCREMENT } from '@/features/auction/constants/auctionTimings'
 
 export type AuctionEventType =
   | 'LOTTERY_DRAWN'
@@ -102,7 +103,7 @@ export function getAuctionDerivedState({
     activeLiveBid && activeLiveBid.amount >= firestoreHighestBid
       ? activeLiveBid
       : playerBids.find((bid) => bid.amount === firestoreHighestBid) ?? null
-  const minBid = highestBid > 0 ? highestBid + 10 : 10
+  const minBid = highestBid > 0 ? highestBid + BID_INCREMENT : BID_INCREMENT
   const isLeading = topBid?.team_id === teamId
   const leadingTeam = teams.find((team) => team.id === topBid?.team_id) ?? null
 
@@ -124,7 +125,7 @@ export function getAuctionBidState({
   teamId,
 }: AuctionBidStateInput): AuctionBidState {
   const highestBid = Math.max(currentBidAmount ?? 0, 0)
-  const minBid = highestBid > 0 ? highestBid + 10 : 10
+  const minBid = highestBid > 0 ? highestBid + BID_INCREMENT : BID_INCREMENT
   const topBidTeamId = currentBidTeamId ?? null
   const isLeading = !!teamId && topBidTeamId === teamId
 

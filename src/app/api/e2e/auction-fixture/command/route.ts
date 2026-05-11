@@ -7,6 +7,7 @@ import {
   setFixtureLeaderPresence,
   startFixtureAuction,
 } from '@/features/auction/api/e2eAuctionFixture'
+import { AUCTION_DURATION_MS } from '@/features/auction/constants/auctionTimings'
 
 type CommandPayload =
   | { roomId?: string; action?: 'draw' }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const durationMs =
       typeof payload.durationMs === 'number' && payload.durationMs > 0
         ? payload.durationMs
-        : 10_000
+        : AUCTION_DURATION_MS
     const result = await startFixtureAuction(roomId, durationMs)
     return NextResponse.json(result, { status: result.error ? 400 : 200 })
   }
