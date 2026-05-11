@@ -161,7 +161,7 @@ describe("useBiddingControl", () => {
   });
 
   it("남은 시간 < 5s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
-    let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
+    let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
@@ -185,7 +185,7 @@ describe("useBiddingControl", () => {
   });
 
   it("남은 시간 >= 5s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
-    let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
+    let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
@@ -214,7 +214,7 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid는 성공 전에도 local liveBid를 optimistic하게 세팅한다", async () => {
-    let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
+    let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );

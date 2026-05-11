@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 
+import { getServerTime } from "@/features/auction/hooks/useServerTimeOffset";
+
 interface CenterTimerProps {
   timerEndsAt: string;
   auctionDurationMs?: number;
@@ -12,11 +14,11 @@ interface CenterTimerProps {
 }
 
 export function CenterTimer({ timerEndsAt, auctionDurationMs, onExpire }: CenterTimerProps) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => getServerTime());
   // auctionDurationMs가 주어지면 progress bar 계산에 사용 (연장 시에도 일관된 비율)
   // 주어지지 않으면 기존 로직대로 timerEndsAt에서 역산
   const [initialDuration, setInitialDuration] = useState<number>(() =>
-    auctionDurationMs ?? Math.max(new Date(timerEndsAt).getTime() - Date.now(), 1)
+    auctionDurationMs ?? Math.max(new Date(timerEndsAt).getTime() - getServerTime(), 1)
   );
   const hasExpiredRef = useRef(false);
 
@@ -27,14 +29,14 @@ export function CenterTimer({ timerEndsAt, auctionDurationMs, onExpire }: Center
 
   // urgent 구간(≤5s)에서만 100ms, 평상시는 200ms로 렌더링 빈도 절반 감소
   useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), isUrgent ? 100 : 200);
+    const iv = setInterval(() => setNow(getServerTime()), isUrgent ? 100 : 200);
     return () => clearInterval(iv);
   }, [isUrgent]);
 
   useEffect(() => {
     // 입찰 연장 시에는 남은 시간으로 initialDuration을 갱신하되,
     // auctionDurationMs가 있으면 그 값을 우선 사용
-    setInitialDuration(auctionDurationMs ?? Math.max(target - Date.now(), 1));
+    setInitialDuration(auctionDurationMs ?? Math.max(target - getServerTime(), 1));
     hasExpiredRef.current = false;
   }, [target, auctionDurationMs]);
 

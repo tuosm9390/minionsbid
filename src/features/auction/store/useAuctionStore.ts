@@ -152,9 +152,18 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     nextAuctionDurationMs: null,
     auctionEventRevision: 0,
   }),
-  setRealtimeData: (data) => set((state) => ({
-    ...state, ...data, isRoomLoaded: true
-  })),
+  setRealtimeData: (data) => set((state) => {
+    if (data.timerEndsAt && state.timerEndsAt) {
+      const newTime = new Date(data.timerEndsAt).getTime()
+      const oldTime = new Date(state.timerEndsAt).getTime()
+      // 오차가 300ms 이내라면 낙관적 UI 덜컹거림(Jitter) 방지를 위해 기존 값을 유지
+      if (Math.abs(newTime - oldTime) < 300) {
+        const { timerEndsAt, ...restData } = data
+        return { ...state, ...restData, isRoomLoaded: true }
+      }
+    }
+    return { ...state, ...data, isRoomLoaded: true }
+  }),
   setRoomNotFound: () => set({ roomExists: false, isRoomLoaded: true }),
   setReAuctionRound: (isRe) => set({ isReAuctionRound: isRe }),
   setLotteryPlayer: (player) => set({ lotteryPlayer: player }),

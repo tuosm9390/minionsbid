@@ -20,6 +20,8 @@ interface PlaceBidDirectArgs {
   resetTimer?: boolean
 }
 
+import { getServerTime } from '../hooks/useServerTimeOffset'
+
 interface PlaceBidDirectResult {
   timerEndsAt?: string | null
   revision?: number
@@ -88,8 +90,10 @@ export async function placeBidDirect(
         throw new Error('경매가 진행 중이지 않습니다.')
       }
 
-      const now = Date.now()
-      if (timerEndsAt.toMillis() <= now) {
+      const estimatedServerNow = getServerTime()
+      
+      // Grace Period: 500ms
+      if (timerEndsAt.toMillis() <= estimatedServerNow - 500) {
         throw new Error('경매 시간이 종료되었습니다.')
       }
       if (roomData.current_player_id !== playerId) {
@@ -105,18 +109,23 @@ export async function placeBidDirect(
         throw new Error(`최소 입찰액은 ${minBid}P입니다.`)
       }
 
-      const remaining = timerEndsAt.toMillis() - now
+      const currentEndTime = timerEndsAt.toMillis()
+      const remaining = currentEndTime - estimatedServerNow
       const shouldExtendTimer = resetTimer || remaining < EXTEND_THRESHOLD_MS
-      const nextTimerEndsAt = shouldExtendTimer
-        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
-        : timerEndsAt
+      
+      let nextTimerEndsAt = timerEndsAt
+      if (shouldExtendTimer) {
+        const targetNewTime = estimatedServerNow + EXTEND_DURATION_MS
+        const finalTime = Math.max(currentEndTime, targetNewTime)
+        nextTimerEndsAt = Timestamp.fromDate(new Date(finalTime))
+      }
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
 
       const liveBid = {
         player_id: playerId,
         team_id: teamId,
         amount,
-        created_at: new Date().toISOString(),
+        created_at: new Date(estimatedServerNow).toISOString(),
       }
 
       const currentRevision = (roomData.auction_revision ?? 0) as number
@@ -130,7 +139,7 @@ export async function placeBidDirect(
       })
 
       // 입찰 기록 생성
-      const bidId = `bid-${now}-${Math.random().toString(36).slice(2, 8)}`
+      const bidId = `bid-${estimatedServerNow}-${Math.random().toString(36).slice(2, 8)}`
       const bidRef = doc(collection(roomRef, 'bids'), bidId)
       tx.set(bidRef, {
         event_id: bidId,

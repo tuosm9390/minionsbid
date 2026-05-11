@@ -11,6 +11,7 @@ import {
   broadcastBidEvent,
   placeBid,
 } from '@/features/auction/api/auctionActions'
+import { getServerTime } from './useServerTimeOffset'
 import { placeBidDirect } from '@/features/auction/api/placeBidClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
@@ -150,15 +151,16 @@ export function useBiddingControl({
     const finalAmount = Math.max(numericAmount, minBid)
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
-    const bidClickedAt = Date.now()
+    const bidClickedAtLocal = Date.now()
+    const bidClickedAtServer = getServerTime()
     const shouldOptimisticallyResetTimer =
       !!timerEndsAt &&
-      new Date(timerEndsAt).getTime() - bidClickedAt < EXTEND_THRESHOLD_MS
+      new Date(timerEndsAt).getTime() - bidClickedAtServer < EXTEND_THRESHOLD_MS
     const optimisticLiveBid: LiveBidState = {
       player_id: currentPlayer.id,
       team_id: teamId,
       amount: finalAmount,
-      created_at: new Date().toISOString(),
+      created_at: new Date(bidClickedAtServer).toISOString(),
     }
 
     setBidError(null)
@@ -167,7 +169,7 @@ export function useBiddingControl({
 
     // 남은 시간 < 5s이면 즉시 낙관적 타이머 리셋 표시
     if (shouldOptimisticallyResetTimer) {
-      setRealtimeData({ timerEndsAt: new Date(bidClickedAt + EXTEND_DURATION_MS).toISOString() })
+      setRealtimeData({ timerEndsAt: new Date(bidClickedAtServer + EXTEND_DURATION_MS).toISOString() })
     }
 
     try {
@@ -190,7 +192,7 @@ export function useBiddingControl({
         }
         if (directTimerChanged) {
           setRealtimeData({
-            timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: new Date(getServerTime() + EXTEND_DURATION_MS).toISOString(),
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
@@ -210,7 +212,7 @@ export function useBiddingControl({
             roomId,
             teamId,
             amount: finalAmount,
-            clientRoundTripMs: Date.now() - bidClickedAt,
+            clientRoundTripMs: Date.now() - bidClickedAtLocal,
           })
         }
         return
@@ -235,7 +237,7 @@ export function useBiddingControl({
         }
         if (serverTimerChanged) {
           setRealtimeData({
-            timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: new Date(getServerTime() + EXTEND_DURATION_MS).toISOString(),
           })
         }
         // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음
@@ -244,7 +246,7 @@ export function useBiddingControl({
             roomId,
             teamId,
             amount: finalAmount,
-            clientRoundTripMs: Date.now() - bidClickedAt,
+            clientRoundTripMs: Date.now() - bidClickedAtLocal,
           })
         }
       }

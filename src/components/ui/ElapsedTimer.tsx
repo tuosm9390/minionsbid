@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
+import { getServerTime } from "@/features/auction/hooks/useServerTimeOffset";
 
 interface ElapsedTimerProps {
   createdAt: string;
@@ -13,7 +14,7 @@ export function ElapsedTimer({ createdAt }: ElapsedTimerProps) {
     if (!createdAt) return;
     const start = new Date(createdAt).getTime();
     const iv = setInterval(() => {
-      const sec = Math.floor((Date.now() - start) / 1000);
+      const sec = Math.floor((getServerTime() - start) / 1000);
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
       const s = sec % 60;
