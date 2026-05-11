@@ -77,6 +77,7 @@ export async function placeBidDirect(
   try {
     let newTimerEndsAt: string | null = null
     let newRevision = 0
+    let timerExtended = false
 
     const { serverTimeOffset = 0 } = useAuctionStore.getState()
     
@@ -117,7 +118,7 @@ export async function placeBidDirect(
         ? Timestamp.fromDate(new Date(estimatedNow + EXTEND_DURATION_MS))
         : timerEndsAt
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
-      const timerExtended = shouldExtendTimer
+      timerExtended = shouldExtendTimer
 
       const liveBid = {
         player_id: playerId,
@@ -152,7 +153,7 @@ export async function placeBidDirect(
     return { 
       timerEndsAt: newTimerEndsAt, 
       revision: newRevision,
-      timerExtended: newTimerEndsAt !== timerEndsAt?.toDate().toISOString()
+      timerExtended
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : '입찰 실패'
