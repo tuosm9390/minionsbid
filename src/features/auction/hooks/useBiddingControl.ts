@@ -215,7 +215,7 @@ export function useBiddingControl({
             roomId,
             teamId,
             amount: finalAmount,
-            clientRoundTripMs: Date.now() - bidClickedAt,
+            clientRoundTripMs: Date.now() - localNow,
           })
         }
         return
@@ -250,7 +250,7 @@ export function useBiddingControl({
             roomId,
             teamId,
             amount: finalAmount,
-            clientRoundTripMs: Date.now() - bidClickedAt,
+            clientRoundTripMs: Date.now() - localNow,
           })
         }
       }
