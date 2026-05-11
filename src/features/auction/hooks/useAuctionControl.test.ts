@@ -134,4 +134,52 @@ describe('useAuctionControl', () => {
     expect(closeLotteryAction).not.toHaveBeenCalled()
     expect(useAuctionStore.getState().lotteryPlayer?.id).toBe('player-1')
   })
+
+  it('organizer는 타이머 만료 후 자동 낙찰을 시도한다', async () => {
+    vi.useFakeTimers()
+    try {
+      const timerEndsAt = new Date(Date.now() + 100).toISOString()
+      renderHook(() =>
+        useAuctionControl({
+          roomId: 'room-1',
+          effectiveRole: 'ORGANIZER',
+          players: [inAuctionPlayer],
+          currentPlayerId: 'player-1',
+          timerEndsAt,
+        }),
+      )
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_700)
+      })
+
+      expect(awardPlayer).toHaveBeenCalledWith('room-1', 'player-1')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('leader는 타이머 만료 후 직접 자동 낙찰을 시도하지 않는다', async () => {
+    vi.useFakeTimers()
+    try {
+      const timerEndsAt = new Date(Date.now() + 100).toISOString()
+      renderHook(() =>
+        useAuctionControl({
+          roomId: 'room-1',
+          effectiveRole: 'LEADER',
+          players: [inAuctionPlayer],
+          currentPlayerId: 'player-1',
+          timerEndsAt,
+        }),
+      )
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000)
+      })
+
+      expect(awardPlayer).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

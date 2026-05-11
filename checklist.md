@@ -85,3 +85,5 @@
 - [x] Restore direct-bid RTDB fanout via `broadcastBidEvent()`.
 - [x] Update focused bidding tests for direct success, rollback, and fallback revision handling.
 - [x] Run focused auction bidding/realtime/action tests.
+- [x] Restrict `useAuctionControl` direct auto-award scheduling to organizer only.
+- [x] Add focused coverage that leaders do not call `awardPlayer()` from `useAuctionControl`.
