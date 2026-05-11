@@ -19,9 +19,9 @@ interface LotteryAnimationProps {
   onFinished?: () => void;
 }
 
-const ITEM_HEIGHT = 160;
-const VISIBLE_ITEMS = 24;
+const BOX_WIDTH = 180; // 상자 하나의 너비
 const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === "1";
+const TOTAL_BOX_COUNT = 40; // 벨트 위에 생성할 총 상자 수
 
 export function LotteryAnimation({
   candidates,
@@ -32,42 +32,40 @@ export function LotteryAnimation({
   const [isSpinning, setIsSpinning] = useState(true);
   const [hasFinished, setHasFinished] = useState(false);
   
+  const beltRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const shineRef = useRef<HTMLDivElement>(null);
-  const particleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const finishHandledRef = useRef(false);
   const onFinishedRef = useRef(onFinished);
   const targetPlayerId = targetPlayer.id;
-  const spinItemCount = E2E_AUCTION_FIXTURE ? 2 : shouldReduceMotion ? 8 : VISIBLE_ITEMS;
-  const spinDuration = E2E_AUCTION_FIXTURE ? 0.05 : shouldReduceMotion ? 1.05 : 3.6;
-  const revealDelay = E2E_AUCTION_FIXTURE ? 50 : shouldReduceMotion ? 180 : 700;
+
+  // 애니메이션 설정값
+  const spinDuration = E2E_AUCTION_FIXTURE ? 0.5 : shouldReduceMotion ? 1.5 : 4.2;
+  const revealDelay = E2E_AUCTION_FIXTURE ? 100 : 800;
 
   useEffect(() => {
     onFinishedRef.current = onFinished;
   }, [onFinished]);
 
+  // 벨트 위에 표시될 상자들 구성
   const trackItems = useMemo(() => {
     const cand = candidates.length > 0 ? candidates : [targetPlayer];
     const items: Player[] = [];
-    for (let i = 0; i < spinItemCount; i++) {
-      const pseudoRandomIndex = (i * 13) % cand.length;
+    
+    // 무한 루프 느낌을 위해 충분한 수의 상자 배치
+    for (let i = 0; i < TOTAL_BOX_COUNT; i++) {
+      const pseudoRandomIndex = (i * 17) % cand.length;
       items.push(cand[pseudoRandomIndex]);
     }
-    items.push(targetPlayer);
-    return items;
-  }, [candidates, spinItemCount, targetPlayer]);
-
-  const particles = useMemo(
-    () =>
-      Array.from({ length: shouldReduceMotion ? 4 : 12 }, (_, index) => ({
-        x: 10 + ((index * 17) % 80),
-        y: 12 + ((index * 29) % 76),
-        rotate: (index * 57) % 360,
-      })),
-    [shouldReduceMotion],
-  );
+    
+    // 마지막에서 3번째 위치에 실제 당첨 선수 배치 (중앙 정렬을 위해)
+    const targetIndex = TOTAL_BOX_COUNT - 3;
+    items[targetIndex] = targetPlayer;
+    
+    return { items, targetIndex };
+  }, [candidates, targetPlayer]);
 
   useEffect(() => {
     let isMounted = true;
@@ -83,273 +81,181 @@ export function LotteryAnimation({
       onFinishedRef.current?.();
     };
 
-    const finishAfterReveal = () => {
-      if (!isMounted || finishHandledRef.current) return;
+    const startAnimation = async () => {
+      if (!isMounted || !trackRef.current || !beltRef.current) return;
+
+      // 1. 초기 위치 설정 (화면 오른쪽 끝에서 시작하는 느낌)
+      animate(trackRef.current, { x: 0 }, { duration: 0 });
+      
+      // 2. 벨트 배경 무한 루프 애니메이션
+      const beltAnimation = animate(beltRef.current, 
+        { backgroundPositionX: ["0px", "-120px"] }, 
+        { duration: 0.8, repeat: Infinity, ease: "linear" }
+      );
+
+      // 3. 상자 트랙 이동 애니메이션 (가속 -> 감속)
+      const targetX = -(trackItems.targetIndex * BOX_WIDTH) + (containerRef.current?.offsetWidth || 0) / 2 - BOX_WIDTH / 2;
+      
+      const trackAnimation = animate(trackRef.current, 
+        { x: targetX }, 
+        { 
+          duration: spinDuration, 
+          ease: [0.15, 0, 0.15, 1], // Custom cubic-bezier for "conveyor stop" feel
+        }
+      );
+
+      await trackAnimation;
+      beltAnimation.stop();
+
+      if (!isMounted) return;
+
+      // 4. 당첨 연출
       setIsSpinning(false);
       setHasFinished(true);
 
       if (containerRef.current) {
-        if (shouldReduceMotion) {
-          animate(containerRef.current, { scale: [1, 1.04, 1] }, { duration: 0.35 });
-        } else {
-          animate(containerRef.current, { 
-            scale: [1, 1.1, 1.05],
-            x: [0, -4, 4, -4, 4, 0]
-          }, { 
-            duration: 0.5,
-          });
-        }
+        animate(containerRef.current, 
+          { scale: [1, 1.05, 1], y: [0, -10, 0] }, 
+          { duration: 0.5 }
+        );
       }
 
-      if (shineRef.current && !shouldReduceMotion) {
-        animate(shineRef.current, { opacity: [0, 1, 0] }, { duration: 0.8 });
-      }
-
-      if (particleRefs.current.length > 0 && !shouldReduceMotion) {
-        particleRefs.current.forEach((el, i) => {
-          if (el) {
-            animate(el, {
-              scale: [0, 1.5, 0],
-              opacity: [1, 1, 0],
-              rotate: particles[i].rotate,
-            }, {
-              duration: 1,
-              delay: i * 0.05
-            });
-          }
-        });
-      }
-
-      if (E2E_AUCTION_FIXTURE) {
-        finishLottery();
-        return;
+      if (shineRef.current) {
+        animate(shineRef.current, { opacity: [0, 0.8, 0] }, { duration: 0.6 });
       }
 
       window.setTimeout(finishLottery, revealDelay);
     };
 
-    const startAnimation = async () => {
-      await new Promise((resolve) =>
-        window.setTimeout(resolve, shouldReduceMotion ? 120 : 240),
-      );
-
-      if (!isMounted) return;
-
-      try {
-        if (trackRef.current) {
-          const animation = animate(trackRef.current, {
-            y: -(spinItemCount * ITEM_HEIGHT),
-          }, {
-            duration: spinDuration,
-            ease: [0.16, 1, 0.3, 1],
-          });
-
-          await animation;
-        }
-
-        if (!isMounted) return;
-        
-        finishAfterReveal();
-      } catch (error) {
-        console.error("Animation failed:", error);
-      }
-    };
-
-    const fallbackDelay =
-      (shouldReduceMotion ? 120 : 240) + spinDuration * 1000 + revealDelay;
-    const fallbackTimer = window.setTimeout(finishLottery, fallbackDelay);
-
     startAnimation();
 
     return () => {
       isMounted = false;
-      window.clearTimeout(fallbackTimer);
     };
-  }, [
-    revealDelay,
-    shouldReduceMotion,
-    spinDuration,
-    spinItemCount,
-    targetPlayerId,
-    particles,
-  ]);
+  }, [targetPlayerId, trackItems, spinDuration, revealDelay, shouldReduceMotion]);
 
   return (
-    <div className="w-full flex flex-col items-center justify-center gap-8 py-8 perspective-1000">
-      <div className="h-8 flex items-center justify-center">
-        {isSpinning ? (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.2 }}
-            className="text-2xl font-heading tracking-widest text-minion-blue drop-shadow-[0_0_8px_rgba(50,150,250,0.5)] flex items-center gap-2"
-          >
-            <PixelIcon
-              icon={PIXEL_ICONS.LEADING}
-              size={20}
-              color="text-minion-blue"
-              animation="active"
-            />
-            추첨 중...
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5, rotate: -5 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            className="text-3xl font-heading tracking-tighter text-minion-yellow drop-shadow-[0_0_12px_rgba(255,220,0,0.8)] flex items-center gap-2"
-          >
-            <PixelIcon
-              icon={PIXEL_ICONS.SUCCESS}
-              size={20}
-              color="text-minion-yellow"
-            />
-            추첨 완료!
-          </motion.div>
-        )}
+    <div className="w-full flex flex-col items-center justify-center gap-6 py-12">
+      {/* 상태 메시지 */}
+      <div className="h-10 flex items-center justify-center">
+        <motion.div
+          key={isSpinning ? "spinning" : "finished"}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "text-2xl font-heading flex items-center gap-3 px-6 py-2 border-4 border-black bg-white shadow-pixel",
+            isSpinning ? "text-minion-blue" : "text-minion-yellow"
+          )}
+        >
+          <PixelIcon
+            icon={isSpinning ? PIXEL_ICONS.LEADING : PIXEL_ICONS.SUCCESS}
+            size={24}
+            color={isSpinning ? "text-minion-blue" : "text-minion-yellow"}
+            animation={isSpinning ? "active" : "idle"}
+          />
+          {isSpinning ? "미니언즈 공장 가동 중..." : "추첨 완료!"}
+        </motion.div>
       </div>
 
+      {/* 컨베이어 벨트 컨테이너 */}
       <div
         ref={containerRef}
         className={cn(
-          "w-full max-w-sm overflow-hidden bg-white border-[6px] border-black relative mx-auto rounded-none",
-          hasFinished
-            ? "shadow-[0_0_40px_rgba(255,215,0,0.6)]"
-            : "shadow-pixel",
-          "transition-all duration-700 ease-out",
+          "relative w-full max-w-2xl h-64 bg-minion-blue/10 border-[6px] border-black overflow-hidden shadow-pixel",
+          hasFinished && "ring-8 ring-minion-yellow/30"
         )}
-        style={{
-          height: `${ITEM_HEIGHT}px`,
-          boxShadow: hasFinished
-            ? "0 0 40px oklch(85% 0.20 85 / 0.6), 8px 8px 0px 0px black"
-            : "8px 8px 0px 0px black",
-        }}
       >
-        {/* Success Particles Effect */}
-        {hasFinished && !shouldReduceMotion && (
-          <div className="absolute inset-0 z-40 pointer-events-none">
-            {particles.map((particle, i) => (
-              <div
-                key={i}
-                ref={(el) => { particleRefs.current[i] = el; }}
-                className="absolute w-4 h-4 bg-minion-yellow border-2 border-black"
-                style={{ left: "50%", top: "50%", transform: `translate(${particle.x}%, ${particle.y}%) scale(0)` }}
-              />
-            ))}
+        {/* 배경 벨트 레이어 */}
+        <div
+          ref={beltRef}
+          className="absolute bottom-0 left-0 w-full h-12 bg-repeat-x z-10 border-t-4 border-black"
+          style={{ 
+            backgroundImage: "linear-gradient(90deg, #333 0%, #333 50%, #444 50%, #444 100%)",
+            backgroundSize: "60px 100%" 
+          }}
+        />
+
+        {/* 중앙 가이드 (미니언 눈 모양 컨셉) */}
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30 flex flex-col items-center">
+          <div className="w-12 h-6 bg-black rounded-b-full flex items-center justify-center">
+            <div className="w-8 h-2 bg-minion-yellow animate-pulse" />
           </div>
-        )}
-
-        {/* CRT Scanlines Effect */}
-        <div className="absolute inset-0 pointer-events-none z-30 opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]" />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_60px_rgba(0,0,0,0.2)]" />
-
-        {/* Center Slot Highlight */}
-        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-          <div className="w-full h-[calc(100%-12px)] border-y-2 border-minion-yellow/30 bg-minion-yellow/5" />
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-black clip-path-polygon-[0%_0%,100%_50%,0%_100%]" />
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-black clip-path-polygon-[100%_0%,0%_50%,100%_100%]" />
+          <div className="w-1 h-full bg-minion-yellow/20" />
         </div>
 
-        {/* Scrolling Track */}
+        {/* 상자 트랙 */}
         <div
           ref={trackRef}
-          className="absolute top-0 left-0 flex w-full flex-col px-4 will-change-transform"
-          style={{ backfaceVisibility: "hidden", transform: "translateZ(0)" }}
+          className="absolute top-8 left-0 flex items-end h-40 will-change-transform z-20"
+          style={{ transform: "translateZ(0)" }}
         >
-          {trackItems.map((p, idx) => (
+          {trackItems.items.map((p, idx) => (
             <div
               key={idx}
-              className="w-full flex flex-col items-center justify-center shrink-0 gap-2"
-              style={{ height: `${ITEM_HEIGHT}px` }}
+              className="flex-shrink-0 flex flex-col items-center justify-center gap-2"
+              style={{ width: `${BOX_WIDTH}px` }}
             >
-              <span
-                className={cn(
-                  "text-3xl font-heading w-full text-center truncate px-2 transition-all",
-                  !isSpinning && idx === spinItemCount
-                    ? "text-minion-yellow scale-110"
-                    : "text-black",
-                )}
-              >
-                {p.name}
-              </span>
-
-              <div className="flex items-center justify-center gap-6">
-                <motion.div
-                  className="w-16 h-16 relative"
-                  animate={
-                    isSpinning
-                      ? shouldReduceMotion
-                        ? { opacity: [1, 0.9, 1] }
-                        : {
-                            scale: [1, 1.08, 1],
-                            rotate: [0, -2, 2, 0],
-                          }
-                      : {}
-                  }
-                  transition={
-                    isSpinning
-                      ? {
-                          duration: shouldReduceMotion ? 0.5 : 0.45,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }
-                      : undefined
-                  }
-                >
+              {/* 선수 상자 디자인 */}
+              <div className={cn(
+                "w-32 h-32 border-4 border-black bg-white relative flex flex-col items-center justify-center p-2 shadow-pixel transition-transform",
+                !isSpinning && idx === trackItems.targetIndex ? "scale-110 -translate-y-4 ring-4 ring-minion-yellow" : "scale-90"
+              )}>
+                <div className="relative w-16 h-16">
                   <Image
                     src={getTierImage(p.tier)}
                     alt={p.tier}
                     fill
-                    className="object-contain drop-shadow-lg pixelated"
+                    className="object-contain pixelated"
                   />
-                </motion.div>
-                <motion.div 
-                  className="w-12 h-12 relative"
-                  animate={
-                    isSpinning
-                      ? shouldReduceMotion
-                        ? { opacity: [1, 0.9, 1] }
-                        : {
-                            scale: [1, 1.08, 1],
-                            rotate: [0, 2, -2, 0],
-                          }
-                      : {}
-                  }
-                  transition={
-                    isSpinning
-                      ? {
-                          duration: shouldReduceMotion ? 0.5 : 0.45,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: 0.1
-                        }
-                      : undefined
-                  }
-                >
-                  <Image
-                    src={getPositionImage(p.main_position)}
-                    alt={p.main_position}
-                    fill
-                    className="object-contain drop-shadow-md opacity-90 pixelated"
-                  />
-                </motion.div>
-              </div>
-
-              <div className="flex gap-2">
-                <span className="px-2 py-0.5 bg-black text-white text-fluid-xs font-pixel">
-                  {p.tier}
+                </div>
+                <span className="text-xs font-pixel mt-1 bg-black text-white px-1 truncate w-full text-center">
+                  {p.name}
                 </span>
-                <span className="px-2 py-0.5 bg-minion-blue text-white text-fluid-xs font-pixel">
-                  {p.main_position}
-                </span>
+                
+                {/* 상자 디테일 */}
+                <div className="absolute top-1 left-1 w-2 h-2 bg-black/10" />
+                <div className="absolute top-1 right-1 w-2 h-2 bg-black/10" />
               </div>
+              
+              {/* 상자 그림자 */}
+              <div className="w-24 h-2 bg-black/20 rounded-full blur-sm" />
             </div>
           ))}
         </div>
+
+        {/* 장식용 미니언 캐릭터 (좌우) */}
+        <div className="absolute bottom-14 left-4 z-30 pointer-events-none opacity-50">
+          <PixelIcon icon={PIXEL_ICONS.LEADING} size={32} color="text-minion-yellow" animation="active" />
+        </div>
+        <div className="absolute bottom-14 right-4 z-30 pointer-events-none opacity-50 scale-x-[-1]">
+          <PixelIcon icon={PIXEL_ICONS.LEADING} size={32} color="text-minion-yellow" animation="active" />
+        </div>
       </div>
 
-      {/* Shine effect overlay when finished */}
+      {/* 결과 상세 정보 (추첨 완료 시 하단에 표시) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={hasFinished ? { opacity: 1, y: 0 } : { opacity: 0 }}
+        className="flex items-center gap-6 p-4 bg-white border-4 border-black shadow-pixel"
+      >
+        <div className="w-20 h-20 relative border-2 border-black p-1 bg-minion-blue/5">
+          <Image
+            src={getTierImage(targetPlayer.tier)}
+            alt={targetPlayer.tier}
+            fill
+            className="object-contain pixelated"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xl font-heading text-black">{targetPlayer.name}</span>
+          <div className="flex gap-2">
+            <span className="px-2 py-0.5 bg-black text-white text-xs font-pixel">{targetPlayer.tier}</span>
+            <span className="px-2 py-0.5 bg-minion-blue text-white text-xs font-pixel">{targetPlayer.main_position}</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 전체 화면 샤인 효과 */}
       <div
         ref={shineRef}
         className="fixed inset-0 pointer-events-none z-50 bg-white opacity-0"
