@@ -137,7 +137,7 @@ export async function placeBidDirect(
       })
 
       // 입찰 기록 생성
-      const bidId = `bid-${now}-${Math.random().toString(36).slice(2, 8)}`
+      const bidId = `bid-${estimatedNow}-${Math.random().toString(36).slice(2, 8)}`
       const bidRef = doc(collection(roomRef, 'bids'), bidId)
       tx.set(bidRef, {
         event_id: bidId,
