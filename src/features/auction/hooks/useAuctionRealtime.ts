@@ -27,6 +27,7 @@ import {
 import { recordAuctionLatencyMarker } from '../utils/latencyDebug'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
 import { bucketAuctionPlayers, findCurrentAuctionPlayerId } from '../store/auctionSelectors'
+import { useServerTimeOffset } from './useServerTimeOffset'
 
 // Firestore 문서 데이터 → Store 타입 변환 헬퍼
 interface FirestoreRoomData {
@@ -120,6 +121,8 @@ function recordBidLatencyFromEvent(
  * onSnapshot이 초기 데이터 + 실시간 변경을 자동 제공하므로 fetchAll 불필요.
  */
 export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null) {
+  useServerTimeOffset() // Mount the hook to sync globalOffset
+
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setRoomNotFound = useAuctionStore(s => s.setRoomNotFound)
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
