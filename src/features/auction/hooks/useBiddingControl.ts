@@ -151,9 +151,10 @@ export function useBiddingControl({
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
     const bidClickedAt = Date.now()
+    // 남은 시간이 5초 이하일 때만 타이머를 갱신함 (요구사항 5, 6 반영)
     const shouldOptimisticallyResetTimer =
       !!timerEndsAt &&
-      new Date(timerEndsAt).getTime() - bidClickedAt < EXTEND_THRESHOLD_MS
+      new Date(timerEndsAt).getTime() - bidClickedAt <= EXTEND_THRESHOLD_MS
     const optimisticLiveBid: LiveBidState = {
       player_id: currentPlayer.id,
       team_id: teamId,
@@ -165,7 +166,7 @@ export function useBiddingControl({
     setIsBidding(true)
     setLiveBid(optimisticLiveBid)
 
-    // 남은 시간 < 5s이면 즉시 낙관적 타이머 리셋 표시
+    // 남은 시간 <= 5s이면 즉시 낙관적 타이머 리셋 표시 (입찰 시점 기준 5초 후)
     if (shouldOptimisticallyResetTimer) {
       setRealtimeData({ timerEndsAt: new Date(bidClickedAt + EXTEND_DURATION_MS).toISOString() })
     }

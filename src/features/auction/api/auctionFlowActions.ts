@@ -250,6 +250,19 @@ export async function drawNextPlayer(
     const picked = docs[Math.floor(Math.random() * docs.length)];
     const pickedData = picked.data();
 
+    // 1. 참여 인원 검증 (주최자 1명 + 리더 최소 2명 = 최소 3명)
+    const { rtdb } = getAuctionServerServices();
+    const presenceSnap = await rtdb.ref(`presence/${roomId}`).get();
+    const presenceData = presenceSnap.val() as Record<string, { role: string }> | null;
+    const presences = presenceData ? Object.values(presenceData) : [];
+    
+    const organizerCount = presences.filter(p => p.role === 'ORGANIZER').length;
+    const leaderCount = presences.filter(p => p.role === 'LEADER').length;
+    
+    if (organizerCount < 1 || leaderCount < 2) {
+      return { error: `경매를 시작하려면 주최자 1명과 최소 2명의 리더가 필요합니다. (현재 주최자: ${organizerCount}, 리더: ${leaderCount})` };
+    }
+
     let drawEvent: AuctionEventEnvelope | null = null;
     await getAuctionFirestore().runTransaction(async (tx) => {
       const freshRoomSnap = await tx.get(roomRef);
@@ -333,6 +346,7 @@ export async function startAuction(
       }
       const nextDurationMs =
         freshRoomData.next_auction_duration_ms ?? durationMs
+      // 타이머 시작 시간은 서버 시간 기준으로 정확히 10초(또는 지정된 시간) 뒤
       const timerEndsAt = new Date(Date.now() + nextDurationMs);
       resolvedTimerEndsAt = timerEndsAt.toISOString()
 
