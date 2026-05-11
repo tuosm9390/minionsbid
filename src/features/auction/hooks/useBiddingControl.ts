@@ -168,9 +168,10 @@ export function useBiddingControl({
     setLiveBid(optimisticLiveBid)
 
     // 남은 시간 < 5s이면 즉시 낙관적 타이머 리셋 표시
-    if (shouldOptimisticallyResetTimer) {
-      setRealtimeData({ timerEndsAt: new Date(bidClickedAtServer + EXTEND_DURATION_MS).toISOString() })
-    }
+    // 사용자 피드백: 낙관적 UI 업데이트가 오류처럼 느껴짐.
+    // if (shouldOptimisticallyResetTimer) {
+    //   setRealtimeData({ timerEndsAt: new Date(bidClickedAtServer + EXTEND_DURATION_MS).toISOString() })
+    // }
 
     try {
       const directResult = await placeBidDirect({
@@ -192,7 +193,7 @@ export function useBiddingControl({
         }
         if (directTimerChanged) {
           setRealtimeData({
-            timerEndsAt: new Date(getServerTime() + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: directResult.timerEndsAt!,
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
@@ -221,9 +222,9 @@ export function useBiddingControl({
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
       if (res.error) {
         setLiveBid(previousLiveBid ?? null)
-        if (shouldOptimisticallyResetTimer) {
-          setRealtimeData({ timerEndsAt: previousTimerEndsAt })
-        }
+        // if (shouldOptimisticallyResetTimer) {
+        //   setRealtimeData({ timerEndsAt: previousTimerEndsAt })
+        // }
         setBidError(res.error)
       } else {
         const serverTimerChanged =
@@ -237,7 +238,7 @@ export function useBiddingControl({
         }
         if (serverTimerChanged) {
           setRealtimeData({
-            timerEndsAt: new Date(getServerTime() + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: res.timerEndsAt!,
           })
         }
         // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음
@@ -252,9 +253,9 @@ export function useBiddingControl({
       }
     } catch (error) {
       setLiveBid(previousLiveBid ?? null)
-      if (shouldOptimisticallyResetTimer) {
-        setRealtimeData({ timerEndsAt: previousTimerEndsAt })
-      }
+      // if (shouldOptimisticallyResetTimer) {
+      //   setRealtimeData({ timerEndsAt: previousTimerEndsAt })
+      // }
       throw error
     } finally {
       setIsBidding(false)

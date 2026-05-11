@@ -18,6 +18,11 @@ vi.mock("@/features/auction/api/placeBidClient", () => ({
   placeBidDirect: vi.fn(),
 }));
 
+vi.mock("@/features/auction/hooks/useServerTimeOffset", () => ({
+  getServerTime: () => Date.now(),
+  useServerTimeOffset: () => 0,
+}));
+
 describe("useBiddingControl", () => {
   const currentPlayer: Player = {
     id: "p1",
@@ -160,12 +165,14 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(3);
   });
 
-  it("남은 시간 < 5s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
+  it("남은 시간 < 5s이어도 클릭 즉시 낙관 타이머를 적용하지 않는다 (사용자 피드백 반영)", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number; error?: string }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
     const shortTimer = new Date(Date.now() + 3000).toISOString();
+    useAuctionStore.setState({ timerEndsAt: shortTimer });
+    
     const { result } = renderHook(() =>
       useBiddingControl({ ...defaultProps, timerEndsAt: shortTimer })
     );
@@ -173,12 +180,8 @@ describe("useBiddingControl", () => {
     let pending!: Promise<void>;
     act(() => { pending = result.current.handleBid(); });
 
-    // 서버 응답 전에 낙관 타이머 적용됨
-    const optimisticTimer = useAuctionStore.getState().timerEndsAt;
-    expect(optimisticTimer).not.toBeNull();
-    const remaining = new Date(optimisticTimer!).getTime() - Date.now();
-    expect(remaining).toBeGreaterThan(4000);
-    expect(remaining).toBeLessThan(6000);
+    // 낙관 타이머 적용 안 됨 (기존 타이머 유지)
+    expect(useAuctionStore.getState().timerEndsAt).toBe(shortTimer);
 
     resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
@@ -190,6 +193,8 @@ describe("useBiddingControl", () => {
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
     const longTimer = new Date(Date.now() + 10000).toISOString();
+    useAuctionStore.setState({ timerEndsAt: longTimer });
+    
     const { result } = renderHook(() =>
       useBiddingControl({ ...defaultProps, timerEndsAt: longTimer })
     );
@@ -198,7 +203,7 @@ describe("useBiddingControl", () => {
     act(() => { pending = result.current.handleBid(); });
 
     // 낙관 타이머 적용 안 됨
-    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
+    expect(useAuctionStore.getState().timerEndsAt).toBe(longTimer);
 
     resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
@@ -246,21 +251,6 @@ describe("useBiddingControl", () => {
     expect(useAuctionStore.getState().liveBid).toMatchObject({
       player_id: "p1", team_id: "team-2", amount: 20,
     });
-  });
-
-  it("handleBid 실패 시 낙관 타이머를 롤백한다", async () => {
-    (placeBidDirect as Mock).mockResolvedValue({ error: "direct failed" });
-    (placeBid as Mock).mockResolvedValue({ error: "포인트가 부족합니다." });
-    const shortTimer = new Date(Date.now() + 3000).toISOString();
-    useAuctionStore.setState({ timerEndsAt: shortTimer });
-
-    const { result } = renderHook(() =>
-      useBiddingControl({ ...defaultProps, timerEndsAt: shortTimer })
-    );
-    await act(async () => { await result.current.handleBid(); });
-
-    // 타이머 롤백됨
-    expect(useAuctionStore.getState().timerEndsAt).toBe(shortTimer);
   });
 
   it("placeBidDirect 실패 시 placeBid fallback을 호출하고 revision을 반영한다", async () => {
