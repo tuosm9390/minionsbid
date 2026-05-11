@@ -62,6 +62,7 @@ export function useBiddingControl({
   const [bidError, setBidError] = useState<string | null>(null)
 
   const liveBid = useAuctionStore((s) => s.liveBid)
+  const serverTimeOffset = useAuctionStore((s) => s.serverTimeOffset)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
   const setAuctionEventRevision = useAuctionStore((s) => s.setAuctionEventRevision)
@@ -150,11 +151,13 @@ export function useBiddingControl({
     const finalAmount = Math.max(numericAmount, minBid)
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
-    const bidClickedAt = Date.now()
+    const localNow = Date.now()
+    const estimatedServerNow = localNow + serverTimeOffset
+    
     // 남은 시간이 5초 이하일 때만 타이머를 갱신함 (요구사항 5, 6 반영)
     const shouldOptimisticallyResetTimer =
       !!timerEndsAt &&
-      new Date(timerEndsAt).getTime() - bidClickedAt <= EXTEND_THRESHOLD_MS
+      new Date(timerEndsAt).getTime() - estimatedServerNow <= EXTEND_THRESHOLD_MS
     const optimisticLiveBid: LiveBidState = {
       player_id: currentPlayer.id,
       team_id: teamId,
@@ -166,9 +169,9 @@ export function useBiddingControl({
     setIsBidding(true)
     setLiveBid(optimisticLiveBid)
 
-    // 남은 시간 <= 5s이면 즉시 낙관적 타이머 리셋 표시 (입찰 시점 기준 5초 후)
+    // 남은 시간 <= 5s이면 즉시 낙관적 타이머 리셋 표시 (추정 서버 시간 기준 5초 후)
     if (shouldOptimisticallyResetTimer) {
-      setRealtimeData({ timerEndsAt: new Date(bidClickedAt + EXTEND_DURATION_MS).toISOString() })
+      setRealtimeData({ timerEndsAt: new Date(estimatedServerNow + EXTEND_DURATION_MS).toISOString() })
     }
 
     try {
@@ -190,8 +193,9 @@ export function useBiddingControl({
           setAuctionEventRevision(directResult.revision)
         }
         if (directTimerChanged) {
+          // 서버 응답 성공 시에도 추정 서버 시간 기준으로 타이머 설정
           setRealtimeData({
-            timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: new Date(Date.now() + serverTimeOffset + EXTEND_DURATION_MS).toISOString(),
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
@@ -235,8 +239,9 @@ export function useBiddingControl({
           setAuctionEventRevision(res.revision)
         }
         if (serverTimerChanged) {
+          // 서버 응답 성공 시에도 추정 서버 시간 기준으로 타이머 설정
           setRealtimeData({
-            timerEndsAt: new Date(Date.now() + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: new Date(Date.now() + serverTimeOffset + EXTEND_DURATION_MS).toISOString(),
           })
         }
         // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음

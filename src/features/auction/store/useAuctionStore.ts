@@ -95,6 +95,7 @@ interface AuctionState {
   presences: PresenceUser[]
   isPresenceLoaded: boolean
   isLocalConnected: boolean
+  serverTimeOffset: number
 
   // 추첨 모달 상태 (Broadcast CLOSE_LOTTERY로 동기화)
   lotteryPlayer: Player | null
@@ -141,6 +142,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   presences: [],
   isPresenceLoaded: false,
   isLocalConnected: true,
+  serverTimeOffset: 0,
   lotteryPlayer: null,
 
   setRoomContext: (roomId, role, teamId) => set({

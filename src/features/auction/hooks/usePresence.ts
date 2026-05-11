@@ -64,6 +64,13 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
         })
         unsubs.push(unsubConnected)
 
+        // 1-1. 서버 시간 오프셋 추적 (입찰 타이머 동기화용)
+        const offsetRef = ref(rtdb, '.info/serverTimeOffset')
+        const unsubOffset = onValue(offsetRef, (snap) => {
+          setRealtimeData({ serverTimeOffset: snap.val() || 0 })
+        })
+        unsubs.push(unsubOffset)
+
         // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
         if (authUid && (role === 'LEADER' || role === 'ORGANIZER')) {
           myPresenceRef = ref(rtdb, `presence/${roomId}/${authUid}`)

@@ -560,6 +560,16 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (!next.applied) {
         return
       }
+
+      // 타이머 스무딩 (Smoothing): 서버에서 받은 시간과 현재 클라이언트의 타이머 차이가 
+      // 임계값(예: 200ms) 이내라면 UI 튐을 방지하기 위해 갱신을 무시함
+      const currentTimerEndsAt = state.timerEndsAt
+      if (currentTimerEndsAt && next.timerEndsAt) {
+        const diff = Math.abs(new Date(currentTimerEndsAt).getTime() - new Date(next.timerEndsAt).getTime())
+        if (diff < 200) {
+          next.timerEndsAt = currentTimerEndsAt
+        }
+      }
       setReAuctionRound(
         getNextReAuctionRoundState({
           current: state.isReAuctionRound,
