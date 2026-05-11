@@ -193,9 +193,9 @@ export function useBiddingControl({
           setAuctionEventRevision(directResult.revision)
         }
         if (directTimerChanged) {
-          // 서버 응답 성공 시에도 추정 서버 시간 기준으로 타이머 설정
+          // 서버 응답 성공 시에도 서버가 반환한 실제 종료 시간을 우선 사용
           setRealtimeData({
-            timerEndsAt: new Date(Date.now() + serverTimeOffset + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: directResult.timerEndsAt,
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
@@ -239,9 +239,9 @@ export function useBiddingControl({
           setAuctionEventRevision(res.revision)
         }
         if (serverTimerChanged) {
-          // 서버 응답 성공 시에도 추정 서버 시간 기준으로 타이머 설정
+          // 서버 응답 성공 시에도 서버가 반환한 실제 종료 시간을 우선 사용
           setRealtimeData({
-            timerEndsAt: new Date(Date.now() + serverTimeOffset + EXTEND_DURATION_MS).toISOString(),
+            timerEndsAt: res.timerEndsAt,
           })
         }
         // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음
