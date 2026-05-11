@@ -165,7 +165,7 @@ export function useBiddingControl({
 
     setBidError(null)
     setIsBidding(true)
-    setLiveBid(optimisticLiveBid)
+    // setLiveBid(optimisticLiveBid) // 낙관적 업데이트 제거
 
     // 남은 시간 < 5s이면 즉시 낙관적 타이머 리셋 표시
     // 사용자 피드백: 낙관적 UI 업데이트가 오류처럼 느껴짐.
@@ -186,16 +186,18 @@ export function useBiddingControl({
           !!directResult.timerEndsAt &&
           directResult.timerEndsAt !== previousTimerEndsAt
 
-        setLiveBid(optimisticLiveBid)
-        setBidAmount(finalAmount + 10)
+        // setLiveBid(optimisticLiveBid) // 서버 응답이나 웹소켓에 의해 갱신되도록 둠
+        // setBidAmount(finalAmount + 10) // 자동 갱신되지 않도록 둠
         if (directResult.revision) {
           setAuctionEventRevision(directResult.revision)
         }
+        /* 서버 데이터 동기화(websocket)에 의해 갱신되도록 응답값에 의한 직접 갱신 주석 처리
         if (directTimerChanged) {
           setRealtimeData({
             timerEndsAt: directResult.timerEndsAt!,
           })
         }
+        */
         if (!E2E_AUCTION_FIXTURE) {
           void broadcastBidEvent(
             roomId,
@@ -231,16 +233,18 @@ export function useBiddingControl({
           !!res.timerEndsAt &&
           res.timerEndsAt !== previousTimerEndsAt
 
-        setLiveBid(optimisticLiveBid)
-        setBidAmount(finalAmount + 10)
+        // setLiveBid(optimisticLiveBid)
+        // setBidAmount(finalAmount + 10)
         if (res.revision) {
           setAuctionEventRevision(res.revision)
         }
+        /* 서버 데이터 동기화(websocket)에 의해 갱신되도록 응답값에 의한 직접 갱신 주석 처리
         if (serverTimerChanged) {
           setRealtimeData({
             timerEndsAt: res.timerEndsAt!,
           })
         }
+        */
         // timerEndsAt은 RTDB/Firestore 폴백이 브라우저 클럭 기준으로 갱신 — 여기서 덮어쓰지 않음
         if (LATENCY_DEBUG) {
           console.info('[latency][client] placeBid success', {
