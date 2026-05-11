@@ -137,7 +137,6 @@ describe("useBiddingControl", () => {
     (placeBidDirect as Mock).mockResolvedValue({
       timerEndsAt: serverTimerEndsAt,
       revision: 3,
-      timerDurationMs: 5000,
     });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));

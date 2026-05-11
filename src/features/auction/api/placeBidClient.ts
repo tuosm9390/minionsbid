@@ -25,14 +25,12 @@ import { getServerTime } from '../hooks/useServerTimeOffset'
 interface PlaceBidDirectResult {
   timerEndsAt?: string | null
   revision?: number
-  timerDurationMs?: number | null
   error?: string
 }
 
 type FixtureBidResponse = {
   timerEndsAt?: string | null
   revision?: number
-  timerDurationMs?: number | null
   error?: string
 }
 
@@ -69,7 +67,6 @@ export async function placeBidDirect(
     return {
       timerEndsAt: result.timerEndsAt ?? null,
       revision: result.revision,
-      timerDurationMs: result.timerDurationMs ?? null,
       error: result.error,
     }
   }
@@ -80,7 +77,6 @@ export async function placeBidDirect(
   try {
     let newTimerEndsAt: string | null = null
     let newRevision = 0
-    let timerDurationMs: number | null = null
 
     await runTransaction(firestore, async (tx) => {
       const roomSnap = await tx.get(roomRef)
@@ -122,7 +118,6 @@ export async function placeBidDirect(
         const targetNewTime = estimatedServerNow + EXTEND_DURATION_MS
         const finalTime = Math.max(currentEndTime, targetNewTime)
         nextTimerEndsAt = Timestamp.fromDate(new Date(finalTime))
-        timerDurationMs = EXTEND_DURATION_MS
       }
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
 
@@ -156,7 +151,7 @@ export async function placeBidDirect(
       })
     })
 
-    return { timerEndsAt: newTimerEndsAt, revision: newRevision, timerDurationMs }
+    return { timerEndsAt: newTimerEndsAt, revision: newRevision }
   } catch (err) {
     const message = err instanceof Error ? err.message : '입찰 실패'
     // permission-denied → 보안 규칙 위반 (금액 부족, 팀 풀 등)

@@ -524,7 +524,6 @@ export async function placeBid(
   error?: string;
   timerEndsAt?: string;
   revision?: number;
-  timerDurationMs?: number | null;
   debug?: {
     eventId?: string;
     serverReceivedAt: number;

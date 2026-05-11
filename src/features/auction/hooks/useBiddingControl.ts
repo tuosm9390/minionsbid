@@ -182,14 +182,18 @@ export function useBiddingControl({
         resetTimer: shouldOptimisticallyResetTimer,
       })
       if (!directResult.error) {
+        const directTimerChanged =
+          !!directResult.timerEndsAt &&
+          directResult.timerEndsAt !== previousTimerEndsAt
+
         setLiveBid(optimisticLiveBid)
         setBidAmount(finalAmount + 10)
         if (directResult.revision) {
           setAuctionEventRevision(directResult.revision)
         }
-        if (directResult.timerDurationMs != null && directResult.timerEndsAt) {
+        if (directTimerChanged) {
           setRealtimeData({
-            timerEndsAt: directResult.timerEndsAt,
+            timerEndsAt: directResult.timerEndsAt!,
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
@@ -201,7 +205,7 @@ export function useBiddingControl({
             finalAmount,
             directResult.timerEndsAt ?? previousTimerEndsAt,
             directResult.revision ?? useAuctionStore.getState().auctionEventRevision,
-            directResult.timerDurationMs ?? null,
+            directTimerChanged ? EXTEND_DURATION_MS : null,
           )
         }
         if (LATENCY_DEBUG) {
