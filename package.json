@@ -20,7 +20,6 @@
     "delete:hof-entry": "node scripts/delete_hall_of_fame_entry.js"
   },
   "dependencies": {
-    "@motionone/react": "^10.16.4",
     "clsx": "^2.1.1",
     "firebase": "^12.10.0",
     "firebase-admin": "^13.7.0",
