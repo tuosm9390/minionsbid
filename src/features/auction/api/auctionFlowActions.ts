@@ -632,11 +632,21 @@ export async function placeBid(
       };
 
       const now = Date.now();
+      // Grace Period 500ms
+      if (timerField.toMillis() <= now - 500) {
+        throw new Error("경매 시간이 종료되었습니다.");
+      }
+
       const timerRemaining = timerField.toMillis() - now;
       const shouldExtendTimer = timerRemaining < EXTEND_THRESHOLD_MS;
-      const nextTimerTimestamp = shouldExtendTimer
-        ? admin.firestore.Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
-        : timerField;
+      
+      let nextTimerTimestamp = timerField;
+      if (shouldExtendTimer) {
+        const targetNewTime = now + EXTEND_DURATION_MS;
+        const finalTime = Math.max(timerField.toMillis(), targetNewTime);
+        nextTimerTimestamp = admin.firestore.Timestamp.fromDate(new Date(finalTime));
+      }
+      
       newTimerEndsAt = nextTimerTimestamp.toDate().toISOString();
       if (shouldExtendTimer) timerExtendedAt = nowMs();
 
