@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Check, Copy } from "lucide-react";
+import { Check, Copy } from "@/components/ui/CyberIcons";
 
 interface LinkCardProps {
   label: string;

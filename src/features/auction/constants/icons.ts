@@ -15,7 +15,7 @@ import {
   Gavel,
   X,
   Medal
-} from "lucide-react";
+} from "@/components/ui/CyberIcons";
 
 /**
  * Cyber-Pixel Icon Mapping

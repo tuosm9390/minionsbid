@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { createPortal } from "react-dom";
-import { X, ExternalLink, Check } from "lucide-react";
+import { X, ExternalLink, Check } from "@/components/ui/CyberIcons";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useCreateRoom } from "@/features/auction/hooks/useCreateRoom";
@@ -226,7 +226,7 @@ export function CreateRoomModal() {
                       {isLoading
                         ? "PROCESSING..."
                         : step === 2
-                          ? "CREATE ROOM ✨"
+                          ? "CREATE ROOM"
                           : "NEXT STEP"}
                     </button>
                   </>

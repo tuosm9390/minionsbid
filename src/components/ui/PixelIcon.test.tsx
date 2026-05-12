@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { PixelIcon } from "./PixelIcon";
-import { Check } from "lucide-react";
+import { Check } from "@/components/ui/CyberIcons";
 import { describe, it, expect } from "vitest";
 
 describe("PixelIcon Component", () => {

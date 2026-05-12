@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, Crown, Swords } from "lucide-react";
+import { BarChart3, Crown, Swords } from "@/components/ui/CyberIcons";
 import type {
   LeagueRosterTeam,
   LeagueScheduleDay,

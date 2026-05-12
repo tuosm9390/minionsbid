@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy } from "lucide-react";
+import { Trophy } from "@/components/ui/CyberIcons";
 import type {
   LeagueMatchWinner,
   LeagueRosterTeam,

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/CyberIcons";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { LinkCard } from "@/components/ui/LinkCard";

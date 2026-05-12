@@ -96,3 +96,16 @@
 - Verification passed: `npm run test -- __tests__/useBiddingControl.test.tsx __tests__/auctionActions.test.ts __tests__/useAuctionRealtime.test.tsx` (69/69), `npm run build`, and `npm run test:e2e:auction` (14/14).
 - New issue: `useAuctionControl` still says and implements organizer+leader direct auto-award, while the local section header says organizer-only. This is distinct from `useAuctionRealtime` expiry recovery. The direct `awardPlayer()` scheduling should be organizer-only.
 - Updated `useAuctionControl` so only `effectiveRole === 'ORGANIZER'` schedules direct `awardPlayer()` after timer expiry. Added tests for organizer auto-award and leader non-award behavior. Verification passed: `npm run test -- src/features/auction/hooks/useAuctionControl.test.ts` (6/6), `npm run build`, and `npm run test:e2e:auction` (14/14).
+
+## 2026-05-13
+
+- The icon refresh must preserve every existing image asset: favicon, thumbnails, rank images, position images, and the existing hall-of-fame trophy remain unchanged.
+- General UI icons should move away from `lucide-react` to a local SVG component set with a Cyber-Pixel-friendly outline style. The implementation should preserve the existing `PixelIcon` API so auction screens do not need behavioral changes.
+- 3D icons are allowed only as new point accents for reward/emphasis or emoji replacement, not as small button icons or replacements for existing image assets.
+- 3D sources selected for this pass are 3dicons.co assets mirrored on Wikimedia Commons with CC0 metadata, so the project can keep local PNG copies under a separate directory.
+- Direct `lucide-react` imports should be replaced surgically with equivalent local exports to avoid adding a new npm dependency and to avoid modifying the already-dirty `package-lock.json`.
+- Implemented `CyberIcons.tsx` as a local SVG icon set and updated `PixelIcon` to accept the local `CyberIcon` type while preserving the existing size/stroke/accessibility API.
+- Replaced direct `lucide-react` imports in app, modal, schedule, archive, and auction UI components. `rg "lucide-react" src` now returns no matches.
+- Added `ThreeDIcon.tsx` and local 3dicons PNG files under `public/icons/3d/` for trophy, medal, crown, cube, and shield accents. Existing image assets were not replaced.
+- Replaced visible UI emoji decorations in create-room and archive flows. System message strings remain unchanged for compatibility, but `ChatPanel` now strips known leading system-message emoji at render time and shows SVG/3D icons instead.
+- Verification passed: `npm run test -- src/components/ui/PixelIcon.test.tsx` and `npm run build`.

@@ -1,7 +1,7 @@
 "use client";
 
 // 경매 타이머 랩을 Firebase 서버 액션과 실시간 구독으로 검증하는 페이지
-import { Gavel, Link2, RefreshCcw, RotateCcw, Timer, Trophy, Users } from "lucide-react";
+import { Gavel, Link2, RefreshCcw, RotateCcw, Timer, Trophy, Users } from "@/components/ui/CyberIcons";
 import { onValue, ref } from "firebase/database";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";

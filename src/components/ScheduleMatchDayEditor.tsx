@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lock, LockOpen, Plus, Save, Shield, Swords, X } from "lucide-react";
+import { Lock, LockOpen, Plus, Save, Shield, Swords, X } from "@/components/ui/CyberIcons";
 import type {
   LeagueMatchWinner,
   LeagueRosterTeam,

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Trash2, AlertTriangle } from "lucide-react";
+import { X, Trash2, AlertTriangle } from "@/components/ui/CyberIcons";
 
 interface EndRoomModalProps {
   isOpen: boolean;

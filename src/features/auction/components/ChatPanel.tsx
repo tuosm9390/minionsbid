@@ -3,6 +3,7 @@
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import {
   useAuctionStore,
   type Message,
@@ -11,6 +12,50 @@ import { sendChatMessage } from "@/features/auction/api/auctionActions";
 import { selectOrderedMessages } from "@/features/auction/store/auctionSelectors";
 
 const MAX_MESSAGE_LENGTH = 200;
+
+function getSystemMessageVisual(content: string): {
+  icon: React.ReactNode | null;
+  content: string;
+} {
+  if (content.startsWith("🎲")) {
+    return {
+      icon: <ThreeDIcon name="cube" alt="추첨" size={18} />,
+      content: content.replace(/^🎲\s*/, ""),
+    };
+  }
+  if (content.startsWith("🏆")) {
+    return {
+      icon: <ThreeDIcon name="trophy" alt="낙찰" size={18} />,
+      content: content.replace(/^🏆\s*/, ""),
+    };
+  }
+  if (content.startsWith("⏱️")) {
+    return {
+      icon: <PixelIcon icon={PIXEL_ICONS.TIMER} size={14} color="text-minion-blue" />,
+      content: content.replace(/^⏱️\s*/, ""),
+    };
+  }
+  if (content.startsWith("⚠️")) {
+    return {
+      icon: <PixelIcon icon={PIXEL_ICONS.WARNING} size={14} color="text-minion-red" />,
+      content: content.replace(/^⚠️\s*/, ""),
+    };
+  }
+  if (content.startsWith("✅")) {
+    return {
+      icon: <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={14} color="text-green-600" />,
+      content: content.replace(/^✅\s*/, ""),
+    };
+  }
+  if (content.startsWith("❌")) {
+    return {
+      icon: <PixelIcon icon={PIXEL_ICONS.CLOSE} size={14} color="text-minion-red" />,
+      content: content.replace(/^❌\s*/, ""),
+    };
+  }
+
+  return { icon: null, content };
+}
 
 const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
   const role = msg.sender_role;
@@ -32,6 +77,8 @@ const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
   };
 
   if (role === "SYSTEM") {
+    const visual = getSystemMessageVisual(msg.content);
+
     return (
       <div className="flex items-center gap-3 my-1.5 px-3 py-2 bg-minion-blue/5 border-l-4 border-minion-blue animate-slide-in-left relative group">
         <div className="absolute inset-0 bg-minion-blue/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -44,8 +91,13 @@ const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
           />
           SYS
         </span>
+        {visual.icon && (
+          <span className="relative z-10 inline-flex h-6 w-6 shrink-0 items-center justify-center">
+            {visual.icon}
+          </span>
+        )}
         <span className="text-fluid-xs text-gray-700 font-body leading-normal relative z-10 break-words">
-          {renderFormattedSystemMessage(msg.content)}
+          {renderFormattedSystemMessage(visual.content)}
         </span>
       </div>
     );

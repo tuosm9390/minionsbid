@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/CyberIcons";
 
 type LegalDocumentType = "terms" | "privacy";
 type LegalLanguage = "ko" | "en";

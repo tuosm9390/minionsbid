@@ -2,7 +2,8 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useState, useCallback } from "react";
-import { Trophy, X, RefreshCw } from "lucide-react";
+import { Trophy, X, RefreshCw } from "@/components/ui/CyberIcons";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { getVisibleAuctionArchives } from "@/features/hall-of-fame/api/hallOfFameActions";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
 
@@ -234,7 +235,7 @@ export function AuctionArchiveSection({
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="w-12 h-12 bg-minion-yellow border-2 border-black flex items-center justify-center shrink-0">
-                        <span className="text-xl">🏆</span>
+                        <ThreeDIcon name="trophy" alt="우승 기록" size={36} />
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-black text-black text-lg truncate mb-1">

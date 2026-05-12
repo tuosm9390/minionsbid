@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import { LucideIcon } from "lucide-react";
 import { motion, Variants, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { CyberIcon } from "@/components/ui/CyberIcons";
 
 export type IconAnimation = "idle" | "urgent" | "success" | "active";
 
 interface PixelIconProps {
-  /** Lucide icon component */
-  icon: LucideIcon;
+  /** SVG icon component */
+  icon: CyberIcon;
   /** Size in pixels (default: 24) */
   size?: number;
   /** Tailwind color class or HEX (default: currentColor) */
@@ -92,7 +92,7 @@ const reducedAnimationVariants: Variants = {
 
 /**
  * PixelIcon - A standardized icon component for the Cyber-Pixel theme.
- * Uses Lucide icons with custom pixel-art styling and Framer Motion animations.
+ * Uses SVG icons with custom pixel-art styling and Framer Motion animations.
  */
 export function PixelIcon({
   icon: Icon,

@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { Upload } from "lucide-react";
+import { Upload } from "@/components/ui/CyberIcons";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { TIERS, POSITIONS } from "@/features/auction/constants/room";
 import { PlayerInfo } from "@/features/auction/utils/roomGenerator";
 
@@ -40,7 +41,8 @@ export function PlayerRegistrationStep({
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={openTemplateModal} className="pixel-button flex items-center gap-1.5 text-purple-700 hover:bg-purple-100 px-3 py-1 text-sm font-bold transition-colors">
-            🎲 테스트 데이터 생성
+            <ThreeDIcon name="cube" alt="테스트 데이터" size={18} />
+            테스트 데이터 생성
           </button>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm,.xls" className="hidden" onChange={handleExcelUpload} />
           <button data-testid="excel-upload-button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="pixel-button flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm font-bold transition-colors disabled:opacity-50">

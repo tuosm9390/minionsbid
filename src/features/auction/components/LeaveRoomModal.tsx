@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { createPortal } from "react-dom";
-import { X, LogOut, AlertCircle } from "lucide-react";
+import { X, LogOut, AlertTriangle } from "@/components/ui/CyberIcons";
 
 interface LeaveRoomModalProps {
   isOpen: boolean;
@@ -42,7 +42,7 @@ export function LeaveRoomModal({
         {/* Body */}
         <div className="px-5 py-6 space-y-4">
           <div className="bg-blue-50 border-2 border-black p-4 flex gap-3">
-            <AlertCircle
+            <AlertTriangle
               size={20}
               className="text-minion-blue shrink-0 mt-0.5"
             />

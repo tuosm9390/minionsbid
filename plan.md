@@ -48,6 +48,16 @@
 3. 트리거가 걸리면 관리자 전용 편집 경로 또는 per-match 저장 구조 설계 재개
 4. 트리거가 없으면 현재 안정화 버전 유지, Firebase Security Rules와 운영 관측성 작업으로 이동
 
+## 3-1. 아이콘 리프레시 작업 계획
+
+1. 기존 이미지 자산은 유지하고 `lucide-react`, `PixelIcon`, 이모지성 UI만 변경 대상으로 제한한다.
+2. 2D 아이콘은 proIcons/OpenIconLibrary에서 확인한 Tabler/Phosphor/Iconoir 계열처럼 단색 SVG와 굵은 stroke에 맞는 방향으로 로컬 컴포넌트화한다.
+3. `PixelIcon`의 크기, 색상, 접근성, 애니메이션 API는 유지하고 아이콘 타입만 로컬 SVG 타입으로 확장한다.
+4. 강조가 필요한 트로피, 메달, 크라운, 주사위/큐브, 방패 계열은 3dicons.co CC0 PNG를 별도 경로에 추가해 포인트 요소로만 사용한다.
+5. 중앙 `PIXEL_ICONS` 매핑을 먼저 교체하고, 직접 `lucide-react`를 쓰는 반복 액션 아이콘을 같은 로컬 세트로 치환한다.
+6. 화면에 박힌 이모지성 장식은 의미에 따라 2D SVG 또는 3D 포인트 아이콘으로 교체한다.
+7. 출처 문서를 추가하고, focused test와 `npm run build`로 검증한다.
+
 ---
 
 ## 4. 운영 이후 로드맵

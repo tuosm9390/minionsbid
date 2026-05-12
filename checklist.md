@@ -87,3 +87,11 @@
 - [x] Run focused auction bidding/realtime/action tests.
 - [x] Restrict `useAuctionControl` direct auto-award scheduling to organizer only.
 - [x] Add focused coverage that leaders do not call `awardPlayer()` from `useAuctionControl`.
+- [x] Add an icon replacement plan entry for 2D SVG icons plus limited 3D reward accents.
+- [x] Add local Cyber-Pixel-compatible SVG icon components based on the selected open icon direction.
+- [x] Replace the central `PIXEL_ICONS` mapping with the local icon set.
+- [x] Replace direct `lucide-react` UI imports with the local icon set.
+- [x] Add limited 3D reward/accent icon assets without replacing existing project images.
+- [x] Replace emoji-like UI decorations with SVG or 3D icon components.
+- [x] Document icon sources and license assumptions.
+- [x] Run focused icon tests and a production build.

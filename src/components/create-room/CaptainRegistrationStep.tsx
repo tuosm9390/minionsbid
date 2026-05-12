@@ -2,6 +2,7 @@
 
 import { POSITIONS } from "@/features/auction/constants/room";
 import { CaptainInfo } from "@/features/auction/utils/roomGenerator";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 
 interface CaptainRegistrationStepProps {
   captains: CaptainInfo[];
@@ -40,7 +41,8 @@ export function CaptainRegistrationStep({
           {"● 팀장 이름을 입력하면 팀명이 자동으로 생성됩니다.\n● 팀장 포인트는 시작 포인트에서 차감됩니다."}
         </p>
         <button type="button" onClick={openTemplateModal} className="pixel-button flex items-center gap-1.5 text-purple-700 hover:bg-purple-100 px-3 py-1 text-sm font-bold transition-colors">
-          🎲 테스트 데이터 생성
+          <ThreeDIcon name="cube" alt="테스트 데이터" size={18} />
+          테스트 데이터 생성
         </button>
       </div>
       {captains.map((captain, i) => (

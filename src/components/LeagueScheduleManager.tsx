@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Clock3, Flag, Trash2, X } from "lucide-react";
+import { CalendarDays, Clock3, Flag, Trash2, X } from "@/components/ui/CyberIcons";
 import {
   completeLeagueSchedule,
   createLeagueSchedule,

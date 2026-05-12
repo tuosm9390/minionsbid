@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { ArrowRight, CalendarDays, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarDays, RefreshCw } from "@/components/ui/CyberIcons";
 import { BasicInfo, StoredRoom } from "@/features/auction/hooks/useCreateRoom";
 import type { LeagueScheduleItem } from "@/features/schedules/types";
 
@@ -34,7 +34,10 @@ export function BasicInfoStep({
     <div className="space-y-5">
       {!isCheckingRooms && activeRooms.length > 0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
-          <p className="text-sm font-black text-orange-700 mb-3">⚠️ 진행 중인 경매방이 있습니다</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-black text-orange-700">
+            <AlertTriangle size={16} />
+            진행 중인 경매방이 있습니다
+          </p>
           <div className="space-y-2">
             {activeRooms.map((room) => (
               <div key={room.id} className="bg-white border border-orange-200 rounded-xl p-3 flex items-center justify-between gap-3">
