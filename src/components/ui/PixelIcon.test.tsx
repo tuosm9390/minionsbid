@@ -14,11 +14,11 @@ describe("PixelIcon Component", () => {
     expect(svg).toHaveAttribute("stroke-width", "4");
   });
 
-  it("applies shape-rendering: crispEdges to the svg", () => {
+  it("does not override the icon renderer style", () => {
     const { container } = render(<PixelIcon icon={Check} />);
     const svg = container.querySelector("svg");
     
-    expect(svg?.style.shapeRendering.toLowerCase()).toBe("crispedges");
+    expect(svg?.style.shapeRendering).toBe("");
   });
 
   it("provides accessibility label when provided", () => {

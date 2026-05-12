@@ -9,49 +9,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-
-const HOW_TO_USE = [
-  {
-    step: "01",
-    icon: PIXEL_ICONS.CREATE,
-    title: "경매방 만들기",
-    desc: "팀 수, 인원, 포인트를 설정하고 팀장과 선수를 등록해 방을 생성합니다.",
-    color: "text-minion-blue",
-  },
-  {
-    step: "02",
-    icon: PIXEL_ICONS.LINKS,
-    title: "링크 공유",
-    desc: "생성된 팀장별 링크를 각 팀장에게 공유합니다. 관전자 링크도 배포 가능합니다.",
-    color: "text-minion-blue",
-  },
-  {
-    step: "03",
-    icon: PIXEL_ICONS.SUCCESS,
-    title: "접속 확인",
-    desc: "경매 화면에서 팀장들의 실시간 접속 여부를 확인하고 경매를 시작하세요.",
-    color: "text-green-600",
-  },
-  {
-    step: "04",
-    icon: PIXEL_ICONS.LEADING,
-    title: "경매 진행",
-    desc: "주최자가 선수를 추첨하면 각 팀장이 포인트로 입찰합니다. 최고 입찰 시 낙찰!",
-    color: "text-minion-yellow",
-  },
-  {
-    step: "05",
-    icon: PIXEL_ICONS.FINISH,
-    title: "팀 확정",
-    desc: "모든 선수가 낙찰되면 최종 팀 구성과 사용 포인트가 확정됩니다.",
-    color: "text-minion-blue",
-  },
-];
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
+import { HOW_TO_USE_STEPS } from "@/features/auction/constants/howToUse";
 
 export default function Home() {
-  const [legalDocument, setLegalDocument] = useState<"terms" | "privacy" | null>(
-    null,
-  );
+  const [legalDocument, setLegalDocument] = useState<
+    "terms" | "privacy" | null
+  >(null);
 
   return (
     <div className="min-h-screen relative crt-overlay">
@@ -111,7 +75,8 @@ export default function Home() {
               Command Portals
             </h2>
             <p className="text-sm font-bold text-gray-600">
-              경매 로비에서 모드를 선택해 기록 보관소나 리그 관제실로 이동하세요.
+              경매 로비에서 모드를 선택해 기록 보관소나 리그 관제실로
+              이동하세요.
             </p>
           </div>
 
@@ -134,8 +99,8 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-                <div className="border-4 border-black bg-black p-4 text-minion-yellow">
-                  <PixelIcon icon={PIXEL_ICONS.FINISH} size={28} color="text-minion-yellow" />
+                <div className="border-4 border-background p-4 text-minion-yellow">
+                  <ThreeDIcon name="hallOfFame" alt="명예의 전당" size={44} />
                 </div>
               </div>
             </Link>
@@ -154,12 +119,17 @@ export default function Home() {
                       리그전 일정 관리
                     </h3>
                     <p className="mt-3 text-sm font-bold text-gray-600 leading-relaxed">
-                      일정 생성, 대진 배치, 결과 등록, 우승팀 확정까지 한 곳에서 처리합니다.
+                      일정 생성, 대진 배치, 결과 등록, 우승팀 확정까지 한 곳에서
+                      처리합니다.
                     </p>
                   </div>
                 </div>
-                <div className="border-4 border-black bg-black p-4 text-minion-yellow">
-                  <PixelIcon icon={PIXEL_ICONS.CREATE} size={28} color="text-minion-yellow" />
+                <div className="border-4 border-background p-4 text-minion-yellow">
+                  <ThreeDIcon
+                    name="calendar"
+                    alt="리그전 일정 관리"
+                    size={44}
+                  />
                 </div>
               </div>
             </Link>
@@ -172,7 +142,7 @@ export default function Home() {
             [ Main Quest: How to Play ]
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {HOW_TO_USE.map((item, index) => (
+            {HOW_TO_USE_STEPS.map((item, index) => (
               <div
                 key={item.step}
                 className={`bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all animate-slide-up`}
@@ -180,7 +150,11 @@ export default function Home() {
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="shrink-0">
-                    <PixelIcon icon={item.icon} size={32} color={item.color} />
+                    <ThreeDIcon
+                      name={item.iconName}
+                      alt={item.iconAlt}
+                      size={44}
+                    />
                   </div>
                   <span className="bg-minion-yellow border-2 border-black px-2 py-0.5 text-fluid-xs font-bold">
                     STAGE {item.step}
@@ -198,11 +172,31 @@ export default function Home() {
         {/* Decorative Pixel Footer */}
         <div className="flex flex-col items-center gap-4 opacity-60">
           <div className="flex gap-4">
-            <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
-            <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
-            <Image src="/favicon.png" alt="pixel" width={24} height={24} className="pixelated grayscale" />
+            <Image
+              src="/favicon.png"
+              alt="pixel"
+              width={24}
+              height={24}
+              className="pixelated grayscale"
+            />
+            <Image
+              src="/favicon.png"
+              alt="pixel"
+              width={24}
+              height={24}
+              className="pixelated grayscale"
+            />
+            <Image
+              src="/favicon.png"
+              alt="pixel"
+              width={24}
+              height={24}
+              className="pixelated grayscale"
+            />
           </div>
-          <p className="text-fluid-xs font-heading">Powered by Minions Bid Engine</p>
+          <p className="text-fluid-xs font-heading">
+            Powered by Minions Bid Engine
+          </p>
           <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-black">
             <button
               type="button"

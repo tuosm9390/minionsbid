@@ -143,7 +143,7 @@ export function CreateRoomModal() {
                             : "bg-white text-gray-300 border-gray-200"
                         }`}
                       >
-                        {i < step ? <Check size={18} strokeWidth={4} /> : i + 1}
+                        {i < step ? <Check size={18} /> : i + 1}
                       </div>
                       <span
                         className={`text-[10px] font-black uppercase tracking-tighter transition-colors duration-300 ${

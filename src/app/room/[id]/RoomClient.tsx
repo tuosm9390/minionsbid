@@ -27,6 +27,7 @@ import { LeaveRoomModal } from "@/features/auction/components/LeaveRoomModal";
 import { RoomHeader } from "./components/RoomHeader";
 import { OrganizerControlPanel } from "./components/OrganizerControlPanel";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import {
   buildRosterWithCaptain,
@@ -340,15 +341,7 @@ export function RoomClient({
           <div className="pixel-box bg-black p-4 flex items-center justify-between overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)] border-b-0">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
-                <span className="text-2xl">
-                  <PixelIcon
-                    icon={PIXEL_ICONS.FINISH}
-                    size={18}
-                    color="text-minion-yellow"
-                    animation="active"
-                    label="도움말"
-                  />
-                </span>
+                <ThreeDIcon name="trophy" alt="경매방" size={32} />
               </div>
               <h2 className="text-fluid-base lg:text-fluid-sm font-bold text-foreground truncate uppercase leading-none">
                 {roomName}

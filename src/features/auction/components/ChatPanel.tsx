@@ -87,7 +87,6 @@ const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
             icon={PIXEL_ICONS.SUCCESS}
             size={10}
             color="text-minion-blue"
-            strokeWidth={4}
           />
           SYS
         </span>

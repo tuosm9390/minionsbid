@@ -95,3 +95,7 @@
 - [x] Replace emoji-like UI decorations with SVG or 3D icon components.
 - [x] Document icon sources and license assumptions.
 - [x] Run focused icon tests and a production build.
+- [x] Map How to Play steps to user-provided Fluent Emoji 3D image files.
+- [x] Reuse the same How to Play image mapping on the home page and help modal.
+- [x] Remove ad-hoc PixelIcon stroke/rendering overrides so default icon styling is preserved.
+- [x] Run focused icon tests and production build after the Fluent Emoji update.

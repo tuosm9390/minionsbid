@@ -8,6 +8,7 @@ import {
   Player,
 } from "@/features/auction/store/useAuctionStore";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { PIXEL_ICONS } from "../constants/icons";
 import {
   buildRosterWithCaptain,
@@ -180,7 +181,7 @@ export function AuctionResultModal({
 
           <div className="flex items-center gap-4 z-10">
             <div className="w-12 h-12 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
-              <PixelIcon icon={PIXEL_ICONS.FINISH} size={24} color="text-black" />
+              <ThreeDIcon name="trophy" alt="최종 팀 구성" size={40} />
             </div>
             <div className="flex flex-col">
               <h2 className="text-fluid-lg font-heading text-minion-yellow leading-none mb-1">

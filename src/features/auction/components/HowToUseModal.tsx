@@ -5,44 +5,8 @@ import { createPortal } from "react-dom";
 import { X } from "@/components/ui/CyberIcons";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-
-const HOW_TO_USE = [
-  {
-    step: "01",
-    icon: PIXEL_ICONS.CREATE,
-    title: "경매방 만들기",
-    desc: "팀 수, 인원, 포인트를 설정하고 팀장과 선수를 등록해 방을 생성합니다.",
-    color: "text-minion-blue",
-  },
-  {
-    step: "02",
-    icon: PIXEL_ICONS.LINKS,
-    title: "링크 공유",
-    desc: "생성된 팀장별 링크를 각 팀장에게 공유합니다. 관전자 링크도 배포 가능합니다.",
-    color: "text-minion-blue",
-  },
-  {
-    step: "03",
-    icon: PIXEL_ICONS.SUCCESS,
-    title: "접속 확인",
-    desc: "경매 화면에서 팀장들의 실시간 접속 여부를 확인하고 경매를 시작하세요.",
-    color: "text-green-600",
-  },
-  {
-    step: "04",
-    icon: PIXEL_ICONS.LEADING,
-    title: "경매 진행",
-    desc: "주최자가 선수를 추첨하면 각 팀장이 포인트로 입찰합니다. 최고 입찰 시 낙찰!",
-    color: "text-minion-yellow",
-  },
-  {
-    step: "05",
-    icon: PIXEL_ICONS.FINISH,
-    title: "팀 확정",
-    desc: "모든 선수가 낙찰되면 최종 팀 구성과 사용 포인트가 확정됩니다.",
-    color: "text-minion-blue",
-  },
-];
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
+import { HOW_TO_USE_STEPS } from "@/features/auction/constants/howToUse";
 
 const TIPS = [
   "팀장 링크와 주최자 링크는 다른 주소입니다. 혼동하지 마세요!",
@@ -121,13 +85,17 @@ export function HowToUseModal({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 custom-scrollbar">
-          {HOW_TO_USE.map((item) => (
+          {HOW_TO_USE_STEPS.map((item) => (
             <div
               key={item.step}
               className="flex gap-4 bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               <div className="shrink-0 mt-1">
-                <PixelIcon icon={item.icon} size={28} color={item.color} />
+                <ThreeDIcon
+                  name={item.iconName}
+                  alt={item.iconAlt}
+                  size={36}
+                />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">

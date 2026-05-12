@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useState, useCallback } from "react";
-import { Trophy, X, RefreshCw } from "@/components/ui/CyberIcons";
+import { X, RefreshCw } from "@/components/ui/CyberIcons";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { getVisibleAuctionArchives } from "@/features/hall-of-fame/api/hallOfFameActions";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
@@ -38,7 +38,7 @@ function ArchiveDetailModal({
         {/* Header */}
         <div className="px-6 py-4 border-b-4 border-black flex items-center justify-between shrink-0 bg-minion-yellow">
           <div className="flex items-center gap-3">
-            <Trophy size={20} className="text-black" />
+            <ThreeDIcon name="openFileFolder" alt="아카이브 상세" size={28} />
             <div>
               <h2 className="text-lg font-black text-black uppercase">
                 {archive.room_name}
@@ -109,7 +109,8 @@ function ArchiveDetailModal({
                             <div className="text-center w-full px-10">
                               <div>{p.name}</div>
                               <div className="mt-1 text-[11px] font-bold text-gray-500">
-                                {p.tier || "티어 미기입"} · {p.main_position || "포지션 미기입"}
+                                {p.tier || "티어 미기입"} ·{" "}
+                                {p.main_position || "포지션 미기입"}
                                 {p.sub_position ? ` / ${p.sub_position}` : ""}
                               </div>
                             </div>
@@ -186,88 +187,101 @@ export function AuctionArchiveSection({
           </div>
         </div>
       ) : (
-      <div
-        className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
-        onClick={onClose}
-      >
         <div
-          className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-4xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 cursor-default overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+          onClick={onClose}
         >
-          {/* Header */}
-          <div className="px-6 py-4 border-b-4 border-black flex items-center justify-between shrink-0 bg-minion-blue text-white">
-            <h2 className="text-xs font-heading flex items-center gap-2">
-              <Trophy className="text-minion-yellow" size={20} />
-              DATA ARCHIVE
-            </h2>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => {
-                  setLoading(true);
-                  void fetchArchives();
-                }}
-                className="flex items-center gap-1.5 text-fluid-xs font-heading text-white hover:text-minion-yellow transition-colors"
-              >
-                <RefreshCw size={12} /> REFRESH
-              </button>
+          <div
+            className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-4xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 cursor-default overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b-4 border-black flex items-center justify-between shrink-0 bg-minion-blue text-white">
+              <h2 className="text-xs font-heading flex items-center gap-2">
+                <ThreeDIcon
+                  name="cardFileBox"
+                  alt="데이터 아카이브"
+                  size={28}
+                />
+                DATA ARCHIVE
+              </h2>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    setLoading(true);
+                    void fetchArchives();
+                  }}
+                  className="flex items-center gap-1.5 text-fluid-xs font-heading text-white hover:text-minion-yellow transition-colors"
+                >
+                  <RefreshCw size={12} /> REFRESH
+                </button>
+                <button
+                  onClick={onClose}
+                  className="text-white hover:text-minion-yellow p-1 transition-colors"
+                >
+                  <X size={22} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
+              {archives.length === 0 ? (
+                <div className="flex flex-col items-center gap-4 py-20 text-center text-gray-300 font-heading text-fluid-xs border-4 border-dashed border-gray-200">
+                  <ThreeDIcon
+                    name="openFileFolder"
+                    alt="비어 있는 아카이브"
+                    size={52}
+                  />
+                  NO RECORDS FOUND
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {archives.map((archive) => (
+                    <div
+                      key={archive.id}
+                      className="bg-white border-4 border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer"
+                      onClick={() => setSelected(archive)}
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-12 h-12 border-2 border-background flex items-center justify-center shrink-0">
+                          <ThreeDIcon
+                            name="fileFolder"
+                            alt="완료된 경매 기록"
+                            size={36}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-black text-black text-lg truncate mb-1">
+                            {archive.room_name}
+                          </h3>
+                          <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter flex items-center gap-2">
+                            {new Date(archive.closed_at).toLocaleDateString(
+                              "ko-KR",
+                            )}
+                            <span className="w-1 h-1 bg-gray-300" />
+                            <span className="text-minion-blue font-bold tracking-normal">
+                              {archive.result_snapshot.length} TEAMS
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t-4 border-black bg-white">
               <button
                 onClick={onClose}
-                className="text-white hover:text-minion-yellow p-1 transition-colors"
+                className="pixel-button w-full py-3 bg-black text-white text-fluid-xs font-heading"
               >
-                <X size={22} />
+                CLOSE
               </button>
             </div>
           </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
-            {archives.length === 0 ? (
-              <div className="text-center py-20 text-gray-300 font-heading text-fluid-xs border-4 border-dashed border-gray-200">
-                NO RECORDS FOUND
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {archives.map((archive) => (
-                  <div
-                    key={archive.id}
-                    className="bg-white border-4 border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer"
-                    onClick={() => setSelected(archive)}
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-12 h-12 bg-minion-yellow border-2 border-black flex items-center justify-center shrink-0">
-                        <ThreeDIcon name="trophy" alt="우승 기록" size={36} />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-black text-black text-lg truncate mb-1">
-                          {archive.room_name}
-                        </h3>
-                        <p className="text-fluid-xs font-heading text-gray-400 uppercase tracking-tighter flex items-center gap-2">
-                          {new Date(archive.closed_at).toLocaleDateString(
-                            "ko-KR",
-                          )}
-                          <span className="w-1 h-1 bg-gray-300" />
-                          <span className="text-minion-blue font-bold tracking-normal">
-                            {archive.result_snapshot.length} TEAMS
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="px-6 py-4 border-t-4 border-black bg-white">
-            <button
-              onClick={onClose}
-              className="pixel-button w-full py-3 bg-black text-white text-fluid-xs font-heading"
-            >
-              CLOSE
-            </button>
-          </div>
         </div>
-      </div>
       )}
 
       {selected && (
@@ -277,6 +291,6 @@ export function AuctionArchiveSection({
         />
       )}
     </>,
-    document.body
+    document.body,
   );
 }

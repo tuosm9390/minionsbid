@@ -14,7 +14,7 @@ interface PixelIconProps {
   size?: number;
   /** Tailwind color class or HEX (default: currentColor) */
   color?: string;
-  /** Stroke width for pixel effect (default: 3) */
+  /** Optional stroke width override */
   strokeWidth?: number;
   /** Animation state */
   animation?: IconAnimation;
@@ -92,13 +92,13 @@ const reducedAnimationVariants: Variants = {
 
 /**
  * PixelIcon - A standardized icon component for the Cyber-Pixel theme.
- * Uses SVG icons with custom pixel-art styling and Framer Motion animations.
+ * Uses SVG icons with Framer Motion animations.
  */
 export function PixelIcon({
   icon: Icon,
   size = 24,
   color = "currentColor",
-  strokeWidth = 3,
+  strokeWidth,
   animation = "idle",
   className,
   label,
@@ -129,9 +129,6 @@ export function PixelIcon({
         size={size}
         className={cn(color)}
         strokeWidth={strokeWidth}
-        style={{
-          shapeRendering: "crispEdges",
-        }}
       />
       {/* Fallback for Screen Readers if icon fails to render or for pure semantic completeness */}
       {label && <span className="sr-only">{label}</span>}

@@ -109,3 +109,10 @@
 - Added `ThreeDIcon.tsx` and local 3dicons PNG files under `public/icons/3d/` for trophy, medal, crown, cube, and shield accents. Existing image assets were not replaced.
 - Replaced visible UI emoji decorations in create-room and archive flows. System message strings remain unchanged for compatibility, but `ChatPanel` now strips known leading system-message emoji at render time and shows SVG/3D icons instead.
 - Verification passed: `npm run test -- src/components/ui/PixelIcon.test.tsx` and `npm run build`.
+- Follow-up request: the user added Fluent Emoji 3D PNG files under `public/icons/3d` and wants the How to Play icons replaced everywhere the same guide icons are used.
+- The relevant repeated guide section exists in `src/app/page.tsx` and `src/features/auction/components/HowToUseModal.tsx`. Use a shared constant so the five stage images cannot drift.
+- The user also asked to remove arbitrary icon styling and use the default icon appearance. Treat the PixelIcon `strokeWidth` default, `shapeRendering: crispEdges`, and explicit `strokeWidth={4}` usage as the styling overrides to remove.
+- Added `HOW_TO_USE_STEPS` as the shared guide data source and mapped the five steps to Fluent Emoji 3D files: door, link, check mark button, money bag, and crown.
+- Updated the home page and HowToUseModal to render `ThreeDIcon` for those guide steps. Other page portal icons remain SVG icons because they are not part of the How to Play guide.
+- Removed `PixelIcon`'s default stroke-width override and `shapeRendering: crispEdges`, changed local SVG defaults to a neutral round stroke, and removed explicit `strokeWidth={4}` usage from visible UI.
+- Verification passed: `npm run test -- src/components/ui/PixelIcon.test.tsx` and `npm run build`.

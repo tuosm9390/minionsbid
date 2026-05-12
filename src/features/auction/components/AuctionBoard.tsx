@@ -19,6 +19,7 @@ import { AuctionWaitingState } from "./board/AuctionWaitingState";
 import { useAuctionStore, Player, Role } from "../store/useAuctionStore";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
 
 interface AuctionBoardProps {
@@ -318,13 +319,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
             {currentScene === "finished" && (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-8">
                 <div className="mb-4">
-                  <PixelIcon
-                    icon={PIXEL_ICONS.FINISH}
-                    size={96}
-                    color="text-minion-yellow"
-                    animation="success"
-                    label="경매 종료"
-                  />
+                  <ThreeDIcon name="trophy" alt="경매 종료" size={112} />
                 </div>
                 <div className="space-y-4">
                   <h1 className="text-fluid-xl font-heading text-minion-blue">
