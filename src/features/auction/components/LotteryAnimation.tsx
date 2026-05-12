@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  motion,
-  useReducedMotion,
-  animate,
-} from "framer-motion";
+// Migrated from framer‑motion to Motion One.  Instead of importing from
+// `framer-motion`, we now import Motion One’s React bindings and the
+// standalone animate function.  The `motion` component and
+// `useReducedMotion` hook are provided by `@motionone/react`, and
+// the imperative `animate` function is imported from `motion`.
+import { motion, useReducedMotion } from "motion/react";
+import { animate } from "motion";
 import { Player } from "@/features/auction/store/useAuctionStore";
 import { getTierImage, getPositionImage } from "../utils/display";
 import { cn } from "@/lib/utils";
@@ -31,7 +33,7 @@ export function LotteryAnimation({
   const shouldReduceMotion = useReducedMotion();
   const [isSpinning, setIsSpinning] = useState(true);
   const [hasFinished, setHasFinished] = useState(false);
-  
+
   const beltRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,7 +44,11 @@ export function LotteryAnimation({
   const targetPlayerId = targetPlayer.id;
 
   // 애니메이션 설정값
-  const spinDuration = E2E_AUCTION_FIXTURE ? 0.5 : shouldReduceMotion ? 1.5 : 4.2;
+  const spinDuration = E2E_AUCTION_FIXTURE
+    ? 0.5
+    : shouldReduceMotion
+      ? 1.5
+      : 4.2;
   const revealDelay = E2E_AUCTION_FIXTURE ? 100 : 800;
 
   useEffect(() => {
@@ -53,17 +59,17 @@ export function LotteryAnimation({
   const trackItems = useMemo(() => {
     const cand = candidates.length > 0 ? candidates : [targetPlayer];
     const items: Player[] = [];
-    
+
     // 무한 루프 느낌을 위해 충분한 수의 상자 배치
     for (let i = 0; i < TOTAL_BOX_COUNT; i++) {
       const pseudoRandomIndex = (i * 17) % cand.length;
       items.push(cand[pseudoRandomIndex]);
     }
-    
+
     // 마지막에서 3번째 위치에 실제 당첨 선수 배치 (중앙 정렬을 위해)
     const targetIndex = TOTAL_BOX_COUNT - 3;
     items[targetIndex] = targetPlayer;
-    
+
     return { items, targetIndex };
   }, [candidates, targetPlayer]);
 
@@ -86,22 +92,26 @@ export function LotteryAnimation({
 
       // 1. 초기 위치 설정 (화면 오른쪽 끝에서 시작하는 느낌)
       animate(trackRef.current, { x: 0 }, { duration: 0 });
-      
+
       // 2. 벨트 배경 무한 루프 애니메이션
-      const beltAnimation = animate(beltRef.current, 
-        { backgroundPositionX: ["0px", "-120px"] }, 
-        { duration: 0.8, repeat: Infinity, ease: "linear" }
+      const beltAnimation = animate(
+        beltRef.current,
+        { backgroundPositionX: ["0px", "-120px"] },
+        { duration: 0.8, repeat: Infinity, ease: "linear" },
       );
 
       // 3. 상자 트랙 이동 애니메이션 (가속 -> 감속)
-      const targetX = -(trackItems.targetIndex * BOX_WIDTH) + (containerRef.current?.offsetWidth || 0) / 2 - BOX_WIDTH / 2;
-      
-      const trackAnimation = animate(trackRef.current, 
-        { x: targetX }, 
-        { 
-          duration: spinDuration, 
+      const targetX =
+        -(trackItems.targetIndex * BOX_WIDTH) +
+        ((containerRef.current?.offsetWidth || 0) / 2 - BOX_WIDTH / 2);
+
+      const trackAnimation = animate(
+        trackRef.current,
+        { x: targetX },
+        {
+          duration: spinDuration,
           ease: [0.15, 0, 0.15, 1], // Custom cubic-bezier for "conveyor stop" feel
-        }
+        },
       );
 
       await trackAnimation;
@@ -114,9 +124,10 @@ export function LotteryAnimation({
       setHasFinished(true);
 
       if (containerRef.current) {
-        animate(containerRef.current, 
-          { scale: [1, 1.05, 1], y: [0, -10, 0] }, 
-          { duration: 0.5 }
+        animate(
+          containerRef.current,
+          { scale: [1, 1.05, 1], y: [0, -10, 0] },
+          { duration: 0.5 },
         );
       }
 
@@ -132,7 +143,13 @@ export function LotteryAnimation({
     return () => {
       isMounted = false;
     };
-  }, [targetPlayerId, trackItems, spinDuration, revealDelay, shouldReduceMotion]);
+  }, [
+    targetPlayerId,
+    trackItems,
+    spinDuration,
+    revealDelay,
+    shouldReduceMotion,
+  ]);
 
   return (
     <div className="w-full flex flex-col items-center justify-center gap-6 py-12">
@@ -144,7 +161,7 @@ export function LotteryAnimation({
           animate={{ opacity: 1, y: 0 }}
           className={cn(
             "text-2xl font-heading flex items-center gap-3 px-6 py-2 border-4 border-black bg-white shadow-pixel",
-            isSpinning ? "text-minion-blue" : "text-minion-yellow"
+            isSpinning ? "text-minion-blue" : "text-minion-yellow",
           )}
         >
           <PixelIcon
@@ -153,7 +170,7 @@ export function LotteryAnimation({
             color={isSpinning ? "text-minion-blue" : "text-minion-yellow"}
             animation={isSpinning ? "active" : "idle"}
           />
-          {isSpinning ? "미니언즈 공장 가동 중..." : "추첨 완료!"}
+          {isSpinning ? "선수 추첨 진행 중..." : "추첨 완료!"}
         </motion.div>
       </div>
 
@@ -162,16 +179,17 @@ export function LotteryAnimation({
         ref={containerRef}
         className={cn(
           "relative w-full max-w-2xl h-64 bg-minion-blue/10 border-[6px] border-black overflow-hidden shadow-pixel",
-          hasFinished && "ring-8 ring-minion-yellow/30"
+          hasFinished && "ring-8 ring-minion-yellow/30",
         )}
       >
         {/* 배경 벨트 레이어 */}
         <div
           ref={beltRef}
           className="absolute bottom-0 left-0 w-full h-12 bg-repeat-x z-10 border-t-4 border-black"
-          style={{ 
-            backgroundImage: "linear-gradient(90deg, #333 0%, #333 50%, #444 50%, #444 100%)",
-            backgroundSize: "60px 100%" 
+          style={{
+            backgroundImage:
+              "linear-gradient(90deg, #333 0%, #333 50%, #444 50%, #444 100%)",
+            backgroundSize: "60px 100%",
           }}
         />
 
@@ -196,10 +214,14 @@ export function LotteryAnimation({
               style={{ width: `${BOX_WIDTH}px` }}
             >
               {/* 선수 상자 디자인 */}
-              <div className={cn(
-                "w-32 h-32 border-4 border-black bg-white relative flex flex-col items-center justify-center p-2 shadow-pixel transition-transform",
-                !isSpinning && idx === trackItems.targetIndex ? "scale-110 -translate-y-4 ring-4 ring-minion-yellow" : "scale-90"
-              )}>
+              <div
+                className={cn(
+                  "w-32 h-32 border-4 border-black bg-white relative flex flex-col items-center justify-center p-2 shadow-pixel transition-transform",
+                  !isSpinning && idx === trackItems.targetIndex
+                    ? "scale-110 -translate-y-4 ring-4 ring-minion-yellow"
+                    : "scale-90",
+                )}
+              >
                 <div className="relative w-16 h-16">
                   <Image
                     src={getTierImage(p.tier)}
@@ -211,12 +233,12 @@ export function LotteryAnimation({
                 <span className="text-xs font-pixel mt-1 bg-black text-white px-1 truncate w-full text-center">
                   {p.name}
                 </span>
-                
+
                 {/* 상자 디테일 */}
                 <div className="absolute top-1 left-1 w-2 h-2 bg-black/10" />
                 <div className="absolute top-1 right-1 w-2 h-2 bg-black/10" />
               </div>
-              
+
               {/* 상자 그림자 */}
               <div className="w-24 h-2 bg-black/20 rounded-full blur-sm" />
             </div>
@@ -224,12 +246,22 @@ export function LotteryAnimation({
         </div>
 
         {/* 장식용 미니언 캐릭터 (좌우) */}
-        <div className="absolute bottom-14 left-4 z-30 pointer-events-none opacity-50">
-          <PixelIcon icon={PIXEL_ICONS.LEADING} size={32} color="text-minion-yellow" animation="active" />
-        </div>
-        <div className="absolute bottom-14 right-4 z-30 pointer-events-none opacity-50 scale-x-[-1]">
-          <PixelIcon icon={PIXEL_ICONS.LEADING} size={32} color="text-minion-yellow" animation="active" />
-        </div>
+        {/* <div className="absolute bottom-14 left-4 z-30 pointer-events-none opacity-50">
+          <PixelIcon
+            icon={PIXEL_ICONS.LEADING}
+            size={32}
+            color="text-minion-yellow"
+            animation="active"
+          />
+        </div> */}
+        {/* <div className="absolute bottom-14 right-4 z-30 pointer-events-none opacity-50 scale-x-[-1]">
+          <PixelIcon
+            icon={PIXEL_ICONS.LEADING}
+            size={32}
+            color="text-minion-yellow"
+            animation="active"
+          />
+        </div> */}
       </div>
 
       {/* 결과 상세 정보 (추첨 완료 시 하단에 표시) */}
@@ -247,10 +279,16 @@ export function LotteryAnimation({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-xl font-heading text-black">{targetPlayer.name}</span>
+          <span className="text-xl font-heading text-black">
+            {targetPlayer.name}
+          </span>
           <div className="flex gap-2">
-            <span className="px-2 py-0.5 bg-black text-white text-xs font-pixel">{targetPlayer.tier}</span>
-            <span className="px-2 py-0.5 bg-minion-blue text-white text-xs font-pixel">{targetPlayer.main_position}</span>
+            <span className="px-2 py-0.5 bg-black text-white text-xs font-pixel">
+              {targetPlayer.tier}
+            </span>
+            <span className="px-2 py-0.5 bg-minion-blue text-white text-xs font-pixel">
+              {targetPlayer.main_position}
+            </span>
           </div>
         </div>
       </motion.div>
