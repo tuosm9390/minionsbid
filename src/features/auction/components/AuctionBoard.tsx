@@ -272,7 +272,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                     tabIndex={lotteryDone ? 0 : -1}
                     className={cn(
                       "pixel-button bg-black text-white h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter hover:bg-minion-blue transition-colors flex items-center gap-3",
-                      !lotteryDone && "invisible pointer-events-none",
+                      !lotteryDone && "pointer-events-none",
                     )}
                   >
                     경매 준비

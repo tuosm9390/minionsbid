@@ -107,3 +107,4 @@
 - [x] Verify the lottery result card change with a production build.
 - [x] Reserve the lottery start button space before lottery completion.
 - [x] Verify the no-layout-shift lottery button change with a production build.
+- [x] Make the reserved lottery button fade in when it becomes visible.
