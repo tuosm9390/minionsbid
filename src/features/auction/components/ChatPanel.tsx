@@ -8,6 +8,8 @@ import {
   AwardPersonCheck,
   BidMoneyIncrease,
   LotteryStarburst,
+  SealedBidReveal,
+  SealedBidStart,
 } from "@/components/ui/CyberIcons";
 import {
   useAuctionStore,
@@ -44,6 +46,18 @@ function getSystemMessageVisual(content: string): {
     return {
       icon: <AuctionStartPlay size={18} aria-label="경매 시작" />,
       content: content.replace(/^⏱️\s*/, ""),
+    };
+  }
+  if (content.startsWith("🔒")) {
+    return {
+      icon: <SealedBidStart size={18} aria-label="비공개 입찰" />,
+      content: content.replace(/^🔒\s*/, ""),
+    };
+  }
+  if (content.startsWith("🃏")) {
+    return {
+      icon: <SealedBidReveal size={18} aria-label="점수 공개" />,
+      content: content.replace(/^🃏\s*/, ""),
     };
   }
   if (content.startsWith("⚠️")) {
