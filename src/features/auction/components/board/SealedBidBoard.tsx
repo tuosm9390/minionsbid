@@ -103,6 +103,7 @@ export function SealedBidBoard({
     { label: "무작위 총력전", value: currentPlayer.aram_tier },
     { label: "전략적 팀 전투", value: currentPlayer.tft_tier },
   ].filter((row) => row.value);
+  const playerComment = currentPlayer.description.trim();
 
   const handleCompleteReveal = async () => {
     if (!canCompleteReveal || isCompleting) return;
@@ -149,6 +150,16 @@ export function SealedBidBoard({
                 </p>
               </div>
             ))}
+          </div>
+        )}
+        {playerComment && (
+          <div className="mx-auto mt-3 max-w-xl border-2 border-dashed border-black bg-white/80 px-3 py-2 text-left">
+            <p className="text-[10px] font-black uppercase text-gray-500">
+              한마디
+            </p>
+            <p className="mt-1 text-sm font-bold leading-relaxed text-gray-700 break-words">
+              &quot;{playerComment}&quot;
+            </p>
           </div>
         )}
         {sealedBid.minAmount > 0 && (
