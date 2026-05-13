@@ -43,6 +43,8 @@ const removeCaptainMarker = (value: string) => {
   return cleaned || value.trim();
 };
 
+const hasCaptainMarker = (value: string) => value.includes("팀장");
+
 export interface BasicInfo {
   title: string;
   teamCount: number;
@@ -268,9 +270,15 @@ export function useCreateRoom() {
           let nameCol = 2, realNameCol = 1, tierCol = 3, commentCol = 6;
           let aramTierCol = -1, tftTierCol = -1;
           let mainPositionCol = -1, subPositionCol = -1;
+          const captainMarkerCols = new Set<number>();
+          let hasNicknameCol = false;
+          let firstNameLikeCol = -1;
           for (let ci = 0; ci < headerRow.length; ci++) {
             const h = headerRow[ci];
-            if (h.includes("닉네임")) nameCol = ci;
+            if (h.includes("닉네임")) {
+              nameCol = ci;
+              hasNicknameCol = true;
+            }
             else if (h.includes("본인 이름") || h.includes("성+이름")) realNameCol = ci;
             else if (h.includes("티어") || h.includes("소환사의 협곡")) tierCol = ci;
             else if (h.includes("무작위 총력전")) aramTierCol = ci;
@@ -278,6 +286,15 @@ export function useCreateRoom() {
             else if (h.includes("코멘트") || h.includes("설명") || h.includes("하고 싶은 말")) commentCol = ci;
             else if (h.includes("주라인")) mainPositionCol = ci;
             else if (h.includes("부라인")) subPositionCol = ci;
+            if (h.includes("이름")) {
+              captainMarkerCols.add(ci);
+              if (!h.includes("닉네임") && firstNameLikeCol < 0) {
+                firstNameLikeCol = ci;
+              }
+            }
+          }
+          if (!hasNicknameCol && firstNameLikeCol >= 0) {
+            nameCol = firstNameLikeCol;
           }
 
           const positionColMap = new Map<number, string>();
@@ -321,13 +338,14 @@ export function useCreateRoom() {
               });
             }
             const player = { name, tier, mainPosition: mainPosition || "무관", subPosition: subPosition || "무관", description, aramTier, tftTier };
+            const captainMarkerValue =
+              [name, realName, ...Array.from(captainMarkerCols, (col) => String(row[col] ?? "").trim())]
+                .find(hasCaptainMarker) ?? "";
             const isCaptainRow =
-              name.includes("팀장") ||
-              realName.includes("팀장") ||
-              description.trim() === "팀장";
+              !!captainMarkerValue || description.trim() === "팀장";
 
             if (isCaptainRow) {
-              const captainName = removeCaptainMarker(name);
+              const captainName = removeCaptainMarker(name || captainMarkerValue);
               parsedCaptains.push({
                 teamName: `${captainName}팀`,
                 name: captainName,

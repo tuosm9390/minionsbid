@@ -174,4 +174,35 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
       expect(screen.getByDisplayValue("Captain팀")).toBeInTheDocument();
     });
   });
+
+  it("should use rows containing captain marker in name-like column as captain data", async () => {
+    mockXLSXInternal.utils.sheet_to_json.mockReturnValueOnce([
+      ["#", "이름", "티어", "코멘트"],
+      [1, "테스트팀장", "G", ""],
+      [2, "테스트선수", "S", "선수 소개"],
+    ]);
+
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+
+    const titleInput = screen.getByTestId("room-title-input");
+    await user.type(titleInput, "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("테스트")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("테스트팀")).toBeInTheDocument();
+    });
+  });
 });
