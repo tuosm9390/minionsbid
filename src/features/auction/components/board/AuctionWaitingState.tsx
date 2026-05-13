@@ -31,14 +31,22 @@ export function AuctionWaitingState({
               >
                 <div className="mb-2">
                   {connectedLeaderIds.has(team.id) ? (
-                    <PixelIcon icon={PIXEL_ICONS.SUCCESS} color="text-green-600" size={32} label="연결됨" />
+                    <PixelIcon
+                      icon={PIXEL_ICONS.SUCCESS}
+                      color="text-green-600"
+                      size={32}
+                      label="연결됨"
+                    />
                   ) : (
-                    <PixelIcon icon={PIXEL_ICONS.OFFLINE} color="text-gray-400" size={32} label="미연결" />
+                    <PixelIcon
+                      icon={PIXEL_ICONS.OFFLINE}
+                      color="text-gray-400"
+                      size={32}
+                      label="미연결"
+                    />
                   )}
                 </div>
-                <p className="font-bold text-xs truncate">
-                  {team.name}
-                </p>
+                <p className="font-bold text-xs truncate">{team.name}</p>
               </div>
             ))}
           </div>
@@ -46,13 +54,18 @@ export function AuctionWaitingState({
       ) : (
         <div className="space-y-6">
           <div className="mb-4">
-            <PixelIcon icon={PIXEL_ICONS.WAITING} color="text-minion-yellow" size={64} label="대기 중" />
+            <PixelIcon
+              icon={PIXEL_ICONS.WAITING}
+              color="text-minion-yellow"
+              size={64}
+              label="대기 중"
+            />
           </div>
           <h3 className="text-2xl font-black text-minion-blue">
             경매 준비 완료
           </h3>
           <p className="font-bold text-gray-500">
-            방장이 추첨을 시작하면 경매가 개시됩니다.
+            주최자가 추첨을 시작하면 경매가 개시됩니다.
           </p>
         </div>
       )}

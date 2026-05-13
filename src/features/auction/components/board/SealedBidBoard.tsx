@@ -82,9 +82,12 @@ export function SealedBidBoard({
   useEffect(() => {
     if (sealedBid.phase !== "REVEALING" || cards.length === 0) return;
     if (revealedCount >= cards.length) return;
-    const timeoutId = window.setTimeout(() => {
-      setRevealedCount((count) => Math.min(cards.length, count + 1));
-    }, revealedCount === 0 ? 250 : 650);
+    const timeoutId = window.setTimeout(
+      () => {
+        setRevealedCount((count) => Math.min(cards.length, count + 1));
+      },
+      revealedCount === 0 ? 250 : 650,
+    );
     return () => window.clearTimeout(timeoutId);
   }, [cards.length, revealedCount, sealedBid.phase]);
 
@@ -104,9 +107,17 @@ export function SealedBidBoard({
       void completeSealedBidReveal(roomId);
     }, 500);
     return () => window.clearTimeout(timeoutId);
-  }, [cards.length, revealedCount, role, roomId, sealedBid.phase, sealedBid.roundId]);
+  }, [
+    cards.length,
+    revealedCount,
+    role,
+    roomId,
+    sealedBid.phase,
+    sealedBid.roundId,
+  ]);
 
-  const showCards = sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING";
+  const showCards =
+    sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING";
 
   return (
     <div className="flex-1 flex flex-col gap-4">
@@ -122,7 +133,7 @@ export function SealedBidBoard({
 
       <div className="pixel-box bg-yellow-50 border-black p-4 text-center">
         <p className="text-fluid-xs font-heading text-gray-500 uppercase">
-          비공개 입찰 대상
+          입찰 대상
         </p>
         <h2 className="mt-1 text-fluid-lg font-black text-black">
           {currentPlayer.name}
@@ -137,26 +148,31 @@ export function SealedBidBoard({
       {sealedBid.phase === "ACTIVE" && (
         <div className="flex-1 flex items-center justify-center text-center">
           <p className="text-fluid-sm font-heading text-gray-500 uppercase">
-            팀장들이 비공개 입찰을 제출 중입니다
+            팀장들이 입찰을 제출 중입니다
           </p>
         </div>
       )}
 
       {showCards && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {(cards.length > 0 ? cards : teams.map((team) => ({
-            team_id: team.id,
-            team_name: team.name,
-            amount: 0,
-            is_pass: true,
-            is_highest: false,
-            is_tied: false,
-            eligible: true,
-          }))).map((card, index) => (
+          {(cards.length > 0
+            ? cards
+            : teams.map((team) => ({
+                team_id: team.id,
+                team_name: team.name,
+                amount: 0,
+                is_pass: true,
+                is_highest: false,
+                is_tied: false,
+                eligible: true,
+              }))
+          ).map((card, index) => (
             <SealedCard
               key={card.team_id}
               card={card}
-              revealed={sealedBid.phase === "REVEALING" && index < revealedCount}
+              revealed={
+                sealedBid.phase === "REVEALING" && index < revealedCount
+              }
             />
           ))}
         </div>

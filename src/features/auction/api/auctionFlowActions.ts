@@ -109,13 +109,16 @@ async function sysMsg(
     .doc(messageId);
 
   await Promise.all([
-    messageRef.set({
-      event_id: messageId,
-      sender_name: "시스템",
-      sender_role: "SYSTEM",
-      content,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true }),
+    messageRef.set(
+      {
+        event_id: messageId,
+        sender_name: "시스템",
+        sender_role: "SYSTEM",
+        content,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    ),
     rtdb.ref(`signals/${roomId}/latestMessage`).set({
       id: messageId,
       event_id: messageId,
@@ -129,13 +132,13 @@ async function sysMsg(
   ]);
 }
 
-async function publishAuctionEvent(
-  event: AuctionEventEnvelope,
-): Promise<void> {
+async function publishAuctionEvent(event: AuctionEventEnvelope): Promise<void> {
   const { rtdb } = getAuctionServerServices();
   await Promise.all([
     rtdb.ref(`signals/${event.roomId}/auctionEvent`).set(event),
-    rtdb.ref(`signals/${event.roomId}/auctionEvents/${event.eventId}`).set(event),
+    rtdb
+      .ref(`signals/${event.roomId}/auctionEvents/${event.eventId}`)
+      .set(event),
   ]);
 }
 
@@ -330,7 +333,10 @@ export async function broadcastBidEvent(
   try {
     await publishAuctionEvent(event);
   } catch (error) {
-    console.error("[auction] broadcastBidEvent RTDB publish failed", { roomId, error });
+    console.error("[auction] broadcastBidEvent RTDB publish failed", {
+      roomId,
+      error,
+    });
   }
 
   // Firestore last_auction_event 저장(onSnapshot fallback용) + 채팅은 독립 처리
@@ -339,7 +345,10 @@ export async function broadcastBidEvent(
     .doc(roomId)
     .update({ last_auction_event: event })
     .catch((err) => {
-      console.error("[auction] last_auction_event update failed", { roomId, err });
+      console.error("[auction] last_auction_event update failed", {
+        roomId,
+        err,
+      });
     });
   queueSystemMessage(
     roomId,
@@ -356,7 +365,7 @@ export async function drawNextPlayer(
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return drawFixtureNextPlayer(roomId)
+      return drawFixtureNextPlayer(roomId);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const roomSnap = await roomRef.get();
@@ -387,17 +396,22 @@ export async function drawNextPlayer(
 
     for (let attempt = 0; attempt < 3; attempt++) {
       const presenceSnap = await rtdb.ref(`presence/${roomId}`).get();
-      const presenceData = presenceSnap.val() as Record<string, { role: string }> | null;
+      const presenceData = presenceSnap.val() as Record<
+        string,
+        { role: string }
+      > | null;
       const presences = presenceData ? Object.values(presenceData) : [];
 
-      organizerCount = presences.filter(p => p.role === 'ORGANIZER').length;
-      leaderCount = presences.filter(p => p.role === 'LEADER').length;
+      organizerCount = presences.filter((p) => p.role === "ORGANIZER").length;
+      leaderCount = presences.filter((p) => p.role === "LEADER").length;
       if (organizerCount >= 1 && leaderCount >= 2) break;
       if (attempt < 2) await sleep(350);
     }
-    
+
     if (organizerCount < 1 || leaderCount < 2) {
-      return { error: `경매를 시작하려면 주최자 1명과 최소 2명의 리더가 필요합니다. (현재 주최자: ${organizerCount}, 리더: ${leaderCount})` };
+      return {
+        error: `경매를 시작하려면 주최자 1명과 최소 2명의 리더가 필요합니다. (현재 주최자: ${organizerCount}, 리더: ${leaderCount})`,
+      };
     }
 
     let drawEvent: AuctionEventEnvelope | null = null;
@@ -458,7 +472,7 @@ export async function startAuction(
 ): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return startFixtureAuction(roomId, durationMs)
+      return startFixtureAuction(roomId, durationMs);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const roomSnap = await roomRef.get();
@@ -476,7 +490,7 @@ export async function startAuction(
       return startSealedBidRound(roomId, { durationMs });
     }
     let startEvent: AuctionEventEnvelope | null = null;
-    let resolvedTimerEndsAt: string | undefined
+    let resolvedTimerEndsAt: string | undefined;
     await getAuctionFirestore().runTransaction(async (tx) => {
       const freshRoomSnap = await tx.get(roomRef);
       const freshRoomData = (freshRoomSnap.data() ?? {}) as AuctionRoomState;
@@ -485,10 +499,10 @@ export async function startAuction(
         throw new Error("현재 경매 중인 선수가 없습니다.");
       }
       const nextDurationMs =
-        freshRoomData.next_auction_duration_ms ?? durationMs
+        freshRoomData.next_auction_duration_ms ?? durationMs;
       // 타이머 시작 시간은 서버 시간 기준으로 정확히 10초(또는 지정된 시간) 뒤
       const timerEndsAt = new Date(Date.now() + nextDurationMs);
-      resolvedTimerEndsAt = timerEndsAt.toISOString()
+      resolvedTimerEndsAt = timerEndsAt.toISOString();
 
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
@@ -532,7 +546,7 @@ export async function pauseAuction(
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return pauseFixtureAuction(roomId)
+      return pauseFixtureAuction(roomId);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     let pauseEvent: AuctionEventEnvelope | null = null;
@@ -581,7 +595,7 @@ export async function resumeAuction(
 ): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return resumeFixtureAuction(roomId)
+      return resumeFixtureAuction(roomId);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     let resumeEvent: AuctionEventEnvelope | null = null;
@@ -636,7 +650,7 @@ export async function closeLotteryAction(
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return closeFixtureLottery(roomId, playerName)
+      return closeFixtureLottery(roomId, playerName);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     let closeEvent: AuctionEventEnvelope | null = null;
@@ -698,7 +712,7 @@ export async function placeBid(
   const serverReceivedAt = nowMs();
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return placeFixtureBid(roomId, playerId, teamId, amount)
+      return placeFixtureBid(roomId, playerId, teamId, amount);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const teamRef = roomRef.collection("teams").doc(teamId);
@@ -824,8 +838,8 @@ export async function placeBid(
       await publishAuctionEvent(event);
       timerSignalSentAt = nowMs();
       // RTDB에 입찰 내역 저장 (fire-and-forget)
-      getAuctionServerServices().rtdb
-        .ref(`bids/${roomId}/${playerId}/${event.eventId}`)
+      getAuctionServerServices()
+        .rtdb.ref(`bids/${roomId}/${playerId}/${event.eventId}`)
         .set({
           id: event.eventId,
           room_id: roomId,
@@ -867,8 +881,7 @@ export async function placeBid(
       messagePersistMs:
         typeof messagePersistedAt === "number" &&
         typeof (timerSignalSentAt ?? validationDoneAt) === "number"
-          ? messagePersistedAt -
-            ((timerSignalSentAt ?? validationDoneAt) ?? 0)
+          ? messagePersistedAt - (timerSignalSentAt ?? validationDoneAt ?? 0)
           : null,
     });
 
@@ -914,7 +927,10 @@ export async function submitSealedBid(
     if (roomData.current_player_id !== playerId) {
       return { error: "현재 경매 중인 선수가 아닙니다." };
     }
-    if (roomData.sealed_bid_phase !== "ACTIVE" || !roomData.sealed_bid_round_id) {
+    if (
+      roomData.sealed_bid_phase !== "ACTIVE" ||
+      !roomData.sealed_bid_round_id
+    ) {
       return { error: "비공개 입찰 제출 시간이 아닙니다." };
     }
     const timerEndsAt = roomData.timer_ends_at ?? null;
@@ -962,13 +978,16 @@ export async function submitSealedBid(
       .doc(roomData.sealed_bid_round_id)
       .collection("submissions")
       .doc(teamId)
-      .set({
-        room_id: roomId,
-        player_id: playerId,
-        team_id: teamId,
-        amount,
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+      .set(
+        {
+          room_id: roomId,
+          player_id: playerId,
+          team_id: teamId,
+          amount,
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
 
     return { submittedAmount: amount };
   } catch (err) {
@@ -1022,7 +1041,11 @@ export async function lockSealedBidRound(
 
     const event = lockEvent as AuctionEventEnvelope;
     await publishAuctionEvent(event);
-    queueSystemMessage(roomId, "🔒 비공개 입찰이 마감되었습니다.", event.eventId);
+    queueSystemMessage(
+      roomId,
+      "🔒 비공개 입찰이 마감되었습니다.",
+      event.eventId,
+    );
     return { locked: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
@@ -1041,7 +1064,10 @@ export async function revealSealedBidRound(
 
     const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
     const roundId = roomData.sealed_bid_round_id;
-    if (normalizeAuctionMode(roomData.auction_mode) !== "SEALED_BID" || !roundId) {
+    if (
+      normalizeAuctionMode(roomData.auction_mode) !== "SEALED_BID" ||
+      !roundId
+    ) {
       return { error: "비공개 입찰 라운드가 없습니다." };
     }
     if (roomData.sealed_bid_phase !== "LOCKED") {
@@ -1050,7 +1076,11 @@ export async function revealSealedBidRound(
 
     const [teamsSnap, submissionsSnap] = await Promise.all([
       roomRef.collection("teams").get(),
-      roomRef.collection("sealed_bid_rounds").doc(roundId).collection("submissions").get(),
+      roomRef
+        .collection("sealed_bid_rounds")
+        .doc(roundId)
+        .collection("submissions")
+        .get(),
     ]);
     const submissions = new Map(
       submissionsSnap.docs.map((doc) => [
@@ -1062,29 +1092,39 @@ export async function revealSealedBidRound(
     const revealOrder = teamsSnap.docs.map((doc) => doc.id);
     const effectiveAmounts = teamsSnap.docs.map((teamDoc) => {
       const eligible = !eligibleTeamIds || eligibleTeamIds.includes(teamDoc.id);
-      const amount = eligible ? Math.max(0, submissions.get(teamDoc.id) ?? 0) : 0;
+      const amount = eligible
+        ? Math.max(0, submissions.get(teamDoc.id) ?? 0)
+        : 0;
       return {
         teamDoc,
         eligible,
         amount,
       };
     });
-    const highestAmount = Math.max(0, ...effectiveAmounts.map((item) => item.amount));
+    const highestAmount = Math.max(
+      0,
+      ...effectiveAmounts.map((item) => item.amount),
+    );
     const tiedTeamIds =
       highestAmount > 0
         ? effectiveAmounts
             .filter((item) => item.eligible && item.amount === highestAmount)
             .map((item) => item.teamDoc.id)
         : [];
-    const revealResult: SealedBidRevealCard[] = effectiveAmounts.map((item) => ({
-      team_id: item.teamDoc.id,
-      team_name: String((item.teamDoc.data() ?? {}).name ?? ""),
-      amount: item.amount,
-      is_pass: item.amount <= 0,
-      is_highest: highestAmount > 0 && item.amount === highestAmount,
-      is_tied: highestAmount > 0 && tiedTeamIds.length > 1 && item.amount === highestAmount,
-      eligible: item.eligible,
-    }));
+    const revealResult: SealedBidRevealCard[] = effectiveAmounts.map(
+      (item) => ({
+        team_id: item.teamDoc.id,
+        team_name: String((item.teamDoc.data() ?? {}).name ?? ""),
+        amount: item.amount,
+        is_pass: item.amount <= 0,
+        is_highest: highestAmount > 0 && item.amount === highestAmount,
+        is_tied:
+          highestAmount > 0 &&
+          tiedTeamIds.length > 1 &&
+          item.amount === highestAmount,
+        eligible: item.eligible,
+      }),
+    );
 
     let revealEvent: AuctionEventEnvelope | null = null;
     await getAuctionFirestore().runTransaction(async (tx) => {
@@ -1129,7 +1169,11 @@ export async function revealSealedBidRound(
     if (revealEvent) {
       const event = revealEvent as AuctionEventEnvelope;
       await publishAuctionEvent(event);
-      queueSystemMessage(roomId, "🃏 비공개 입찰 점수를 공개합니다.", event.eventId);
+      queueSystemMessage(
+        roomId,
+        "🃏 비공개 입찰 점수를 공개합니다.",
+        event.eventId,
+      );
     }
 
     return { revealResult };
@@ -1170,7 +1214,7 @@ export async function completeSealedBidReveal(
       );
     }
 
-    const winnerTeamId = highestAmount > 0 ? tiedTeamIds[0] ?? null : null;
+    const winnerTeamId = highestAmount > 0 ? (tiedTeamIds[0] ?? null) : null;
     const playerRef = roomRef.collection("players").doc(playerId);
     const winnerTeamRef = winnerTeamId
       ? roomRef.collection("teams").doc(winnerTeamId)
@@ -1239,7 +1283,7 @@ export async function completeSealedBidReveal(
           },
         };
         tx.update(roomRef, { last_auction_event: awardEvent });
-        msgContent = `🏆 ${winnerTeamData.name}이 ${playerData.name} 선수를 ${highestAmount}P에 비공개 낙찰!`;
+        msgContent = `🏆 ${winnerTeamData.name}이 ${playerData.name} 선수를 ${highestAmount}P에 낙찰!`;
       } else {
         tx.update(playerRef, { status: "UNSOLD" });
         awardEvent = {
@@ -1252,7 +1296,7 @@ export async function completeSealedBidReveal(
           },
         };
         tx.update(roomRef, { last_auction_event: awardEvent });
-        msgContent = `❌ ${playerData.name} 선수 비공개 입찰 포기로 유찰`;
+        msgContent = `❌ ${playerData.name} 선수 입찰 포기로 유찰`;
       }
     });
 
@@ -1276,7 +1320,7 @@ export async function awardPlayer(
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return awardFixturePlayer(roomId, playerId)
+      return awardFixturePlayer(roomId, playerId);
     }
     const playerRef = getAuctionFirestore()
       .collection("rooms")
@@ -1296,8 +1340,7 @@ export async function awardPlayer(
       const playerData = playerSnap.data()!;
       const status = playerData.status as string;
       const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
-      const timerEndsAt =
-        roomData.timer_ends_at ?? null;
+      const timerEndsAt = roomData.timer_ends_at ?? null;
 
       // 타이머가 아직 살아있으면 처리 안 함 (레이스 컨디션 방어)
       if (timerEndsAt && timerEndsAt.toMillis() > Date.now()) return;
@@ -1385,8 +1428,8 @@ export async function awardPlayer(
       // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
       // RTDB 입찰 내역 정리 (fire-and-forget)
-      getAuctionServerServices().rtdb
-        .ref(`bids/${roomId}/${playerId}`)
+      getAuctionServerServices()
+        .rtdb.ref(`bids/${roomId}/${playerId}`)
         .remove()
         .catch(() => {});
       if (msgContent) {
@@ -1406,7 +1449,7 @@ export async function recoverExpiredAuction(
 ): Promise<{ error?: string; recovered?: boolean }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return recoverFixtureExpiredAuction(roomId)
+      return recoverFixtureExpiredAuction(roomId);
     }
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const roomSnap = await roomRef.get();
@@ -1414,8 +1457,10 @@ export async function recoverExpiredAuction(
 
     const roomData = roomSnap.data() as AuctionRoomState;
     const playerId = roomData.current_player_id as string | null | undefined;
-    const timerEndsAt =
-      roomData.timer_ends_at as admin.firestore.Timestamp | null | undefined;
+    const timerEndsAt = roomData.timer_ends_at as
+      | admin.firestore.Timestamp
+      | null
+      | undefined;
 
     if (!playerId || !timerEndsAt) {
       return { recovered: false };
@@ -1449,7 +1494,7 @@ export async function draftPlayer(
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return draftFixturePlayer(roomId, playerId, teamId)
+      return draftFixturePlayer(roomId, playerId, teamId);
     }
     const playerSnap = await getAuctionFirestore()
       .collection("rooms")
@@ -1476,7 +1521,10 @@ export async function draftPlayer(
     if (!teamSnap.exists) return { error: "팀을 찾을 수 없습니다." };
     const teamData = teamSnap.data()!;
 
-    const roomSnap = await getAuctionFirestore().collection("rooms").doc(roomId).get();
+    const roomSnap = await getAuctionFirestore()
+      .collection("rooms")
+      .doc(roomId)
+      .get();
     const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
     const membersPerTeam = roomData.members_per_team ?? 5;
     const captainMode = normalizeCaptainMode(roomData.captain_mode);
@@ -1511,7 +1559,11 @@ export async function draftPlayer(
     await getAuctionFirestore().runTransaction(async (tx) => {
       const freshTeamSnap = await tx.get(teamRef);
       const freshPlayerSnap = await tx.get(
-        getAuctionFirestore().collection("rooms").doc(roomId).collection("players").doc(playerId),
+        getAuctionFirestore()
+          .collection("rooms")
+          .doc(roomId)
+          .collection("players")
+          .doc(playerId),
       );
 
       if (!freshTeamSnap.exists) {
@@ -1571,7 +1623,10 @@ export async function draftPlayer(
           point_balance: 0,
         });
       }
-      tx.update(getAuctionFirestore().collection("rooms").doc(roomId), roomPatch);
+      tx.update(
+        getAuctionFirestore().collection("rooms").doc(roomId),
+        roomPatch,
+      );
       draftEvent = event;
     });
 
@@ -1611,7 +1666,7 @@ export async function restartAuctionWithUnsold(
 ): Promise<{ error?: string; reAuctionStarted?: boolean }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
-      return restartFixtureAuctionWithUnsold(roomId)
+      return restartFixtureAuctionWithUnsold(roomId);
     }
     const unsoldSnap = await getAuctionFirestore()
       .collection("rooms")
