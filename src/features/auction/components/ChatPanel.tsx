@@ -3,7 +3,12 @@
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
+import {
+  AuctionStartPlay,
+  AwardPersonCheck,
+  BidMoneyIncrease,
+  LotteryStarburst,
+} from "@/components/ui/CyberIcons";
 import {
   useAuctionStore,
   type Message,
@@ -19,37 +24,57 @@ function getSystemMessageVisual(content: string): {
 } {
   if (content.startsWith("🎲")) {
     return {
-      icon: <ThreeDIcon name="cube" alt="추첨" size={18} />,
+      icon: <LotteryStarburst size={18} aria-label="추첨 결과" />,
       content: content.replace(/^🎲\s*/, ""),
     };
   }
   if (content.startsWith("🏆")) {
     return {
-      icon: <ThreeDIcon name="trophy" alt="낙찰" size={18} />,
+      icon: <AwardPersonCheck size={18} aria-label="낙찰" />,
       content: content.replace(/^🏆\s*/, ""),
+    };
+  }
+  if (content.startsWith("💰")) {
+    return {
+      icon: <BidMoneyIncrease size={18} aria-label="입찰" />,
+      content: content.replace(/^💰\s*/, ""),
     };
   }
   if (content.startsWith("⏱️")) {
     return {
-      icon: <PixelIcon icon={PIXEL_ICONS.TIMER} size={14} color="text-minion-blue" />,
+      icon: <AuctionStartPlay size={18} aria-label="경매 시작" />,
       content: content.replace(/^⏱️\s*/, ""),
     };
   }
   if (content.startsWith("⚠️")) {
     return {
-      icon: <PixelIcon icon={PIXEL_ICONS.WARNING} size={14} color="text-minion-red" />,
+      icon: (
+        <PixelIcon
+          icon={PIXEL_ICONS.WARNING}
+          size={14}
+          color="text-minion-red"
+        />
+      ),
       content: content.replace(/^⚠️\s*/, ""),
     };
   }
   if (content.startsWith("✅")) {
     return {
-      icon: <PixelIcon icon={PIXEL_ICONS.SUCCESS} size={14} color="text-green-600" />,
+      icon: (
+        <PixelIcon
+          icon={PIXEL_ICONS.SUCCESS}
+          size={14}
+          color="text-green-600"
+        />
+      ),
       content: content.replace(/^✅\s*/, ""),
     };
   }
   if (content.startsWith("❌")) {
     return {
-      icon: <PixelIcon icon={PIXEL_ICONS.CLOSE} size={14} color="text-minion-red" />,
+      icon: (
+        <PixelIcon icon={PIXEL_ICONS.CLOSE} size={14} color="text-minion-red" />
+      ),
       content: content.replace(/^❌\s*/, ""),
     };
   }

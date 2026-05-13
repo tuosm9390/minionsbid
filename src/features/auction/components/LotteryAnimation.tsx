@@ -14,6 +14,7 @@ import { getTierImage, getPositionImage } from "../utils/display";
 import { cn } from "@/lib/utils";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { PIXEL_ICONS } from "../constants/icons";
+import { CheckedBoxBlue, DiceCube } from "@/components/ui/CyberIcons";
 
 interface LotteryAnimationProps {
   candidates: Player[];
@@ -164,13 +165,12 @@ export function LotteryAnimation({
           animate={{ opacity: 1, y: 0 }}
           className={cn(
             "text-2xl font-heading flex items-center gap-3 px-6 py-2 border-4 border-black bg-white shadow-pixel",
-            isSpinning ? "text-minion-blue" : "text-minion-yellow",
+            isSpinning ? "text-minion-blue" : "text-minion-blue",
           )}
         >
           <PixelIcon
-            icon={isSpinning ? PIXEL_ICONS.LEADING : PIXEL_ICONS.SUCCESS}
+            icon={isSpinning ? DiceCube : CheckedBoxBlue}
             size={24}
-            color={isSpinning ? "text-minion-blue" : "text-minion-yellow"}
             animation={isSpinning ? "active" : "idle"}
           />
           {isSpinning ? "선수 추첨 진행 중..." : "추첨 완료!"}

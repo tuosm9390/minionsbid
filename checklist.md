@@ -108,3 +108,13 @@
 - [x] Reserve the lottery start button space before lottery completion.
 - [x] Verify the no-layout-shift lottery button change with a production build.
 - [x] Make the reserved lottery button fade in when it becomes visible.
+- [x] Add the requested dice and check SVG icons as local CyberIcons.
+- [x] Apply the new icons only to lottery progress, lottery completion, and auction-ready button.
+- [x] Verify the requested icon replacement with a production build.
+- [x] Make the auction-ready button icon use a brighter check color.
+- [x] Add requested chat-list SVG icons for lottery result and auction start.
+- [x] Replace chat-list lottery result image and auction start icon with the requested SVGs.
+- [x] Verify chat-list icon replacement with a production build.
+- [x] Add requested chat-list SVG icons for bid and award messages.
+- [x] Replace chat-list bid and award visuals with the requested SVGs.
+- [x] Verify bid and award chat icon replacement with a production build.

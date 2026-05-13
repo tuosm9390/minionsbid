@@ -22,6 +22,7 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
 import { cn } from "@/lib/utils";
+import { CheckedBoxLight } from "@/components/ui/CyberIcons";
 
 interface AuctionBoardProps {
   isLotteryActive: boolean;
@@ -256,7 +257,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
             className="flex-1 flex flex-col"
           >
             {currentScene === "lottery" && (
-              <div className="flex-1 flex flex-col items-center justify-center gap-12">
+              <div className="flex-1 flex flex-col items-center justify-center">
                 <LotteryAnimation
                   candidates={props.waitingPlayers}
                   targetPlayer={props.lotteryPlayer!}
@@ -271,15 +272,14 @@ export function AuctionBoard(props: AuctionBoardProps) {
                     aria-hidden={!lotteryDone}
                     tabIndex={lotteryDone ? 0 : -1}
                     className={cn(
-                      "pixel-button bg-black text-white h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter hover:bg-minion-blue transition-colors flex items-center gap-3",
+                      "pixel-button bg-black text-white h-14 px-12 font-heading uppercase tracking-tighter hover:bg-minion-blue transition-colors flex items-center gap-3",
                       !lotteryDone && "pointer-events-none",
                     )}
                   >
                     경매 준비
                     <PixelIcon
-                      icon={PIXEL_ICONS.SUCCESS}
+                      icon={CheckedBoxLight}
                       size={20}
-                      color="text-minion-yellow"
                       animation="active"
                     />
                   </motion.button>
@@ -293,7 +293,9 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   {timerEndsAt && currentPlayer && (
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
-                      auctionDurationMs={nextAuctionDurationMs ?? AUCTION_DURATION_MS}
+                      auctionDurationMs={
+                        nextAuctionDurationMs ?? AUCTION_DURATION_MS
+                      }
                       onExpire={props.onTimerExpire}
                     />
                   )}

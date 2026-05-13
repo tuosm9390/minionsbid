@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuctionStore, Role, PresenceUser } from "@/features/auction/store/useAuctionStore";
+import {
+  useAuctionStore,
+  Role,
+  PresenceUser,
+} from "@/features/auction/store/useAuctionStore";
 import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
 import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
 import { useAuctionPresenceGuard } from "@/features/auction/hooks/useAuctionPresenceGuard";
@@ -96,15 +100,22 @@ export function RoomClient({
   });
 
   const connectedLeaderIds = new Set(
-    presences.filter((p: PresenceUser) => p.role === "LEADER").map((p: PresenceUser) => p.teamId),
+    presences
+      .filter((p: PresenceUser) => p.role === "LEADER")
+      .map((p: PresenceUser) => p.teamId),
   );
   const allConnected =
     teams.length > 0 && connectedLeaderIds.size >= teams.length;
-  const { currentPlayer, waitingPlayers, soldPlayers, unsoldPlayers, soldCountByTeam } =
-    useMemo(
-      () => bucketAuctionPlayers(players, currentPlayerId),
-      [players, currentPlayerId],
-    );
+  const {
+    currentPlayer,
+    waitingPlayers,
+    soldPlayers,
+    unsoldPlayers,
+    soldCountByTeam,
+  } = useMemo(
+    () => bucketAuctionPlayers(players, currentPlayerId),
+    [players, currentPlayerId],
+  );
 
   const liveBid = useAuctionStore((s) => s.liveBid);
   const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id;
@@ -196,7 +207,8 @@ export function RoomClient({
         const currentTimerEndsAt = useAuctionStore.getState().timerEndsAt;
         if (
           !currentTimerEndsAt ||
-          new Date(res.timerEndsAt).getTime() >= new Date(currentTimerEndsAt).getTime()
+          new Date(res.timerEndsAt).getTime() >=
+            new Date(currentTimerEndsAt).getTime()
         ) {
           setRealtimeData({ timerEndsAt: res.timerEndsAt });
         }
@@ -306,28 +318,32 @@ export function RoomClient({
           <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <button
               onClick={() => {
-                if (window.innerWidth < 1024) setIsTeamsExpanded(!isTeamsExpanded);
+                if (window.innerWidth < 1024)
+                  setIsTeamsExpanded(!isTeamsExpanded);
               }}
               className="bg-black text-white px-4 h-14 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black w-full text-left lg:cursor-default group shrink-0"
             >
               <div className="flex items-center gap-3">
-                <PixelIcon icon={PIXEL_ICONS.WAITING} size={16} color="text-minion-yellow" animation="active" />
                 <span>Team Rosters</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex items-center gap-1.5 bg-minion-blue/20 px-2 py-1 border-2 border-minion-blue/30">
                   <div className="w-1.5 h-1.5 bg-green-500" />
-                  <span className="text-minion-blue text-[10px] font-bold">LIVE FEED</span>
+                  <span className="text-minion-blue text-[10px] font-bold">
+                    LIVE FEED
+                  </span>
                 </div>
-                <span className={`lg:hidden text-minion-yellow font-heading transition-transform duration-300 ${isTeamsExpanded ? "rotate-180" : ""}`}>
+                <span
+                  className={`lg:hidden text-minion-yellow font-heading transition-transform duration-300 ${isTeamsExpanded ? "rotate-180" : ""}`}
+                >
                   ▼
                 </span>
               </div>
             </button>
             <div
               className={`flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30 transition-all duration-300 ${
-                isTeamsExpanded 
-                  ? "block opacity-100" 
+                isTeamsExpanded
+                  ? "block opacity-100"
                   : "hidden lg:block lg:opacity-100 opacity-0"
               }`}
             >
@@ -429,9 +445,7 @@ export function RoomClient({
           <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
             <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
               <span>Communication</span>
-              <span className="text-fluid-xs text-blue-200">
-                ● LIVE
-              </span>
+              <span className="text-fluid-xs text-blue-200">● LIVE</span>
             </div>
             <ChatPanel />
           </div>
