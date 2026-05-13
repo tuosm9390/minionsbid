@@ -3,6 +3,8 @@
 import * as admin from 'firebase-admin'
 import type { CaptainMode } from '@/features/auction/utils/roster'
 import { normalizeCaptainMode } from '@/features/auction/utils/roster'
+import type { AuctionMode } from '@/features/auction/utils/auctionMode'
+import { normalizeAuctionMode } from '@/features/auction/utils/auctionMode'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
 import {
   createE2EAuctionFixtureRoom,
@@ -34,6 +36,7 @@ export interface CreateRoomPayload {
   basePoint: number
   membersPerTeam: number
   captainMode?: CaptainMode
+  auctionMode?: AuctionMode
   scheduleId?: string | null
   scheduleName?: string | null
   linkedAuctionId?: string | null
@@ -92,6 +95,7 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
         basePoint: payload.basePoint,
         membersPerTeam: payload.membersPerTeam,
         captainMode: normalizeCaptainMode(payload.captainMode),
+        auctionMode: normalizeAuctionMode(payload.auctionMode),
         captains: payload.captains,
         players: payload.players,
       })
@@ -116,6 +120,14 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
       base_point: payload.basePoint,
       members_per_team: payload.membersPerTeam,
       captain_mode: normalizeCaptainMode(payload.captainMode),
+      auction_mode: normalizeAuctionMode(payload.auctionMode),
+      sealed_bid_phase: null,
+      sealed_bid_round_id: null,
+      sealed_bid_round_number: 0,
+      sealed_bid_min_amount: 0,
+      sealed_bid_eligible_team_ids: null,
+      sealed_bid_reveal_order: null,
+      sealed_bid_reveal_result: null,
       current_player_id: null,
       timer_ends_at: null,
       created_at: admin.firestore.FieldValue.serverTimestamp(),

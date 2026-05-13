@@ -18,11 +18,14 @@ import {
   drawNextPlayer,
   saveAuctionArchive,
   sendNotice,
+  lockSealedBidRound,
+  revealSealedBidRound,
 } from "@/features/auction/api/auctionActions";
 import { AuctionBoard } from "@/features/auction/components/AuctionBoard";
 import { TeamList, UnsoldPanel } from "@/features/auction/components/TeamList";
 import { ChatPanel } from "@/features/auction/components/ChatPanel";
 import { BiddingControl } from "@/features/auction/components/BiddingControl";
+import { SealedBiddingControl } from "@/features/auction/components/SealedBiddingControl";
 import { LatencyDebugPanel } from "@/features/auction/components/LatencyDebugPanel";
 import { HowToUseModal } from "@/features/auction/components/HowToUseModal";
 import { EndRoomModal } from "@/features/auction/components/EndRoomModal";
@@ -63,6 +66,8 @@ export function RoomClient({
   const currentPlayerId = useAuctionStore((s) => s.currentPlayerId);
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
   const captainMode = useAuctionStore((s) => s.captainMode);
+  const auctionMode = useAuctionStore((s) => s.auctionMode);
+  const sealedBid = useAuctionStore((s) => s.sealedBid);
   const presences = useAuctionStore((s) => s.presences);
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
@@ -217,6 +222,16 @@ export function RoomClient({
       setRealtimeData({ timerEndsAt: null });
       throw error;
     }
+  };
+
+  const handleSealedTimerExpire = async () => {
+    const res = await lockSealedBidRound(roomId);
+    if (res.error) alert(res.error);
+  };
+
+  const handleRevealSealedBid = async () => {
+    const res = await revealSealedBidRound(roomId);
+    if (res.error) alert(res.error);
   };
 
   const handleStartFromLottery = async () => {
@@ -388,7 +403,9 @@ export function RoomClient({
               roomId={roomId}
               onTimerExpire={
                 effectiveRole === "ORGANIZER" && currentPlayerId
-                  ? () => triggerAward(currentPlayerId)
+                  ? auctionMode === "SEALED_BID"
+                    ? handleSealedTimerExpire
+                    : () => triggerAward(currentPlayerId)
                   : undefined
               }
             />
@@ -408,25 +425,41 @@ export function RoomClient({
                 lotteryPlayer={lotteryPlayer}
                 isDrawing={isDrawing}
                 allConnected={allConnected}
+                auctionMode={auctionMode}
+                sealedBid={sealedBid}
                 onDraw={handleDraw}
                 onStart={handleStart}
+                onRevealSealedBid={handleRevealSealedBid}
               />
             </div>
           )}
 
           {effectiveRole === "LEADER" && roomId && storeTeamId && (
             <div>
-              <BiddingControl
-                roomId={roomId}
-                teamId={storeTeamId}
-                currentPlayer={currentPlayer || null}
-                myTeam={myTeam || null}
-                isAuctionActive={isAuctionActive}
-                timerEndsAt={timerEndsAt}
-                minBid={minBid}
-                isTeamFull={isTeamFull}
-                allDone={allDone}
-              />
+              {auctionMode === "SEALED_BID" ? (
+                <SealedBiddingControl
+                  roomId={roomId}
+                  teamId={storeTeamId}
+                  currentPlayer={currentPlayer || null}
+                  myTeam={myTeam || null}
+                  isAuctionActive={isAuctionActive}
+                  isTeamFull={isTeamFull}
+                  allDone={allDone}
+                  sealedBid={sealedBid}
+                />
+              ) : (
+                <BiddingControl
+                  roomId={roomId}
+                  teamId={storeTeamId}
+                  currentPlayer={currentPlayer || null}
+                  myTeam={myTeam || null}
+                  isAuctionActive={isAuctionActive}
+                  timerEndsAt={timerEndsAt}
+                  minBid={minBid}
+                  isTeamFull={isTeamFull}
+                  allDone={allDone}
+                />
+              )}
             </div>
           )}
         </section>

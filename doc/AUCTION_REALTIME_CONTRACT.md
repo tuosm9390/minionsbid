@@ -50,6 +50,11 @@ type AuctionEventEnvelope = {
     | 'PLAYER_UNSOLD'
     | 'DRAFT_ASSIGNED'
     | 'RE_AUCTION_STARTED'
+    | 'SEALED_BID_STARTED'
+    | 'SEALED_BID_LOCKED'
+    | 'SEALED_BID_REVEALED'
+    | 'SEALED_BID_AWARDED'
+    | 'SEALED_BID_REBID_STARTED'
   serverCreatedAt: string
   currentPlayerId?: string | null
   timerEndsAt?: string | null
@@ -59,6 +64,7 @@ type AuctionEventEnvelope = {
   team?: Partial<Team> & Pick<Team, 'id'>
   playerIdsToWaiting?: string[]
   message?: Message | null
+  sealedBid?: Partial<SealedBidState> | null
 }
 ```
 
@@ -89,6 +95,53 @@ else:
 - `PLAYER_AWARDED` / `PLAYER_UNSOLD`: 타이머와 `liveBid`를 비우고 추첨 상태 종료
 - `DRAFT_ASSIGNED`: player/team patch 적용
 - `RE_AUCTION_STARTED`: 지정된 선수들을 `WAITING`으로 복구
+- `SEALED_BID_STARTED` / `SEALED_BID_REBID_STARTED`: 비공개 입찰 전용 타이머와 라운드 상태 반영
+- `SEALED_BID_LOCKED`: 비공개 제출 잠금, 타이머 제거
+- `SEALED_BID_REVEALED`: 공개 카드 결과 반영. 이 단계에서는 아직 선수/팀 정본 낙찰을 확정하지 않는다
+- `SEALED_BID_AWARDED`: 카드 공개 애니메이션 완료 후 선수/팀 patch 적용
+
+## Sealed Bid Flow
+
+비공개 입찰은 공개 입찰 hot path와 독립된 경로다.
+
+```text
+organizer start auction
+  -> room.auction_mode == SEALED_BID
+  -> server creates sealed bid round
+  -> Firestore room canonical state update (sealed_bid_*, timer_ends_at, auction_revision)
+  -> RTDB SEALED_BID_STARTED event
+
+leader submit amount
+  -> server submitSealedBid()
+  -> rooms/{roomId}/sealed_bid_rounds/{roundId}/submissions/{teamId}
+  -> no RTDB auction event
+  -> no public submission count
+
+timer expires
+  -> recoverExpiredAuction()
+  -> lockSealedBidRound()
+  -> SEALED_BID_LOCKED event
+
+organizer click reveal
+  -> revealSealedBidRound()
+  -> server computes reveal cards in team list order
+  -> SEALED_BID_REVEALED event
+  -> clients animate card reveal
+
+organizer animation complete
+  -> completeSealedBidReveal()
+  -> single highest: player/team canonical award + SEALED_BID_AWARDED
+  -> top tie: new SEALED_BID_REBID_STARTED round with only tied teams eligible
+```
+
+비공개 입찰 원칙:
+
+- `active_bid`, `BID_PLACED`, `placeBidDirect()`는 사용하지 않는다.
+- 타이머 중 다른 팀의 금액, 제출 여부, 작성 상태를 주최자와 팀장 모두에게 노출하지 않는다.
+- 미제출과 `0P` 제출은 모두 입찰 포기다.
+- 일반 비공개 입찰은 `1P` 단위이며 `0P` 이상 팀 보유 포인트 이하만 허용한다.
+- 재입찰은 직전 최고 동점 금액을 최소 금액으로 삼고, 동점 팀만 제출할 수 있다.
+- 점수공개 시점에는 공개 결과만 확정하고, 선수 SOLD/UNSOLD 및 팀 포인트 차감은 카드 애니메이션 완료 후 확정한다.
 
 ## Bid Flow
 

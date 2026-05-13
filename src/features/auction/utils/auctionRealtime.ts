@@ -3,6 +3,7 @@ import type {
   LiveBidState,
   Message,
   Player,
+  SealedBidState,
   Team,
 } from '@/features/auction/store/useAuctionStore'
 import { BID_INCREMENT } from '@/features/auction/constants/auctionTimings'
@@ -18,6 +19,11 @@ export type AuctionEventType =
   | 'PLAYER_UNSOLD'
   | 'DRAFT_ASSIGNED'
   | 'RE_AUCTION_STARTED'
+  | 'SEALED_BID_STARTED'
+  | 'SEALED_BID_LOCKED'
+  | 'SEALED_BID_REVEALED'
+  | 'SEALED_BID_AWARDED'
+  | 'SEALED_BID_REBID_STARTED'
 
 export interface AuctionEventEnvelope {
   eventId: string
@@ -34,6 +40,7 @@ export interface AuctionEventEnvelope {
   team?: Partial<Team> & Pick<Team, 'id'>
   playerIdsToWaiting?: string[]
   message?: Message | null
+  sealedBid?: Partial<SealedBidState> | null
 }
 
 export interface AuctionRealtimeStateSlice {
@@ -44,6 +51,7 @@ export interface AuctionRealtimeStateSlice {
   currentPlayerId: string | null
   liveBid: LiveBidState | null
   lotteryPlayer: Player | null
+  sealedBid: SealedBidState
 }
 
 export interface AppliedAuctionRealtimeState {
@@ -54,6 +62,7 @@ export interface AppliedAuctionRealtimeState {
   currentPlayerId: string | null
   liveBid: LiveBidState | null
   lotteryPlayer: Player | null
+  sealedBid: SealedBidState
   revision: number
 }
 
@@ -248,6 +257,7 @@ export function applyAuctionEventToState(
       currentPlayerId: state.currentPlayerId,
       liveBid: state.liveBid,
       lotteryPlayer: state.lotteryPlayer,
+      sealedBid: state.sealedBid,
       revision: state.auctionEventRevision,
     }
   }
@@ -258,6 +268,7 @@ export function applyAuctionEventToState(
   let nextCurrentPlayerId = state.currentPlayerId
   let nextLiveBid = state.liveBid
   let nextLotteryPlayer = state.lotteryPlayer
+  let nextSealedBid = state.sealedBid
 
   if (event.player) {
     nextPlayers = state.players.map((player) =>
@@ -298,6 +309,15 @@ export function applyAuctionEventToState(
       nextCurrentPlayerId = null
       nextLiveBid = null
       nextLotteryPlayer = null
+      nextSealedBid = {
+        ...nextSealedBid,
+        phase: null,
+        roundId: null,
+        revealResult: [],
+        revealOrder: [],
+        tiedTeamIds: [],
+        highestAmount: 0,
+      }
       break
     case 'DRAFT_ASSIGNED':
       break
@@ -307,6 +327,47 @@ export function applyAuctionEventToState(
           ? { ...player, status: 'WAITING', sold_price: null, team_id: null }
           : player,
       )
+      break
+    case 'SEALED_BID_STARTED':
+    case 'SEALED_BID_REBID_STARTED':
+      nextCurrentPlayerId = event.currentPlayerId ?? nextCurrentPlayerId
+      nextTimerEndsAt = event.timerEndsAt ?? nextTimerEndsAt
+      nextLiveBid = null
+      nextSealedBid = {
+        ...nextSealedBid,
+        ...event.sealedBid,
+        phase: 'ACTIVE',
+      }
+      break
+    case 'SEALED_BID_LOCKED':
+      nextCurrentPlayerId = event.currentPlayerId ?? nextCurrentPlayerId
+      nextTimerEndsAt = null
+      nextLiveBid = null
+      nextSealedBid = {
+        ...nextSealedBid,
+        ...event.sealedBid,
+        phase: 'LOCKED',
+      }
+      break
+    case 'SEALED_BID_REVEALED':
+      nextTimerEndsAt = null
+      nextLiveBid = null
+      nextSealedBid = {
+        ...nextSealedBid,
+        ...event.sealedBid,
+        phase: 'REVEALING',
+      }
+      break
+    case 'SEALED_BID_AWARDED':
+      nextTimerEndsAt = null
+      nextCurrentPlayerId = null
+      nextLiveBid = null
+      nextLotteryPlayer = null
+      nextSealedBid = {
+        ...nextSealedBid,
+        ...event.sealedBid,
+        phase: 'AWARDED',
+      }
       break
   }
 
@@ -318,6 +379,7 @@ export function applyAuctionEventToState(
     currentPlayerId: nextCurrentPlayerId,
     liveBid: nextLiveBid,
     lotteryPlayer: nextLotteryPlayer,
+    sealedBid: nextSealedBid,
     revision: event.revision,
   }
 }

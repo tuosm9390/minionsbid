@@ -5,10 +5,15 @@ import {
   getAuctionSlotsPerTeam,
   normalizeCaptainMode,
 } from "@/features/auction/utils/roster";
+import { normalizeAuctionMode } from "@/features/auction/utils/auctionMode";
 import {
   getAuctionBidEligibility,
   type AuctionEventEnvelope,
 } from "@/features/auction/utils/auctionRealtime";
+import type {
+  SealedBidRevealCard,
+  SealedBidState,
+} from "@/features/auction/store/useAuctionStore";
 import { getAuctionServerServices } from "@/features/auction/realtime/serverAdapter";
 import {
   awardFixturePlayer,
@@ -50,6 +55,7 @@ function getAuctionFirestore() {
 }
 
 type AuctionRoomState = {
+  auction_mode?: string | null;
   current_player_id?: string | null;
   timer_ends_at?: admin.firestore.Timestamp | null;
   next_auction_duration_ms?: number | null;
@@ -64,6 +70,21 @@ type AuctionRoomState = {
   last_auction_event?: AuctionEventEnvelope | null;
   members_per_team?: number;
   captain_mode?: string;
+  sealed_bid_phase?: SealedBidState["phase"];
+  sealed_bid_round_id?: string | null;
+  sealed_bid_round_number?: number;
+  sealed_bid_min_amount?: number;
+  sealed_bid_eligible_team_ids?: string[] | null;
+  sealed_bid_reveal_order?: string[] | null;
+  sealed_bid_reveal_result?: SealedBidRevealCard[] | null;
+  sealed_bid_highest_amount?: number;
+  sealed_bid_tied_team_ids?: string[] | null;
+};
+
+type SealedBidRoundOptions = {
+  minAmount?: number;
+  eligibleTeamIds?: string[] | null;
+  durationMs?: number;
 };
 
 // ---------- 내부 헬퍼 ----------
@@ -167,6 +188,110 @@ function queueSystemMessage(roomId: string, content: string, eventId: string) {
       error,
     });
   });
+}
+
+function getSealedBidPatch(roomData: AuctionRoomState): SealedBidState {
+  return {
+    phase: roomData.sealed_bid_phase ?? null,
+    roundId: roomData.sealed_bid_round_id ?? null,
+    roundNumber: roomData.sealed_bid_round_number ?? 0,
+    minAmount: roomData.sealed_bid_min_amount ?? 0,
+    eligibleTeamIds: roomData.sealed_bid_eligible_team_ids ?? null,
+    revealOrder: roomData.sealed_bid_reveal_order ?? [],
+    revealResult: roomData.sealed_bid_reveal_result ?? [],
+    highestAmount: roomData.sealed_bid_highest_amount ?? 0,
+    tiedTeamIds: roomData.sealed_bid_tied_team_ids ?? [],
+  };
+}
+
+async function startSealedBidRound(
+  roomId: string,
+  options: SealedBidRoundOptions = {},
+): Promise<{ error?: string; timerEndsAt?: string }> {
+  const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
+  let startEvent: AuctionEventEnvelope | null = null;
+  let resolvedTimerEndsAt: string | undefined;
+  const durationMs = options.durationMs ?? AUCTION_DURATION_MS;
+
+  await getAuctionFirestore().runTransaction(async (tx) => {
+    const roomSnap = await tx.get(roomRef);
+    if (!roomSnap.exists) throw new Error("방을 찾을 수 없습니다.");
+
+    const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+    const currentPlayerId = roomData.current_player_id ?? null;
+    if (!currentPlayerId) {
+      throw new Error("현재 경매 중인 선수가 없습니다.");
+    }
+
+    const roundId = crypto.randomUUID();
+    const timerEndsAt = new Date(Date.now() + durationMs);
+    resolvedTimerEndsAt = timerEndsAt.toISOString();
+    const nextRoundNumber = (roomData.sealed_bid_round_number ?? 0) + 1;
+    const minAmount = Math.max(0, options.minAmount ?? 0);
+    const eligibleTeamIds = options.eligibleTeamIds ?? null;
+    const eventType = eligibleTeamIds
+      ? "SEALED_BID_REBID_STARTED"
+      : "SEALED_BID_STARTED";
+    const nextSealedBid: SealedBidState = {
+      phase: "ACTIVE",
+      roundId,
+      roundNumber: nextRoundNumber,
+      minAmount,
+      eligibleTeamIds,
+      revealOrder: [],
+      revealResult: [],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    };
+    const { event, roomPatch } = createAuctionEventPatch(
+      roomRef,
+      roomData,
+      eventType,
+      {
+        currentPlayerId,
+        timerEndsAt: resolvedTimerEndsAt,
+        timerDurationMs: durationMs,
+        liveBid: null,
+        sealedBid: nextSealedBid,
+      },
+    );
+    tx.set(roomRef.collection("sealed_bid_rounds").doc(roundId), {
+      player_id: currentPlayerId,
+      round_number: nextRoundNumber,
+      min_amount: minAmount,
+      eligible_team_ids: eligibleTeamIds,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    tx.update(roomRef, {
+      timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
+      active_bid: null,
+      sealed_bid_phase: "ACTIVE",
+      sealed_bid_round_id: roundId,
+      sealed_bid_round_number: nextRoundNumber,
+      sealed_bid_min_amount: minAmount,
+      sealed_bid_eligible_team_ids: eligibleTeamIds,
+      sealed_bid_reveal_order: null,
+      sealed_bid_reveal_result: null,
+      sealed_bid_highest_amount: 0,
+      sealed_bid_tied_team_ids: null,
+      ...roomPatch,
+    });
+    startEvent = event;
+  });
+
+  if (startEvent) {
+    const event = startEvent as AuctionEventEnvelope;
+    await publishAuctionEvent(event);
+    queueSystemMessage(
+      roomId,
+      event.type === "SEALED_BID_REBID_STARTED"
+        ? "🔒 최고 동점 팀 재입찰이 시작되었습니다."
+        : "🔒 비공개 입찰이 시작되었습니다.",
+      event.eventId,
+    );
+  }
+
+  return { timerEndsAt: resolvedTimerEndsAt };
 }
 
 /**
@@ -335,6 +460,9 @@ export async function startAuction(
         : null;
     if (!currentPlayerId) {
       return { error: "현재 경매 중인 선수가 없습니다." };
+    }
+    if (normalizeAuctionMode(roomData.auction_mode) === "SEALED_BID") {
+      return startSealedBidRound(roomId, { durationMs });
     }
     let startEvent: AuctionEventEnvelope | null = null;
     let resolvedTimerEndsAt: string | undefined
@@ -752,6 +880,384 @@ export async function placeBid(
   }
 }
 
+/** 비공개 입찰 금액 제출/수정 */
+export async function submitSealedBid(
+  roomId: string,
+  playerId: string,
+  teamId: string,
+  amount: number,
+): Promise<{ error?: string; submittedAmount?: number }> {
+  if (!Number.isInteger(amount) || amount < 0) {
+    return { error: "0 이상의 정수 금액을 입력하세요." };
+  }
+
+  try {
+    const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
+    const roomSnap = await roomRef.get();
+    if (!roomSnap.exists) return { error: "방을 찾을 수 없습니다." };
+
+    const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+    if (normalizeAuctionMode(roomData.auction_mode) !== "SEALED_BID") {
+      return { error: "비공개 입찰 방이 아닙니다." };
+    }
+    if (roomData.current_player_id !== playerId) {
+      return { error: "현재 경매 중인 선수가 아닙니다." };
+    }
+    if (roomData.sealed_bid_phase !== "ACTIVE" || !roomData.sealed_bid_round_id) {
+      return { error: "비공개 입찰 제출 시간이 아닙니다." };
+    }
+    const timerEndsAt = roomData.timer_ends_at ?? null;
+    if (!timerEndsAt || timerEndsAt.toMillis() <= Date.now()) {
+      return { error: "비공개 입찰 시간이 종료되었습니다." };
+    }
+    const eligibleTeamIds = roomData.sealed_bid_eligible_team_ids ?? null;
+    if (eligibleTeamIds && !eligibleTeamIds.includes(teamId)) {
+      return { error: "재입찰 대상 팀만 입찰할 수 있습니다." };
+    }
+
+    const teamRef = roomRef.collection("teams").doc(teamId);
+    const [teamSnap, soldCountSnap] = await Promise.all([
+      teamRef.get(),
+      roomRef
+        .collection("players")
+        .where("team_id", "==", teamId)
+        .where("status", "==", "SOLD")
+        .get(),
+    ]);
+    if (!teamSnap.exists) return { error: "팀을 찾을 수 없습니다." };
+
+    const teamData = teamSnap.data() ?? {};
+    const membersPerTeam = roomData.members_per_team ?? 5;
+    const captainMode = normalizeCaptainMode(roomData.captain_mode);
+    const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
+      membersPerTeam,
+      captainMode,
+    );
+    if (soldCountSnap.size >= auctionSlotsPerTeam) {
+      return { error: "팀 인원이 가득 찼습니다." };
+    }
+
+    const pointBalance = Number(teamData.point_balance ?? 0);
+    if (amount > pointBalance) {
+      return { error: `보유 포인트(${pointBalance}P)를 초과할 수 없습니다.` };
+    }
+    const minAmount = roomData.sealed_bid_min_amount ?? 0;
+    if (amount > 0 && amount < minAmount) {
+      return { error: `재입찰 최소 금액은 ${minAmount}P입니다.` };
+    }
+
+    await roomRef
+      .collection("sealed_bid_rounds")
+      .doc(roomData.sealed_bid_round_id)
+      .collection("submissions")
+      .doc(teamId)
+      .set({
+        room_id: roomId,
+        player_id: playerId,
+        team_id: teamId,
+        amount,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+    return { submittedAmount: amount };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "알 수 없는 오류";
+    return { error: message };
+  }
+}
+
+/** 비공개 입찰 타이머 만료 후 제출을 잠근다. */
+export async function lockSealedBidRound(
+  roomId: string,
+): Promise<{ error?: string; locked?: boolean }> {
+  try {
+    const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
+    let lockEvent: AuctionEventEnvelope | null = null;
+
+    await getAuctionFirestore().runTransaction(async (tx) => {
+      const roomSnap = await tx.get(roomRef);
+      if (!roomSnap.exists) throw new Error("방을 찾을 수 없습니다.");
+
+      const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+      if (normalizeAuctionMode(roomData.auction_mode) !== "SEALED_BID") return;
+      if (roomData.sealed_bid_phase !== "ACTIVE") return;
+      const timerEndsAt = roomData.timer_ends_at ?? null;
+      if (timerEndsAt && timerEndsAt.toMillis() > Date.now()) return;
+
+      const nextSealedBid: SealedBidState = {
+        ...getSealedBidPatch(roomData),
+        phase: "LOCKED",
+      };
+      const { event, roomPatch } = createAuctionEventPatch(
+        roomRef,
+        roomData,
+        "SEALED_BID_LOCKED",
+        {
+          currentPlayerId: roomData.current_player_id ?? null,
+          timerEndsAt: null,
+          liveBid: null,
+          sealedBid: nextSealedBid,
+        },
+      );
+      tx.update(roomRef, {
+        timer_ends_at: null,
+        sealed_bid_phase: "LOCKED",
+        ...roomPatch,
+      });
+      lockEvent = event;
+    });
+
+    if (!lockEvent) return { locked: false };
+
+    const event = lockEvent as AuctionEventEnvelope;
+    await publishAuctionEvent(event);
+    queueSystemMessage(roomId, "🔒 비공개 입찰이 마감되었습니다.", event.eventId);
+    return { locked: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "알 수 없는 오류";
+    return { error: message };
+  }
+}
+
+/** 점수공개: 제출 결과를 집계해 공개 카드 데이터를 확정한다. */
+export async function revealSealedBidRound(
+  roomId: string,
+): Promise<{ error?: string; revealResult?: SealedBidRevealCard[] }> {
+  try {
+    const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
+    const roomSnap = await roomRef.get();
+    if (!roomSnap.exists) return { error: "방을 찾을 수 없습니다." };
+
+    const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+    const roundId = roomData.sealed_bid_round_id;
+    if (normalizeAuctionMode(roomData.auction_mode) !== "SEALED_BID" || !roundId) {
+      return { error: "비공개 입찰 라운드가 없습니다." };
+    }
+    if (roomData.sealed_bid_phase !== "LOCKED") {
+      return { error: "점수공개 가능한 상태가 아닙니다." };
+    }
+
+    const [teamsSnap, submissionsSnap] = await Promise.all([
+      roomRef.collection("teams").get(),
+      roomRef.collection("sealed_bid_rounds").doc(roundId).collection("submissions").get(),
+    ]);
+    const submissions = new Map(
+      submissionsSnap.docs.map((doc) => [
+        doc.id,
+        Number((doc.data() ?? {}).amount ?? 0),
+      ]),
+    );
+    const eligibleTeamIds = roomData.sealed_bid_eligible_team_ids ?? null;
+    const revealOrder = teamsSnap.docs.map((doc) => doc.id);
+    const effectiveAmounts = teamsSnap.docs.map((teamDoc) => {
+      const eligible = !eligibleTeamIds || eligibleTeamIds.includes(teamDoc.id);
+      const amount = eligible ? Math.max(0, submissions.get(teamDoc.id) ?? 0) : 0;
+      return {
+        teamDoc,
+        eligible,
+        amount,
+      };
+    });
+    const highestAmount = Math.max(0, ...effectiveAmounts.map((item) => item.amount));
+    const tiedTeamIds =
+      highestAmount > 0
+        ? effectiveAmounts
+            .filter((item) => item.eligible && item.amount === highestAmount)
+            .map((item) => item.teamDoc.id)
+        : [];
+    const revealResult: SealedBidRevealCard[] = effectiveAmounts.map((item) => ({
+      team_id: item.teamDoc.id,
+      team_name: String((item.teamDoc.data() ?? {}).name ?? ""),
+      amount: item.amount,
+      is_pass: item.amount <= 0,
+      is_highest: highestAmount > 0 && item.amount === highestAmount,
+      is_tied: highestAmount > 0 && tiedTeamIds.length > 1 && item.amount === highestAmount,
+      eligible: item.eligible,
+    }));
+
+    let revealEvent: AuctionEventEnvelope | null = null;
+    await getAuctionFirestore().runTransaction(async (tx) => {
+      const freshRoomSnap = await tx.get(roomRef);
+      const freshRoomData = (freshRoomSnap.data() ?? {}) as AuctionRoomState;
+      if (
+        freshRoomData.sealed_bid_phase !== "LOCKED" ||
+        freshRoomData.sealed_bid_round_id !== roundId
+      ) {
+        throw new Error("비공개 입찰 상태가 변경되었습니다.");
+      }
+      const nextSealedBid: SealedBidState = {
+        ...getSealedBidPatch(freshRoomData),
+        phase: "REVEALING",
+        revealOrder,
+        revealResult,
+        highestAmount,
+        tiedTeamIds,
+      };
+      const { event, roomPatch } = createAuctionEventPatch(
+        roomRef,
+        freshRoomData,
+        "SEALED_BID_REVEALED",
+        {
+          currentPlayerId: freshRoomData.current_player_id ?? null,
+          timerEndsAt: null,
+          liveBid: null,
+          sealedBid: nextSealedBid,
+        },
+      );
+      tx.update(roomRef, {
+        sealed_bid_phase: "REVEALING",
+        sealed_bid_reveal_order: revealOrder,
+        sealed_bid_reveal_result: revealResult,
+        sealed_bid_highest_amount: highestAmount,
+        sealed_bid_tied_team_ids: tiedTeamIds,
+        ...roomPatch,
+      });
+      revealEvent = event;
+    });
+
+    if (revealEvent) {
+      const event = revealEvent as AuctionEventEnvelope;
+      await publishAuctionEvent(event);
+      queueSystemMessage(roomId, "🃏 비공개 입찰 점수를 공개합니다.", event.eventId);
+    }
+
+    return { revealResult };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "알 수 없는 오류";
+    return { error: message };
+  }
+}
+
+/** 카드 공개 애니메이션 완료 후 낙찰 또는 재입찰을 확정한다. */
+export async function completeSealedBidReveal(
+  roomId: string,
+): Promise<{ error?: string; awarded?: boolean; rebidStarted?: boolean }> {
+  try {
+    const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
+    const roomSnap = await roomRef.get();
+    if (!roomSnap.exists) return { error: "방을 찾을 수 없습니다." };
+
+    const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+    if (normalizeAuctionMode(roomData.auction_mode) !== "SEALED_BID") {
+      return { error: "비공개 입찰 방이 아닙니다." };
+    }
+    if (roomData.sealed_bid_phase !== "REVEALING") {
+      return { error: "확정 가능한 상태가 아닙니다." };
+    }
+    const playerId = roomData.current_player_id ?? null;
+    if (!playerId) return { error: "현재 경매 중인 선수가 없습니다." };
+    const highestAmount = roomData.sealed_bid_highest_amount ?? 0;
+    const tiedTeamIds = roomData.sealed_bid_tied_team_ids ?? [];
+
+    if (highestAmount > 0 && tiedTeamIds.length > 1) {
+      return startSealedBidRound(roomId, {
+        minAmount: highestAmount,
+        eligibleTeamIds: tiedTeamIds,
+        durationMs: AUCTION_DURATION_MS,
+      }).then((result) =>
+        result.error ? { error: result.error } : { rebidStarted: true },
+      );
+    }
+
+    const winnerTeamId = highestAmount > 0 ? tiedTeamIds[0] ?? null : null;
+    const playerRef = roomRef.collection("players").doc(playerId);
+    const winnerTeamRef = winnerTeamId
+      ? roomRef.collection("teams").doc(winnerTeamId)
+      : null;
+    let awardEvent: AuctionEventEnvelope | null = null;
+    let msgContent = "";
+
+    await getAuctionFirestore().runTransaction(async (tx) => {
+      const freshRoomSnap = await tx.get(roomRef);
+      const freshPlayerSnap = await tx.get(playerRef);
+      const freshRoomData = (freshRoomSnap.data() ?? {}) as AuctionRoomState;
+      if (freshRoomData.sealed_bid_phase !== "REVEALING") {
+        throw new Error("확정 가능한 상태가 아닙니다.");
+      }
+      if (!freshPlayerSnap.exists) throw new Error("선수를 찾을 수 없습니다.");
+
+      const playerData = freshPlayerSnap.data() ?? {};
+      const winnerTeamSnap = winnerTeamRef ? await tx.get(winnerTeamRef) : null;
+      const winnerTeamData = winnerTeamSnap?.data() ?? null;
+      const nextSealedBid: SealedBidState = {
+        ...getSealedBidPatch(freshRoomData),
+        phase: "AWARDED",
+      };
+      const { event, roomPatch } = createAuctionEventPatch(
+        roomRef,
+        freshRoomData,
+        "SEALED_BID_AWARDED",
+        {
+          currentPlayerId: null,
+          timerEndsAt: null,
+          liveBid: null,
+          sealedBid: nextSealedBid,
+        },
+      );
+
+      tx.update(roomRef, {
+        current_player_id: null,
+        timer_ends_at: null,
+        active_bid: null,
+        sealed_bid_phase: "AWARDED",
+        ...roomPatch,
+      });
+
+      if (winnerTeamId && winnerTeamRef && winnerTeamData) {
+        const nextPointBalance =
+          Number(winnerTeamData.point_balance ?? 0) - highestAmount;
+        tx.update(playerRef, {
+          status: "SOLD",
+          team_id: winnerTeamId,
+          sold_price: highestAmount,
+        });
+        tx.update(winnerTeamRef, {
+          point_balance: nextPointBalance,
+        });
+        awardEvent = {
+          ...event,
+          player: {
+            id: playerId,
+            status: "SOLD",
+            team_id: winnerTeamId,
+            sold_price: highestAmount,
+          },
+          team: {
+            id: winnerTeamId,
+            point_balance: nextPointBalance,
+          },
+        };
+        tx.update(roomRef, { last_auction_event: awardEvent });
+        msgContent = `🏆 ${winnerTeamData.name}이 ${playerData.name} 선수를 ${highestAmount}P에 비공개 낙찰!`;
+      } else {
+        tx.update(playerRef, { status: "UNSOLD" });
+        awardEvent = {
+          ...event,
+          player: {
+            id: playerId,
+            status: "UNSOLD",
+            team_id: null,
+            sold_price: null,
+          },
+        };
+        tx.update(roomRef, { last_auction_event: awardEvent });
+        msgContent = `❌ ${playerData.name} 선수 비공개 입찰 포기로 유찰`;
+      }
+    });
+
+    if (awardEvent) {
+      const event = awardEvent as AuctionEventEnvelope;
+      await publishAuctionEvent(event);
+      queueSystemMessage(roomId, msgContent, event.eventId);
+    }
+
+    return { awarded: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "알 수 없는 오류";
+    return { error: message };
+  }
+}
+
 /** 낙찰 처리 (Firestore Transaction) */
 export async function awardPlayer(
   roomId: string,
@@ -906,6 +1412,12 @@ export async function recoverExpiredAuction(
 
     if (timerEndsAt.toMillis() > Date.now()) {
       return { recovered: false };
+    }
+
+    if (normalizeAuctionMode(roomData.auction_mode) === "SEALED_BID") {
+      const result = await lockSealedBidRound(roomId);
+      if (result.error) return result;
+      return { recovered: !!result.locked };
     }
 
     const result = await awardPlayer(roomId, playerId);

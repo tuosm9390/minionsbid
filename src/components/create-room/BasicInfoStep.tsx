@@ -214,6 +214,36 @@ export function BasicInfoStep({
         </div>
       </div>
 
+      <div>
+        <label className="text-sm font-bold text-gray-700 block mb-2">입찰 방식</label>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setBasic((p) => ({ ...p, auctionMode: "OPEN_ASCENDING" }))}
+            className={`border-2 border-black px-4 py-4 text-left ${
+              basic.auctionMode === "OPEN_ASCENDING" ? "bg-minion-yellow" : "bg-white"
+            }`}
+          >
+            <p className="text-sm font-black">실시간 공개 입찰</p>
+            <p className="mt-1 text-xs font-bold text-gray-600">
+              기존 방식처럼 실시간 최고 입찰가를 공개하며 진행합니다.
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBasic((p) => ({ ...p, auctionMode: "SEALED_BID" }))}
+            className={`border-2 border-black px-4 py-4 text-left ${
+              basic.auctionMode === "SEALED_BID" ? "bg-minion-yellow" : "bg-white"
+            }`}
+          >
+            <p className="text-sm font-black">비공개 입찰</p>
+            <p className="mt-1 text-xs font-bold text-gray-600">
+              타이머 종료 후 주최자 공개 전까지 모든 팀의 제출 정보가 숨겨집니다.
+            </p>
+          </button>
+        </div>
+      </div>
+
       <div className="bg-blue-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm text-gray-600 space-y-1">
         <p className="font-bold text-black mb-1">요약</p>
         <p>· 총 {basic.teamCount}팀, 팀당 {basic.membersPerTeam}명</p>
@@ -225,6 +255,12 @@ export function BasicInfoStep({
         </p>
         <p>· 경매 선수 <span className="font-bold text-black">{minPlayers}명</span> 고정 등록</p>
         <p>· 각 팀 시작 포인트: {basic.totalPoints}P</p>
+        <p>
+          · 입찰 방식:{" "}
+          <span className="font-bold text-black">
+            {basic.auctionMode === "SEALED_BID" ? "비공개 입찰" : "실시간 공개 입찰"}
+          </span>
+        </p>
       </div>
     </div>
   );

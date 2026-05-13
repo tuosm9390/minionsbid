@@ -4,9 +4,11 @@ import type {
   Message,
   Player,
   PresenceUser,
+  SealedBidState,
   Team,
 } from '@/features/auction/store/useAuctionStore'
 import type { CaptainMode } from '@/features/auction/utils/roster'
+import type { AuctionMode } from '@/features/auction/utils/auctionMode'
 import {
   getAuctionBidState,
   type AuctionEventEnvelope,
@@ -20,6 +22,7 @@ type FixtureRoom = {
   totalTeams: number
   membersPerTeam: number
   captainMode: CaptainMode
+  auctionMode: AuctionMode
   currentPlayerId: string | null
   timerEndsAt: string | null
   nextAuctionDurationMs: number | null
@@ -35,6 +38,7 @@ type FixtureRoom = {
   presences: PresenceUser[]
   lotteryPlayer: Player | null
   liveBid: LiveBidState | null
+  sealedBid: SealedBidState
   lastAuctionEvent: AuctionEventEnvelope | null
   revision: number
 }
@@ -51,6 +55,7 @@ export type FixtureRoomSnapshot = {
   totalTeams: number
   membersPerTeam: number
   captainMode: CaptainMode
+  auctionMode: AuctionMode
   timerEndsAt: string | null
   createdAt: string
   roomDeleted: boolean
@@ -62,6 +67,7 @@ export type FixtureRoomSnapshot = {
   presences: PresenceUser[]
   lotteryPlayer: Player | null
   liveBid: LiveBidState | null
+  sealedBid: SealedBidState
   lastAuctionEvent: AuctionEventEnvelope | null
   revision: number
 }
@@ -80,6 +86,7 @@ type FixtureCreateRoomPayload = {
   basePoint: number
   membersPerTeam: number
   captainMode?: CaptainMode
+  auctionMode?: AuctionMode
   captains: Array<{
     teamName: string
     name: string
@@ -243,6 +250,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     totalTeams: 2,
     membersPerTeam: 3,
     captainMode: 'COACH_ONLY',
+    auctionMode: 'OPEN_ASCENDING',
     currentPlayerId: null,
     timerEndsAt: null,
     nextAuctionDurationMs: null,
@@ -265,6 +273,17 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     ],
     lotteryPlayer: null,
     liveBid: null,
+    sealedBid: {
+      phase: null,
+      roundId: null,
+      roundNumber: 0,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    },
     lastAuctionEvent: null,
     revision: 1,
   }
@@ -378,6 +397,7 @@ function toSnapshot(room: FixtureRoom): FixtureRoomSnapshot {
     totalTeams: room.totalTeams,
     membersPerTeam: room.membersPerTeam,
     captainMode: room.captainMode,
+    auctionMode: room.auctionMode,
     timerEndsAt: room.timerEndsAt,
     createdAt: room.createdAt,
     roomDeleted: room.roomDeleted,
@@ -389,6 +409,7 @@ function toSnapshot(room: FixtureRoom): FixtureRoomSnapshot {
     presences: clone(room.presences),
     lotteryPlayer: clone(room.lotteryPlayer),
     liveBid: clone(room.liveBid),
+    sealedBid: clone(room.sealedBid),
     lastAuctionEvent: clone(room.lastAuctionEvent),
     revision: room.revision,
   }
@@ -480,6 +501,7 @@ export function createE2EAuctionFixtureRoom(
     totalTeams: payload.totalTeams,
     membersPerTeam: payload.membersPerTeam,
     captainMode: payload.captainMode ?? 'IN_ROSTER',
+    auctionMode: payload.auctionMode ?? 'OPEN_ASCENDING',
     currentPlayerId: null,
     timerEndsAt: null,
     nextAuctionDurationMs: null,
@@ -498,6 +520,17 @@ export function createE2EAuctionFixtureRoom(
     ],
     lotteryPlayer: null,
     liveBid: null,
+    sealedBid: {
+      phase: null,
+      roundId: null,
+      roundNumber: 0,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    },
     lastAuctionEvent: null,
     revision: 1,
   }

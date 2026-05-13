@@ -4,7 +4,9 @@ import { useMemo } from "react";
 import {
   useAuctionStore,
   Player,
+  SealedBidState,
 } from "@/features/auction/store/useAuctionStore";
+import type { AuctionMode } from "@/features/auction/utils/auctionMode";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -22,8 +24,11 @@ interface OrganizerControlPanelProps {
   lotteryPlayer: Player | null;
   isDrawing: boolean;
   allConnected: boolean;
+  auctionMode: AuctionMode;
+  sealedBid: SealedBidState;
   onDraw: () => void;
   onStart: () => void;
+  onRevealSealedBid: () => void;
 }
 
 export function OrganizerControlPanel({
@@ -38,8 +43,11 @@ export function OrganizerControlPanel({
   lotteryPlayer,
   isDrawing,
   allConnected,
+  auctionMode,
+  sealedBid,
   onDraw,
   onStart,
+  onRevealSealedBid,
 }: OrganizerControlPanelProps) {
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const presences = useAuctionStore((s) => s.presences);
@@ -167,6 +175,18 @@ export function OrganizerControlPanel({
                 </span>
               </div>
             </motion.div>
+          ) : auctionMode === "SEALED_BID" &&
+            currentPlayer &&
+            sealedBid.phase === "LOCKED" ? (
+            <motion.button
+              key="sealed-reveal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={onRevealSealedBid}
+              className="w-full h-full pixel-button bg-minion-yellow text-black font-heading text-fluid-xs px-6 uppercase tracking-tighter hover:bg-minion-yellow-hover"
+            >
+              점수공개
+            </motion.button>
           ) : !timerEndsAt && currentPlayer ? (
             <motion.button
               key="start"

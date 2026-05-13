@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { CaptainMode } from '@/features/auction/utils/roster'
+import type { AuctionMode } from '@/features/auction/utils/auctionMode'
 import {
   appendOrderedMessage,
   buildOrderedMessageState,
@@ -55,6 +56,37 @@ export interface LiveBidState {
   created_at: string
 }
 
+export type SealedBidPhase =
+  | null
+  | 'ACTIVE'
+  | 'LOCKED'
+  | 'REVEALING'
+  | 'REVEALED'
+  | 'AWARDED'
+  | 'TIE_REBID'
+
+export interface SealedBidRevealCard {
+  team_id: string
+  team_name: string
+  amount: number
+  is_pass: boolean
+  is_highest: boolean
+  is_tied: boolean
+  eligible: boolean
+}
+
+export interface SealedBidState {
+  phase: SealedBidPhase
+  roundId: string | null
+  roundNumber: number
+  minAmount: number
+  eligibleTeamIds: string[] | null
+  revealOrder: string[]
+  revealResult: SealedBidRevealCard[]
+  highestAmount: number
+  tiedTeamIds: string[]
+}
+
 export interface Message {
   id: string
   event_id?: string
@@ -71,6 +103,7 @@ interface AuctionState {
   role: Role
   teamId: string | null
   captainMode: CaptainMode
+  auctionMode: AuctionMode
 
   // Realtime Data sync
   basePoint: number
@@ -87,6 +120,7 @@ interface AuctionState {
   teams: Team[]
   bids: Bid[]
   liveBid: LiveBidState | null
+  sealedBid: SealedBidState
   players: Player[]
   messagesById: Record<string, Message>
   orderedMessageIds: string[]
@@ -121,6 +155,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   role: null,
   teamId: null,
   captainMode: 'IN_ROSTER',
+  auctionMode: 'OPEN_ASCENDING',
 
   basePoint: 1000,
   totalTeams: 5,
@@ -136,6 +171,17 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   teams: [],
   bids: [],
   liveBid: null,
+  sealedBid: {
+    phase: null,
+    roundId: null,
+    roundNumber: 0,
+    minAmount: 0,
+    eligibleTeamIds: null,
+    revealOrder: [],
+    revealResult: [],
+    highestAmount: 0,
+    tiedTeamIds: [],
+  },
   players: [],
   messagesById: {},
   orderedMessageIds: [],

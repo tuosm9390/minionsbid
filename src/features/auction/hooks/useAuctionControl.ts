@@ -21,6 +21,7 @@ export function useAuctionControl({
 }: UseAuctionControlProps) {
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
   const lotteryPlayer = useAuctionStore(s => s.lotteryPlayer)
+  const auctionMode = useAuctionStore(s => s.auctionMode)
 
   // 1. IN_AUCTION 전환 감지 → 추첨 모달 표시
   // lotteryPlayer는 Zustand store로 관리됨.
@@ -67,6 +68,7 @@ export function useAuctionControl({
   const playersRef = useRef(players)
   playersRef.current = players
   const triggerAward = async (playerId: string) => {
+    if (auctionMode === 'SEALED_BID') return
     if (awardLock.current) return
     const stillActive = playersRef.current.find(
       p => p.id === playerId && p.status === 'IN_AUCTION',
@@ -89,7 +91,12 @@ export function useAuctionControl({
 
   useEffect(() => {
     // ORGANIZER 클라이언트만 직접 자동 낙찰을 시도한다.
-    if (effectiveRole !== 'ORGANIZER' || !timerEndsAt || !roomId) return
+    if (
+      effectiveRole !== 'ORGANIZER' ||
+      auctionMode === 'SEALED_BID' ||
+      !timerEndsAt ||
+      !roomId
+    ) return
 
     // 타이머가 갱신(연장)됐으므로 이전 낙찰 시도의 lock을 초기화
     awardLock.current = false
@@ -109,7 +116,7 @@ export function useAuctionControl({
     }, delay)
 
     return () => { cancelled = true; clearTimeout(t) }
-  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId])
+  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId, auctionMode])
 
   return {
     lotteryPlayer,

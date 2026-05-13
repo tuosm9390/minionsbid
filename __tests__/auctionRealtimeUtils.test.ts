@@ -55,6 +55,17 @@ function createBaseState(): AuctionRealtimeStateSlice {
     currentPlayerId: 'player-1',
     liveBid: null,
     lotteryPlayer: null,
+    sealedBid: {
+      phase: null,
+      roundId: null,
+      roundNumber: 0,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    },
   }
 }
 
@@ -124,6 +135,67 @@ describe('applyAuctionEventToState', () => {
     expect(player?.status).toBe('WAITING')
     expect(player?.team_id).toBeNull()
     expect(player?.sold_price).toBeNull()
+  })
+
+  it('SEALED_BID_STARTED 이벤트는 공개 입찰 liveBid 없이 비공개 라운드를 시작한다', () => {
+    const result = applyAuctionEventToState(
+      createBaseState(),
+      createEvent({
+        type: 'SEALED_BID_STARTED',
+        timerEndsAt: '2026-04-29T00:00:10.000Z',
+        liveBid: {
+          player_id: 'player-1',
+          team_id: 'team-1',
+          amount: 999,
+          created_at: '2026-04-29T00:00:01.000Z',
+        },
+        sealedBid: {
+          phase: 'ACTIVE',
+          roundId: 'round-1',
+          roundNumber: 1,
+          minAmount: 0,
+          eligibleTeamIds: null,
+        },
+      }),
+    )
+
+    expect(result.applied).toBe(true)
+    expect(result.liveBid).toBeNull()
+    expect(result.timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
+    expect(result.sealedBid.phase).toBe('ACTIVE')
+    expect(result.sealedBid.roundId).toBe('round-1')
+  })
+
+  it('SEALED_BID_REVEALED 이벤트는 카드 공개 결과만 반영하고 선수 정본은 확정하지 않는다', () => {
+    const result = applyAuctionEventToState(
+      createBaseState(),
+      createEvent({
+        type: 'SEALED_BID_REVEALED',
+        sealedBid: {
+          phase: 'REVEALING',
+          revealOrder: ['team-1'],
+          revealResult: [
+            {
+              team_id: 'team-1',
+              team_name: 'Blue',
+              amount: 100,
+              is_pass: false,
+              is_highest: true,
+              is_tied: false,
+              eligible: true,
+            },
+          ],
+          highestAmount: 100,
+          tiedTeamIds: ['team-1'],
+        },
+      }),
+    )
+
+    expect(result.applied).toBe(true)
+    expect(result.currentPlayerId).toBe('player-1')
+    expect(result.players[0].status).toBe('IN_AUCTION')
+    expect(result.sealedBid.phase).toBe('REVEALING')
+    expect(result.sealedBid.revealResult[0]?.amount).toBe(100)
   })
 
   it('shared bid eligibility는 canonical active bid 기준으로 선두 여부와 최소 입찰가를 계산한다', () => {

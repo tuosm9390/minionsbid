@@ -11,6 +11,7 @@ import {
   type CaptainMode,
   getAuctionSlotsPerTeam,
 } from "../utils/roster";
+import type { AuctionMode } from "../utils/auctionMode";
 import { getAuctionClientServices } from "../realtime/clientAdapter";
 
 const LS_KEY = "league_auction_rooms";
@@ -23,6 +24,7 @@ export interface BasicInfo {
   teamCount: number;
   membersPerTeam: number;
   captainMode: CaptainMode;
+  auctionMode: AuctionMode;
   totalPoints: number;
   scheduleId: string | null;
   linkedAuctionId: string | null;
@@ -62,6 +64,7 @@ export function useCreateRoom() {
     teamCount: 2,
     membersPerTeam: 5,
     captainMode: "IN_ROSTER",
+    auctionMode: "OPEN_ASCENDING",
     totalPoints: 1000,
     scheduleId: null,
     linkedAuctionId: null,
@@ -170,6 +173,7 @@ export function useCreateRoom() {
       basePoint: basic.totalPoints,
       membersPerTeam: basic.membersPerTeam,
       captainMode: basic.captainMode,
+      auctionMode: basic.auctionMode,
       captains,
       players,
     });
@@ -360,6 +364,7 @@ export function useCreateRoom() {
       teamCount: 5,
       membersPerTeam: 5,
       captainMode: "IN_ROSTER",
+      auctionMode: "OPEN_ASCENDING",
       totalPoints: 1000,
       scheduleId: null,
       linkedAuctionId: null,

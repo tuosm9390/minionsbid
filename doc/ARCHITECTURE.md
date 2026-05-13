@@ -1,7 +1,7 @@
 # 아키텍처 가이드 — Minions Bid
 
 작성일: 2026-03-24
-최근 갱신: 2026-05-07
+최근 갱신: 2026-05-13
 대상: Firebase 기반 실시간 경매 툴
 
 ---
@@ -18,7 +18,7 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - **Realtime Database (RTDB)**: 최신 경매 이벤트와 실시간 메시지를 모든 클라이언트에 빠르게 fanout.
 
 ### 데이터 흐름
-1. **Mutation**: 입찰은 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction으로 먼저 시도하고, 실패하면 기존 Server Action `placeBid`로 fallback한다. 추첨/시작/일시정지/낙찰/유찰/재경매 등 운영 액션은 Server Action을 경유한다.
+1. **Mutation**: 실시간 공개 입찰은 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction으로 먼저 시도하고, 실패하면 기존 Server Action `placeBid`로 fallback한다. 비공개 입찰은 direct bid 예외를 사용하지 않고 전용 Server Action으로 제출/잠금/공개/확정을 처리한다. 추첨/시작/일시정지/낙찰/유찰/재경매 등 운영 액션은 Server Action을 경유한다.
 2. **Validation**: direct bid는 Firebase custom token claim과 `firestore.rules`의 `isBidUpdate()` / `isBidHistoryCreate()`가 최종 검증한다. Server Action 경로는 서버 transaction 안에서 권한, 포인트 잔액, 타이머 유효성, 현재 선두 상태를 검증한다.
 3. **Write**: Firestore room canonical state와 필요한 하위 문서를 업데이트한다.
 4. **Broadcast**: 서버 액션 경로는 RTDB `auctionEvent`를 동기 발행한다. direct bid 경로는 Firestore snapshot을 1차 전파로 사용하고, 비동기 `broadcastBidEvent` Server Action이 RTDB 이벤트 + `last_auction_event` 저장 + 시스템 메시지를 뒤따라 전파한다.
@@ -41,6 +41,7 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - `AuctionWaitingState`: 참여자 대기 및 연결 상태 확인.
 - `LotteryAnimation`: 다음 경매 선수 추첨 (슬롯머신 애니메이션).
 - `ActiveAuction`: 실시간 타이머 및 입찰 컨트롤 활성화.
+- `SealedBidBoard`: 비공개 입찰 제출 중, 잠금, 점수공개 카드 애니메이션을 담당.
 - `AuctionResultModal`: 낙찰 결과 발표 및 팀 배정 확인.
 
 ### 컴포넌트 레이어링
@@ -60,6 +61,14 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - direct bid 실패 시 기존 Server Action `placeBid`로 fallback하여 호환성과 복구 경로를 유지합니다.
 - `bids` 컬렉션은 현재 선두 판정이 아니라 history / audit 용도로 사용합니다.
 - 디버그/검증 계층에서는 `eventId` 기반 latency marker를 사용해 `client-response`, `rtdb`, `room-fallback` 적용 시점을 추적합니다.
+
+### 비공개 입찰 (Sealed Bid)
+- 방 메타의 `auction_mode`가 `SEALED_BID`일 때만 활성화된다. 값이 없으면 기존 공개 입찰인 `OPEN_ASCENDING`으로 취급한다.
+- 비공개 입찰은 `active_bid`, `BID_PLACED`, `placeBidDirect()`를 사용하지 않는다.
+- 제출 데이터는 `rooms/{roomId}/sealed_bid_rounds/{roundId}/submissions/{teamId}`에 저장하고, 타이머 중에는 금액과 제출 여부를 다른 클라이언트에 fanout하지 않는다.
+- room hot state의 `sealed_bid_*` 필드는 라운드 phase, 최소 금액, 재입찰 대상 팀, 공개 카드 결과를 표현한다.
+- `SEALED_BID_REVEALED`는 공개 결과만 확정한다. 선수 SOLD/UNSOLD와 팀 포인트 차감은 카드 애니메이션 완료 후 `SEALED_BID_AWARDED`에서 확정한다.
+- 최고가 동점이면 같은 선수에 대해 최고 동점 팀만 새 비공개 재입찰 라운드를 시작하고, 직전 최고 금액을 최소 금액으로 사용한다.
 
 ### 타이머 (Timer)
 - 서버의 `timerEnds_at` 타임스탬프를 기준으로 각 클라이언트가 로컬에서 카운트다운을 수행합니다.

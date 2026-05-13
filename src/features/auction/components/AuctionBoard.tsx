@@ -16,6 +16,7 @@ import { PlayerInAuction } from "./board/PlayerInAuction";
 import { BidStatus } from "./board/BidStatus";
 import { DraftPanel } from "./board/DraftPanel";
 import { AuctionWaitingState } from "./board/AuctionWaitingState";
+import { SealedBidBoard } from "./board/SealedBidBoard";
 import { useAuctionStore, Player, Role } from "../store/useAuctionStore";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -36,7 +37,7 @@ interface AuctionBoardProps {
   onTimerExpire?: () => void;
 }
 
-type SceneName = "lottery" | "bidding" | "draft" | "finished" | "waiting";
+type SceneName = "lottery" | "bidding" | "sealed" | "draft" | "finished" | "waiting";
 
 const sceneVariants: Record<SceneName, Variants> = {
   waiting: {
@@ -58,6 +59,19 @@ const sceneVariants: Record<SceneName, Variants> = {
     exit: { scale: 1.1, opacity: 0, transition: { duration: 0.3 } },
   },
   bidding: {
+    initial: { y: -30, opacity: 0 },
+    animate: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
+    },
+    exit: {
+      x: 100,
+      opacity: 0,
+      transition: { duration: 0.35, ease: "easeIn" },
+    },
+  },
+  sealed: {
     initial: { y: -30, opacity: 0 },
     animate: {
       y: 0,
@@ -102,6 +116,11 @@ const reducedSceneVariants: Record<SceneName, Variants> = {
     animate: { opacity: 1, transition: { duration: 0.2 } },
     exit: { opacity: 0, transition: { duration: 0.15 } },
   },
+  sealed: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
   draft: {
     initial: { opacity: 0 },
     animate: { opacity: 1, transition: { duration: 0.2 } },
@@ -119,6 +138,8 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const isLocalConnected = useAuctionStore((s) => s.isLocalConnected);
   const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
+  const auctionMode = useAuctionStore((s) => s.auctionMode);
+  const sealedBid = useAuctionStore((s) => s.sealedBid);
 
   const {
     teams,
@@ -159,7 +180,9 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const currentScene: SceneName = props.isLotteryActive
     ? "lottery"
     : currentPlayer
-      ? "bidding"
+      ? auctionMode === "SEALED_BID"
+        ? "sealed"
+        : "bidding"
       : (isAuctionFinished || isAutoDraftMode) &&
           hasDraftablePlayers &&
           !isRoomComplete
@@ -168,7 +191,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
           ? "finished"
           : "waiting";
 
-  const bgStyle = currentScene === "bidding" ? "bg-white" : "bg-gray-50";
+  const bgStyle = currentScene === "bidding" || currentScene === "sealed" ? "bg-white" : "bg-gray-50";
   const activeSceneVariants = shouldReduceMotion
     ? reducedSceneVariants[currentScene]
     : sceneVariants[currentScene];
@@ -307,6 +330,18 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   teamId={teamId}
                 />
               </div>
+            )}
+
+            {currentScene === "sealed" && (
+              <SealedBidBoard
+                roomId={props.roomId}
+                role={props.role}
+                currentPlayer={currentPlayer!}
+                teams={teams}
+                timerEndsAt={timerEndsAt}
+                sealedBid={sealedBid}
+                onTimerExpire={props.onTimerExpire}
+              />
             )}
 
             {currentScene === "draft" && (
