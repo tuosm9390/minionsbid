@@ -1,7 +1,7 @@
 "use client";
 // 비공개 입찰 카드 공개 상태를 표시하는 중앙 보드
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   type Player,
@@ -71,7 +71,7 @@ export function SealedBidBoard({
   onTimerExpire,
 }: SealedBidBoardProps) {
   const [revealedCount, setRevealedCount] = useState(0);
-  const completionKeyRef = useRef<string | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
   const cards = sealedBid.revealResult;
   const revealKey = `${sealedBid.roundId ?? "none"}:${cards.length}`;
 
@@ -91,33 +91,24 @@ export function SealedBidBoard({
     return () => window.clearTimeout(timeoutId);
   }, [cards.length, revealedCount, sealedBid.phase]);
 
-  useEffect(() => {
-    if (
-      role !== "ORGANIZER" ||
-      sealedBid.phase !== "REVEALING" ||
-      cards.length === 0 ||
-      revealedCount < cards.length
-    ) {
-      return;
-    }
-    const completionKey = `${sealedBid.roundId}:${cards.length}:complete`;
-    if (completionKeyRef.current === completionKey) return;
-    completionKeyRef.current = completionKey;
-    const timeoutId = window.setTimeout(() => {
-      void completeSealedBidReveal(roomId);
-    }, 500);
-    return () => window.clearTimeout(timeoutId);
-  }, [
-    cards.length,
-    revealedCount,
-    role,
-    roomId,
-    sealedBid.phase,
-    sealedBid.roundId,
-  ]);
-
   const showCards =
     sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING";
+  const canCompleteReveal =
+    role === "ORGANIZER" &&
+    sealedBid.phase === "REVEALING" &&
+    cards.length > 0 &&
+    revealedCount >= cards.length;
+
+  const handleCompleteReveal = async () => {
+    if (!canCompleteReveal || isCompleting) return;
+    setIsCompleting(true);
+    try {
+      const result = await completeSealedBidReveal(roomId);
+      if (result.error) alert(result.error);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col gap-4">
@@ -175,6 +166,19 @@ export function SealedBidBoard({
               }
             />
           ))}
+        </div>
+      )}
+
+      {canCompleteReveal && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={() => void handleCompleteReveal()}
+            disabled={isCompleting}
+            className="pixel-button bg-minion-yellow text-black h-14 px-10 text-fluid-xs font-heading uppercase tracking-tighter hover:bg-minion-yellow-hover"
+          >
+            {isCompleting ? "반영 중..." : "낙찰 결과 반영"}
+          </button>
         </div>
       )}
     </div>

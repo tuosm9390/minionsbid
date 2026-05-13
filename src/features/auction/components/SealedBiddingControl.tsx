@@ -82,6 +82,35 @@ export function SealedBiddingControl({
     typeof amount === "string" ? parseInt(amount, 10) || 0 : amount;
   const clampedBidAmount = Math.max(minAmount, Math.min(pointBalance, numericAmount));
   const canBidAmount = canSubmit && pointBalance >= minAmount;
+  const inactiveMessage = !currentPlayer
+    ? "다음 선수를 기다리는 중..."
+    : isTeamFull
+      ? "팀 정원이 가득 찼습니다"
+      : !isEligible
+        ? "재입찰 대상이 아닙니다"
+        : sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING"
+          ? "입찰이 마감되었습니다"
+          : "비공개 입찰 대기중...";
+
+  if (!canSubmit) {
+    return (
+      <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+        <div className="bg-black text-white px-4 py-2 mb-0 flex justify-between items-center border-b-4 border-black -mx-5 -mt-5">
+          <span className="text-fluid-xs font-heading uppercase tracking-tighter">
+            SEALED BID PANEL
+          </span>
+          <span className="text-fluid-xs font-bold text-minion-yellow">
+            보유 {pointBalance.toLocaleString()}P
+          </span>
+        </div>
+        <div className="h-14 flex items-center justify-center">
+          <span className="text-fluid-xs font-heading text-gray-500 uppercase">
+            {inactiveMessage}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
@@ -124,19 +153,6 @@ export function SealedBiddingControl({
       )}
 
       <div className="flex gap-3 h-14 relative">
-        {!canSubmit && (
-          <div className="absolute inset-0 z-20 bg-white/95 border-4 border-black flex items-center justify-center">
-            <span className="text-fluid-xs font-heading text-gray-500 uppercase">
-              {!currentPlayer
-                ? "다음 선수를 기다리는 중..."
-                : isTeamFull
-                  ? "팀 정원이 가득 찼습니다"
-                  : !isEligible
-                    ? "재입찰 대상이 아닙니다"
-                    : "비공개 입찰 대기중..."}
-            </span>
-          </div>
-        )}
         <input
           type="number"
           value={amount}
