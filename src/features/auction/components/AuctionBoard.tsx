@@ -21,6 +21,7 @@ import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
+import { cn } from "@/lib/utils";
 
 interface AuctionBoardProps {
   isLotteryActive: boolean;
@@ -261,13 +262,18 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   targetPlayer={props.lotteryPlayer!}
                   onFinished={() => setLotteryDone(true)}
                 />
-                {props.role === "ORGANIZER" && lotteryDone && (
+                {props.role === "ORGANIZER" && (
                   <motion.button
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
+                    animate={{ opacity: lotteryDone ? 1 : 0 }}
+                    transition={{ duration: 0.2 }}
                     onClick={props.onCloseLottery}
-                    className="pixel-button bg-black text-white h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter hover:bg-minion-blue transition-colors flex items-center gap-3"
+                    disabled={!lotteryDone}
+                    aria-hidden={!lotteryDone}
+                    tabIndex={lotteryDone ? 0 : -1}
+                    className={cn(
+                      "pixel-button bg-black text-white h-14 px-12 text-fluid-sm font-heading uppercase tracking-tighter hover:bg-minion-blue transition-colors flex items-center gap-3",
+                      !lotteryDone && "invisible pointer-events-none",
+                    )}
                   >
                     경매 준비
                     <PixelIcon

@@ -105,3 +105,5 @@
 - [x] Run focused lottery tests and production build.
 - [x] Add the drawn player's comment to the lottery result card.
 - [x] Verify the lottery result card change with a production build.
+- [x] Reserve the lottery start button space before lottery completion.
+- [x] Verify the no-layout-shift lottery button change with a production build.
