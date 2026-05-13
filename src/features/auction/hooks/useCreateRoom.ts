@@ -35,6 +35,14 @@ const normalizePosition = (value: string) => {
   return trimmed;
 };
 
+const removeCaptainMarker = (value: string) => {
+  const cleaned = value
+    .replace(/\(?\s*팀장\s*\)?/g, "")
+    .replace(/\[\s*\]/g, "")
+    .trim();
+  return cleaned || value.trim();
+};
+
 export interface BasicInfo {
   title: string;
   teamCount: number;
@@ -257,11 +265,12 @@ export function useCreateRoom() {
           if (rows.length < 2) return;
           const headerRow = Array.from(rows[0], (h) => String(h ?? "").trim());
 
-          let nameCol = 2, tierCol = 3, commentCol = 6;
+          let nameCol = 2, realNameCol = 1, tierCol = 3, commentCol = 6;
           let mainPositionCol = -1, subPositionCol = -1;
           for (let ci = 0; ci < headerRow.length; ci++) {
             const h = headerRow[ci];
             if (h.includes("닉네임")) nameCol = ci;
+            else if (h.includes("본인 이름") || h.includes("성+이름")) realNameCol = ci;
             else if (h.includes("티어") || h.includes("소환사의 협곡")) tierCol = ci;
             else if (h.includes("코멘트") || h.includes("설명") || h.includes("하고 싶은 말")) commentCol = ci;
             else if (h.includes("주라인")) mainPositionCol = ci;
@@ -286,10 +295,12 @@ export function useCreateRoom() {
           }
 
           const parsed: PlayerInfo[] = [];
+          const parsedCaptains: CaptainInfo[] = [];
           for (let ri = 1; ri < rows.length; ri++) {
             const row = rows[ri];
             const name = String(row[nameCol] ?? "").trim();
             if (!name) continue;
+            const realName = String(row[realNameCol] ?? "").trim();
             const tierRaw = String(row[tierCol] ?? "").trim();
             const tier = normalizeTier(tierRaw);
             const description = String(row[commentCol] ?? "").trim();
@@ -304,12 +315,39 @@ export function useCreateRoom() {
                 else if (val === "○" && !subPosition) subPosition = posName;
               });
             }
-            parsed.push({ name, tier, mainPosition: mainPosition || "무관", subPosition: subPosition || "무관", description });
+            const player = { name, tier, mainPosition: mainPosition || "무관", subPosition: subPosition || "무관", description };
+            const isCaptainRow =
+              name.includes("팀장") ||
+              realName.includes("팀장") ||
+              description.trim() === "팀장";
+
+            if (isCaptainRow) {
+              const captainName = removeCaptainMarker(name);
+              parsedCaptains.push({
+                teamName: `${captainName}팀`,
+                name: captainName,
+                position: player.mainPosition,
+                description: player.description,
+                captainPoints: 0,
+              });
+              continue;
+            }
+
+            parsed.push(player);
           }
 
-          if (parsed.length === 0) {
+          if (parsed.length === 0 && parsedCaptains.length === 0) {
             alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
             return;
+          }
+          if (parsedCaptains.length > 0) {
+            setCaptains((prev) => {
+              const next = [...prev];
+              for (let i = 0; i < Math.min(parsedCaptains.length, basic.teamCount); i++) {
+                next[i] = parsedCaptains[i];
+              }
+              return next;
+            });
           }
           const fixed =
             basic.teamCount *
@@ -319,7 +357,7 @@ export function useCreateRoom() {
               ? [...trimmed, ...Array.from({ length: fixed - trimmed.length }, () => ({ name: "", tier: "골드", mainPosition: "탑", subPosition: "무관", description: "" }))]
               : trimmed;
           setPlayers(padded);
-          alert(`${trimmed.length}명의 선수 정보로 목록을 덮어썼습니다.`);
+          alert(`${trimmed.length}명의 선수 정보와 ${Math.min(parsedCaptains.length, basic.teamCount)}명의 팀장 정보로 목록을 덮어썼습니다.`);
         } catch (err) {
           console.error("Excel parse error:", err);
           alert("엑셀 파일 파싱에 실패했습니다.");

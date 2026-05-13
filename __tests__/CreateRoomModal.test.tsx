@@ -15,6 +15,7 @@ const mockXLSXInternal = {
     sheet_to_json: vi.fn().mockReturnValue([
       ["#", "선수명", "닉네임", "티어", "라인", "코멘트", "", "", "", ""], // Header
       [1, "선수1", "Player1", "C", "●", "Description", "", "", "", "●"], // Row 1
+      [2, "팀장1", "Captain팀장", "G", "●", "팀장", "", "", "", ""],
     ]),
   },
 };
@@ -147,5 +148,30 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     await user.click(screen.getByTestId("next-button"));
 
     expect(screen.getByTestId("excel-upload-button")).toBeInTheDocument();
+  });
+
+  it("should use excel rows with captain marker as captain data", async () => {
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+
+    const titleInput = screen.getByTestId("room-title-input");
+    await user.type(titleInput, "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Captain")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Captain팀")).toBeInTheDocument();
+    });
   });
 });
