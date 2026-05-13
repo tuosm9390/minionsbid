@@ -198,11 +198,10 @@ export function LotteryAnimation({
         {/* 선택 슬롯 포인터 */}
         <div className="absolute inset-x-0 top-0 z-30 flex justify-center pointer-events-none">
           <div className="flex flex-col items-center">
-            <div className="relative h-8 w-10 drop-shadow-[4px_4px_0_rgba(0,0,0,0.2)]">
+            <div className="relative h-5 w-7 drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
               <div className="absolute inset-0 bg-black [clip-path:polygon(0_0,100%_0,50%_100%)]" />
-              <div className="absolute left-1/2 top-1 h-5 w-7 -translate-x-1/2 bg-minion-yellow animate-pulse [clip-path:polygon(0_0,100%_0,50%_100%)]" />
+              <div className="absolute left-1/2 top-[3px] h-3 w-5 -translate-x-1/2 bg-minion-yellow animate-pulse [clip-path:polygon(0_0,100%_0,50%_100%)]" />
             </div>
-            <div className="mt-1 h-36 w-1 bg-minion-yellow/25" />
           </div>
         </div>
 
