@@ -135,4 +135,17 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
       expect(playerInput).toBeInTheDocument();
     });
   });
+
+  it("should show excel upload button on captain registration step", async () => {
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+
+    const titleInput = screen.getByTestId("room-title-input");
+    await user.type(titleInput, "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    expect(screen.getByTestId("excel-upload-button")).toBeInTheDocument();
+  });
 });

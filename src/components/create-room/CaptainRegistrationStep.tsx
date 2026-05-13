@@ -2,6 +2,7 @@
 
 import { POSITIONS } from "@/features/auction/constants/room";
 import { CaptainInfo } from "@/features/auction/utils/roomGenerator";
+import { Upload } from "@/components/ui/CyberIcons";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 
 interface CaptainRegistrationStepProps {
@@ -9,6 +10,9 @@ interface CaptainRegistrationStepProps {
   setCaptains: React.Dispatch<React.SetStateAction<CaptainInfo[]>>;
   totalPoints: number;
   openTemplateModal: () => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  handleExcelUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isUploading: boolean;
 }
 
 export function CaptainRegistrationStep({
@@ -16,6 +20,9 @@ export function CaptainRegistrationStep({
   setCaptains,
   totalPoints,
   openTemplateModal,
+  fileInputRef,
+  handleExcelUpload,
+  isUploading,
 }: CaptainRegistrationStepProps) {
   const updateCaptain = (i: number, field: keyof CaptainInfo, value: string | number) => {
     setCaptains((prev) =>
@@ -43,6 +50,10 @@ export function CaptainRegistrationStep({
         <button type="button" onClick={openTemplateModal} className="pixel-button flex items-center gap-1.5 text-purple-700 hover:bg-purple-100 px-3 py-1 text-sm font-bold transition-colors">
           <ThreeDIcon name="cube" alt="테스트 데이터" size={18} />
           테스트 데이터 생성
+        </button>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm,.xls" className="hidden" onChange={handleExcelUpload} />
+        <button type="button" data-testid="excel-upload-button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="pixel-button flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm font-bold transition-colors disabled:opacity-50">
+          <Upload size={14} /> {isUploading ? "처리 중..." : "엑셀 업로드"}
         </button>
       </div>
       {captains.map((captain, i) => (

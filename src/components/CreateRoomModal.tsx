@@ -180,6 +180,9 @@ export function CreateRoomModal() {
                       setCaptains={setCaptains}
                       totalPoints={basic.totalPoints}
                       openTemplateModal={openTemplateModal}
+                      fileInputRef={fileInputRef}
+                      handleExcelUpload={handleExcelUpload}
+                      isUploading={isUploading}
                     />
                   </div>
                 )}

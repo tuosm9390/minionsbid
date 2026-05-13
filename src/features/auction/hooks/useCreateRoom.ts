@@ -19,6 +19,22 @@ const LATENCY_DEBUG =
   process.env.NEXT_PUBLIC_DEBUG_LATENCY === "1" ||
   process.env.DEBUG_LATENCY === "1";
 
+const normalizeTier = (value: string) => {
+  const trimmed = value.trim();
+  if (TIER_MAP[trimmed]) return TIER_MAP[trimmed];
+  if (trimmed === "마스터 이상") return "마스터";
+  if (trimmed === "실버 이하") return "실버";
+  if (trimmed === "플레티넘") return "플래티넘";
+  return trimmed || "언랭";
+};
+
+const normalizePosition = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "상관없음") return "무관";
+  if (trimmed === "서폿") return "서포터";
+  return trimmed;
+};
+
 export interface BasicInfo {
   title: string;
   teamCount: number;
@@ -242,11 +258,14 @@ export function useCreateRoom() {
           const headerRow = Array.from(rows[0], (h) => String(h ?? "").trim());
 
           let nameCol = 2, tierCol = 3, commentCol = 6;
+          let mainPositionCol = -1, subPositionCol = -1;
           for (let ci = 0; ci < headerRow.length; ci++) {
             const h = headerRow[ci];
             if (h.includes("닉네임")) nameCol = ci;
-            else if (h.includes("티어")) tierCol = ci;
-            else if (h.includes("코멘트") || h.includes("설명")) commentCol = ci;
+            else if (h.includes("티어") || h.includes("소환사의 협곡")) tierCol = ci;
+            else if (h.includes("코멘트") || h.includes("설명") || h.includes("하고 싶은 말")) commentCol = ci;
+            else if (h.includes("주라인")) mainPositionCol = ci;
+            else if (h.includes("부라인")) subPositionCol = ci;
           }
 
           const positionColMap = new Map<number, string>();
@@ -272,14 +291,19 @@ export function useCreateRoom() {
             const name = String(row[nameCol] ?? "").trim();
             if (!name) continue;
             const tierRaw = String(row[tierCol] ?? "").trim();
-            const tier = TIER_MAP[tierRaw] ?? "언랭";
+            const tier = normalizeTier(tierRaw);
             const description = String(row[commentCol] ?? "").trim();
             let mainPosition = "", subPosition = "";
-            positionColMap.forEach((posName, colIdx) => {
-              const val = String(row[colIdx] ?? "").trim();
-              if (val === "●" && !mainPosition) mainPosition = posName;
-              else if (val === "○" && !subPosition) subPosition = posName;
-            });
+            if (mainPositionCol >= 0 || subPositionCol >= 0) {
+              mainPosition = normalizePosition(String(row[mainPositionCol] ?? ""));
+              subPosition = normalizePosition(String(row[subPositionCol] ?? ""));
+            } else {
+              positionColMap.forEach((posName, colIdx) => {
+                const val = String(row[colIdx] ?? "").trim();
+                if (val === "●" && !mainPosition) mainPosition = posName;
+                else if (val === "○" && !subPosition) subPosition = posName;
+              });
+            }
             parsed.push({ name, tier, mainPosition: mainPosition || "무관", subPosition: subPosition || "무관", description });
           }
 
