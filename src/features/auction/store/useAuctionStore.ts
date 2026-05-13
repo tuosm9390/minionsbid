@@ -22,6 +22,7 @@ export interface Team {
   name: string
   point_balance: number
   leader_name: string
+  leader_tier?: string
   leader_position: string
   leader_description: string
   captain_points: number

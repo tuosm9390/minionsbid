@@ -17,6 +17,7 @@ import {
 export interface CreateRoomCaptain {
   teamName: string
   name: string
+  tier?: string
   position: string
   description: string
   captainPoints: number
@@ -150,6 +151,7 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
         name: captain.teamName,
         point_balance: payload.basePoint - captain.captainPoints,
         leader_name: captain.name,
+        leader_tier: captain.tier || '',
         leader_position: captain.position,
         leader_description: captain.description || '',
         captain_points: captain.captainPoints || 0,

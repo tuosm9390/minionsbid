@@ -35,9 +35,10 @@ const TeamResultCard = memo(
         buildRosterWithCaptain(soldPlayers.map((p) => ({ ...p, sold_price: p.sold_price })), {
           captainMode,
           leaderName: team.leader_name,
+          leaderTier: team.leader_tier,
           leaderPosition: team.leader_position,
         }),
-      [captainMode, soldPlayers, team.leader_name, team.leader_position],
+      [captainMode, soldPlayers, team.leader_name, team.leader_tier, team.leader_position],
     );
 
     const slots = useMemo(
@@ -117,7 +118,7 @@ const TeamResultCard = memo(
                   </div>
                   {isCaptainSlot ? (
                     <span className="w-16 shrink-0 text-center text-fluid-xs font-black text-minion-blue bg-blue-50 px-1.5 py-0.5 border border-black">
-                      팀장
+                      {player?.tier || "팀장"}
                     </span>
                   ) : player?.sold_price != null ? (
                     <span className="w-16 shrink-0 text-center text-fluid-xs font-black text-minion-red bg-white px-1.5 py-0.5 border border-black tabular-nums">

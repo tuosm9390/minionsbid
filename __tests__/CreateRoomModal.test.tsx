@@ -13,7 +13,7 @@ const mockXLSXInternal = {
   }),
   utils: {
     sheet_to_json: vi.fn().mockReturnValue([
-      ["#", "선수명", "닉네임", "티어", "라인", "코멘트", "", "", "", ""], // Header
+      ["#", "선수 이름", "닉네임", "티어", "라인", "코멘트", "", "", "", ""], // Header
       [1, "선수1", "Player1", "C", "●", "Description", "", "", "", "●"], // Row 1
       [2, "팀장1", "Captain팀장", "G", "●", "팀장", "", "", "", ""],
     ]),
@@ -203,6 +203,40 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("테스트")).toBeInTheDocument();
       expect(screen.getByDisplayValue("테스트팀")).toBeInTheDocument();
+    });
+  });
+
+  it("should use nickname from rows whose real-name column contains captain marker", async () => {
+    mockXLSXInternal.utils.sheet_to_json.mockReturnValueOnce([
+      ["#", "본인 이름 \n(성+이름 정확히)", "롤닉네임#태그", "티어"],
+      [1, "남지석", "남지석닉#KR1", "G"],
+      [2, "이승준(팀장)", "승준닉#KR1", "G"],
+      [3, "이용범(팀장)", "용범닉#KR1", "S"],
+    ]);
+
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+
+    const titleInput = screen.getByTestId("room-title-input");
+    await user.type(titleInput, "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("승준닉#KR1")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("승준닉#KR1팀")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("용범닉#KR1")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("용범닉#KR1팀")).toBeInTheDocument();
     });
   });
 });

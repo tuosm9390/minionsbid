@@ -126,6 +126,7 @@ export function TeamList() {
           {
             captainMode,
             leaderName: team.leader_name,
+            leaderTier: team.leader_tier,
             leaderPosition: team.leader_position,
           },
         );
@@ -250,9 +251,7 @@ export function TeamList() {
                     <span
                       className={`text-fluid-xs font-heading mt-1 ${TIER_COLOR[p.tier] ?? "text-gray-500"}`}
                     >
-                      {p.sold_price == null
-                        ? `팀장${p.main_position ? ` · ${p.main_position}` : ""}`
-                        : p.tier}
+                      {p.tier}
                     </span>
                   </div>
                   <div className="flex flex-col items-end">

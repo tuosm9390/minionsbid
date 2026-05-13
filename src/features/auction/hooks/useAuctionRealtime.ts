@@ -69,6 +69,7 @@ interface FirestoreTeamData {
   name?: string
   point_balance?: number
   leader_name?: string
+  leader_tier?: string
   leader_position?: string
   leader_description?: string
   captain_points?: number
@@ -511,6 +512,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             name: td.name ?? '',
             point_balance: td.point_balance ?? 0,
             leader_name: td.leader_name ?? '',
+            leader_tier: td.leader_tier ?? '',
             leader_position: td.leader_position ?? '',
             leader_description: td.leader_description ?? '',
             captain_points: td.captain_points ?? 0,

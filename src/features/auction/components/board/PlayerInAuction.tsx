@@ -12,6 +12,11 @@ interface PlayerInAuctionProps {
 }
 
 export function PlayerInAuction({ player }: PlayerInAuctionProps) {
+  const eventGameRows = [
+    { label: "무작위 총력전", value: player.aram_tier },
+    { label: "전략적 팀 전투", value: player.tft_tier },
+  ].filter((row) => row.value);
+
   return (
     <div
       className="flex-1 flex flex-col items-center justify-center bg-white border-[6px] border-black p-4 relative overflow-hidden shadow-pixel"
@@ -73,6 +78,24 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
             </span>
           </div>
         </div>
+
+        {eventGameRows.length > 0 && (
+          <div className="grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+            {eventGameRows.map((row) => (
+              <div
+                key={row.label}
+                className="border-2 border-black bg-white px-3 py-2 text-left shadow-pixel-sm"
+              >
+                <p className="text-[10px] font-black uppercase text-gray-500">
+                  {row.label}
+                </p>
+                <p className="mt-1 text-fluid-xs font-black text-black break-words">
+                  {row.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {player.description && (
           <div className="bg-minion-yellow/10 p-3 border-4 border-dashed border-black/10 w-full max-w-lg text-center relative">

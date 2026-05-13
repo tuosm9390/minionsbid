@@ -90,6 +90,7 @@ type FixtureCreateRoomPayload = {
   captains: Array<{
     teamName: string
     name: string
+    tier?: string
     position: string
     description: string
     captainPoints: number
@@ -177,9 +178,10 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       room_id: roomId,
       name: 'Blue',
       point_balance: 1000,
-      leader_name: 'Blue Leader',
-      leader_position: 'TOP',
-      leader_description: '',
+    leader_name: 'Blue Leader',
+    leader_tier: '팀장',
+    leader_position: 'TOP',
+    leader_description: '',
       captain_points: 0,
     },
     {
@@ -187,9 +189,10 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       room_id: roomId,
       name: 'Red',
       point_balance: 1000,
-      leader_name: 'Red Leader',
-      leader_position: 'JGL',
-      leader_description: '',
+    leader_name: 'Red Leader',
+    leader_tier: '팀장',
+    leader_position: 'JGL',
+    leader_description: '',
       captain_points: 0,
     },
   ]
@@ -474,6 +477,7 @@ export function createE2EAuctionFixtureRoom(
     name: captain.teamName,
     point_balance: payload.basePoint - captain.captainPoints,
     leader_name: captain.name,
+    leader_tier: captain.tier || '',
     leader_position: captain.position,
     leader_description: captain.description || '',
     captain_points: captain.captainPoints || 0,

@@ -11,6 +11,7 @@ import { type CaptainMode, getAuctionSlotsPerTeam } from "./roster";
 export interface CaptainInfo {
   teamName: string;
   name: string;
+  tier?: string;
   position: string;
   description: string;
   captainPoints: number;

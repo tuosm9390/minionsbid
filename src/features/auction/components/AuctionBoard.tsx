@@ -37,7 +37,13 @@ interface AuctionBoardProps {
   onTimerExpire?: () => void;
 }
 
-type SceneName = "lottery" | "bidding" | "sealed" | "draft" | "finished" | "waiting";
+type SceneName =
+  | "lottery"
+  | "bidding"
+  | "sealed"
+  | "draft"
+  | "finished"
+  | "waiting";
 
 const sceneVariants: Record<SceneName, Variants> = {
   waiting: {
@@ -191,7 +197,10 @@ export function AuctionBoard(props: AuctionBoardProps) {
           ? "finished"
           : "waiting";
 
-  const bgStyle = currentScene === "bidding" || currentScene === "sealed" ? "bg-white" : "bg-gray-50";
+  const bgStyle =
+    currentScene === "bidding" || currentScene === "sealed"
+      ? "bg-white"
+      : "bg-gray-50";
   const activeSceneVariants = shouldReduceMotion
     ? reducedSceneVariants[currentScene]
     : sceneVariants[currentScene];
