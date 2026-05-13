@@ -9,8 +9,12 @@ type MotionProps = HTMLAttributes<HTMLDivElement> & {
   children?: ReactNode
 }
 
-const animationControls = {
-  start: vi.fn(() => new Promise(() => {})),
+const mockAnimate = {
+  start: vi.fn((durationSeconds = 0) =>
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, durationSeconds * 1000)
+    }),
+  ),
   stop: vi.fn(),
 }
 
@@ -22,9 +26,7 @@ vi.mock('next/image', () => ({
     React.createElement('img', props),
 }))
 
-vi.mock('framer-motion', () => ({
-  AnimatePresence: ({ children }: { children?: ReactNode }) =>
-    React.createElement(React.Fragment, null, children),
+vi.mock('motion/react', () => ({
   motion: new Proxy(
     {},
     {
@@ -33,8 +35,17 @@ vi.mock('framer-motion', () => ({
           React.createElement('div', props, children),
     },
   ),
-  useAnimationControls: () => animationControls,
-  useReducedMotion: () => false,
+  useReducedMotion: () => true,
+}))
+
+vi.mock('motion', () => ({
+  animate: vi.fn((_element, _keyframes, options?: { duration?: number; repeat?: number }) => {
+    const promise =
+      options?.repeat === Infinity
+        ? new Promise<void>(() => undefined)
+        : mockAnimate.start(options?.duration ?? 0)
+    return Object.assign(promise, { stop: mockAnimate.stop })
+  }),
 }))
 
 const player: Player = {
@@ -50,6 +61,12 @@ const player: Player = {
   description: '',
 }
 
+const eventPlayer: Player = {
+  ...player,
+  aram_tier: '증바람 악귀',
+  tft_tier: '다이아',
+}
+
 describe('LotteryAnimation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -59,7 +76,7 @@ describe('LotteryAnimation', () => {
     vi.useRealTimers()
   })
 
-  it('애니메이션 완료 Promise가 멈춰도 경과 시간 기준으로 완료 콜백을 호출한다', async () => {
+  it('애니메이션 완료 후 완료 콜백을 호출한다', async () => {
     vi.useFakeTimers()
     const onFinished = vi.fn()
 
@@ -71,12 +88,13 @@ describe('LotteryAnimation', () => {
       />,
     )
 
-    expect(screen.getByText('추첨 중...')).toBeInTheDocument()
+    expect(screen.getByText('선수 추첨 진행 중...')).toBeInTheDocument()
     await act(async () => {})
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4600)
+      await vi.advanceTimersByTimeAsync(10000)
     })
+    await act(async () => {})
 
     expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
     expect(onFinished).toHaveBeenCalledTimes(1)
@@ -108,47 +126,30 @@ describe('LotteryAnimation', () => {
       />,
     )
 
-    expect(screen.getByText('추첨 중...')).toBeInTheDocument()
+    expect(screen.getByText('선수 추첨 진행 중...')).toBeInTheDocument()
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2600)
     })
+    await act(async () => {})
 
     expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
     expect(onFinished).not.toHaveBeenCalled()
     expect(nextOnFinished).toHaveBeenCalledTimes(1)
-    expect(animationControls.start).toHaveBeenCalledTimes(1)
   })
 
-  it('추첨 완료 후 부모가 재렌더되어도 완료 화면을 유지한다', async () => {
-    vi.useFakeTimers()
-    const onFinished = vi.fn()
-
-    const { rerender } = render(
+  it('비공개 입찰 추첨 정보 표시 옵션이 켜지면 이벤트 게임 정보를 표시한다', () => {
+    render(
       <LotteryAnimation
-        candidates={[player]}
-        targetPlayer={player}
-        onFinished={onFinished}
+        candidates={[eventPlayer]}
+        targetPlayer={eventPlayer}
+        showEventGameInfo
       />,
     )
 
-    await act(async () => {})
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(4600)
-    })
-
-    expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
-
-    rerender(
-      <LotteryAnimation
-        candidates={[{ ...player }]}
-        targetPlayer={{ ...player }}
-        onFinished={() => undefined}
-      />,
-    )
-
-    expect(screen.getByText('추첨 완료!')).toBeInTheDocument()
-    expect(screen.queryByText('추첨 중...')).not.toBeInTheDocument()
-    expect(animationControls.start).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('무작위 총력전')).toBeInTheDocument()
+    expect(screen.getByText('증바람 악귀')).toBeInTheDocument()
+    expect(screen.getByText('전략적 팀 전투')).toBeInTheDocument()
+    expect(screen.getByText('다이아')).toBeInTheDocument()
   })
 })

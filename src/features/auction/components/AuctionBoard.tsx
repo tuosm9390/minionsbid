@@ -284,6 +284,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                 <LotteryAnimation
                   candidates={props.waitingPlayers}
                   targetPlayer={props.lotteryPlayer!}
+                  showEventGameInfo={auctionMode === "SEALED_BID"}
                   onFinished={() => setLotteryDone(true)}
                 />
                 {props.role === "ORGANIZER" && (

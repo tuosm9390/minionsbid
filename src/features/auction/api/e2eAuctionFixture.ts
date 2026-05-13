@@ -100,6 +100,8 @@ type FixtureCreateRoomPayload = {
     mainPosition: string
     subPosition: string
     description: string
+    aramTier?: string
+    tftTier?: string
   }>
 }
 
@@ -492,6 +494,8 @@ export function createE2EAuctionFixtureRoom(
     team_id: null,
     sold_price: null,
     description: player.description || '',
+    aram_tier: player.aramTier || '',
+    tft_tier: player.tftTier || '',
   }))
 
   const room: FixtureRoom = {

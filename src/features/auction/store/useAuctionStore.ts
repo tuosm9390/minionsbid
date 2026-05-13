@@ -38,6 +38,8 @@ export interface Player {
   team_id: string | null
   sold_price: number | null
   description: string
+  aram_tier?: string
+  tft_tier?: string
 }
 
 export interface Bid {

@@ -19,6 +19,7 @@ import { CheckedBoxBlue, DiceCube } from "@/components/ui/CyberIcons";
 interface LotteryAnimationProps {
   candidates: Player[];
   targetPlayer: Player;
+  showEventGameInfo?: boolean;
   onFinished?: () => void;
 }
 
@@ -30,6 +31,7 @@ const TOTAL_BOX_COUNT = 40; // 벨트 위에 생성할 총 상자 수
 export function LotteryAnimation({
   candidates,
   targetPlayer,
+  showEventGameInfo = false,
   onFinished,
 }: LotteryAnimationProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -45,6 +47,8 @@ export function LotteryAnimation({
   const onFinishedRef = useRef(onFinished);
   const targetPlayerId = targetPlayer.id;
   const targetPlayerComment = targetPlayer.description.trim();
+  const hasEventGameInfo =
+    showEventGameInfo && (targetPlayer.aram_tier || targetPlayer.tft_tier);
 
   // 애니메이션 설정값
   const spinDuration = E2E_AUCTION_FIXTURE
@@ -302,6 +306,22 @@ export function LotteryAnimation({
           <p className="border-t-2 border-black pt-3 text-sm font-bold leading-relaxed text-gray-700 break-words">
             &quot;{targetPlayerComment}&quot;
           </p>
+        )}
+        {hasEventGameInfo && (
+          <div className="grid gap-2 border-t-2 border-black pt-3 text-sm font-bold text-gray-700">
+            {targetPlayer.aram_tier && (
+              <div className="flex items-center justify-between gap-4">
+                <span>무작위 총력전</span>
+                <span className="text-right text-black">{targetPlayer.aram_tier}</span>
+              </div>
+            )}
+            {targetPlayer.tft_tier && (
+              <div className="flex items-center justify-between gap-4">
+                <span>전략적 팀 전투</span>
+                <span className="text-right text-black">{targetPlayer.tft_tier}</span>
+              </div>
+            )}
+          </div>
         )}
       </motion.div>
 

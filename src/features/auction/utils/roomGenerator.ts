@@ -22,6 +22,8 @@ export interface PlayerInfo {
   mainPosition: string;
   subPosition: string;
   description: string;
+  aramTier?: string;
+  tftTier?: string;
 }
 
 export function generateKoreanName(usedNames: Set<string>): string {

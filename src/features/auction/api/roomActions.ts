@@ -28,6 +28,8 @@ export interface CreateRoomPlayer {
   mainPosition: string
   subPosition: string
   description: string
+  aramTier?: string
+  tftTier?: string
 }
 
 export interface CreateRoomPayload {
@@ -173,6 +175,8 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
         main_position: player.mainPosition,
         sub_position: player.subPosition || '',
         description: player.description || '',
+        aram_tier: player.aramTier || '',
+        tft_tier: player.tftTier || '',
         status: 'WAITING',
         team_id: null,
         sold_price: null,

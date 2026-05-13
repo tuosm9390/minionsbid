@@ -83,6 +83,8 @@ interface FirestorePlayerData {
   team_id?: string | null
   sold_price?: number | null
   description?: string
+  aram_tier?: string
+  tft_tier?: string
   room_id?: string
 }
 
@@ -536,6 +538,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             team_id: pd.team_id ?? null,
             sold_price: pd.sold_price ?? null,
             description: pd.description ?? '',
+            aram_tier: pd.aram_tier ?? '',
+            tft_tier: pd.tft_tier ?? '',
           }
         })
         const state = useAuctionStore.getState()

@@ -266,12 +266,15 @@ export function useCreateRoom() {
           const headerRow = Array.from(rows[0], (h) => String(h ?? "").trim());
 
           let nameCol = 2, realNameCol = 1, tierCol = 3, commentCol = 6;
+          let aramTierCol = -1, tftTierCol = -1;
           let mainPositionCol = -1, subPositionCol = -1;
           for (let ci = 0; ci < headerRow.length; ci++) {
             const h = headerRow[ci];
             if (h.includes("닉네임")) nameCol = ci;
             else if (h.includes("본인 이름") || h.includes("성+이름")) realNameCol = ci;
             else if (h.includes("티어") || h.includes("소환사의 협곡")) tierCol = ci;
+            else if (h.includes("무작위 총력전")) aramTierCol = ci;
+            else if (h.includes("전략적 팀 전투")) tftTierCol = ci;
             else if (h.includes("코멘트") || h.includes("설명") || h.includes("하고 싶은 말")) commentCol = ci;
             else if (h.includes("주라인")) mainPositionCol = ci;
             else if (h.includes("부라인")) subPositionCol = ci;
@@ -304,6 +307,8 @@ export function useCreateRoom() {
             const tierRaw = String(row[tierCol] ?? "").trim();
             const tier = normalizeTier(tierRaw);
             const description = String(row[commentCol] ?? "").trim();
+            const aramTier = aramTierCol >= 0 ? String(row[aramTierCol] ?? "").trim() : "";
+            const tftTier = tftTierCol >= 0 ? String(row[tftTierCol] ?? "").trim() : "";
             let mainPosition = "", subPosition = "";
             if (mainPositionCol >= 0 || subPositionCol >= 0) {
               mainPosition = normalizePosition(String(row[mainPositionCol] ?? ""));
@@ -315,7 +320,7 @@ export function useCreateRoom() {
                 else if (val === "○" && !subPosition) subPosition = posName;
               });
             }
-            const player = { name, tier, mainPosition: mainPosition || "무관", subPosition: subPosition || "무관", description };
+            const player = { name, tier, mainPosition: mainPosition || "무관", subPosition: subPosition || "무관", description, aramTier, tftTier };
             const isCaptainRow =
               name.includes("팀장") ||
               realName.includes("팀장") ||
