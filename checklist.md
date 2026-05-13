@@ -99,3 +99,7 @@
 - [x] Reuse the same How to Play image mapping on the home page and help modal.
 - [x] Remove ad-hoc PixelIcon stroke/rendering overrides so default icon styling is preserved.
 - [x] Run focused icon tests and production build after the Fluent Emoji update.
+- [x] Inspect the lottery conveyor selection marker implementation.
+- [x] Replace the rounded center marker with a triangular pointer.
+- [x] Align the pointer to the selected card center using the same selected-slot geometry.
+- [x] Run focused lottery tests and production build.

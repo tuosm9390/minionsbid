@@ -116,3 +116,7 @@
 - Updated the home page and HowToUseModal to render `ThreeDIcon` for those guide steps. Other page portal icons remain SVG icons because they are not part of the How to Play guide.
 - Removed `PixelIcon`'s default stroke-width override and `shapeRendering: crispEdges`, changed local SVG defaults to a neutral round stroke, and removed explicit `strokeWidth={4}` usage from visible UI.
 - Verification passed: `npm run test -- src/components/ui/PixelIcon.test.tsx` and `npm run build`.
+- New request: in the lottery screen, the selected-item marker above the conveyor should change from a rounded half-circle to a clear triangular pointer.
+- The marker must align with the actual selected item center. The track already stops with `targetX = -(targetIndex * BOX_WIDTH) + (containerWidth / 2 - BOX_WIDTH / 2)`, so the selected card center is the conveyor container center after the animation settles. Keep any position calculation tied to that geometry instead of a hard-coded item offset.
+- Implemented the marker as a centered triangular pointer overlay using `inset-x-0` + `justify-center`, avoiding the previous `left-1/2` transform marker. The track target calculation now uses `SELECTED_ITEM_CENTER_OFFSET` so the selected item center math is explicit.
+- Verification: `npm run test -- __tests__/LotteryAnimation.test.tsx` currently fails because the test mocks the old `framer-motion` API and expects stale text, while the component imports `motion/react` and renders `선수 추첨 진행 중...`. `npm run build` passed after the UI change.
