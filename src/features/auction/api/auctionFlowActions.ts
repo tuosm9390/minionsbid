@@ -87,6 +87,10 @@ type SealedBidRoundOptions = {
   durationMs?: number;
 };
 
+type PresenceRecord = {
+  role?: string | null;
+};
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -181,6 +185,18 @@ function createAuctionEventPatch(
       last_auction_event: event,
     },
   };
+}
+
+function getPresenceRole(sessionId: string, record: PresenceRecord): string | null {
+  if (record.role === "ORGANIZER" || record.role === "LEADER") {
+    return record.role;
+  }
+
+  const parts = sessionId.split(":");
+  const roleFromSessionId = parts.length >= 4 ? parts[2] : null;
+  return roleFromSessionId === "ORGANIZER" || roleFromSessionId === "LEADER"
+    ? roleFromSessionId
+    : null;
 }
 
 function toTimestamp(value: admin.firestore.Timestamp | null | undefined) {
@@ -398,12 +414,16 @@ export async function drawNextPlayer(
       const presenceSnap = await rtdb.ref(`presence/${roomId}`).get();
       const presenceData = presenceSnap.val() as Record<
         string,
-        { role: string }
+        PresenceRecord
       > | null;
-      const presences = presenceData ? Object.values(presenceData) : [];
+      const presenceRoles = presenceData
+        ? Object.entries(presenceData).map(([sessionId, record]) =>
+            getPresenceRole(sessionId, record),
+          )
+        : [];
 
-      organizerCount = presences.filter((p) => p.role === "ORGANIZER").length;
-      leaderCount = presences.filter((p) => p.role === "LEADER").length;
+      organizerCount = presenceRoles.filter((role) => role === "ORGANIZER").length;
+      leaderCount = presenceRoles.filter((role) => role === "LEADER").length;
       if (organizerCount >= 1 && leaderCount >= 2) break;
       if (attempt < 2) await sleep(350);
     }
