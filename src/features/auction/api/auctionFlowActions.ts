@@ -87,6 +87,10 @@ type SealedBidRoundOptions = {
   durationMs?: number;
 };
 
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ---------- 내부 헬퍼 ----------
 
 async function sysMsg(
@@ -378,12 +382,19 @@ export async function drawNextPlayer(
 
     // 1. 참여 인원 검증 (주최자 1명 + 리더 최소 2명 = 최소 3명)
     const { rtdb } = getAuctionServerServices();
-    const presenceSnap = await rtdb.ref(`presence/${roomId}`).get();
-    const presenceData = presenceSnap.val() as Record<string, { role: string }> | null;
-    const presences = presenceData ? Object.values(presenceData) : [];
-    
-    const organizerCount = presences.filter(p => p.role === 'ORGANIZER').length;
-    const leaderCount = presences.filter(p => p.role === 'LEADER').length;
+    let organizerCount = 0;
+    let leaderCount = 0;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const presenceSnap = await rtdb.ref(`presence/${roomId}`).get();
+      const presenceData = presenceSnap.val() as Record<string, { role: string }> | null;
+      const presences = presenceData ? Object.values(presenceData) : [];
+
+      organizerCount = presences.filter(p => p.role === 'ORGANIZER').length;
+      leaderCount = presences.filter(p => p.role === 'LEADER').length;
+      if (organizerCount >= 1 && leaderCount >= 2) break;
+      if (attempt < 2) await sleep(350);
+    }
     
     if (organizerCount < 1 || leaderCount < 2) {
       return { error: `경매를 시작하려면 주최자 1명과 최소 2명의 리더가 필요합니다. (현재 주최자: ${organizerCount}, 리더: ${leaderCount})` };

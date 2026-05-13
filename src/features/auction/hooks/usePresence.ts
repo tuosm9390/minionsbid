@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { ref, set, onDisconnect, onValue, serverTimestamp } from 'firebase/database'
 import { useAuctionStore, type PresenceUser } from '../store/useAuctionStore'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
@@ -29,6 +29,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setPresenceLoaded = useAuctionStore(s => s.setPresenceLoaded)
   const setLocalConnected = useAuctionStore(s => s.setLocalConnected)
+  const localPresenceRef = useRef<PresenceUser | null>(null)
 
   useEffect(() => {
     if (!roomId) return
@@ -81,8 +82,13 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
             role,
             connectedAt: serverTimestamp(),
           }
-          set(myPresenceRef, record)
           onDisconnect(myPresenceRef).remove()
+          await set(myPresenceRef, record)
+          if (cancelled) return
+          localPresenceRef.current = {
+            teamId: teamId ?? null,
+            role: role as PresenceUser['role'],
+          }
         }
 
         // 3. 전체 presence 구독 (모든 역할 수행, FR-001)
@@ -93,7 +99,8 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
           setPresenceLoaded(true)
 
           if (!data) {
-            setRealtimeData({ presences: [] })
+            const localPresence = localPresenceRef.current
+            setRealtimeData({ presences: localPresence ? [localPresence] : [] })
             return
           }
           const presences: PresenceUser[] = Object.values(
@@ -102,7 +109,19 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
             teamId: p.teamId ?? null,
             role: (p.role as PresenceUser['role']) ?? null,
           }))
-          setRealtimeData({ presences })
+          const localPresence = localPresenceRef.current
+          const hasLocalPresence =
+            !localPresence ||
+            presences.some(
+              (presence) =>
+                presence.role === localPresence.role &&
+                presence.teamId === localPresence.teamId,
+            )
+          setRealtimeData({
+            presences: hasLocalPresence || !localPresence
+              ? presences
+              : [...presences, localPresence],
+          })
         })
         unsubs.push(unsubPresence)
       } catch (error) {
@@ -118,6 +137,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
       if (myPresenceRef) {
         set(myPresenceRef, null)
       }
+      localPresenceRef.current = null
       unsubs.forEach((unsub) => unsub())
     }
   }, [roomId, teamId, role, teamName, setRealtimeData, setPresenceLoaded, setLocalConnected])

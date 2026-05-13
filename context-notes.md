@@ -8,3 +8,5 @@
 - 비공개 제출은 RTDB 이벤트를 발행하지 않는다. 이벤트는 시작, 잠금, 점수공개, 확정, 재입찰 시작 단계에만 발행한다.
 - `useAuctionControl()`의 공개 입찰 자동 낙찰 타이머는 비공개 입찰 방에서 실행되지 않도록 차단했다. 비공개 방의 만료는 `lockSealedBidRound()`와 `recoverExpiredAuction()`의 mode 분기가 담당한다.
 - 검증 중 `npm run test` 전체 실행은 기존 공개 입찰 컨트롤 기대값 1건과 LotteryAnimation 텍스트 매칭 3건에서 실패했다. 이번 변경 파일이 아닌 `useBiddingControl.ts`와 `LotteryAnimation.tsx` 동작/테스트의 기존 불일치로 보이며, 관련 변경 범위의 `auctionRealtimeUtils`, `auctionActions`, `useAuctionControl` 테스트는 통과했다.
+- 비공개 입찰 제출 문서는 Firestore rules에서 클라이언트 직접 read/write를 모두 차단한다. 제출과 집계는 Admin SDK Server Action만 담당한다.
+- 방 생성 직후 주최자 입장에서는 RTDB presence write와 서버 draw 검증 사이의 전파 지연이 발생할 수 있다. 클라이언트 store에는 자기 presence를 snapshot과 병합하고, 서버 draw 검증은 짧은 재시도로 RTDB 전파 지연을 흡수한다.

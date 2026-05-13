@@ -138,6 +138,32 @@ async function main() {
   }
 
   checks.push(
+    await expectDenied("sealed_bid_rounds list denied", async () => {
+      await getDocs(
+        query(collection(clientDb, "rooms", targetRoomId, "sealed_bid_rounds"), limit(5))
+      );
+    })
+  );
+
+  checks.push(
+    await expectDenied("sealed_bid_round submissions list denied", async () => {
+      await getDocs(
+        query(
+          collection(
+            clientDb,
+            "rooms",
+            targetRoomId,
+            "sealed_bid_rounds",
+            "smoke-round",
+            "submissions",
+          ),
+          limit(5),
+        )
+      );
+    })
+  );
+
+  checks.push(
     await expectDenied("rooms top-level list denied", async () => {
       await getDocs(query(collection(clientDb, "rooms"), limit(5)));
     })
