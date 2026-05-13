@@ -152,4 +152,20 @@ describe('LotteryAnimation', () => {
     expect(screen.getByText('전략적 팀 전투')).toBeInTheDocument()
     expect(screen.getByText('다이아')).toBeInTheDocument()
   })
+
+  it('플레티넘 티어는 플래티넘 이미지로 표시한다', () => {
+    render(
+      <LotteryAnimation
+        candidates={[{ ...player, tier: '플레티넘' }]}
+        targetPlayer={{ ...player, tier: '플레티넘' }}
+      />,
+    )
+
+    expect(screen.getAllByAltText('플레티넘')).not.toHaveLength(0)
+    screen
+      .getAllByAltText('플레티넘')
+      .forEach((image) =>
+        expect(image).toHaveAttribute('src', '/Rank=Platinum.png'),
+      )
+  })
 })

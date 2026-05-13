@@ -5,6 +5,7 @@
     마스터: "Master",
     다이아: "Diamond",
     에메랄드: "Emerald",
+    플레티넘: "Platinum",
     플래티넘: "Platinum",
     골드: "Gold",
     실버: "Silver",
