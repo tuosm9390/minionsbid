@@ -98,6 +98,11 @@ export function SealedBidBoard({
     sealedBid.phase === "REVEALING" &&
     cards.length > 0 &&
     revealedCount >= cards.length;
+  const tierRows = [
+    { label: "소환사의 협곡", value: currentPlayer.tier },
+    { label: "무작위 총력전", value: currentPlayer.aram_tier },
+    { label: "전략적 팀 전투", value: currentPlayer.tft_tier },
+  ].filter((row) => row.value);
 
   const handleCompleteReveal = async () => {
     if (!canCompleteReveal || isCompleting) return;
@@ -129,6 +134,23 @@ export function SealedBidBoard({
         <h2 className="mt-1 text-fluid-lg font-black text-black">
           {currentPlayer.name}
         </h2>
+        {tierRows.length > 0 && (
+          <div className="mx-auto mt-3 grid max-w-xl gap-2 text-left sm:grid-cols-3">
+            {tierRows.map((row) => (
+              <div
+                key={row.label}
+                className="border-2 border-black bg-white px-3 py-2"
+              >
+                <p className="text-[10px] font-black uppercase text-gray-500">
+                  {row.label}
+                </p>
+                <p className="mt-1 text-sm font-black text-black break-words">
+                  {row.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
         {sealedBid.minAmount > 0 && (
           <p className="mt-2 text-fluid-xs font-bold text-minion-red">
             재입찰 최소 금액 {sealedBid.minAmount.toLocaleString()}P
