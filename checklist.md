@@ -103,3 +103,5 @@
 - [x] Replace the rounded center marker with a triangular pointer.
 - [x] Align the pointer to the selected card center using the same selected-slot geometry.
 - [x] Run focused lottery tests and production build.
+- [x] Add the drawn player's comment to the lottery result card.
+- [x] Verify the lottery result card change with a production build.

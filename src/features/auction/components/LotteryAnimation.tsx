@@ -43,6 +43,7 @@ export function LotteryAnimation({
   const finishHandledRef = useRef(false);
   const onFinishedRef = useRef(onFinished);
   const targetPlayerId = targetPlayer.id;
+  const targetPlayerComment = targetPlayer.description.trim();
 
   // 애니메이션 설정값
   const spinDuration = E2E_AUCTION_FIXTURE
@@ -272,29 +273,36 @@ export function LotteryAnimation({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={hasFinished ? { opacity: 1, y: 0 } : { opacity: 0 }}
-        className="flex items-center gap-6 p-4 bg-white border-4 border-black shadow-pixel"
+        className="flex max-w-md flex-col gap-3 p-4 bg-white border-4 border-black shadow-pixel"
       >
-        <div className="w-20 h-20 relative border-2 border-black p-1 bg-minion-blue/5">
-          <Image
-            src={getTierImage(targetPlayer.tier)}
-            alt={targetPlayer.tier}
-            fill
-            className="object-contain pixelated"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xl font-heading text-black">
-            {targetPlayer.name}
-          </span>
-          <div className="flex gap-2">
-            <span className="px-2 py-0.5 bg-black text-white text-xs font-pixel">
-              {targetPlayer.tier}
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 relative border-2 border-black p-1 bg-minion-blue/5">
+            <Image
+              src={getTierImage(targetPlayer.tier)}
+              alt={targetPlayer.tier}
+              fill
+              className="object-contain pixelated"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xl font-heading text-black">
+              {targetPlayer.name}
             </span>
-            <span className="px-2 py-0.5 bg-minion-blue text-white text-xs font-pixel">
-              {targetPlayer.main_position}
-            </span>
+            <div className="flex gap-2">
+              <span className="px-2 py-0.5 bg-black text-white text-xs font-pixel">
+                {targetPlayer.tier}
+              </span>
+              <span className="px-2 py-0.5 bg-minion-blue text-white text-xs font-pixel">
+                {targetPlayer.main_position}
+              </span>
+            </div>
           </div>
         </div>
+        {targetPlayerComment && (
+          <p className="border-t-2 border-black pt-3 text-sm font-bold leading-relaxed text-gray-700 break-words">
+            &quot;{targetPlayerComment}&quot;
+          </p>
+        )}
       </motion.div>
 
       {/* 전체 화면 샤인 효과 */}
