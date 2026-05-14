@@ -73,11 +73,9 @@ function PlayerInfoRow({
   imageSrc?: string | null;
 }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-3 border-2 border-black bg-white px-4 py-2 text-left shadow-pixel-sm">
-      <p className="shrink-0 text-xs font-black uppercase text-gray-500">
-        {label}
-      </p>
-      <div className="flex min-w-0 items-center justify-end gap-2">
+    <div className="flex min-h-20 flex-col justify-between gap-3 border-2 border-black bg-white px-4 py-3 text-left shadow-pixel-sm">
+      <p className="text-xs font-black uppercase text-gray-500">{label}</p>
+      <div className="flex min-w-0 items-end justify-start gap-2">
         {imageSrc && (
           <Image
             src={imageSrc}
@@ -87,7 +85,7 @@ function PlayerInfoRow({
             className="shrink-0 pixelated drop-shadow-sm"
           />
         )}
-        <p className="min-w-0 truncate text-right text-fluid-sm font-black text-black">
+        <p className="min-w-0 truncate text-right text-fluid-sm font-black leading-tight text-black">
           {value}
         </p>
       </div>
@@ -136,7 +134,9 @@ export function SealedBidBoard({
     {
       label: "소환사의 협곡",
       value: currentPlayer.tier,
-      imageSrc: currentPlayer.tier ? getExactTierImage(currentPlayer.tier) : null,
+      imageSrc: currentPlayer.tier
+        ? getExactTierImage(currentPlayer.tier)
+        : null,
     },
     {
       label: "무작위 총력전 : 아수라장",
@@ -150,8 +150,9 @@ export function SealedBidBoard({
         ? getExactTierImage(currentPlayer.tft_tier)
         : null,
     },
-  ].filter((row): row is { label: string; value: string; imageSrc: string | null } =>
-    Boolean(row.value),
+  ].filter(
+    (row): row is { label: string; value: string; imageSrc: string | null } =>
+      Boolean(row.value),
   );
   const playerComment = currentPlayer.description.trim();
 
