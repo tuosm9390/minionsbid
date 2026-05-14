@@ -641,7 +641,7 @@ export async function resumeFixtureAuction(
     const room = getRoomOrThrow(roomId)
     if (!room.currentPlayerId) return { error: '현재 경매 중인 선수가 없습니다.' }
     room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
-    appendMessage(room, '시스템', 'SYSTEM', '✅ 팀장이 재연결되었습니다. 5초 후 경매가 재개됩니다.')
+    appendMessage(room, '시스템', 'SYSTEM', '✅ 팀장이 재연결되었습니다. 8초 후 경매가 재개됩니다.')
     recordFixtureAuctionEvent(room, 'AUCTION_RESUMED')
     return { timerEndsAt: room.timerEndsAt }
   } catch (err) {
@@ -712,7 +712,7 @@ export async function placeFixtureBid(
       }
 
       const remainingMs = new Date(room.timerEndsAt).getTime() - Date.now()
-      if (resetTimer || remainingMs < EXTEND_THRESHOLD_MS) {
+      if (resetTimer || remainingMs <= EXTEND_THRESHOLD_MS) {
         room.timerEndsAt = new Date(Date.now() + EXTEND_DURATION_MS).toISOString()
       }
 

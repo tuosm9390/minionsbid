@@ -128,10 +128,11 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid 성공 시 placeBidDirect를 호출하고 bidAmount가 증가한다", async () => {
-    const serverTimerEndsAt = new Date(Date.now() + 5000).toISOString();
+    const serverTimerEndsAt = new Date(Date.now() + 8000).toISOString();
     (placeBidDirect as Mock).mockResolvedValue({
       timerEndsAt: serverTimerEndsAt,
       revision: 3,
+      timerExtended: true,
     });
 
     const { result } = renderHook(() => useBiddingControl(defaultProps));
@@ -153,14 +154,14 @@ describe("useBiddingControl", () => {
       10,
       serverTimerEndsAt,
       3,
-      5000,
+      8000,
     );
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
     expect(useAuctionStore.getState().auctionEventRevision).toBe(3);
   });
 
-  it("남은 시간 < 5s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
+  it("남은 시간 < 8s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
@@ -177,14 +178,14 @@ describe("useBiddingControl", () => {
     const optimisticTimer = useAuctionStore.getState().timerEndsAt;
     expect(optimisticTimer).not.toBeNull();
     const remaining = new Date(optimisticTimer!).getTime() - Date.now();
-    expect(remaining).toBeGreaterThan(4000);
-    expect(remaining).toBeLessThan(6000);
+    expect(remaining).toBeGreaterThan(7000);
+    expect(remaining).toBeLessThan(9000);
 
     resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
   });
 
-  it("남은 시간 >= 5s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
+  it("남은 시간 > 8s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })

@@ -455,7 +455,7 @@ export default function AuctionTimerLabPage() {
                         {record.bidderNickname} {record.amount}
                       </p>
                       <span className="border-2 border-black bg-minion-yellow px-2 py-1 text-xs font-black">
-                        {record.timerChanged ? "5초 갱신" : "유지"}
+                        {record.timerChanged ? "8초 갱신" : "유지"}
                       </span>
                     </div>
                     <p className="mt-1 text-xs font-bold text-gray-600">

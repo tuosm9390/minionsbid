@@ -12,9 +12,9 @@
 - 별도 입찰 자격 조건은 두지 않는다.
 - 입찰 단위는 10이다.
 - 다음 최소 입찰가는 항상 현재 최고 입찰가 + 10이다.
-- 남은 시간이 정확히 5초인 상태에서 입찰이 성공하면 타이머를 갱신한다.
-- 남은 시간이 5초 초과이면 입찰 성공 시 타이머를 갱신하지 않는다.
-- 남은 시간이 0초 초과, 5초 이하이면 입찰 성공 시 종료 시각을 서버 현재 시각 + 5초로 갱신한다.
+- 남은 시간이 정확히 8초인 상태에서 입찰이 성공하면 타이머를 갱신한다.
+- 남은 시간이 8초 초과이면 입찰 성공 시 타이머를 갱신하지 않는다.
+- 남은 시간이 0초 초과, 8초 이하이면 입찰 성공 시 종료 시각을 서버 현재 시각 + 8초로 갱신한다.
 - 남은 시간이 0초 이하이면 입찰은 실패하고 입찰 기능을 사용할 수 없다.
 - 클라이언트 타이머 표시는 floor 방식이다.
 - 화면이 0초를 표시하면 입찰 버튼을 비활성화한다.
@@ -78,8 +78,8 @@ Realtime Database는 fanout 버스다.
 5. `remainingMs <= 0`이면 실패한다.
 6. `amount < nextMinBidAmount`이면 실패한다.
 7. 성공하면 `active_bid`, 최고 입찰자 닉네임, 최고가, 다음 최소 입찰가를 갱신한다.
-8. `0 < remainingMs <= 5000`이면 `timer_ends_at = serverNow + 5000ms`로 갱신한다.
-9. `remainingMs > 5000`이면 `timer_ends_at`은 유지한다.
+8. `0 < remainingMs <= 8000`이면 `timer_ends_at = serverNow + 8000ms`로 갱신한다.
+9. `remainingMs > 8000`이면 `timer_ends_at`은 유지한다.
 10. `auction_revision`을 1 증가시킨다.
 11. RTDB에 `BID_PLACED` 이벤트를 발행한다.
 12. Firestore 입찰 이력 기록이 실패하면 재시도 대상으로 남기고 입찰 성공은 유지한다.
@@ -90,7 +90,7 @@ Realtime Database는 fanout 버스다.
 
 메인 종료 확정은 Cloud Tasks 또는 Firebase Task Queue Functions를 사용한다. Scheduled Function은 누락 종료 보정용으로만 둔다.
 
-1. 경매 시작 또는 5초 이하 입찰 갱신 시 종료 작업을 예약한다.
+1. 경매 시작 또는 8초 이하 입찰 갱신 시 종료 작업을 예약한다.
 2. 종료 작업 payload에는 `roomId`, `itemId`, `timerEndsAt`, `auctionRevision` 또는 별도 `closeVersion`을 포함한다.
 3. 작업 실행 시 Firestore transaction으로 현재 상태를 다시 확인한다.
 4. `auction_active`가 아니면 무시한다.
@@ -101,7 +101,7 @@ Realtime Database는 fanout 버스다.
 
 ## Cloud Tasks와 Scheduled Functions 비교
 
-Cloud Tasks는 경매별 종료 시각에 작업을 예약할 수 있어 10초 시작, 5초 갱신 정책에 적합하다. 작업 재시도, rate limit, dispatch deadline을 설정할 수 있고, 오래된 작업은 revision 검증으로 무시할 수 있다. 단점은 queue, IAM, region 설정이 필요하고 구현이 더 복잡하다는 점이다.
+Cloud Tasks는 경매별 종료 시각에 작업을 예약할 수 있어 10초 시작, 8초 갱신 정책에 적합하다. 작업 재시도, rate limit, dispatch deadline을 설정할 수 있고, 오래된 작업은 revision 검증으로 무시할 수 있다. 단점은 queue, IAM, region 설정이 필요하고 구현이 더 복잡하다는 점이다.
 
 Scheduled Functions는 구현이 단순하지만 주기 실행 모델이다. 초 단위 실시간 종료에는 맞지 않고, 경매가 없을 때도 실행되며, 경매가 많아질수록 스캔 비용이 늘어난다. 따라서 메인 종료 경로가 아니라 `timer_ends_at < now - 30s` 같은 누락 상태를 보정하는 backup sweep에 적합하다.
 
@@ -120,9 +120,9 @@ Scheduled Functions는 구현이 단순하지만 주기 실행 모델이다. 초
 
 - 단위 테스트.
   - 시작 시 10초 타이머 생성.
-  - 남은 시간 > 5초 입찰은 타이머 유지.
-  - 남은 시간 = 5초 입찰은 서버 현재 시각 + 5초로 갱신.
-  - 남은 시간 < 5초 입찰은 서버 현재 시각 + 5초로 갱신.
+  - 남은 시간 > 8초 입찰은 타이머 유지.
+  - 남은 시간 = 8초 입찰은 서버 현재 시각 + 8초로 갱신.
+  - 남은 시간 < 8초 입찰은 서버 현재 시각 + 8초로 갱신.
   - 남은 시간 <= 0 입찰 실패.
   - 주최자 입찰 실패.
   - 최소 입찰가 미만 실패.

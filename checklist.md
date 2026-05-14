@@ -8,6 +8,15 @@
 - [x] 지연 이벤트 회귀 테스트 보강
 - [x] 관련 테스트 실행
 
+## 입찰 타이머 8초 연장 기준 전환
+
+- [x] 5초 기준 사용처와 Firestore Rules 확인
+- [x] 경매 연장 threshold/duration 상수 8초로 변경
+- [x] direct bid Firestore Rules 허용 범위 8초 기준으로 변경
+- [x] 타이머 랩 표시와 서버 기준 8초로 변경
+- [x] 실시간 계약 문서와 관련 테스트 기대값 갱신
+- [x] 관련 테스트와 rules smoke 실행
+
 ## 추가 점검
 
 - [x] 비공개 입찰 제출 Firestore rules 직접 접근 차단

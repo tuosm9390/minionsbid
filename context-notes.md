@@ -8,6 +8,16 @@
 - 구현은 `resolveTimerEndsAtFromDuration()` 헬퍼로 제한했다. `timerDurationMs` 보정은 유지하되 이벤트에 서버 `timerEndsAt`이 있으면 그보다 늦은 표시용 종료 시각을 만들지 않는다.
 - 회귀 테스트는 RTDB live 이벤트와 Firestore fallback 이벤트가 지연 처리되어도 서버 `timerEndsAt`을 넘지 않는 케이스를 추가했다. `npx vitest run __tests__/useAuctionRealtime.test.tsx` 통과를 확인했다.
 
+## 입찰 타이머 8초 연장 기준 전환
+
+- 사용자 요청은 경매 시작 시간은 10초로 유지하고, 입찰 시 타이머 갱신 가능 시간과 갱신 시간을 기존 5초 기준에서 8초 기준으로 바꾸는 것이다.
+- 실제 경매의 연장 기준은 `src/features/auction/constants/auctionTimings.ts`의 `EXTEND_THRESHOLD_MS`, `EXTEND_DURATION_MS`를 서버 액션, direct bid, 낙관 UI, E2E fixture가 공유한다.
+- direct bid는 Firestore Rules의 `isValidDirectBidTimerUpdate()`가 최종 검증하므로, 상수 변경과 함께 rules의 남은 시간 기준과 새 종료 시각 허용 범위도 8초 기준으로 맞춰야 한다.
+- 재경매 시작 시간 `RE_AUCTION_DURATION_MS`는 별도 정책이므로 이번 요청에서는 5초 유지한다.
+- 서버 액션 fallback과 E2E fixture도 direct bid와 동일하게 남은 시간 `<= 8초`일 때 연장하도록 맞췄다. 이전에는 일부 경로가 `< 5초`였으나 이번 변경에서는 경계값 동작을 통일한다.
+- 타이머 랩은 운영 경매와 같은 입찰 연장 실험 도구이므로 `src/features/timer-lab/actions.ts`와 화면 문구도 8초 기준으로 갱신했다.
+- 검증은 `npx vitest run __tests__/auctionActions.test.ts __tests__/useBiddingControl.test.tsx __tests__/useAuctionRealtime.test.tsx`, `npm run smoke:room-rules`, `npm run build`를 실행해 통과했다.
+
 - 공개 입찰 기능은 기존 계약을 유지한다. `active_bid`, `BID_PLACED`, `placeBidDirect`, 공개 입찰 `placeBid`, 공개 입찰 `awardPlayer` 기본 동작은 수정하지 않고, `auction_mode === "SEALED_BID"`일 때만 별도 경로를 탄다.
 - 비공개 입찰 제출 금액과 제출 여부는 타이머 중 주최자와 다른 팀장에게 노출하지 않는다. 클라이언트 전체 구독 컬렉션에 제출 문서를 그대로 추가하지 않고 서버 액션에서 집계한다.
 - 점수공개 시점에는 공개 결과만 확정한다. 선수 SOLD 처리와 팀 포인트 차감은 카드 애니메이션 완료 후 호출되는 별도 확정 액션에서 수행한다.

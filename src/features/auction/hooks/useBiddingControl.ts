@@ -155,7 +155,7 @@ export function useBiddingControl({
     const localNow = Date.now()
     const estimatedServerNow = localNow + serverTimeOffset
     
-    // 남은 시간이 5초 이하일 때만 타이머를 갱신함 (요구사항 5, 6 반영)
+    // 남은 시간이 연장 기준 이하일 때만 타이머를 갱신함
     const shouldOptimisticallyResetTimer =
       !!timerEndsAt &&
       new Date(timerEndsAt).getTime() - estimatedServerNow <= EXTEND_THRESHOLD_MS
@@ -170,7 +170,7 @@ export function useBiddingControl({
     setIsBidding(true)
     setLiveBid(optimisticLiveBid)
 
-    // 남은 시간 <= 5s이면 즉시 낙관적 타이머 리셋 표시 (추정 서버 시간 기준 5초 후)
+    // 남은 시간이 연장 기준 이하이면 즉시 낙관적 타이머 리셋 표시
     if (shouldOptimisticallyResetTimer) {
       setRealtimeData({ timerEndsAt: new Date(estimatedServerNow + EXTEND_DURATION_MS).toISOString() })
     }

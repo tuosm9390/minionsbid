@@ -112,7 +112,7 @@ export async function placeBidDirect(
       }
 
       const remaining = timerEndsAt.toMillis() - estimatedNow
-      // 남은 시간이 5초 이하(<=)일 때만 타이머를 연장함
+      // 남은 시간이 연장 기준 이하(<=)일 때만 타이머를 연장함
       const shouldExtendTimer = resetTimer || remaining <= EXTEND_THRESHOLD_MS
       const nextTimerEndsAt = shouldExtendTimer
         ? Timestamp.fromDate(new Date(estimatedNow + EXTEND_DURATION_MS))
