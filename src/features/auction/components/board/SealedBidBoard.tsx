@@ -187,7 +187,7 @@ export function SealedBidBoard({
           {currentPlayer.name}
         </h2>
         {tierRows.length > 0 && (
-          <div className="mx-auto mt-4 flex max-w-2xl flex-col gap-2">
+          <div className="mx-auto mt-4 grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-3">
             {tierRows.map((row) => (
               <PlayerInfoRow
                 key={row.label}
@@ -199,7 +199,7 @@ export function SealedBidBoard({
           </div>
         )}
         {playerComment && (
-          <div className="mx-auto mt-2 max-w-2xl">
+          <div className="mx-auto mt-3 max-w-2xl">
             <PlayerInfoRow label="한마디" value={`"${playerComment}"`} />
           </div>
         )}
