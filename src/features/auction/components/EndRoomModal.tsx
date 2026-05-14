@@ -22,14 +22,14 @@ export function EndRoomModal({
 }: EndRoomModalProps) {
   const [confirmed, setConfirmed] = useState(false);
 
-  if (!isOpen) return null;
-
   const handleClose = () => {
     if (isDeleting) return;
     setConfirmed(false);
     onClose();
   };
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(handleClose);
+
+  if (!isOpen) return null;
 
   const modalContent = (
     <div
