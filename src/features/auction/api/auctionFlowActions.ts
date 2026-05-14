@@ -405,9 +405,8 @@ export async function drawNextPlayer(
     const picked = docs[Math.floor(Math.random() * docs.length)];
     const pickedData = picked.data();
 
-    // 1. 참여 인원 검증 (주최자 1명 + 리더 최소 2명 = 최소 3명)
+    // 1. 참여 인원 검증 (리더 최소 2명)
     const { rtdb } = getAuctionServerServices();
-    let organizerCount = 0;
     let leaderCount = 0;
 
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -422,15 +421,14 @@ export async function drawNextPlayer(
           )
         : [];
 
-      organizerCount = presenceRoles.filter((role) => role === "ORGANIZER").length;
       leaderCount = presenceRoles.filter((role) => role === "LEADER").length;
-      if (organizerCount >= 1 && leaderCount >= 2) break;
+      if (leaderCount >= 2) break;
       if (attempt < 2) await sleep(350);
     }
 
-    if (organizerCount < 1 || leaderCount < 2) {
+    if (leaderCount < 2) {
       return {
-        error: `경매를 시작하려면 주최자 1명과 최소 2명의 리더가 필요합니다. (현재 주최자: ${organizerCount}, 리더: ${leaderCount})`,
+        error: `경매를 시작하려면 최소 2명의 리더가 필요합니다. (현재 리더: ${leaderCount})`,
       };
     }
 
