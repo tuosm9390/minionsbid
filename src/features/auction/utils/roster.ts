@@ -1,3 +1,5 @@
+import { getNicknameWithoutTag } from "@/features/auction/utils/display";
+
 export type CaptainMode = "IN_ROSTER" | "COACH_ONLY";
 
 export interface RosterPlayerLike {
@@ -60,7 +62,7 @@ export function buildRosterWithCaptain<T extends RosterPlayerLike>(
   }
 
   const captainEntry = {
-    name: options.leaderName,
+    name: getNicknameWithoutTag(options.leaderName),
     sold_price: null,
     tier: options.leaderTier ?? "팀장",
     main_position: options.leaderPosition ?? "",

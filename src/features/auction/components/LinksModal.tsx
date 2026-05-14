@@ -7,6 +7,7 @@ import { X } from "@/components/ui/CyberIcons";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { LinkCard } from "@/components/ui/LinkCard";
+import { getNicknameWithoutTag } from "@/features/auction/utils/display";
 
 interface OrganizerLinksPayload {
   organizerToken: string | null;
@@ -162,7 +163,7 @@ export function LinksModal() {
                   return (
                     <LinkCard
                       key={team.teamId} label={team.teamName}
-                      desc={`팀장: ${team.leaderName || "(미설정)"}`}
+                      desc={`팀장: ${team.leaderName ? getNicknameWithoutTag(team.leaderName) : "(미설정)"}`}
                       link={link} linkKey={`captain-${i}`} variant="compact"
                       copied={copied} onCopy={copyToClipboard}
                     />

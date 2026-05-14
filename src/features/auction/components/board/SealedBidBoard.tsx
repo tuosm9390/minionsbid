@@ -37,31 +37,67 @@ type PlayerInfoItem = {
 function SealedCard({
   card,
   revealed,
+  revealComplete,
 }: {
   card: SealedBidRevealCard;
   revealed: boolean;
+  revealComplete: boolean;
 }) {
+  const showResultState = revealComplete;
+  const isHighest = showResultState && card.is_highest && !card.is_pass;
+  const isTied = showResultState && card.is_tied && !card.is_pass;
+  const isPass = showResultState && card.is_pass;
+  const isIneligible = showResultState && !card.eligible;
+  const frontTone = isIneligible
+    ? "border-gray-500 bg-gray-100 text-gray-500 shadow-[4px_4px_0px_rgba(0,0,0,0.45)]"
+    : isPass
+      ? "border-gray-500 bg-gray-50 text-gray-500 shadow-[4px_4px_0px_rgba(0,0,0,0.45)]"
+      : isHighest
+        ? "border-minion-yellow bg-yellow-50/80 text-black shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+        : isTied
+          ? "border-minion-blue bg-blue-50 text-black shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+          : "border-black bg-white text-black shadow-[4px_4px_0px_rgba(0,0,0,1)]";
+  const pointTextClass = isHighest
+    ? "text-[#2f2600]"
+    : isTied
+      ? "text-minion-blue"
+      : card.is_pass
+        ? "text-gray-500"
+        : "text-black";
+
   return (
     <motion.div
       animate={{ rotateY: revealed ? 180 : 0 }}
       transition={{ duration: 0.45 }}
-      className="relative h-28 [transform-style:preserve-3d]"
+      className="relative h-20 [transform-style:preserve-3d]"
     >
-      <div className="absolute inset-0 pixel-box bg-black text-minion-yellow border-minion-yellow flex items-center justify-center [backface-visibility:hidden]">
-        <span className="text-fluid-xs font-heading uppercase">SEALED</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 overflow-hidden border-4 border-minion-yellow bg-black text-minion-yellow shadow-[4px_4px_0px_rgba(0,0,0,1)] [backface-visibility:hidden]">
+        <div className="absolute inset-0 opacity-20 bg-[repeating-linear-gradient(135deg,transparent,transparent_8px,#ffd60a_8px,#ffd60a_10px)]" />
+        <div className="relative flex h-11 w-11 items-center justify-center border-4 border-minion-yellow bg-black shadow-pixel-sm">
+          <span className="text-fluid-xs font-heading">?</span>
+        </div>
+        <span className="relative text-fluid-xs font-heading uppercase tracking-widest">
+          SEALED BID
+        </span>
       </div>
-      <div className="absolute inset-0 pixel-box bg-white border-black p-3 flex flex-col items-center justify-center text-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
-        <p className="text-fluid-xs font-black text-gray-500 truncate max-w-full">
+      <div
+        className={`absolute inset-0 flex flex-col items-center justify-center border-4 p-4 text-center [backface-visibility:hidden] [transform:rotateY(180deg)] transition-colors duration-300 ${frontTone}`}
+      >
+        <p className="mb-2 max-w-full truncate text-fluid-xs font-black text-gray-500">
           {card.team_name}
         </p>
         <p
-          className={`mt-2 text-fluid-base font-black tabular-nums ${
-            card.is_highest ? "text-minion-red" : "text-black"
-          }`}
+          className={`font-black leading-none tabular-nums ${
+            card.is_pass
+              ? "text-fluid-sm"
+              : isHighest
+                ? "text-fluid-md"
+                : "text-fluid-md"
+          } ${pointTextClass}`}
         >
           {card.is_pass ? "입찰 포기" : `${card.amount.toLocaleString()}P`}
         </p>
-        {card.is_tied && (
+        {isTied && (
           <p className="mt-1 text-[10px] font-black text-minion-blue">
             재입찰 대상
           </p>
@@ -98,10 +134,10 @@ function PlayerInfoRow({
           />
         )}
         <p
-          className={`min-w-0 font-black leading-tight text-black ${valueClassName} ${
+          className={`min-w-0 text-left font-black leading-tight text-black ${valueClassName} ${
             allowWrap
-              ? "text-left whitespace-normal break-words [overflow-wrap:anywhere]"
-              : "truncate text-right"
+              ? "whitespace-normal break-words [overflow-wrap:anywhere]"
+              : "truncate"
           }`}
         >
           {value}
@@ -150,11 +186,15 @@ export function SealedBidBoard({
 
   const showCards =
     sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING";
+  const revealComplete =
+    sealedBid.phase === "REVEALING" &&
+    cards.length > 0 &&
+    revealedCount >= cards.length;
   const canCompleteReveal =
     role === "ORGANIZER" &&
     sealedBid.phase === "REVEALING" &&
     cards.length > 0 &&
-    revealedCount >= cards.length;
+    revealComplete;
   const tierRowItems: PlayerInfoItem[] = [
     {
       label: "소환사의 협곡",
@@ -212,7 +252,7 @@ export function SealedBidBoard({
         <p className="text-fluid-sm font-heading text-gray-500 uppercase">
           입찰 대상
         </p>
-        <h2 className="mt-1 text-fluid-xl font-black text-black">
+        <h2 className="mt-1 text-fluid-lg font-black text-black">
           {currentPlayer.name}
         </h2>
         {tierRows.length > 0 && (
@@ -269,6 +309,7 @@ export function SealedBidBoard({
               revealed={
                 sealedBid.phase === "REVEALING" && index < revealedCount
               }
+              revealComplete={revealComplete}
             />
           ))}
         </div>

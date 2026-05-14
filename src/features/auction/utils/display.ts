@@ -39,6 +39,13 @@ export const getExactTierImage = (tier: string) => {
   return englishTier ? `/Rank=${englishTier}.png` : null;
 };
 
+export const getNicknameWithoutTag = (nickname: string) => {
+  const trimmed = nickname.trim();
+  if (!trimmed.includes("#")) return trimmed;
+  const [namePart] = trimmed.split("#");
+  return namePart.trim() || trimmed;
+};
+
 export const getPositionImage = (pos: string) => {
   const normalized = pos.trim().toLowerCase();
   if (normalized.includes("탑") || normalized.includes("top"))

@@ -13,14 +13,12 @@ interface PlayerInAuctionProps {
 
 export function PlayerInAuction({ player }: PlayerInAuctionProps) {
   const eventGameRows = [
-    { label: "무작위 총력전", value: player.aram_tier },
+    { label: "무작위 총력전 : 아수라장", value: player.aram_tier },
     { label: "전략적 팀 전투", value: player.tft_tier },
   ].filter((row) => row.value);
 
   return (
-    <div
-      className="flex-1 flex flex-col items-center justify-center bg-white border-[6px] border-black p-4 relative overflow-hidden shadow-pixel"
-    >
+    <div className="flex-1 flex flex-col items-center justify-center bg-white border-[6px] border-black p-4 relative overflow-hidden shadow-pixel">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none overflow-hidden select-none">
         <span className="text-9xl font-black italic block whitespace-nowrap">

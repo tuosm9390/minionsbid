@@ -233,10 +233,10 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     await user.upload(fileInput, file);
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("승준닉#KR1")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("승준닉#KR1팀")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("용범닉#KR1")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("용범닉#KR1팀")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("승준닉")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("승준닉팀")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("용범닉")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("용범닉팀")).toBeInTheDocument();
     });
   });
 });

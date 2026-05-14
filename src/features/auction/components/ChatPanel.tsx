@@ -17,6 +17,7 @@ import {
 } from "@/features/auction/store/useAuctionStore";
 import { sendChatMessage } from "@/features/auction/api/auctionActions";
 import { selectOrderedMessages } from "@/features/auction/store/auctionSelectors";
+import { getNicknameWithoutTag } from "@/features/auction/utils/display";
 
 const MAX_MESSAGE_LENGTH = 200;
 
@@ -276,7 +277,9 @@ const ChatComposer = memo(function ChatComposer() {
       if (role === "ORGANIZER") senderName = "주최자";
       else if (role === "LEADER") {
         const myTeam = teams.find((t) => t.id === teamId);
-        senderName = myTeam?.leader_name || myTeam?.name || "팀장";
+        senderName = myTeam?.leader_name
+          ? getNicknameWithoutTag(myTeam.leader_name)
+          : myTeam?.name || "팀장";
       }
 
       const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

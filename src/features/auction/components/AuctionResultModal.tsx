@@ -16,6 +16,7 @@ import {
   type CaptainMode,
 } from "@/features/auction/utils/roster";
 import { bucketAuctionPlayers } from "@/features/auction/store/auctionSelectors";
+import { getNicknameWithoutTag } from "@/features/auction/utils/display";
 
 // 개별 팀 카드를 별도 컴포넌트로 분리하여 메모이제이션
 const TeamResultCard = memo(
@@ -40,6 +41,7 @@ const TeamResultCard = memo(
         }),
       [captainMode, soldPlayers, team.leader_name, team.leader_tier, team.leader_position],
     );
+    const leaderDisplayName = getNicknameWithoutTag(team.leader_name);
 
     const slots = useMemo(
       () =>
@@ -78,7 +80,7 @@ const TeamResultCard = memo(
                   팀장
                 </p>
                 <p className="text-fluid-xs font-black text-black leading-none">
-                  {team.leader_name}
+                  {leaderDisplayName}
                 </p>
               </div>
             </div>
@@ -95,7 +97,7 @@ const TeamResultCard = memo(
               const isCaptainSlot =
                 captainMode === "IN_ROSTER" &&
                 player?.sold_price == null &&
-                player?.name === team.leader_name;
+                getNicknameWithoutTag(player?.name ?? "") === leaderDisplayName;
 
               return (
                 <div

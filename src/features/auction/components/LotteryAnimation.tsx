@@ -311,14 +311,18 @@ export function LotteryAnimation({
           <div className="grid gap-2 border-t-2 border-black pt-3 text-sm font-bold text-gray-700">
             {targetPlayer.aram_tier && (
               <div className="flex items-center justify-between gap-4">
-                <span>무작위 총력전</span>
-                <span className="text-right text-black">{targetPlayer.aram_tier}</span>
+                <span>무작위 총력전 : 아수라장</span>
+                <span className="text-right text-black">
+                  {targetPlayer.aram_tier}
+                </span>
               </div>
             )}
             {targetPlayer.tft_tier && (
               <div className="flex items-center justify-between gap-4">
                 <span>전략적 팀 전투</span>
-                <span className="text-right text-black">{targetPlayer.tft_tier}</span>
+                <span className="text-right text-black">
+                  {targetPlayer.tft_tier}
+                </span>
               </div>
             )}
           </div>

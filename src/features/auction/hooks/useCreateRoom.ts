@@ -14,6 +14,7 @@ import { POSITION_HEADER_KEYWORDS } from "../constants/room";
 import { type CaptainMode, getAuctionSlotsPerTeam } from "../utils/roster";
 import type { AuctionMode } from "../utils/auctionMode";
 import { getAuctionClientServices } from "../realtime/clientAdapter";
+import { getNicknameWithoutTag } from "../utils/display";
 
 const LS_KEY = "league_auction_rooms";
 const LATENCY_DEBUG =
@@ -389,8 +390,8 @@ export function useCreateRoom() {
             const isCaptainRow = !!captainMarkerValue;
 
             if (isCaptainRow) {
-              const captainName = removeCaptainMarker(
-                name || captainMarkerValue,
+              const captainName = getNicknameWithoutTag(
+                removeCaptainMarker(name || captainMarkerValue),
               );
               parsedCaptains.push({
                 teamName: `${captainName}팀`,

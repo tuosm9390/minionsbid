@@ -1,6 +1,6 @@
 // 경매 표시 유틸의 티어 이미지 매핑을 검증한다.
 import { describe, expect, it } from 'vitest'
-import { getExactTierImage } from '@/features/auction/utils/display'
+import { getExactTierImage, getNicknameWithoutTag } from '@/features/auction/utils/display'
 
 describe('display utils', () => {
   it('정확히 매칭되는 티어만 이미지 경로를 반환한다', () => {
@@ -14,5 +14,11 @@ describe('display utils', () => {
     expect(getExactTierImage('실버 이하')).toBeNull()
     expect(getExactTierImage('아브실')).toBeNull()
     expect(getExactTierImage('롤체가 뭔지 모름')).toBeNull()
+  })
+
+  it('닉네임 뒤의 태그를 표시명에서 제거한다', () => {
+    expect(getNicknameWithoutTag('승준닉#KR1')).toBe('승준닉')
+    expect(getNicknameWithoutTag('승준닉')).toBe('승준닉')
+    expect(getNicknameWithoutTag('  승준닉#태그  ')).toBe('승준닉')
   })
 })
