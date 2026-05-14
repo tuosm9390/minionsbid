@@ -1,5 +1,13 @@
 # 비공개 입찰 구현 체크리스트
 
+## 단일 PC 다중 탭 타이머 표시 보정
+
+- [x] 문제 전제와 최소 수정 범위 정리
+- [x] `timerDurationMs` 보정값이 서버 `timerEndsAt`보다 늦어지지 않도록 제한
+- [x] RTDB live 이벤트와 Firestore fallback 이벤트에 동일 정책 적용
+- [x] 지연 이벤트 회귀 테스트 보강
+- [x] 관련 테스트 실행
+
 ## 추가 점검
 
 - [x] 비공개 입찰 제출 Firestore rules 직접 접근 차단

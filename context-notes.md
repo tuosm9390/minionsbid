@@ -1,5 +1,13 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## 단일 PC 다중 탭 타이머 표시 보정
+
+- 재현 조건은 하나의 PC에서 주최자와 모든 팀장 브라우저를 동시에 띄운 테스트다. 서로 다른 PC에서 각자 접속했을 때는 문제가 없었으므로 서버 정본 `timer_ends_at` 자체보다 클라이언트 이벤트 처리 지연과 표시 보정 경로를 우선 의심한다.
+- 실제 낙찰/종료 시점은 정상이고 표시 숫자만 10초 또는 5초보다 길게 보이는 현상이므로, `recoverExpiredAuction` 예약과 서버 액션의 종료 판정은 건드리지 않는다.
+- 최소 수정 범위는 `useAuctionRealtime.ts`의 `timerDurationMs` 변환이다. RTDB live 또는 Firestore fallback 이벤트를 늦게 처리한 탭이 `Date.now() + timerDurationMs`로 서버 `timerEndsAt`보다 미래 값을 만들지 못하게 제한한다.
+- 구현은 `resolveTimerEndsAtFromDuration()` 헬퍼로 제한했다. `timerDurationMs` 보정은 유지하되 이벤트에 서버 `timerEndsAt`이 있으면 그보다 늦은 표시용 종료 시각을 만들지 않는다.
+- 회귀 테스트는 RTDB live 이벤트와 Firestore fallback 이벤트가 지연 처리되어도 서버 `timerEndsAt`을 넘지 않는 케이스를 추가했다. `npx vitest run __tests__/useAuctionRealtime.test.tsx` 통과를 확인했다.
+
 - 공개 입찰 기능은 기존 계약을 유지한다. `active_bid`, `BID_PLACED`, `placeBidDirect`, 공개 입찰 `placeBid`, 공개 입찰 `awardPlayer` 기본 동작은 수정하지 않고, `auction_mode === "SEALED_BID"`일 때만 별도 경로를 탄다.
 - 비공개 입찰 제출 금액과 제출 여부는 타이머 중 주최자와 다른 팀장에게 노출하지 않는다. 클라이언트 전체 구독 컬렉션에 제출 문서를 그대로 추가하지 않고 서버 액션에서 집계한다.
 - 점수공개 시점에는 공개 결과만 확정한다. 선수 SOLD 처리와 팀 포인트 차감은 카드 애니메이션 완료 후 호출되는 별도 확정 액션에서 수행한다.

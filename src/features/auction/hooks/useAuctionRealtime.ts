@@ -115,6 +115,24 @@ function shouldSkipRealtimeAuctionEvent() {
   )
 }
 
+function resolveTimerEndsAtFromDuration(event: AuctionEventEnvelope) {
+  if (
+    event.timerDurationMs == null ||
+    (event.type !== 'BID_PLACED' &&
+      event.type !== 'AUCTION_STARTED' &&
+      event.type !== 'AUCTION_RESUMED')
+  ) {
+    return event.timerEndsAt
+  }
+
+  const localTimerEndsAt = new Date(Date.now() + event.timerDurationMs).toISOString()
+  if (!event.timerEndsAt) return localTimerEndsAt
+
+  return new Date(localTimerEndsAt).getTime() > new Date(event.timerEndsAt).getTime()
+    ? event.timerEndsAt
+    : localTimerEndsAt
+}
+
 function recordBidLatencyFromEvent(
   event: AuctionEventEnvelope,
   source: 'rtdb' | 'room-fallback',
@@ -442,15 +460,12 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
       if (fallbackEvent?.eventId && roomRevision > useAuctionStore.getState().auctionEventRevision) {
         // Firestore 스냅샷이 RTDB보다 먼저 도착하는 레이스 컨디션 대응:
-        // timerDurationMs가 있으면 브라우저 클럭 기준 타이머로 변환 (RTDB live 이벤트와 동일 처리)
+        // timerDurationMs가 있으면 브라우저 클럭 기준 타이머로 변환하되 서버 정본보다 늦추지 않음
         const resolvedFallbackEvent: AuctionEventEnvelope =
-          fallbackEvent.timerDurationMs != null &&
-          (fallbackEvent.type === 'BID_PLACED' ||
-            fallbackEvent.type === 'AUCTION_STARTED' ||
-            fallbackEvent.type === 'AUCTION_RESUMED')
+          fallbackEvent.timerDurationMs != null
             ? {
                 ...fallbackEvent,
-                timerEndsAt: new Date(Date.now() + fallbackEvent.timerDurationMs).toISOString(),
+                timerEndsAt: resolveTimerEndsAtFromDuration(fallbackEvent),
               }
             : fallbackEvent
         const next = applyAuctionEventToState(useAuctionStore.getState(), resolvedFallbackEvent)
@@ -654,18 +669,13 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     }
 
     // 5. RTDB: 단일 경매 이벤트 감시
-    // 실시간 이벤트는 timerDurationMs로 클럭 스큐 없이 타이머를 브라우저 기준 리셋
+    // 실시간 이벤트는 timerDurationMs로 보정하되 서버 정본보다 늦은 표시 시간을 만들지 않음
     const applyLiveAuctionEvent = (event: AuctionEventEnvelope) => {
       const resolved: AuctionEventEnvelope =
-        event.timerDurationMs != null &&
-        (event.type === 'BID_PLACED' ||
-          event.type === 'AUCTION_STARTED' ||
-          event.type === 'AUCTION_RESUMED')
+        event.timerDurationMs != null
           ? {
               ...event,
-              timerEndsAt: new Date(
-                Date.now() + event.timerDurationMs,
-              ).toISOString(),
+              timerEndsAt: resolveTimerEndsAtFromDuration(event),
             }
           : event
       applyAuctionEvent(resolved)

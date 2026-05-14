@@ -959,6 +959,76 @@ describe('useFirebaseRealtime', () => {
     expect(useAuctionStore.getState().auctionEventRevision).toBe(11)
   })
 
+  it('지연 처리된 RTDB live timerDurationMs가 서버 timerEndsAt보다 타이머를 늦추지 않는다', () => {
+    setNow('2026-05-10T12:00:00.000Z')
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: null,
+        current_player_id: 'player-1',
+        auction_revision: 0,
+        created_at: { toDate: () => new Date('2026-05-10T11:59:00.000Z') },
+      })
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'lottery-1',
+        revision: 1,
+        roomId: 'room-1',
+        type: 'LOTTERY_CLOSED',
+        serverCreatedAt: '2026-05-10T12:00:00.000Z',
+        currentPlayerId: 'player-1',
+      })
+    })
+
+    setNow('2026-05-10T12:00:12.000Z')
+    act(() => {
+      emitAuctionEvent('signals/room-1/auctionEvent', {
+        eventId: 'start-delayed-2',
+        revision: 2,
+        roomId: 'room-1',
+        type: 'AUCTION_STARTED',
+        serverCreatedAt: '2026-05-10T12:00:00.000Z',
+        currentPlayerId: 'player-1',
+        timerEndsAt: '2026-05-10T12:00:10.000Z',
+        timerDurationMs: 10_000,
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-10T12:00:10.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(2)
+  })
+
+  it('지연 처리된 Firestore fallback timerDurationMs가 서버 timerEndsAt보다 타이머를 늦추지 않는다', () => {
+    setNow('2026-05-10T12:00:12.000Z')
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: {
+          toDate: () => new Date('2026-05-10T12:00:10.000Z'),
+        },
+        current_player_id: 'player-1',
+        auction_revision: 2,
+        last_auction_event: {
+          eventId: 'start-fallback-delayed-2',
+          revision: 2,
+          roomId: 'room-1',
+          type: 'AUCTION_STARTED',
+          serverCreatedAt: '2026-05-10T12:00:00.000Z',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-05-10T12:00:10.000Z',
+          timerDurationMs: 10_000,
+        },
+        created_at: { toDate: () => new Date('2026-05-10T11:59:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-10T12:00:10.000Z')
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(2)
+  })
+
   it('last_auction_event 없는 room snapshot이 먼저 와도 같은 revision RTDB 낙찰 이벤트를 무시하지 않는다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
