@@ -26,6 +26,14 @@ interface SealedBidBoardProps {
   onTimerExpire?: () => void;
 }
 
+type PlayerInfoItem = {
+  label: string;
+  value?: string;
+  imageSrc: string | null;
+  allowWrap?: boolean;
+  valueClassName?: string;
+};
+
 function SealedCard({
   card,
   revealed,
@@ -67,10 +75,14 @@ function PlayerInfoRow({
   label,
   value,
   imageSrc,
+  allowWrap = false,
+  valueClassName = "text-fluid-sm",
 }: {
   label: string;
   value: string;
   imageSrc?: string | null;
+  allowWrap?: boolean;
+  valueClassName?: string;
 }) {
   return (
     <div className="flex min-h-20 flex-col justify-between gap-3 border-2 border-black bg-white px-4 py-3 text-left shadow-pixel-sm">
@@ -85,12 +97,25 @@ function PlayerInfoRow({
             className="shrink-0 pixelated drop-shadow-sm"
           />
         )}
-        <p className="min-w-0 truncate text-right text-fluid-sm font-black leading-tight text-black">
+        <p
+          className={`min-w-0 font-black leading-tight text-black ${valueClassName} ${
+            allowWrap
+              ? "text-left whitespace-normal break-words [overflow-wrap:anywhere]"
+              : "truncate text-right"
+          }`}
+        >
           {value}
         </p>
       </div>
     </div>
   );
+}
+
+function getFlexibleTextSize(value: string) {
+  const length = [...value].length;
+  if (length > 28) return "text-[11px] sm:text-xs";
+  if (length > 18) return "text-xs sm:text-[13px]";
+  return "text-fluid-sm";
 }
 
 export function SealedBidBoard({
@@ -130,7 +155,7 @@ export function SealedBidBoard({
     sealedBid.phase === "REVEALING" &&
     cards.length > 0 &&
     revealedCount >= cards.length;
-  const tierRows = [
+  const tierRowItems: PlayerInfoItem[] = [
     {
       label: "소환사의 협곡",
       value: currentPlayer.tier,
@@ -142,6 +167,10 @@ export function SealedBidBoard({
       label: "무작위 총력전 : 아수라장",
       value: currentPlayer.aram_tier,
       imageSrc: null,
+      allowWrap: true,
+      valueClassName: currentPlayer.aram_tier
+        ? getFlexibleTextSize(currentPlayer.aram_tier)
+        : "text-fluid-sm",
     },
     {
       label: "전략적 팀 전투",
@@ -150,9 +179,9 @@ export function SealedBidBoard({
         ? getExactTierImage(currentPlayer.tft_tier)
         : null,
     },
-  ].filter(
-    (row): row is { label: string; value: string; imageSrc: string | null } =>
-      Boolean(row.value),
+  ];
+  const tierRows = tierRowItems.filter(
+    (row): row is PlayerInfoItem & { value: string } => Boolean(row.value),
   );
   const playerComment = currentPlayer.description.trim();
 
@@ -194,6 +223,8 @@ export function SealedBidBoard({
                 label={row.label}
                 value={row.value}
                 imageSrc={row.imageSrc}
+                allowWrap={row.allowWrap}
+                valueClassName={row.valueClassName}
               />
             ))}
           </div>
