@@ -11,6 +11,7 @@ import { PlayerRegistrationStep } from "./create-room/PlayerRegistrationStep";
 import { LinksStep } from "./create-room/LinksStep";
 import { TemplatePreviewModal } from "./create-room/TemplatePreviewModal";
 import { getAuctionSlotsPerTeam } from "@/features/auction/utils/roster";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 const STEPS = ["기본 정보", "팀장 등록", "선수 등록", "링크 발급"];
 
@@ -53,6 +54,9 @@ export function CreateRoomModal() {
   const minPlayers =
     basic.teamCount *
     getAuctionSlotsPerTeam(basic.membersPerTeam, basic.captainMode);
+  const roomModalOverlay = useOverlayDismiss<HTMLDivElement>(() => {
+    if (step < 3) close();
+  });
 
   return (
     <>
@@ -67,9 +71,8 @@ export function CreateRoomModal() {
         createPortal(
           <div
             className="fixed inset-0 z-[200] bg-black/85 flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => {
-              if (step < 3) close();
-            }}
+            onMouseDown={roomModalOverlay.onMouseDown}
+            onMouseUp={roomModalOverlay.onMouseUp}
           >
             <div
               className="bg-white border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] w-full max-w-3xl max-h-[90vh] flex flex-col relative animate-in zoom-in-95 duration-200 cursor-default"

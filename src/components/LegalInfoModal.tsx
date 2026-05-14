@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "@/components/ui/CyberIcons";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 type LegalDocumentType = "terms" | "privacy";
 type LegalLanguage = "ko" | "en";
@@ -341,6 +342,7 @@ export function LegalInfoModal({
     () => LEGAL_COPY[documentType][language],
     [documentType, language],
   );
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -369,9 +371,8 @@ export function LegalInfoModal({
   return createPortal(
     <div
       className="fixed inset-0 z-[260] bg-black/80 p-4 flex items-center justify-center"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div className="w-full max-w-4xl max-h-[90vh] bg-[#fffdf6] border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
         <div className="px-5 py-4 border-b-4 border-black bg-black text-white flex items-center justify-between gap-4">

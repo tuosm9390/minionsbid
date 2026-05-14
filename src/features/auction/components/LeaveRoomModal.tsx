@@ -2,6 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { X, LogOut, AlertTriangle } from "@/components/ui/CyberIcons";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface LeaveRoomModalProps {
   isOpen: boolean;
@@ -14,12 +15,15 @@ export function LeaveRoomModal({
   onClose,
   onConfirm,
 }: LeaveRoomModalProps) {
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
+
   if (!isOpen) return null;
 
   const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={onClose}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div
         className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm animate-in zoom-in-95 duration-200 cursor-default overflow-hidden"

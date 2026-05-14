@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, Clock3, Flag, Trash2, X } from "@/components/ui/CyberIcons";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 import {
   completeLeagueSchedule,
   createLeagueSchedule,
@@ -157,10 +158,13 @@ function ActionModal({
   children: ReactNode;
   onClose: () => void;
 }) {
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
+
   return createPortal(
     <div
       className="fixed inset-0 z-[230] bg-black/80 p-4 flex items-center justify-center"
-      onClick={(event) => event.target === event.currentTarget && onClose()}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div className="w-full max-w-lg bg-[#fffdf6] border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)]">
         <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-black text-white">
@@ -217,6 +221,9 @@ export function LeagueScheduleManager() {
   const [isCompletingSchedule, setIsCompletingSchedule] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const createScheduleOverlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
+    setIsOpen(false),
+  );
   const [selectedChampionName, setSelectedChampionName] = useState("");
 
   const loadCatalog = useCallback(async () => {
@@ -892,9 +899,8 @@ export function LeagueScheduleManager() {
         createPortal(
           <div
             className="fixed inset-0 z-[220] bg-black/80 p-4 flex items-center justify-center"
-            onClick={(event) =>
-              event.target === event.currentTarget && setIsOpen(false)
-            }
+            onMouseDown={createScheduleOverlayDismiss.onMouseDown}
+            onMouseUp={createScheduleOverlayDismiss.onMouseUp}
           >
             <div className="w-full max-w-5xl max-h-[92vh] overflow-hidden bg-[#fffdf6] border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] flex flex-col">
               <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black bg-black text-white">

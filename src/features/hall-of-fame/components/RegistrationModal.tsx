@@ -6,6 +6,7 @@ import {
   registerHallOfFameEntry,
 } from "../api/hallOfFameActions";
 import type { AuctionArchiveForHof } from "../types";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface RegistrationModalProps {
   onClose: () => void;
@@ -16,6 +17,7 @@ type Step = "code" | "archive" | "team";
 
 export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps) {
   const [step, setStep] = useState<Step>("code");
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
   const [adminCode, setAdminCode] = useState("");
   const [codeError, setCodoError] = useState("");
 
@@ -98,7 +100,8 @@ export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps
   return (
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* 헤더 */}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Trash2, AlertTriangle } from "@/components/ui/CyberIcons";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface EndRoomModalProps {
   isOpen: boolean;
@@ -28,11 +29,13 @@ export function EndRoomModal({
     setConfirmed(false);
     onClose();
   };
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(handleClose);
 
   const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={handleClose}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div
         className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm animate-in zoom-in-95 duration-200 cursor-default"

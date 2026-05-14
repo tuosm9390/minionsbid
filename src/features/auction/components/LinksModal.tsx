@@ -8,6 +8,7 @@ import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { LinkCard } from "@/components/ui/LinkCard";
 import { getNicknameWithoutTag } from "@/features/auction/utils/display";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface OrganizerLinksPayload {
   organizerToken: string | null;
@@ -28,6 +29,9 @@ export function LinksModal() {
   const [linksError, setLinksError] = useState<string | null>(null);
 
   const roomId = useAuctionStore((state) => state.roomId);
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
+    setIsOpen(false),
+  );
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
@@ -104,7 +108,8 @@ export function LinksModal() {
   const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={() => setIsOpen(false)}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div
         className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md flex flex-col max-h-[80vh]"

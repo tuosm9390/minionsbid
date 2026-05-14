@@ -6,6 +6,7 @@ import { X, RefreshCw } from "@/components/ui/CyberIcons";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { getVisibleAuctionArchives } from "@/features/hall-of-fame/api/hallOfFameActions";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface AuctionArchiveRow {
   id: string;
@@ -25,11 +26,13 @@ function ArchiveDetailModal({
   const sortedTeams = [...archive.result_snapshot].sort((a, b) =>
     a.name.localeCompare(b.name, "ko-KR", { numeric: true }),
   );
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
 
   return (
     <div
       className="fixed inset-0 z-[210] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
-      onClick={onClose}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div
         className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-5xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 cursor-default"
@@ -159,6 +162,7 @@ export function AuctionArchiveSection({
   const [archives, setArchives] = useState<AuctionArchiveRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AuctionArchiveRow | null>(null);
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
 
   const fetchArchives = useCallback(async () => {
     setLoading(true);
@@ -189,7 +193,8 @@ export function AuctionArchiveSection({
       ) : (
         <div
           className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
-          onClick={onClose}
+          onMouseDown={overlayDismiss.onMouseDown}
+          onMouseUp={overlayDismiss.onMouseUp}
         >
           <div
             className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-4xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 cursor-default overflow-hidden"

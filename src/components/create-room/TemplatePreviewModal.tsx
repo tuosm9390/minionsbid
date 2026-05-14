@@ -5,6 +5,7 @@ import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { BasicInfo } from "@/features/auction/hooks/useCreateRoom";
 import { CaptainInfo, PlayerInfo } from "@/features/auction/utils/roomGenerator";
 import { getAuctionSlotsPerTeam } from "@/features/auction/utils/roster";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface TemplatePreviewModalProps {
   isOpen: boolean;
@@ -23,10 +24,16 @@ export function TemplatePreviewModal({
   onRegenerate,
   onApply,
 }: TemplatePreviewModalProps) {
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
+
   if (!isOpen || !templateData) return null;
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4"
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
+    >
       <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b-4 border-black flex items-center justify-between bg-minion-yellow">
           <div>

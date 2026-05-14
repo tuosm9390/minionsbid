@@ -7,6 +7,7 @@ import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { HOW_TO_USE_STEPS } from "@/features/auction/constants/howToUse";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 const TIPS = [
   "팀장 링크와 주최자 링크는 다른 주소입니다. 혼동하지 마세요!",
@@ -20,6 +21,9 @@ export function HowToUseModal({
   variant?: "default" | "header";
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
+    setIsOpen(false),
+  );
 
   const renderTriggerButton = () => {
     if (variant === "header") {
@@ -57,7 +61,8 @@ export function HowToUseModal({
   const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={() => setIsOpen(false)}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div
         className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl flex flex-col max-h-[90vh]"

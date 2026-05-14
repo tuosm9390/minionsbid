@@ -17,6 +17,7 @@ import {
 } from "@/features/auction/utils/roster";
 import { bucketAuctionPlayers } from "@/features/auction/store/auctionSelectors";
 import { getNicknameWithoutTag } from "@/features/auction/utils/display";
+import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 // 개별 팀 카드를 별도 컴포넌트로 분리하여 메모이제이션
 const TeamResultCard = memo(
@@ -151,6 +152,7 @@ export function AuctionResultModal({
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
   const captainMode = useAuctionStore((state) => state.captainMode);
   const { soldPlayersByTeam } = useMemo(() => bucketAuctionPlayers(players), [players]);
+  const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
 
   // 팀 정렬 결과 메모이제이션
   const sortedTeams = useMemo(
@@ -172,7 +174,8 @@ export function AuctionResultModal({
   const modalContent = (
     <div
       className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
-      onClick={onClose}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onMouseUp={overlayDismiss.onMouseUp}
     >
       <div
         className="bg-white border-4 border-black shadow-[12px_12px_0px_rgba(0,0,0,1)] w-full max-w-6xl max-h-[90vh] flex flex-col relative animate-in zoom-in-95 duration-200 cursor-default"
