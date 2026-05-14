@@ -29,3 +29,4 @@
 - 추첨 시작 전 참여 인원 검증은 RTDB `presence/{roomId}`를 Admin SDK로 읽는다. `room:{roomId}:ORGANIZER:none` 세션 키가 존재해도 값의 `role` 필드가 없으면 기존 로직은 주최자 0명으로 계산했기 때문에, 정식 `role` 값이 없을 때만 세션 키의 역할 부분을 보조 판정한다.
 - 추첨 애니메이션의 티어 이미지는 `getTierImage()` 공통 유틸을 사용한다. 엑셀 원본값에 `플레티넘` 오타가 들어올 수 있으므로 이미지 매핑에서는 `플래티넘`과 동일하게 `Rank=Platinum.png`를 사용한다.
 - 추첨 시작 전 검증에서 주최자 presence는 차단 조건으로 사용하지 않는다. 주최자 접속 여부는 Firebase Auth와 RTDB presence 동기화에 영향을 받기 쉬우므로, 추첨 차단은 최소 2명의 팀장 presence만 확인한다.
+- 주최자 권한 검증은 `presence`가 아니라 서버가 읽는 `room_auth_{roomId}_ORGANIZER` 쿠키와 `room_auth_secrets/{roomId}.organizer_token` 비교로 처리한다. 이 헬퍼는 추첨, 경매 시작, 추첨 닫기, 일시정지/재개, 공개 낙찰 확정, 비공개 입찰 잠금/점수 공개/확정, 드래프트, 재경매, 결과 저장, 방 삭제에 적용한다.

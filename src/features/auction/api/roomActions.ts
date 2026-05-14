@@ -11,6 +11,7 @@ import {
   deleteFixtureRoom,
   isE2EAuctionFixtureEnabled,
 } from '@/features/auction/api/e2eAuctionFixture'
+import { requireRoomOrganizer } from '@/features/auction/api/organizerAuth'
 
 // ---------- 타입 ----------
 
@@ -221,6 +222,9 @@ export async function createRoom(payload: CreateRoomPayload): Promise<CreateRoom
 /** 경매 결과를 auction_archives 컬렉션에 영구 저장 */
 export async function saveAuctionArchive(payload: AuctionArchivePayload): Promise<{ error?: string }> {
   try {
+    const authError = await requireRoomOrganizer(payload.roomId)
+    if (authError) return { error: authError }
+
     let roomData: Record<string, unknown> = {}
     const roomCollection = getAuctionServerServices().firestore.collection('rooms')
     const roomDocRef =
@@ -286,6 +290,9 @@ export async function deleteRoom(roomId: string): Promise<{ error?: string }> {
     if (isE2EAuctionFixtureEnabled()) {
       return deleteFixtureRoom(roomId)
     }
+    const authError = await requireRoomOrganizer(roomId)
+    if (authError) return { error: authError }
+
     const { firestore } = getAuctionServerServices()
     const roomRef = firestore.collection('rooms').doc(roomId)
     const roomSnap = await roomRef.get()

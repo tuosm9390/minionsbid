@@ -131,6 +131,11 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(() => ({ get: vi.fn() })),
 }))
 
+vi.mock('@/features/auction/api/organizerAuth', () => ({
+  ORGANIZER_AUTH_ERROR: '주최자 권한이 필요합니다.',
+  requireRoomOrganizer: vi.fn().mockResolvedValue(null),
+}))
+
 // ─────────────────────────────────────────────────────────────
 // 공통 beforeEach
 // ─────────────────────────────────────────────────────────────
