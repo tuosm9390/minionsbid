@@ -250,6 +250,8 @@ export function RoomClient({
     unsoldPlayers.length === 0 &&
     soldPlayers.length > 0 &&
     (isRoomComplete || players.length === soldPlayers.length);
+  const shouldExpandTeamRoster =
+    effectiveRole === "ORGANIZER" || effectiveRole === "LEADER";
 
   const handleEndRoom = async (saveResult: boolean) => {
     if (!roomId) return;
@@ -325,12 +327,18 @@ export function RoomClient({
         onLeaveRoom={() => setIsLeaveRoomOpen(true)}
       />
 
-      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
+      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden xl:overflow-visible w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
         {/* Left Side: Team List (Mobile Accordion) */}
         <aside
-          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ease-in-out ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
+          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ease-in-out xl:relative xl:overflow-visible ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
         >
-          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+          <div
+            className={`pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] ${
+              shouldExpandTeamRoster
+                ? "xl:absolute xl:inset-y-0 xl:right-0 xl:w-[calc(200%+1rem)]"
+                : ""
+            }`}
+          >
             <button
               onClick={() => {
                 if (window.innerWidth < 1024)

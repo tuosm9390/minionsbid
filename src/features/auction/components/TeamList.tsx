@@ -26,7 +26,10 @@ const TIER_COLOR: Record<string, string> = {
 
 export function UnsoldPanel() {
   const players = useAuctionStore((state) => state.players || []);
-  const { unsoldPlayers } = useMemo(() => bucketAuctionPlayers(players), [players]);
+  const { unsoldPlayers } = useMemo(
+    () => bucketAuctionPlayers(players),
+    [players],
+  );
 
   if (unsoldPlayers.length === 0)
     return (
@@ -99,6 +102,7 @@ export function TeamList() {
 
   const canEditTeam = (teamId: string) =>
     role === "ORGANIZER" || (role === "LEADER" && teamId === myTeamId);
+  const useWideRosterGrid = role === "ORGANIZER" || role === "LEADER";
   const { soldPlayersByTeam } = useMemo(
     () => bucketAuctionPlayers(players),
     [players],
@@ -118,7 +122,13 @@ export function TeamList() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div
+      className={
+        useWideRosterGrid
+          ? "grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-4"
+          : "flex flex-col gap-6"
+      }
+    >
       {sortedTeams.map((team: Team) => {
         const teamPlayers = soldPlayersByTeam.get(team.id) ?? [];
         const rosterPlayers = buildRosterWithCaptain(
@@ -149,6 +159,8 @@ export function TeamList() {
           <div
             key={team.id}
             className={`p-4 border-4 border-black relative overflow-hidden transition-all duration-300 ${
+              useWideRosterGrid ? "xl:p-2.5" : ""
+            } ${
               isTeamComplete
                 ? "bg-gray-50 grayscale opacity-70"
                 : isMyTeam
@@ -157,7 +169,11 @@ export function TeamList() {
             }`}
           >
             {/* Team Header */}
-            <div className="flex flex-col gap-2 mb-4 border-b-2 border-black pb-3">
+            <div
+              className={`flex flex-col gap-2 mb-4 border-b-2 border-black pb-3 ${
+                useWideRosterGrid ? "xl:mb-1.5 xl:pb-1.5" : ""
+              }`}
+            >
               <div className="flex justify-between items-center gap-2">
                 {isEditing ? (
                   <div className="flex-1 flex flex-col gap-1">
@@ -168,7 +184,9 @@ export function TeamList() {
                         onChange={(e) => setEditName(e.target.value)}
                         maxLength={20}
                         autoFocus
-                        className="flex-1 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue min-w-0"
+                        className={`flex-1 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue min-w-0 ${
+                          useWideRosterGrid ? "xl:text-[9px]" : ""
+                        }`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveEdit(team.id);
                           if (e.key === "Escape") cancelEdit();
@@ -177,7 +195,11 @@ export function TeamList() {
                       <button
                         onClick={() => saveEdit(team.id)}
                         disabled={isSaving || !editName.trim()}
-                        className="pixel-button bg-minion-yellow px-2 py-1 text-fluid-xs font-heading disabled:opacity-50 shrink-0"
+                        className={`pixel-button bg-minion-yellow px-2 py-1 text-fluid-xs font-heading disabled:opacity-50 shrink-0 ${
+                          useWideRosterGrid
+                            ? "xl:px-1 xl:py-0.5 xl:text-[8px]"
+                            : ""
+                        }`}
                         aria-label="저장"
                       >
                         {isSaving ? "…" : "저장"}
@@ -185,7 +207,11 @@ export function TeamList() {
                       <button
                         onClick={cancelEdit}
                         disabled={isSaving}
-                        className="pixel-button bg-white px-2 py-1 text-fluid-xs font-heading shrink-0"
+                        className={`pixel-button bg-white px-2 py-1 text-fluid-xs font-heading shrink-0 ${
+                          useWideRosterGrid
+                            ? "xl:px-1 xl:py-0.5 xl:text-[8px]"
+                            : ""
+                        }`}
                         aria-label="취소"
                       >
                         취소
@@ -200,7 +226,9 @@ export function TeamList() {
                 ) : (
                   <div className="flex items-center gap-2 min-w-0">
                     <h3
-                      className={`font-black text-fluid-sm flex items-center gap-2 truncate ${isMyTeam ? "text-minion-blue" : "text-black"}`}
+                      className={`font-black text-fluid-sm flex items-center gap-2 truncate ${
+                        useWideRosterGrid ? "xl:text-[9px]" : ""
+                      } ${isMyTeam ? "text-minion-blue" : "text-black"}`}
                     >
                       {isMyTeam && (
                         <span className="animate-pulse text-minion-blue shrink-0">
@@ -212,7 +240,9 @@ export function TeamList() {
                     {canEditTeam(team.id) && (
                       <button
                         onClick={() => startEdit(team)}
-                        className="shrink-0 text-gray-400 hover:text-minion-blue transition-colors text-fluid-xs font-heading"
+                        className={`shrink-0 text-gray-400 hover:text-minion-blue transition-colors text-fluid-xs font-heading ${
+                          useWideRosterGrid ? "xl:text-[8px]" : ""
+                        }`}
                         aria-label="팀 이름 수정"
                         title="팀 이름 수정"
                       >
@@ -221,14 +251,28 @@ export function TeamList() {
                     )}
                   </div>
                 )}
-                <span className="text-fluid-sm font-black tabular-nums shrink-0">
+                <span
+                  className={`text-fluid-sm font-black tabular-nums shrink-0 ${
+                    useWideRosterGrid ? "xl:text-[9px]" : ""
+                  }`}
+                >
                   {team.point_balance.toLocaleString()}{" "}
-                  <span className="text-fluid-xs">P</span>
+                  <span
+                    className={`text-fluid-xs ${
+                      useWideRosterGrid ? "xl:text-[8px]" : ""
+                    }`}
+                  >
+                    P
+                  </span>
                 </span>
               </div>
 
               {/* Point Gauge Bar */}
-              <div className="w-full h-3 bg-gray-100 border-2 border-black overflow-hidden relative">
+              <div
+                className={`w-full h-3 bg-gray-100 border-2 border-black overflow-hidden relative ${
+                  useWideRosterGrid ? "xl:h-1.5" : ""
+                }`}
+              >
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(black_1px,transparent_1px)] bg-[size:4px_4px] z-10 pointer-events-none" />
                 <div
                   className={`h-full transition-all duration-[2000ms] ease-out ${gaugeColor}`}
@@ -237,30 +281,56 @@ export function TeamList() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2">
+            <div
+              className={`grid grid-cols-1 gap-2 ${
+                useWideRosterGrid ? "xl:gap-1" : ""
+              }`}
+            >
               {/* Sold Players */}
               {rosterPlayers.map((p, index) => (
                 <div
                   key={"id" in p ? p.id : `captain-${team.id}-${index}`}
-                  className="flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group"
+                  className={`flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group !text-[10px] ${
+                    useWideRosterGrid
+                      ? "xl:min-h-[30px] xl:px-1.5 xl:py-0.5"
+                      : ""
+                  }`}
                 >
                   <div className="flex flex-col">
-                    <span className="font-black text-fluid-xs text-gray-900 leading-none">
+                    <span
+                      className={`text-fluid-xs text-gray-900 leading-none ${
+                        useWideRosterGrid ? "xl:text-[8px]" : ""
+                      }`}
+                    >
                       {p.name}
                     </span>
                     <span
-                      className={`text-fluid-xs font-heading mt-1 ${TIER_COLOR[p.tier] ?? "text-gray-500"}`}
+                      className={`text-fluid-xs font-heading mt-1 ${
+                        useWideRosterGrid ? "xl:mt-0 xl:text-[7px]" : ""
+                      } ${TIER_COLOR[p.tier] ?? "text-gray-500"}`}
                     >
                       {p.tier}
                     </span>
                   </div>
                   <div className="flex flex-col items-end">
                     {p.sold_price != null ? (
-                      <span className="text-fluid-xs font-black text-minion-blue bg-minion-yellow px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
+                      <span
+                        className={`!text-[10px] font-black text-minion-blue bg-minion-yellow px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform ${
+                          useWideRosterGrid
+                            ? "xl:px-1 xl:py-0 xl:text-[7px]"
+                            : ""
+                        }`}
+                      >
                         {p.sold_price} P
                       </span>
                     ) : (
-                      <span className="text-fluid-xs font-black text-gray-500 bg-white px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                      <span
+                        className={`text-fluid-xs font-black text-gray-500 bg-white px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] ${
+                          useWideRosterGrid
+                            ? "xl:px-1 xl:py-0 xl:text-[7px]"
+                            : ""
+                        }`}
+                      >
                         팀장
                       </span>
                     )}
@@ -273,9 +343,15 @@ export function TeamList() {
                 (_, i) => (
                   <div
                     key={`empty-${i}`}
-                    className="border-2 border-black border-dashed p-3 min-h-[44px] flex items-center justify-center bg-gray-50/30 opacity-40"
+                    className={`border-2 border-black border-dashed p-3 min-h-[44px] flex items-center justify-center bg-gray-50/30 opacity-40 ${
+                      useWideRosterGrid ? "xl:min-h-[30px] xl:p-1" : ""
+                    }`}
                   >
-                    <span className="text-fluid-xs font-heading text-gray-400 uppercase tracking-widest">
+                    <span
+                      className={`text-fluid-xs font-heading text-gray-400 uppercase tracking-widest ${
+                        useWideRosterGrid ? "xl:text-[7px]" : ""
+                      }`}
+                    >
                       빈 자리
                     </span>
                   </div>
@@ -284,7 +360,11 @@ export function TeamList() {
             </div>
 
             {isTeamComplete && (
-              <div className="absolute top-2 -right-10 bg-minion-red text-white text-fluid-xs font-heading px-12 py-1.5 rotate-[35deg] border-2 border-black shadow-lg z-20">
+              <div
+                className={`absolute top-2 -right-10 bg-minion-red text-white text-fluid-xs font-heading px-12 py-1.5 rotate-[35deg] border-2 border-black shadow-lg z-20 ${
+                  useWideRosterGrid ? "xl:px-9 xl:py-0.5 xl:text-[7px]" : ""
+                }`}
+              >
                 완료
               </div>
             )}
