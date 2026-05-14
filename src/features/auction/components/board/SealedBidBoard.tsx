@@ -98,7 +98,7 @@ function SealedCard({
           {card.is_pass ? "입찰 포기" : `${card.amount.toLocaleString()}P`}
         </p>
         {isTied && (
-          <p className="mt-1 text-[10px] font-black text-minion-blue">
+          <p className="mt-1 text-fluid-md font-black text-minion-blue">
             재입찰 대상
           </p>
         )}
@@ -167,33 +167,44 @@ export function SealedBidBoard({
   const [isCompleting, setIsCompleting] = useState(false);
   const cards = sealedBid.revealResult;
   const revealKey = `${sealedBid.roundId ?? "none"}:${cards.length}`;
+  const visibleTeamIds = sealedBid.eligibleTeamIds
+    ? new Set(sealedBid.eligibleTeamIds)
+    : null;
+  const visibleCards = visibleTeamIds
+    ? cards.filter((card) => visibleTeamIds.has(card.team_id))
+    : cards;
+  const visiblePlaceholderTeams = visibleTeamIds
+    ? teams.filter((team) => visibleTeamIds.has(team.id))
+    : teams;
 
   useEffect(() => {
     setRevealedCount(0);
   }, [revealKey]);
 
   useEffect(() => {
-    if (sealedBid.phase !== "REVEALING" || cards.length === 0) return;
-    if (revealedCount >= cards.length) return;
+    if (sealedBid.phase !== "REVEALING" || visibleCards.length === 0) return;
+    if (revealedCount >= visibleCards.length) return;
     const timeoutId = window.setTimeout(
       () => {
-        setRevealedCount((count) => Math.min(cards.length, count + 1));
+        setRevealedCount((count) =>
+          Math.min(visibleCards.length, count + 1),
+        );
       },
       revealedCount === 0 ? 250 : 650,
     );
     return () => window.clearTimeout(timeoutId);
-  }, [cards.length, revealedCount, sealedBid.phase]);
+  }, [revealedCount, sealedBid.phase, visibleCards.length]);
 
   const showCards =
     sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING";
   const revealComplete =
     sealedBid.phase === "REVEALING" &&
-    cards.length > 0 &&
-    revealedCount >= cards.length;
+    visibleCards.length > 0 &&
+    revealedCount >= visibleCards.length;
   const canCompleteReveal =
     role === "ORGANIZER" &&
     sealedBid.phase === "REVEALING" &&
-    cards.length > 0 &&
+    visibleCards.length > 0 &&
     revealComplete;
   const tierRowItems: PlayerInfoItem[] = [
     {
@@ -291,9 +302,9 @@ export function SealedBidBoard({
 
       {showCards && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {(cards.length > 0
-            ? cards
-            : teams.map((team) => ({
+          {(visibleCards.length > 0
+            ? visibleCards
+            : visiblePlaceholderTeams.map((team) => ({
                 team_id: team.id,
                 team_name: team.name,
                 amount: 0,
