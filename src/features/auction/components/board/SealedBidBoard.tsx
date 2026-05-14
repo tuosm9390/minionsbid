@@ -2,6 +2,7 @@
 // 비공개 입찰 카드 공개 상태를 표시하는 중앙 보드
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   type Player,
@@ -13,6 +14,7 @@ import {
 import { completeSealedBidReveal } from "@/features/auction/api/auctionActions";
 import { CenterTimer } from "@/features/auction/components/board/CenterTimer";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
+import { getExactTierImage } from "@/features/auction/utils/display";
 
 interface SealedBidBoardProps {
   roomId: string;
@@ -61,6 +63,38 @@ function SealedCard({
   );
 }
 
+function PlayerInfoRow({
+  label,
+  value,
+  imageSrc,
+}: {
+  label: string;
+  value: string;
+  imageSrc?: string | null;
+}) {
+  return (
+    <div className="flex min-h-14 items-center justify-between gap-3 border-2 border-black bg-white px-4 py-2 text-left shadow-pixel-sm">
+      <p className="shrink-0 text-xs font-black uppercase text-gray-500">
+        {label}
+      </p>
+      <div className="flex min-w-0 items-center justify-end gap-2">
+        {imageSrc && (
+          <Image
+            src={imageSrc}
+            alt={value}
+            width={34}
+            height={34}
+            className="shrink-0 pixelated drop-shadow-sm"
+          />
+        )}
+        <p className="min-w-0 truncate text-right text-fluid-sm font-black text-black">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function SealedBidBoard({
   roomId,
   role,
@@ -99,10 +133,26 @@ export function SealedBidBoard({
     cards.length > 0 &&
     revealedCount >= cards.length;
   const tierRows = [
-    { label: "소환사의 협곡", value: currentPlayer.tier },
-    { label: "무작위 총력전", value: currentPlayer.aram_tier },
-    { label: "전략적 팀 전투", value: currentPlayer.tft_tier },
-  ].filter((row) => row.value);
+    {
+      label: "소환사의 협곡",
+      value: currentPlayer.tier,
+      imageSrc: currentPlayer.tier ? getExactTierImage(currentPlayer.tier) : null,
+    },
+    {
+      label: "무작위 총력전 : 아수라장",
+      value: currentPlayer.aram_tier,
+      imageSrc: null,
+    },
+    {
+      label: "전략적 팀 전투",
+      value: currentPlayer.tft_tier,
+      imageSrc: currentPlayer.tft_tier
+        ? getExactTierImage(currentPlayer.tft_tier)
+        : null,
+    },
+  ].filter((row): row is { label: string; value: string; imageSrc: string | null } =>
+    Boolean(row.value),
+  );
   const playerComment = currentPlayer.description.trim();
 
   const handleCompleteReveal = async () => {
@@ -128,38 +178,28 @@ export function SealedBidBoard({
         )}
       </div>
 
-      <div className="pixel-box bg-yellow-50 border-black p-4 text-center">
-        <p className="text-fluid-xs font-heading text-gray-500 uppercase">
+      <div className="pixel-box bg-yellow-50 border-black p-5 text-center">
+        <p className="text-fluid-sm font-heading text-gray-500 uppercase">
           입찰 대상
         </p>
-        <h2 className="mt-1 text-fluid-lg font-black text-black">
+        <h2 className="mt-1 text-fluid-xl font-black text-black">
           {currentPlayer.name}
         </h2>
         {tierRows.length > 0 && (
-          <div className="mx-auto mt-3 grid max-w-xl gap-2 text-left sm:grid-cols-3">
+          <div className="mx-auto mt-4 flex max-w-2xl flex-col gap-2">
             {tierRows.map((row) => (
-              <div
+              <PlayerInfoRow
                 key={row.label}
-                className="border-2 border-black bg-white px-3 py-2"
-              >
-                <p className="text-[10px] font-black uppercase text-gray-500">
-                  {row.label}
-                </p>
-                <p className="mt-1 text-sm font-black text-black break-words">
-                  {row.value}
-                </p>
-              </div>
+                label={row.label}
+                value={row.value}
+                imageSrc={row.imageSrc}
+              />
             ))}
           </div>
         )}
         {playerComment && (
-          <div className="mx-auto mt-3 max-w-xl border-2 border-dashed border-black bg-white/80 px-3 py-2 text-left">
-            <p className="text-[10px] font-black uppercase text-gray-500">
-              한마디
-            </p>
-            <p className="mt-1 text-sm font-bold leading-relaxed text-gray-700 break-words">
-              &quot;{playerComment}&quot;
-            </p>
+          <div className="mx-auto mt-2 max-w-2xl">
+            <PlayerInfoRow label="한마디" value={`"${playerComment}"`} />
           </div>
         )}
         {sealedBid.minAmount > 0 && (

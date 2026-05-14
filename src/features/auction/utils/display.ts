@@ -20,6 +20,25 @@
   return `/Rank=${englishTier}.png`;
 };
 
+export const getExactTierImage = (tier: string) => {
+  const map: Record<string, string> = {
+    챌린저: "Challenger",
+    그랜드마스터: "Grandmaster",
+    마스터: "Master",
+    다이아: "Diamond",
+    에메랄드: "Emerald",
+    플레티넘: "Platinum",
+    플래티넘: "Platinum",
+    골드: "Gold",
+    실버: "Silver",
+    브론즈: "Bronze",
+    아이언: "Iron",
+  };
+
+  const englishTier = map[tier.trim()];
+  return englishTier ? `/Rank=${englishTier}.png` : null;
+};
+
 export const getPositionImage = (pos: string) => {
   const normalized = pos.trim().toLowerCase();
   if (normalized.includes("탑") || normalized.includes("top"))
