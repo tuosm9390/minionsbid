@@ -190,7 +190,7 @@ export function TeamList() {
                         autoFocus
                         className={`min-w-0 flex-1 basis-0 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue ${
                           useWideRosterGrid
-                            ? "xl:max-w-[92px] xl:px-1 xl:text-[8px]"
+                            ? "xl:max-w-[98px] xl:px-1 xl:text-[9px]"
                             : ""
                         }`}
                         onKeyDown={(e) => {
@@ -239,7 +239,7 @@ export function TeamList() {
                   <div className="flex items-center gap-2 min-w-0">
                     <h3
                       className={`font-black text-fluid-sm flex items-center gap-2 truncate ${
-                        useWideRosterGrid ? "xl:gap-1 xl:text-[8px]" : ""
+                        useWideRosterGrid ? "xl:gap-1 xl:text-[9px]" : ""
                       } ${isMyTeam ? "text-minion-blue" : "text-black"}`}
                     >
                       {isMyTeam && (
@@ -265,7 +265,7 @@ export function TeamList() {
                 )}
                 <span
                   className={`text-fluid-sm font-black tabular-nums shrink-0 ${
-                    useWideRosterGrid ? "xl:text-[8px]" : ""
+                    useWideRosterGrid ? "xl:text-[9px]" : ""
                   }`}
                 >
                   {team.point_balance.toLocaleString()}{" "}
@@ -304,14 +304,16 @@ export function TeamList() {
                   key={"id" in p ? p.id : `captain-${team.id}-${index}`}
                   className={`flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group !text-[10px] ${
                     useWideRosterGrid
-                      ? "xl:min-h-[26px] xl:px-1 xl:py-0.5"
+                      ? "xl:min-h-[28px] xl:px-1 xl:py-0.5"
                       : ""
                   }`}
                 >
                   <div className="flex flex-col">
                     <span
-                      className={`text-fluid-xs text-gray-900 leading-none ${
-                        useWideRosterGrid ? "xl:text-[7px]" : ""
+                      className={`text-fluid-xs text-gray-900 ${
+                        useWideRosterGrid
+                          ? "font-semibold leading-tight xl:text-[8px]"
+                          : "leading-none"
                       }`}
                     >
                       {p.name}
@@ -356,7 +358,7 @@ export function TeamList() {
                   <div
                     key={`empty-${i}`}
                     className={`border-2 border-black border-dashed p-3 min-h-[44px] flex items-center justify-center bg-gray-50/30 opacity-40 ${
-                      useWideRosterGrid ? "xl:min-h-[26px] xl:p-0.5" : ""
+                      useWideRosterGrid ? "xl:min-h-[28px] xl:p-0.5" : ""
                     }`}
                   >
                     <span
