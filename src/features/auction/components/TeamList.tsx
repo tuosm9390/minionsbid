@@ -176,46 +176,58 @@ export function TeamList() {
             >
               <div className="flex justify-between items-center gap-2">
                 {isEditing ? (
-                  <div className="flex-1 flex flex-col gap-1">
-                    <div className="flex gap-2 items-center">
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <div
+                      className={`flex min-w-0 items-center gap-2 ${
+                        useWideRosterGrid ? "xl:gap-1" : ""
+                      }`}
+                    >
                       <input
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         maxLength={20}
                         autoFocus
-                        className={`flex-1 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue min-w-0 ${
-                          useWideRosterGrid ? "xl:text-[8px]" : ""
+                        className={`min-w-0 flex-1 basis-0 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue ${
+                          useWideRosterGrid
+                            ? "xl:max-w-[92px] xl:px-1 xl:text-[8px]"
+                            : ""
                         }`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveEdit(team.id);
                           if (e.key === "Escape") cancelEdit();
                         }}
                       />
-                      <button
-                        onClick={() => saveEdit(team.id)}
-                        disabled={isSaving || !editName.trim()}
-                        className={`pixel-button bg-minion-yellow px-2 py-1 text-fluid-xs font-heading disabled:opacity-50 shrink-0 ${
-                          useWideRosterGrid
-                            ? "xl:px-1 xl:py-0.5 xl:text-[7px]"
-                            : ""
+                      <div
+                        className={`flex shrink-0 items-center gap-2 ${
+                          useWideRosterGrid ? "xl:gap-1" : ""
                         }`}
-                        aria-label="저장"
                       >
-                        {isSaving ? "…" : "저장"}
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        disabled={isSaving}
-                        className={`pixel-button bg-white px-2 py-1 text-fluid-xs font-heading shrink-0 ${
-                          useWideRosterGrid
-                            ? "xl:px-1 xl:py-0.5 xl:text-[7px]"
-                            : ""
-                        }`}
-                        aria-label="취소"
-                      >
-                        취소
-                      </button>
+                        <button
+                          onClick={() => saveEdit(team.id)}
+                          disabled={isSaving || !editName.trim()}
+                          className={`pixel-button bg-minion-yellow px-2 py-1 text-fluid-xs font-heading disabled:opacity-50 shrink-0 ${
+                            useWideRosterGrid
+                              ? "xl:px-1 xl:py-0.5 xl:text-[7px]"
+                              : ""
+                          }`}
+                          aria-label="저장"
+                        >
+                          {isSaving ? "…" : "저장"}
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          disabled={isSaving}
+                          className={`pixel-button bg-white px-2 py-1 text-fluid-xs font-heading shrink-0 ${
+                            useWideRosterGrid
+                              ? "xl:px-1 xl:py-0.5 xl:text-[7px]"
+                              : ""
+                          }`}
+                          aria-label="취소"
+                        >
+                          취소
+                        </button>
+                      </div>
                     </div>
                     {editError && (
                       <p className="text-fluid-xs text-minion-red font-bold">

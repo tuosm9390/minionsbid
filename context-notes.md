@@ -84,3 +84,7 @@
 - 대상은 `TeamList`의 `useWideRosterGrid` 분기다. 주최자/팀장 화면의 `xl` 이상 2열 로스터에서만 더 조밀하게 만들고, 관전자와 좁은 화면의 기본 로스터는 변경하지 않는다.
 - 이번 조정은 정보 항목을 숨기지 않고 카드 간격, 카드 padding, 선수 row 높이, 헤더 여백, compact 폰트 크기만 낮추는 방식으로 제한한다.
 - 작은 가격/팀장 배지는 `group-hover:scale-110`로 커질 때 좁은 row 안에서 겹침 가능성이 있으므로 compact 모드에서는 scale 확대 대신 색상 변화 정도로 유지한다.
+
+## 팀명 편집 input 폭 보정
+
+- `TeamList` 편집 상태는 input, 저장, 취소 버튼이 같은 flex row를 공유한다. compact 로스터에서는 input의 가변 폭이 버튼의 고정 폭보다 먼저 공간을 차지할 수 있으므로 input 래퍼에 `min-w-0`과 `max-w` 제약을 두고 버튼 묶음은 `shrink-0`으로 유지한다.
