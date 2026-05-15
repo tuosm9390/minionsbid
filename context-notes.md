@@ -94,3 +94,9 @@
 - 로스터 전체 표시 요구사항을 유지하기 위해 카드 간격과 padding은 그대로 두고, 글자 가독성에 직접 영향을 주는 팀명/포인트/선수명 크기와 선수명 line-height만 조정한다.
 - 선수명은 7px에서 8px로만 올리고 `leading-tight font-semibold`로 바꾼다. 팀명과 포인트는 9px 기준으로 올리되, 티어/가격/팀장 배지/완료 리본은 7px로 유지한다.
 - 선수 row와 빈 슬롯 높이는 26px에서 28px로만 올려 텍스트가 눌려 보이지 않게 하되 2열 로스터의 전체 표시 밀도는 크게 되돌리지 않는다.
+
+## 대기 선수 목록 패널
+
+- 클라이언트가 확인하려는 남은 선수 목록은 `Player.status === "WAITING"`인 선수들이다. `RoomClient`가 이미 `bucketAuctionPlayers(players, currentPlayerId)`에서 `waitingPlayers`를 계산하므로 새 구독이나 서버 API를 추가하지 않는다.
+- 오른쪽 컬럼에는 기존 유찰 목록과 채팅 사이에 대기 목록 패널을 배치한다. 유찰/대기 목록은 각각 내부 스크롤 패널로 유지하고 채팅은 남은 공간을 차지하게 한다.
+- `TeamList.tsx`에 기존 미커밋 변경이 있으므로, 이번 구현은 별도 `WaitingPanel` 파일과 `RoomClient` 배치 수정으로 분리해 기존 변경을 덮어쓰지 않는다.

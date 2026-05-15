@@ -23,6 +23,7 @@ import {
 } from "@/features/auction/api/auctionActions";
 import { AuctionBoard } from "@/features/auction/components/AuctionBoard";
 import { TeamList, UnsoldPanel } from "@/features/auction/components/TeamList";
+import { WaitingPanel } from "@/features/auction/components/WaitingPanel";
 import { ChatPanel } from "@/features/auction/components/ChatPanel";
 import { BiddingControl } from "@/features/auction/components/BiddingControl";
 import { SealedBiddingControl } from "@/features/auction/components/SealedBiddingControl";
@@ -472,14 +473,26 @@ export function RoomClient({
           )}
         </section>
 
-        {/* Right Side: Unsold & Chat */}
+        {/* Right Side: Unsold, Waiting & Chat */}
         <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0">
-          <div className="pixel-box bg-white flex-none max-h-[160px] lg:max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+          <div className="pixel-box bg-white flex-none max-h-[140px] lg:max-h-[170px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
               Unsold Roster
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
               <UnsoldPanel />
+            </div>
+          </div>
+
+          <div className="pixel-box bg-white flex-none max-h-[190px] lg:max-h-[220px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+            <div className="bg-minion-yellow text-black px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+              <span>Waiting Roster</span>
+              <span className="text-fluid-xs font-black tabular-nums">
+                {waitingPlayers.length}
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
+              <WaitingPanel players={waitingPlayers} />
             </div>
           </div>
 
