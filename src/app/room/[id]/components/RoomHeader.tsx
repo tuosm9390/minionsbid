@@ -17,7 +17,7 @@ export function RoomHeader({
 }: RoomHeaderProps) {
   return (
     <header className="h-14 shrink-0 bg-black border-b-4 border-black text-white relative z-[110]">
-      <div className="max-w-7xl mx-auto px-4 h-full flex justify-between items-center">
+      <div className="max-w-[1680px] mx-auto px-4 h-full flex justify-between items-center">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <Image

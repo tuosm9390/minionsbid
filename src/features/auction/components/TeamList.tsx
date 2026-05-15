@@ -303,9 +303,7 @@ export function TeamList() {
                 <div
                   key={"id" in p ? p.id : `captain-${team.id}-${index}`}
                   className={`flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group !text-[10px] ${
-                    useWideRosterGrid
-                      ? "xl:min-h-[28px] xl:px-1 xl:py-0.5"
-                      : ""
+                    useWideRosterGrid ? "xl:min-h-[28px] xl:px-1 xl:py-0.5" : ""
                   }`}
                 >
                   <div className="flex flex-col">
@@ -341,7 +339,7 @@ export function TeamList() {
                       <span
                         className={`text-fluid-xs font-black text-gray-500 bg-white px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] ${
                           useWideRosterGrid
-                            ? "xl:px-0.5 xl:py-0 xl:text-[7px]"
+                            ? "xl:px-0.5 xl:py-0 xl:text-[6px]"
                             : ""
                         }`}
                       >

@@ -473,20 +473,30 @@ export function RoomClient({
           )}
         </section>
 
-        {/* Right Side: Unsold, Waiting & Chat */}
+        {/* Right Side: Unsold & Chat */}
         <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0">
-          <div className="pixel-box bg-white flex-none max-h-[140px] lg:max-h-[170px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+          <div className="pixel-box bg-white flex-none max-h-[160px] lg:max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
-              Unsold Roster
+              유찰 명단
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
               <UnsoldPanel />
             </div>
           </div>
 
-          <div className="pixel-box bg-white flex-none max-h-[190px] lg:max-h-[220px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
+            <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+              <span>로그</span>
+              <span className="text-fluid-xs text-blue-200">● LIVE</span>
+            </div>
+            <ChatPanel />
+          </div>
+        </aside>
+
+        <aside className="hidden xl:absolute xl:inset-y-4 xl:left-full xl:ml-4 xl:flex xl:w-[280px] 2xl:w-[340px] flex-col">
+          <div className="pixel-box bg-white flex h-full min-h-0 flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
             <div className="bg-minion-yellow text-black px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
-              <span>Waiting Roster</span>
+              <span>대기 명단</span>
               <span className="text-fluid-xs font-black tabular-nums">
                 {waitingPlayers.length}
               </span>
@@ -494,14 +504,6 @@ export function RoomClient({
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
               <WaitingPanel players={waitingPlayers} />
             </div>
-          </div>
-
-          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
-            <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
-              <span>Communication</span>
-              <span className="text-fluid-xs text-blue-200">● LIVE</span>
-            </div>
-            <ChatPanel />
           </div>
         </aside>
       </main>
