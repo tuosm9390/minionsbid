@@ -100,3 +100,8 @@
 - 클라이언트가 확인하려는 남은 선수 목록은 `Player.status === "WAITING"`인 선수들이다. `RoomClient`가 이미 `bucketAuctionPlayers(players, currentPlayerId)`에서 `waitingPlayers`를 계산하므로 새 구독이나 서버 API를 추가하지 않는다.
 - 오른쪽 컬럼에는 기존 유찰 목록과 채팅 사이에 대기 목록 패널을 배치한다. 유찰/대기 목록은 각각 내부 스크롤 패널로 유지하고 채팅은 남은 공간을 차지하게 한다.
 - `TeamList.tsx`에 기존 미커밋 변경이 있으므로, 이번 구현은 별도 `WaitingPanel` 파일과 `RoomClient` 배치 수정으로 분리해 기존 변경을 덮어쓰지 않는다.
+
+## 대기 선수 목록 compact grid
+
+- 대기 목록은 남은 선수 확인이 목적이므로 티어와 포지션을 제거하고 닉네임만 표시한다. 오른쪽 컬럼 폭에서 많은 항목을 훑어볼 수 있도록 카드형 row 대신 작은 grid chip을 사용한다.
+- grid는 기본 3열, 초광폭에서는 4열까지 늘려 한 줄에 3~4명을 볼 수 있게 한다. 각 chip은 `truncate`로 긴 닉네임이 컬럼을 밀지 않게 한다.
