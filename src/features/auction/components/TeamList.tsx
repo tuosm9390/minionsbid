@@ -125,7 +125,7 @@ export function TeamList() {
     <div
       className={
         useWideRosterGrid
-          ? "grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-4"
+          ? "grid grid-cols-1 gap-6 xl:grid-cols-2 xl:gap-2"
           : "flex flex-col gap-6"
       }
     >
@@ -159,7 +159,7 @@ export function TeamList() {
           <div
             key={team.id}
             className={`p-4 border-4 border-black relative overflow-hidden transition-all duration-300 ${
-              useWideRosterGrid ? "xl:p-2.5" : ""
+              useWideRosterGrid ? "xl:p-2" : ""
             } ${
               isTeamComplete
                 ? "bg-gray-50 grayscale opacity-70"
@@ -171,7 +171,7 @@ export function TeamList() {
             {/* Team Header */}
             <div
               className={`flex flex-col gap-2 mb-4 border-b-2 border-black pb-3 ${
-                useWideRosterGrid ? "xl:mb-1.5 xl:pb-1.5" : ""
+                useWideRosterGrid ? "xl:gap-1 xl:mb-1 xl:pb-1" : ""
               }`}
             >
               <div className="flex justify-between items-center gap-2">
@@ -185,7 +185,7 @@ export function TeamList() {
                         maxLength={20}
                         autoFocus
                         className={`flex-1 border-2 border-black px-2 py-1 text-fluid-sm font-black focus:outline-none focus:border-minion-blue min-w-0 ${
-                          useWideRosterGrid ? "xl:text-[9px]" : ""
+                          useWideRosterGrid ? "xl:text-[8px]" : ""
                         }`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveEdit(team.id);
@@ -197,7 +197,7 @@ export function TeamList() {
                         disabled={isSaving || !editName.trim()}
                         className={`pixel-button bg-minion-yellow px-2 py-1 text-fluid-xs font-heading disabled:opacity-50 shrink-0 ${
                           useWideRosterGrid
-                            ? "xl:px-1 xl:py-0.5 xl:text-[8px]"
+                            ? "xl:px-1 xl:py-0.5 xl:text-[7px]"
                             : ""
                         }`}
                         aria-label="저장"
@@ -209,7 +209,7 @@ export function TeamList() {
                         disabled={isSaving}
                         className={`pixel-button bg-white px-2 py-1 text-fluid-xs font-heading shrink-0 ${
                           useWideRosterGrid
-                            ? "xl:px-1 xl:py-0.5 xl:text-[8px]"
+                            ? "xl:px-1 xl:py-0.5 xl:text-[7px]"
                             : ""
                         }`}
                         aria-label="취소"
@@ -227,7 +227,7 @@ export function TeamList() {
                   <div className="flex items-center gap-2 min-w-0">
                     <h3
                       className={`font-black text-fluid-sm flex items-center gap-2 truncate ${
-                        useWideRosterGrid ? "xl:text-[9px]" : ""
+                        useWideRosterGrid ? "xl:gap-1 xl:text-[8px]" : ""
                       } ${isMyTeam ? "text-minion-blue" : "text-black"}`}
                     >
                       {isMyTeam && (
@@ -241,7 +241,7 @@ export function TeamList() {
                       <button
                         onClick={() => startEdit(team)}
                         className={`shrink-0 text-gray-400 hover:text-minion-blue transition-colors text-fluid-xs font-heading ${
-                          useWideRosterGrid ? "xl:text-[8px]" : ""
+                          useWideRosterGrid ? "xl:text-[7px]" : ""
                         }`}
                         aria-label="팀 이름 수정"
                         title="팀 이름 수정"
@@ -253,13 +253,13 @@ export function TeamList() {
                 )}
                 <span
                   className={`text-fluid-sm font-black tabular-nums shrink-0 ${
-                    useWideRosterGrid ? "xl:text-[9px]" : ""
+                    useWideRosterGrid ? "xl:text-[8px]" : ""
                   }`}
                 >
                   {team.point_balance.toLocaleString()}{" "}
                   <span
                     className={`text-fluid-xs ${
-                      useWideRosterGrid ? "xl:text-[8px]" : ""
+                      useWideRosterGrid ? "xl:text-[7px]" : ""
                     }`}
                   >
                     P
@@ -283,7 +283,7 @@ export function TeamList() {
 
             <div
               className={`grid grid-cols-1 gap-2 ${
-                useWideRosterGrid ? "xl:gap-1" : ""
+                useWideRosterGrid ? "xl:gap-0.5" : ""
               }`}
             >
               {/* Sold Players */}
@@ -292,14 +292,14 @@ export function TeamList() {
                   key={"id" in p ? p.id : `captain-${team.id}-${index}`}
                   className={`flex justify-between items-center bg-gray-50 border-2 border-black p-2 min-h-[44px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-1 transition-transform group !text-[10px] ${
                     useWideRosterGrid
-                      ? "xl:min-h-[30px] xl:px-1.5 xl:py-0.5"
+                      ? "xl:min-h-[26px] xl:px-1 xl:py-0.5"
                       : ""
                   }`}
                 >
                   <div className="flex flex-col">
                     <span
                       className={`text-fluid-xs text-gray-900 leading-none ${
-                        useWideRosterGrid ? "xl:text-[8px]" : ""
+                        useWideRosterGrid ? "xl:text-[7px]" : ""
                       }`}
                     >
                       {p.name}
@@ -317,7 +317,7 @@ export function TeamList() {
                       <span
                         className={`!text-[10px] font-black text-minion-blue bg-minion-yellow px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform ${
                           useWideRosterGrid
-                            ? "xl:px-1 xl:py-0 xl:text-[7px]"
+                            ? "xl:px-0.5 xl:py-0 xl:text-[7px] xl:group-hover:scale-100"
                             : ""
                         }`}
                       >
@@ -327,7 +327,7 @@ export function TeamList() {
                       <span
                         className={`text-fluid-xs font-black text-gray-500 bg-white px-2 py-0.5 border-2 border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] ${
                           useWideRosterGrid
-                            ? "xl:px-1 xl:py-0 xl:text-[7px]"
+                            ? "xl:px-0.5 xl:py-0 xl:text-[7px]"
                             : ""
                         }`}
                       >
@@ -344,7 +344,7 @@ export function TeamList() {
                   <div
                     key={`empty-${i}`}
                     className={`border-2 border-black border-dashed p-3 min-h-[44px] flex items-center justify-center bg-gray-50/30 opacity-40 ${
-                      useWideRosterGrid ? "xl:min-h-[30px] xl:p-1" : ""
+                      useWideRosterGrid ? "xl:min-h-[26px] xl:p-0.5" : ""
                     }`}
                   >
                     <span
@@ -362,7 +362,7 @@ export function TeamList() {
             {isTeamComplete && (
               <div
                 className={`absolute top-2 -right-10 bg-minion-red text-white text-fluid-xs font-heading px-12 py-1.5 rotate-[35deg] border-2 border-black shadow-lg z-20 ${
-                  useWideRosterGrid ? "xl:px-9 xl:py-0.5 xl:text-[7px]" : ""
+                  useWideRosterGrid ? "xl:px-8 xl:py-0.5 xl:text-[7px]" : ""
                 }`}
               >
                 완료

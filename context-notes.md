@@ -78,3 +78,9 @@
 - 기존 설명서에는 방 생성 시 팀 문서에 토큰을 포함한다는 식의 오래된 설명이 남아 있다. 현재는 신규 방의 organizer/viewer/team leader 토큰을 `room_auth_secrets/{roomId}`와 `team_tokens/{teamId}`에 저장하고, public room/team 문서는 legacy fallback만 남긴 구조다.
 - 설명서에는 공개 입찰 hot path와 비공개 입찰 경로를 분리해 기록한다. 공개 입찰은 `placeBidDirect()`가 Firestore client transaction을 먼저 사용하고 실패 시 Server Action fallback을 탄다. 비공개 입찰은 제출, 잠금, 공개, 확정 모두 서버 액션 중심이다.
 - 문서 목적은 포트폴리오/외부 참조용 상세 설명이므로, 단순 파일 나열보다 Firestore 정본, RTDB fanout, Server Action 경계, 일정 transaction, 명예의 전당 아카이브 연결 같은 설계 이유를 중심으로 작성한다.
+
+## 팀 로스터 compact 재조정
+
+- 대상은 `TeamList`의 `useWideRosterGrid` 분기다. 주최자/팀장 화면의 `xl` 이상 2열 로스터에서만 더 조밀하게 만들고, 관전자와 좁은 화면의 기본 로스터는 변경하지 않는다.
+- 이번 조정은 정보 항목을 숨기지 않고 카드 간격, 카드 padding, 선수 row 높이, 헤더 여백, compact 폰트 크기만 낮추는 방식으로 제한한다.
+- 작은 가격/팀장 배지는 `group-hover:scale-110`로 커질 때 좁은 row 안에서 겹침 가능성이 있으므로 compact 모드에서는 scale 확대 대신 색상 변화 정도로 유지한다.
