@@ -71,3 +71,10 @@
 - 홈 화면 공지성 업데이트는 `src/content/updateFeed.ts`의 `updateFeedItems`를 기준으로 노출된다. 현재 가장 최신 항목은 2026-04-24 명예의 전당 개편 안내다.
 - 2026-04-24 이후 실제 프로젝트 상태는 `progress.md`, `doc/ARCHITECTURE.md`, `doc/AUCTION_REALTIME_CONTRACT.md`, 최근 커밋 로그 기준으로 크게 일정 관리 안정화, 방 인증 토큰 분리와 rules 검증, 비공개 입찰 추가, 타이머 정책 8초 전환, 경매방 UI 안정화가 진행된 상태다.
 - 공지 문구는 홈 ticker에 노출되는 짧은 문장이어야 하므로 구현 세부사항보다 사용자와 운영자가 체감할 변경을 우선한다. 단, 보안과 실시간 정합성처럼 운영 안정성에 직접 영향을 주는 변경은 별도 항목으로 남긴다.
+
+## project-describer DESCRIPTION 갱신
+
+- `project-describer` 스킬 입력이 추가로 제공되었으므로 기존 `DESCRIPTION.md`를 그대로 두지 않고 현재 코드베이스 기준으로 갱신한다.
+- 기존 설명서에는 방 생성 시 팀 문서에 토큰을 포함한다는 식의 오래된 설명이 남아 있다. 현재는 신규 방의 organizer/viewer/team leader 토큰을 `room_auth_secrets/{roomId}`와 `team_tokens/{teamId}`에 저장하고, public room/team 문서는 legacy fallback만 남긴 구조다.
+- 설명서에는 공개 입찰 hot path와 비공개 입찰 경로를 분리해 기록한다. 공개 입찰은 `placeBidDirect()`가 Firestore client transaction을 먼저 사용하고 실패 시 Server Action fallback을 탄다. 비공개 입찰은 제출, 잠금, 공개, 확정 모두 서버 액션 중심이다.
+- 문서 목적은 포트폴리오/외부 참조용 상세 설명이므로, 단순 파일 나열보다 Firestore 정본, RTDB fanout, Server Action 경계, 일정 transaction, 명예의 전당 아카이브 연결 같은 설계 이유를 중심으로 작성한다.
