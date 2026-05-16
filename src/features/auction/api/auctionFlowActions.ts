@@ -701,6 +701,9 @@ export async function closeLotteryAction(
         "LOTTERY_CLOSED",
         {
           currentPlayerId,
+          player: currentPlayerId
+            ? { id: currentPlayerId, status: "IN_AUCTION" }
+            : undefined,
           liveBid: roomData.active_bid ?? null,
           timerEndsAt: toTimestamp(roomData.timer_ends_at),
         },

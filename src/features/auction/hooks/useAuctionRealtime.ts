@@ -430,7 +430,10 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (newPlayerId !== currentPlayerIdRef.current) {
         currentPlayerIdRef.current = newPlayerId
         setLiveBid(null)
-        projectCurrentPlayerIntoStore(newPlayerId)
+        // LOTTERY_DRAWN 단계에서는 플레이어가 WAITING 상태를 유지해야 하므로 IN_AUCTION 투영 생략
+        if (data.last_auction_event?.type !== 'LOTTERY_DRAWN') {
+          projectCurrentPlayerIntoStore(newPlayerId)
+        }
         bidsUnsubRef.current?.()
 
         if (newPlayerId) {

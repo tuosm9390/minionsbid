@@ -605,6 +605,7 @@ export async function closeFixtureLottery(roomId: string, playerName: string): P
     appendMessage(room, '시스템', 'SYSTEM', `🎲 ${playerName} 선수 추첨!`)
     recordFixtureAuctionEvent(room, 'LOTTERY_CLOSED', {
       lotteryPlayer: null,
+      player: room.currentPlayerId ? { id: room.currentPlayerId, status: 'IN_AUCTION' } : undefined,
     })
     return {}
   } catch (err) {
