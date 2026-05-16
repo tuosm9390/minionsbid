@@ -41,6 +41,7 @@ export interface Player {
   description: string
   aram_tier?: string
   tft_tier?: string
+  order?: number
 }
 
 export interface Bid {

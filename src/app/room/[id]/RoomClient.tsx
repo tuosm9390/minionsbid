@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useAuctionStore,
+  type Player,
   Role,
   PresenceUser,
 } from "@/features/auction/store/useAuctionStore";
@@ -123,6 +124,10 @@ export function RoomClient({
     [players, currentPlayerId],
   );
 
+  const lotteryPlayer = useAuctionStore((s) => s.lotteryPlayer);
+
+  const displayWaitingPlayers = waitingPlayers;
+
   const liveBid = useAuctionStore((s) => s.liveBid);
   const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id;
   const { highestBid, minBid } = getAuctionBidState({
@@ -153,7 +158,7 @@ export function RoomClient({
   const isTeamFull = myTeam
     ? (soldCountByTeam.get(myTeam.id) ?? 0) >= auctionSlotsPerTeam
     : false;
-  const lotteryPlayer = useAuctionStore((s) => s.lotteryPlayer);
+
 
   useAuctionPresenceGuard({
     roomId,
@@ -246,7 +251,7 @@ export function RoomClient({
     captainMode,
   });
   const allDone =
-    waitingPlayers.length === 0 &&
+    displayWaitingPlayers.length === 0 &&
     !currentPlayer &&
     unsoldPlayers.length === 0 &&
     soldPlayers.length > 0 &&
@@ -404,7 +409,7 @@ export function RoomClient({
             <AuctionBoard
               isLotteryActive={!!lotteryPlayer}
               lotteryPlayer={lotteryPlayer}
-              waitingPlayers={waitingPlayers}
+              waitingPlayers={displayWaitingPlayers}
               role={effectiveRole}
               allConnected={allConnected}
               onCloseLottery={handleStartFromLottery}
@@ -426,7 +431,7 @@ export function RoomClient({
                 noticeText={noticeText}
                 setNoticeText={setNoticeText}
                 onSendNotice={handleNotice}
-                waitingPlayersCount={waitingPlayers.length}
+                waitingPlayersCount={displayWaitingPlayers.length}
                 soldPlayersCount={soldPlayers.length}
                 allDone={allDone}
                 currentPlayer={currentPlayer || null}
@@ -498,11 +503,11 @@ export function RoomClient({
             <div className="bg-minion-yellow text-black px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
               <span>대기 명단</span>
               <span className="text-fluid-xs font-black tabular-nums">
-                {waitingPlayers.length}
+                {displayWaitingPlayers.length} 명
               </span>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
-              <WaitingPanel players={waitingPlayers} />
+              <WaitingPanel players={displayWaitingPlayers} />
             </div>
           </div>
         </aside>

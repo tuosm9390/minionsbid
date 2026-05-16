@@ -209,6 +209,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       team_id: null,
       sold_price: null,
       description: 'Fixture Alpha',
+      order: 1,
     },
     {
       id: 'player-2',
@@ -221,6 +222,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       team_id: null,
       sold_price: null,
       description: 'Fixture Beta',
+      order: 2,
     },
     {
       id: 'player-3',
@@ -233,6 +235,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       team_id: null,
       sold_price: null,
       description: 'Fixture Gamma',
+      order: 3,
     },
     {
       id: 'player-4',
@@ -245,6 +248,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       team_id: null,
       sold_price: null,
       description: 'Fixture Delta',
+      order: 4,
     },
   ]
 
@@ -500,6 +504,7 @@ export function createE2EAuctionFixtureRoom(
     description: player.description || '',
     aram_tier: player.aramTier || '',
     tft_tier: player.tftTier || '',
+    order: index + 1,
   }))
 
   const room: FixtureRoom = {
@@ -574,9 +579,9 @@ export async function drawFixtureNextPlayer(roomId: string): Promise<{ error?: s
   try {
     const room = getRoomOrThrow(roomId)
     if (room.currentPlayerId) return { error: '이미 경매 중인 선수가 있습니다.' }
-    const candidate = room.players.find((player) => player.status === 'WAITING')
-    if (!candidate) return { error: '대기 중인 선수가 없습니다.' }
-    candidate.status = 'IN_AUCTION'
+    const waitingPlayers = room.players.filter((player) => player.status === 'WAITING')
+    if (waitingPlayers.length === 0) return { error: '대기 중인 선수가 없습니다.' }
+    const candidate = waitingPlayers[Math.floor(Math.random() * waitingPlayers.length)]
     room.currentPlayerId = candidate.id
     room.lotteryPlayer = clone(candidate)
     room.liveBid = null
@@ -594,6 +599,8 @@ export async function drawFixtureNextPlayer(roomId: string): Promise<{ error?: s
 export async function closeFixtureLottery(roomId: string, playerName: string): Promise<{ error?: string }> {
   try {
     const room = getRoomOrThrow(roomId)
+    const currentPlayer = room.players.find((p) => p.id === room.currentPlayerId)
+    if (currentPlayer) currentPlayer.status = 'IN_AUCTION'
     room.lotteryPlayer = null
     appendMessage(room, '시스템', 'SYSTEM', `🎲 ${playerName} 선수 추첨!`)
     recordFixtureAuctionEvent(room, 'LOTTERY_CLOSED', {

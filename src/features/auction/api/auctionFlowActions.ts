@@ -448,7 +448,7 @@ export async function drawNextPlayer(
           currentPlayerId: picked.id,
           player: {
             id: picked.id,
-            status: "IN_AUCTION",
+            status: "WAITING",
           },
           lotteryPlayer: {
             id: picked.id,
@@ -457,7 +457,7 @@ export async function drawNextPlayer(
             tier: String(pickedData.tier ?? ""),
             main_position: String(pickedData.main_position ?? ""),
             sub_position: String(pickedData.sub_position ?? ""),
-            status: "IN_AUCTION",
+            status: "WAITING",
             team_id: null,
             sold_price: null,
             description: String(pickedData.description ?? ""),
@@ -466,7 +466,6 @@ export async function drawNextPlayer(
           liveBid: null,
         },
       );
-      tx.update(picked.ref, { status: "IN_AUCTION" });
       tx.update(roomRef, {
         current_player_id: picked.id,
         timer_ends_at: null,
@@ -691,12 +690,17 @@ export async function closeLotteryAction(
     await getAuctionFirestore().runTransaction(async (tx) => {
       const roomSnap = await tx.get(roomRef);
       const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+      const currentPlayerId = roomData.current_player_id ?? null;
+      if (currentPlayerId) {
+        const playerRef = roomRef.collection("players").doc(currentPlayerId);
+        tx.update(playerRef, { status: "IN_AUCTION" });
+      }
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
         roomData,
         "LOTTERY_CLOSED",
         {
-          currentPlayerId: roomData.current_player_id ?? null,
+          currentPlayerId,
           liveBid: roomData.active_bid ?? null,
           timerEndsAt: toTimestamp(roomData.timer_ends_at),
         },

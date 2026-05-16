@@ -31,7 +31,9 @@ export function bucketAuctionPlayers(
   let currentPlayer: Player | null = null
   let fallbackCurrentPlayer: Player | null = null
 
-  for (const player of players) {
+  const sortedPlayers = [...players].sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
+
+  for (const player of sortedPlayers) {
     playersById.set(player.id, player)
     if (
       currentPlayerId &&

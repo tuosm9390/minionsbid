@@ -139,20 +139,22 @@ export function OrganizerControlPanel({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onClick={onDraw}
-              disabled={isDrawing || waitingPlayersCount === 0 || !allConnected}
+              disabled={isDrawing || !!lotteryPlayer || waitingPlayersCount === 0 || !allConnected}
               className={cn(
                 "w-full h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group",
-                isDrawing
+                isDrawing || lotteryPlayer
                   ? "bg-gray-400"
                   : "bg-minion-blue text-white hover:bg-minion-blue-hover",
               )}
             >
-              {isDrawing && (
+              {(isDrawing || lotteryPlayer) && (
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite] pointer-events-none" />
               )}
               <span className="relative z-10 uppercase">
                 {isDrawing
                   ? "추첨 중..."
+                  : lotteryPlayer
+                  ? "선수 추첨중"
                   : `다음 선수 추첨 (${waitingPlayersCount} 명)`}
               </span>
             </motion.button>
