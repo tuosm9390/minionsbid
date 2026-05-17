@@ -211,13 +211,13 @@ export function useCreateRoom() {
     });
     if (result.error) throw new Error(result.error);
 
-    const { roomId, organizerToken, viewerToken, teams: teamsResult } = result;
-    if (!roomId || !organizerToken || !viewerToken || !teamsResult) {
+    const { roomId, teams: teamsResult } = result;
+    if (!roomId || !teamsResult) {
       throw new Error("방 생성 결과가 올바르지 않습니다.");
     }
 
     const baseUrl = window.location.origin;
-    const organizerPath = `/room/${roomId}?role=ORGANIZER&authToken=${organizerToken}`;
+    const organizerPath = `/room/${roomId}?role=ORGANIZER`;
 
     const storedRoom = {
       id: roomId,
@@ -240,9 +240,9 @@ export function useCreateRoom() {
       organizerLink: `${baseUrl}${organizerPath}`,
       captainLinks: teamsResult.map((team) => ({
         teamName: team.name,
-        link: `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}&authToken=${team.leader_token}`,
+        link: `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}`,
       })),
-      viewerLink: `${baseUrl}/room/${roomId}?role=VIEWER&authToken=${viewerToken}`,
+      viewerLink: `${baseUrl}/room/${roomId}?role=VIEWER`,
     });
 
     if (LATENCY_DEBUG) {
