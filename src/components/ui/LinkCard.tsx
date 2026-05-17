@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Copy } from "@/components/ui/CyberIcons";
 
 interface LinkCardProps {
@@ -22,6 +22,16 @@ type ShortLinkResponse = {
   }>;
 };
 
+function stripAuthToken(value: string) {
+  try {
+    const url = new URL(value);
+    url.searchParams.delete("authToken");
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
 export function LinkCard({
   label,
   desc,
@@ -32,11 +42,12 @@ export function LinkCard({
   variant = "default",
 }: LinkCardProps) {
   const isCompact = variant === "compact";
-  const [displayLink, setDisplayLink] = useState(link);
+  const sanitizedLink = useMemo(() => stripAuthToken(link), [link]);
+  const [displayLink, setDisplayLink] = useState(sanitizedLink);
 
   useEffect(() => {
     let cancelled = false;
-    setDisplayLink(link);
+    setDisplayLink(sanitizedLink);
 
     const shorten = async () => {
       try {
@@ -46,7 +57,7 @@ export function LinkCard({
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            links: [{ key: linkKey, orgUrl: link }],
+            links: [{ key: linkKey, orgUrl: sanitizedLink }],
           }),
         });
 
@@ -57,7 +68,7 @@ export function LinkCard({
           setDisplayLink(result.shortUrl);
         }
       } catch {
-        // 단축 실패 시 원본 링크를 그대로 사용한다.
+        // 단축 실패 시 authToken을 제거한 원본 링크를 그대로 사용한다.
       }
     };
 
@@ -66,7 +77,7 @@ export function LinkCard({
     return () => {
       cancelled = true;
     };
-  }, [link, linkKey]);
+  }, [sanitizedLink, linkKey]);
 
   return (
     <div className={`border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative flex items-center gap-4 ${isCompact ? "p-3 mb-3" : "p-4 mb-4"}`}>
