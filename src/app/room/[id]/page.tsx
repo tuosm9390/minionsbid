@@ -4,7 +4,7 @@ import { Role } from '@/features/auction/store/useAuctionStore'
 import { isValidRoomRole } from '@/features/auction/utils/roomAuth'
 
 type Params = Promise<{ id: string }>
-type SearchParams = Promise<{ role?: string; teamId?: string; authToken?: string }>
+type SearchParams = Promise<{ role?: string; teamId?: string }>
 
 export const runtime = 'nodejs'
 export const preferredRegion = 'sin1'
@@ -29,16 +29,12 @@ export default async function RoomPage(props: {
   const rawRole = resolvedSearchParams.role
   const role: Role = isValidRoomRole(rawRole) ? rawRole : null
   const teamId = role === 'LEADER' ? (resolvedSearchParams.teamId || null) : null
-  const authToken = role ? (resolvedSearchParams.authToken || null) : null
-  const organizerToken = role === 'ORGANIZER' ? authToken : null
 
   return (
     <RoomClient
       roomId={roomId}
       roleParam={role}
       teamIdParam={teamId}
-      organizerToken={organizerToken}
-      authToken={authToken}
     />
   )
 }
