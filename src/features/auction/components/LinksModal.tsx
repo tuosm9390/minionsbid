@@ -11,13 +11,10 @@ import { getNicknameWithoutTag } from "@/features/auction/utils/display";
 import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
 interface OrganizerLinksPayload {
-  organizerToken: string | null;
-  viewerToken: string | null;
   captainLinks: Array<{
     teamId: string;
     teamName: string;
     leaderName: string;
-    token: string;
   }>;
 }
 
@@ -29,7 +26,6 @@ export function LinksModal() {
   const [linksError, setLinksError] = useState<string | null>(null);
 
   const roomId = useAuctionStore((state) => state.roomId);
-  const organizerToken = useAuctionStore((state) => state.organizerToken);
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
     setIsOpen(false),
   );
@@ -60,9 +56,6 @@ export function LinksModal() {
       try {
         const response = await fetch(`/api/room-links?roomId=${encodeURIComponent(roomId)}`, {
           method: "GET",
-          headers: organizerToken
-            ? { "x-organizer-token": organizerToken }
-            : undefined,
           cache: "no-store",
         });
         const payload = (await response.json()) as
@@ -96,17 +89,13 @@ export function LinksModal() {
     return () => {
       cancelled = true;
     };
-  }, [isOpen, roomId, organizerToken]);
+  }, [isOpen, roomId]);
 
   if (!roomId) return null;
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const organizerLink = links?.organizerToken
-    ? `${baseUrl}/room/${roomId}?role=ORGANIZER&authToken=${links.organizerToken}`
-    : null;
-  const viewerLink = links?.viewerToken
-    ? `${baseUrl}/room/${roomId}?role=VIEWER&authToken=${links.viewerToken}`
-    : null;
+  const organizerLink = `${baseUrl}/room/${roomId}?role=ORGANIZER`;
+  const viewerLink = `${baseUrl}/room/${roomId}?role=VIEWER`;
 
   const modalContent = (
     <div
@@ -141,19 +130,17 @@ export function LinksModal() {
             </div>
           )}
 
-          {organizerLink && (
-            <div>
-              <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
-                <PixelIcon icon={PIXEL_ICONS.LEADING} size={14} color="text-minion-yellow" />
-                주최자
-              </div>
-              <LinkCard
-                label="주최자" desc="주최자 전용 컨트롤 패널"
-                link={organizerLink} linkKey="organizer" variant="compact"
-                copied={copied} onCopy={copyToClipboard}
-              />
+          <div>
+            <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
+              <PixelIcon icon={PIXEL_ICONS.LEADING} size={14} color="text-minion-yellow" />
+              주최자
             </div>
-          )}
+            <LinkCard
+              label="주최자" desc="주최자 전용 컨트롤 패널"
+              link={organizerLink} linkKey="organizer" variant="compact"
+              copied={copied} onCopy={copyToClipboard}
+            />
+          </div>
 
           <div className="pt-2">
             <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
@@ -164,10 +151,7 @@ export function LinksModal() {
               {[...(links?.captainLinks ?? [])]
                 .sort((a, b) => a.teamName.localeCompare(b.teamName, undefined, { numeric: true }))
                 .map((team, i: number) => {
-                  const link = team.token
-                    ? `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.teamId}&authToken=${team.token}`
-                    : null;
-                  if (!link) return null;
+                  const link = `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.teamId}`;
                   return (
                     <LinkCard
                       key={team.teamId} label={team.teamName}
@@ -180,19 +164,17 @@ export function LinksModal() {
             </div>
           </div>
 
-          {viewerLink && (
-            <div className="pt-2">
-              <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
-                <PixelIcon icon={PIXEL_ICONS.HOW_TO_USE} size={14} color="text-gray-400" />
-                관전자 링크
-              </div>
-              <LinkCard
-                label="관전자" desc="누구나 관전 가능"
-                link={viewerLink} linkKey="viewer" variant="compact"
-                copied={copied} onCopy={copyToClipboard}
-              />
+          <div className="pt-2">
+            <div className="text-fluid-xs font-heading text-gray-500 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
+              <PixelIcon icon={PIXEL_ICONS.HOW_TO_USE} size={14} color="text-gray-400" />
+              관전자 링크
             </div>
-          )}
+            <LinkCard
+              label="관전자" desc="누구나 관전 가능"
+              link={viewerLink} linkKey="viewer" variant="compact"
+              copied={copied} onCopy={copyToClipboard}
+            />
+          </div>
         </div>
 
         <div className="px-5 py-4 border-t-4 border-black bg-white">
