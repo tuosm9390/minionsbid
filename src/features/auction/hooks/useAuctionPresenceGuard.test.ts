@@ -40,7 +40,7 @@ describe('useAuctionPresenceGuard', () => {
       await Promise.resolve()
     })
 
-    expect(pauseAuction).toHaveBeenCalledWith('room-1')
+    expect(pauseAuction).toHaveBeenCalledWith('room-1', '')
     expect(resumeAuction).not.toHaveBeenCalled()
   })
 
@@ -77,7 +77,7 @@ describe('useAuctionPresenceGuard', () => {
       await Promise.resolve()
     })
 
-    expect(pauseAuction).toHaveBeenCalledWith('room-1')
+    expect(pauseAuction).toHaveBeenCalledWith('room-1', '')
 
     rerender({
       allConnected: true,
@@ -87,7 +87,7 @@ describe('useAuctionPresenceGuard', () => {
     await act(async () => {
       await Promise.resolve()
     })
-    expect(resumeAuction).toHaveBeenCalledWith('room-1')
+    expect(resumeAuction).toHaveBeenCalledWith('room-1', '')
   })
 
   it('lottery 단계나 organizer가 아닌 경우에는 자동 pause/resume을 호출하지 않는다', async () => {

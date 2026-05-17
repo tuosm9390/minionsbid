@@ -81,6 +81,7 @@ export interface ArchiveTeam {
 
 export interface AuctionArchivePayload {
   roomId: string;
+  organizerToken: string;
   roomName: string;
   roomCreatedAt: string;
   teams: ArchiveTeam[];
@@ -234,7 +235,7 @@ export async function saveAuctionArchive(
   payload: AuctionArchivePayload,
 ): Promise<{ error?: string }> {
   try {
-    const authError = await requireRoomOrganizer(payload.roomId);
+    const authError = await requireRoomOrganizer(payload.roomId, payload.organizerToken);
     if (authError) return { error: authError };
 
     let roomData: Record<string, unknown> = {};
@@ -305,12 +306,15 @@ export async function updateTeamName(
 // ---------- 방 삭제 ----------
 
 /** 방 종료 — 토큰 무효화 후 재귀 삭제 */
-export async function deleteRoom(roomId: string): Promise<{ error?: string }> {
+export async function deleteRoom(
+  roomId: string,
+  organizerToken: string,
+): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return deleteFixtureRoom(roomId);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const { firestore } = getAuctionServerServices();

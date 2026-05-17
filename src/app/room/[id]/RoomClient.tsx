@@ -53,10 +53,14 @@ export function RoomClient({
   roomId,
   roleParam,
   teamIdParam,
+  organizerToken: organizerTokenParam,
+  authToken,
 }: {
   roomId: string;
   roleParam: Role;
   teamIdParam: string | null;
+  organizerToken: string | null;
+  authToken: string | null;
 }) {
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
@@ -73,6 +77,7 @@ export function RoomClient({
   const presences = useAuctionStore((s) => s.presences);
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
+  const organizerToken = useAuctionStore((s) => s.organizerToken);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData);
   const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
@@ -92,6 +97,7 @@ export function RoomClient({
   const { effectiveRole } = useRoomAuth({
     role: roleParam,
     teamId: teamIdParam || undefined,
+    organizerToken: organizerTokenParam,
     roomId,
     setRoomContext,
   });
@@ -104,6 +110,7 @@ export function RoomClient({
     teamId: storeTeamId,
     role: effectiveRole,
     teamName: myTeamForPresence?.name,
+    authToken,
   });
 
   const connectedLeaderIds = new Set(
@@ -173,6 +180,7 @@ export function RoomClient({
   const { handleCloseLottery, triggerAward } = useAuctionControl({
     roomId,
     effectiveRole: effectiveRole ?? "VIEWER",
+    organizerToken: organizerToken ?? "",
     players,
     currentPlayerId,
     timerEndsAt,
@@ -192,7 +200,7 @@ export function RoomClient({
   const handleDraw = async () => {
     setIsDrawing(true);
     try {
-      const res = await drawNextPlayer(roomId);
+      const res = await drawNextPlayer(roomId, organizerToken ?? "");
       if (res.error) alert(res.error);
     } finally {
       setIsDrawing(false);
@@ -206,7 +214,7 @@ export function RoomClient({
     ).toISOString();
     setRealtimeData({ timerEndsAt: optimisticTimerEndsAt });
     try {
-      const res = await startAuction(roomId);
+      const res = await startAuction(roomId, organizerToken ?? "");
       if (res.error) {
         // 경매 시작 실패 — 타이머를 원래 상태(null)로 롤백
         setRealtimeData({ timerEndsAt: null });
@@ -231,12 +239,12 @@ export function RoomClient({
   };
 
   const handleSealedTimerExpire = async () => {
-    const res = await lockSealedBidRound(roomId);
+    const res = await lockSealedBidRound(roomId, organizerToken ?? "");
     if (res.error) alert(res.error);
   };
 
   const handleRevealSealedBid = async () => {
-    const res = await revealSealedBidRound(roomId);
+    const res = await revealSealedBidRound(roomId, organizerToken ?? "");
     if (res.error) alert(res.error);
   };
 
@@ -266,6 +274,7 @@ export function RoomClient({
       if (saveResult && allDone) {
         await saveAuctionArchive({
           roomId,
+          organizerToken: organizerToken ?? "",
           roomName: roomName ?? "경매방",
           roomCreatedAt: createdAt ?? new Date().toISOString(),
           teams: teams.map((t) => ({
@@ -294,7 +303,7 @@ export function RoomClient({
           })),
         });
       }
-      await deleteRoom(roomId);
+      await deleteRoom(roomId, organizerToken ?? "");
       router.push("/");
     } finally {
       setIsDeleting(false);

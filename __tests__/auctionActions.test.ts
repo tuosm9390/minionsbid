@@ -127,10 +127,6 @@ vi.mock('firebase-admin', () => ({
   apps: [true],
 }))
 
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(() => ({ get: vi.fn() })),
-}))
-
 vi.mock('@/features/auction/api/organizerAuth', () => ({
   ORGANIZER_AUTH_ERROR: '주최자 권한이 필요합니다.',
   requireRoomOrganizer: vi.fn().mockResolvedValue(null),
@@ -370,7 +366,7 @@ describe('awardPlayer', () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() + 5000) })) // room (in tx)
       .mockResolvedValueOnce(makeSnap({ status: 'IN_AUCTION', name: '홍길동' })) // player (in tx)
-    const result = await awardPlayer(roomId, playerId)
+    const result = await awardPlayer(roomId, playerId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 
@@ -379,7 +375,7 @@ describe('awardPlayer', () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() - 2000) }))
       .mockResolvedValueOnce(makeSnap({ status: 'SOLD', name: '홍길동' }))
-    const result = await awardPlayer(roomId, playerId)
+    const result = await awardPlayer(roomId, playerId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 
@@ -388,7 +384,7 @@ describe('awardPlayer', () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() - 2000) }))
       .mockResolvedValueOnce(makeSnap({ status: 'IN_AUCTION', name: '홍길동' }))
-    const result = await awardPlayer(roomId, playerId)
+    const result = await awardPlayer(roomId, playerId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 
@@ -400,7 +396,7 @@ describe('awardPlayer', () => {
       .mockResolvedValueOnce(makeSnap({ timer_ends_at: makeTimestamp(Date.now() - 2000) }))
       .mockResolvedValueOnce(makeSnap({ status: 'IN_AUCTION', name: '홍길동' }))
       .mockResolvedValueOnce(makeSnap({ point_balance: 500, name: '팀A' })) // team in tx
-    const result = await awardPlayer(roomId, playerId)
+    const result = await awardPlayer(roomId, playerId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 })
@@ -466,7 +462,7 @@ describe('pauseAuction/resumeAuction', () => {
       }),
     )
 
-    const pauseResult = await pauseAuction(roomId)
+    const pauseResult = await pauseAuction(roomId, 'organizer-token')
     expect(pauseResult.error).toBeUndefined()
 
     mockDocGet.mockResolvedValueOnce(
@@ -476,7 +472,7 @@ describe('pauseAuction/resumeAuction', () => {
       }),
     )
 
-    const resumeResult = await resumeAuction(roomId)
+    const resumeResult = await resumeAuction(roomId, 'organizer-token')
     expect(resumeResult.error).toBeUndefined()
     expect(resumeResult.timerEndsAt).toBeDefined()
     const remainingMs = new Date(resumeResult.timerEndsAt as string).getTime() - Date.now()
@@ -504,7 +500,7 @@ describe('startAuction', () => {
         }),
       )
 
-    const result = await startAuction(roomId)
+    const result = await startAuction(roomId, 'organizer-token')
 
     expect(result.error).toBeUndefined()
     expect(result.timerEndsAt).toBeDefined()
@@ -527,7 +523,7 @@ describe('startAuction', () => {
         }),
       )
 
-    const result = await startAuction(roomId)
+    const result = await startAuction(roomId, 'organizer-token')
 
     expect(result.error).toBeUndefined()
     expect(result.timerEndsAt).toBeDefined()
@@ -549,19 +545,19 @@ describe('draftPlayer', () => {
 
   it('선수가 SOLD 상태이면 에러', async () => {
     mockDocGet.mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'SOLD', room_id: roomId }))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toMatch(/영입 요청/)
   })
 
   it('선수가 IN_AUCTION 상태이면 에러', async () => {
     mockDocGet.mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'IN_AUCTION', room_id: roomId }))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toMatch(/영입 요청/)
   })
 
   it('player.room_id가 다른 방이면 에러', async () => {
     mockDocGet.mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'UNSOLD', room_id: 'other-room' }))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toMatch(/속하지 않습니다/)
   })
 
@@ -571,7 +567,7 @@ describe('draftPlayer', () => {
       .mockResolvedValueOnce(makeSnap({ name: '팀A' })) // team
       .mockResolvedValueOnce(makeSnap({ members_per_team: 4, captain_mode: 'IN_ROSTER' })) // room
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap(new Array(4).fill({ status: 'SOLD' })))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toMatch(/팀 인원이 가득/)
   })
 
@@ -583,7 +579,7 @@ describe('draftPlayer', () => {
       .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
       .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'UNSOLD', room_id: roomId }))
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap(new Array(2).fill({ status: 'SOLD' })))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 
@@ -595,7 +591,7 @@ describe('draftPlayer', () => {
       .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
       .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'WAITING', room_id: roomId }))
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap([]))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 
@@ -616,7 +612,7 @@ describe('draftPlayer', () => {
       makeQuerySnap(new Array(4).fill({ status: 'SOLD' })),
     )
 
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
 
     expect(result.error).toBeUndefined()
     expect(mockRunTransaction).toHaveBeenCalled()
@@ -630,7 +626,7 @@ describe('draftPlayer', () => {
       .mockResolvedValueOnce(makeSnap({ name: '팀A', point_balance: 1000 }))
       .mockResolvedValueOnce(makeSnap({ name: '홍길동', status: 'WAITING', room_id: roomId }))
     mockQueryGet.mockResolvedValueOnce(makeQuerySnap(new Array(4).fill({ status: 'SOLD' })))
-    const result = await draftPlayer(roomId, playerId, teamId)
+    const result = await draftPlayer(roomId, playerId, teamId, 'organizer-token')
     expect(result.error).toBeUndefined()
   })
 })
@@ -645,7 +641,7 @@ describe('deleteRoom', () => {
 
   it('GREEN: 정상 삭제 → {} 반환', async () => {
     mockDocGet.mockResolvedValueOnce(makeSnap({ name: '테스트방' }))
-    const result = await deleteRoom(roomId)
+    const result = await deleteRoom(roomId, 'organizer-token')
     expect(result.error).toBeUndefined()
     expect(mockRecursiveDelete).toHaveBeenCalled()
   })
@@ -653,7 +649,7 @@ describe('deleteRoom', () => {
   it('RED: recursiveDelete 실패 → 에러 반환', async () => {
     mockDocGet.mockResolvedValueOnce(makeSnap({ name: '테스트방' }))
     mockRecursiveDelete.mockRejectedValueOnce(new Error('delete failed'))
-    const result = await deleteRoom(roomId)
+    const result = await deleteRoom(roomId, 'organizer-token')
     expect(result.error).toBeDefined()
   })
 })
@@ -664,6 +660,7 @@ describe('deleteRoom', () => {
 describe('saveAuctionArchive', () => {
   const payload = {
     roomId: 'room-1',
+    organizerToken: 'organizer-token',
     roomName: '2025 시즌 경매',
     roomCreatedAt: new Date().toISOString(),
     teams: [

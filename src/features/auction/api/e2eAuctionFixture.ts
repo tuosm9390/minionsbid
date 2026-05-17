@@ -435,13 +435,13 @@ export function resetE2EAuctionFixture(baseUrl: string, options: ResetOptions = 
 
   return {
     roomId: room.id,
-    organizerPath: `/api/room-auth?roomId=${room.id}&role=ORGANIZER&token=${room.organizerToken}`,
-    organizerLink: `${baseUrl}/api/room-auth?roomId=${room.id}&role=ORGANIZER&token=${room.organizerToken}`,
-    viewerLink: `${baseUrl}/api/room-auth?roomId=${room.id}&role=VIEWER&token=${room.viewerToken}`,
+    organizerPath: `/room/${room.id}?role=ORGANIZER&authToken=${room.organizerToken}`,
+    organizerLink: `${baseUrl}/room/${room.id}?role=ORGANIZER&authToken=${room.organizerToken}`,
+    viewerLink: `${baseUrl}/room/${room.id}?role=VIEWER&authToken=${room.viewerToken}`,
     captainLinks: room.teams.map((team) => ({
       teamId: team.id,
       teamName: team.name,
-      link: `${baseUrl}/api/room-auth?roomId=${room.id}&role=LEADER&teamId=${team.id}&token=${room.leaderTokens[team.id]}`,
+      link: `${baseUrl}/room/${room.id}?role=LEADER&teamId=${team.id}&authToken=${room.leaderTokens[team.id]}`,
     })),
   }
 }

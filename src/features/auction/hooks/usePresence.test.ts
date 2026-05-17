@@ -61,6 +61,7 @@ describe('useFirebasePresence', () => {
       roomId: 'room1',
       teamId: null,
       role: 'VIEWER',
+      authToken: 'viewer-token',
     }))
 
     await Promise.resolve()
@@ -80,6 +81,7 @@ describe('useFirebasePresence', () => {
       roomId: 'room1',
       teamId: 'team1',
       role: 'LEADER',
+      authToken: 'leader-token',
     }))
 
     await Promise.resolve()
@@ -92,6 +94,7 @@ describe('useFirebasePresence', () => {
       roomId: 'room1',
       teamId: null,
       role: 'LEADER',
+      authToken: 'leader-token',
     }))
 
     await Promise.resolve()
@@ -105,6 +108,7 @@ describe('useFirebasePresence', () => {
       roomId: 'room1',
       teamId: null,
       role: 'VIEWER',
+      authToken: 'viewer-token',
     }))
 
     await Promise.resolve()
@@ -120,6 +124,7 @@ describe('useFirebasePresence', () => {
       roomId: 'room1',
       teamId: null,
       role: 'VIEWER',
+      authToken: 'viewer-token',
     }))
 
     await Promise.resolve()

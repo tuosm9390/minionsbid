@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
+  useAuctionStore,
   type Player,
   type Role,
   type SealedBidRevealCard,
@@ -165,6 +166,7 @@ export function SealedBidBoard({
 }: SealedBidBoardProps) {
   const [revealedCount, setRevealedCount] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
+  const organizerToken = useAuctionStore((s) => s.organizerToken);
   const cards = sealedBid.revealResult;
   const revealKey = `${sealedBid.roundId ?? "none"}:${cards.length}`;
   const visibleTeamIds = sealedBid.eligibleTeamIds
@@ -240,7 +242,7 @@ export function SealedBidBoard({
     if (!canCompleteReveal || isCompleting) return;
     setIsCompleting(true);
     try {
-      const result = await completeSealedBidReveal(roomId);
+      const result = await completeSealedBidReveal(roomId, organizerToken ?? "");
       if (result.error) alert(result.error);
     } finally {
       setIsCompleting(false);

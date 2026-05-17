@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  buildRoomAuthCookieName,
-  isRoomAuthCookieMatch,
   isValidRoomRole,
-  parseRoomAuthCookie,
   validateRoomAuthToken,
 } from '@/features/auction/utils/roomAuth'
 
@@ -14,50 +11,6 @@ describe('roomAuth utils', () => {
     expect(isValidRoomRole('VIEWER')).toBe(true)
     expect(isValidRoomRole('ADMIN')).toBe(false)
     expect(isValidRoomRole(null)).toBe(false)
-  })
-
-  it('builds unique cookie names for organizer and leader', () => {
-    expect(buildRoomAuthCookieName('room-1', 'ORGANIZER')).toBe('room_auth_room-1_ORGANIZER')
-    expect(buildRoomAuthCookieName('room-1', 'VIEWER')).toBe('room_auth_room-1_VIEWER')
-    expect(buildRoomAuthCookieName('room-1', 'LEADER', 'team-a')).toBe(
-      'room_auth_room-1_LEADER_team-a',
-    )
-  })
-
-  it('parses valid auth cookies and rejects invalid payloads', () => {
-    expect(
-      parseRoomAuthCookie(JSON.stringify({ role: 'LEADER', teamId: 'team-a', token: 'x' })),
-    ).toEqual({
-      role: 'LEADER',
-      teamId: 'team-a',
-      token: 'x',
-    })
-    expect(parseRoomAuthCookie(undefined)).toBeNull()
-    expect(parseRoomAuthCookie('{broken json')).toBeNull()
-  })
-
-  it('rejects leader auth cookies without a matching team id', () => {
-    expect(
-      isRoomAuthCookieMatch({
-        parsed: parseRoomAuthCookie(JSON.stringify({ role: 'LEADER', teamId: 'team-a' })),
-        role: 'LEADER',
-        teamId: 'team-a',
-      }),
-    ).toBe(true)
-    expect(
-      isRoomAuthCookieMatch({
-        parsed: parseRoomAuthCookie(JSON.stringify({ role: 'LEADER', teamId: null })),
-        role: 'LEADER',
-        teamId: null,
-      }),
-    ).toBe(false)
-    expect(
-      isRoomAuthCookieMatch({
-        parsed: parseRoomAuthCookie(JSON.stringify({ role: 'LEADER', teamId: 'team-a' })),
-        role: 'LEADER',
-        teamId: 'team-b',
-      }),
-    ).toBe(false)
   })
 
   it('validates fixture auth through the injected verifier', async () => {

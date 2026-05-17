@@ -106,6 +106,7 @@ interface AuctionState {
   roomName: string | null
   role: Role
   teamId: string | null
+  organizerToken: string | null
   captainMode: CaptainMode
   auctionMode: AuctionMode
 
@@ -139,7 +140,7 @@ interface AuctionState {
   lotteryPlayer: Player | null
 
   // Actions
-  setRoomContext: (roomId: string, role: Role, teamId?: string) => void
+  setRoomContext: (roomId: string, role: Role, teamId?: string, organizerToken?: string) => void
   setRealtimeData: (data: Partial<AuctionState>) => void
   setRoomNotFound: () => void
   setReAuctionRound: (isRe: boolean) => void
@@ -158,6 +159,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomName: null,
   role: null,
   teamId: null,
+  organizerToken: null,
   captainMode: 'IN_ROSTER',
   auctionMode: 'OPEN_ASCENDING',
 
@@ -195,10 +197,11 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   serverTimeOffset: 0,
   lotteryPlayer: null,
 
-  setRoomContext: (roomId, role, teamId) => set({
+  setRoomContext: (roomId, role, teamId, organizerToken) => set({
     roomId,
     role,
     teamId: teamId || null,
+    organizerToken: organizerToken || null,
     roomExists: true,
     isReAuctionRound: false,
     nextAuctionDurationMs: null,

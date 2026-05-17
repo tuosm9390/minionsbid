@@ -96,7 +96,11 @@ test('records a full auction flow video from room creation to auction finish', a
 
   await expect(organizerPage.getByText('ROOM CREATED!')).toBeVisible()
   const { organizerLink, firstLeaderLink, secondLeaderLink } = await extractLinks(organizerPage)
-  const roomId = new URL(organizerLink).searchParams.get('roomId')
+  const organizerUrl = new URL(organizerLink)
+  const roomId =
+    organizerUrl.searchParams.get('roomId') ??
+    organizerUrl.pathname.match(/^\/room\/([^/]+)/)?.[1] ??
+    null
   if (!roomId) {
     throw new Error('roomId를 organizerLink에서 찾지 못했습니다.')
   }

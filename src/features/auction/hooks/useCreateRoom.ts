@@ -217,7 +217,7 @@ export function useCreateRoom() {
     }
 
     const baseUrl = window.location.origin;
-    const organizerPath = `/api/room-auth?roomId=${roomId}&role=ORGANIZER&token=${organizerToken}`;
+    const organizerPath = `/room/${roomId}?role=ORGANIZER&authToken=${organizerToken}`;
 
     const storedRoom = {
       id: roomId,
@@ -240,9 +240,9 @@ export function useCreateRoom() {
       organizerLink: `${baseUrl}${organizerPath}`,
       captainLinks: teamsResult.map((team) => ({
         teamName: team.name,
-        link: `${baseUrl}/api/room-auth?roomId=${roomId}&role=LEADER&teamId=${team.id}&token=${team.leader_token}`,
+        link: `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}&authToken=${team.leader_token}`,
       })),
-      viewerLink: `${baseUrl}/api/room-auth?roomId=${roomId}&role=VIEWER&token=${viewerToken}`,
+      viewerLink: `${baseUrl}/room/${roomId}?role=VIEWER&authToken=${viewerToken}`,
     });
 
     if (LATENCY_DEBUG) {

@@ -48,6 +48,7 @@ export function useAuctionBoard({
   const orderedMessageIds = useAuctionStore((s) => s.orderedMessageIds)
   const teamId = useAuctionStore((s) => s.teamId)
   const roomId = useAuctionStore((s) => s.roomId)
+  const organizerToken = useAuctionStore((s) => s.organizerToken)
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt)
   const currentPlayerId = useAuctionStore((s) => s.currentPlayerId)
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam)
@@ -205,7 +206,7 @@ export function useAuctionBoard({
     if (!currentTurnTeam || !roomId) return
     setIsProcessingAction(playerId)
     try {
-      const res = await draftPlayer(roomId, playerId, currentTurnTeam.id)
+      const res = await draftPlayer(roomId, playerId, currentTurnTeam.id, organizerToken ?? '')
       if (res.error) alert(res.error)
     } finally {
       setIsProcessingAction(null)
@@ -216,7 +217,7 @@ export function useAuctionBoard({
     if (!roomId) return
     setIsRestarting(true)
     try {
-      const res = await restartAuctionWithUnsold(roomId)
+      const res = await restartAuctionWithUnsold(roomId, organizerToken ?? '')
       if (res.error) alert(res.error)
       else if (res.reAuctionStarted) setReAuctionRound(true)
     } finally {

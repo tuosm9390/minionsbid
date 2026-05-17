@@ -51,6 +51,7 @@ describe('useAuctionControl', () => {
         useAuctionControl({
           roomId: 'room-1',
           effectiveRole: 'ORGANIZER',
+          organizerToken: 'organizer-token',
           players,
           currentPlayerId: 'player-1',
           timerEndsAt: null,
@@ -80,6 +81,7 @@ describe('useAuctionControl', () => {
       useAuctionControl({
         roomId: 'room-1',
         effectiveRole: 'ORGANIZER',
+        organizerToken: 'organizer-token',
         players: [inAuctionPlayer],
         currentPlayerId: 'player-1',
         timerEndsAt: null,
@@ -90,7 +92,7 @@ describe('useAuctionControl', () => {
       await result.current.handleCloseLottery()
     })
 
-    expect(closeLotteryAction).toHaveBeenCalledWith('room-1', 'Alpha')
+    expect(closeLotteryAction).toHaveBeenCalledWith('room-1', 'Alpha', 'organizer-token')
     expect(useAuctionStore.getState().lotteryPlayer).toBeNull()
   })
 
@@ -101,6 +103,7 @@ describe('useAuctionControl', () => {
       useAuctionControl({
         roomId: 'room-1',
         effectiveRole: 'ORGANIZER',
+        organizerToken: 'organizer-token',
         players: [inAuctionPlayer],
         currentPlayerId: 'player-1',
         timerEndsAt: null,
@@ -111,7 +114,7 @@ describe('useAuctionControl', () => {
       await result.current.handleCloseLottery()
     })
 
-    expect(closeLotteryAction).toHaveBeenCalledWith('room-1', 'Alpha')
+    expect(closeLotteryAction).toHaveBeenCalledWith('room-1', 'Alpha', 'organizer-token')
     expect(useAuctionStore.getState().lotteryPlayer?.id).toBe('player-1')
     expect(window.alert).toHaveBeenCalledWith('추첨 종료 오류: failed')
   })
@@ -121,6 +124,7 @@ describe('useAuctionControl', () => {
       useAuctionControl({
         roomId: 'room-1',
         effectiveRole: 'LEADER',
+        organizerToken: '',
         players: [inAuctionPlayer],
         currentPlayerId: 'player-1',
         timerEndsAt: null,
@@ -143,6 +147,7 @@ describe('useAuctionControl', () => {
         useAuctionControl({
           roomId: 'room-1',
           effectiveRole: 'ORGANIZER',
+          organizerToken: 'organizer-token',
           players: [inAuctionPlayer],
           currentPlayerId: 'player-1',
           timerEndsAt,
@@ -153,7 +158,7 @@ describe('useAuctionControl', () => {
         await vi.advanceTimersByTimeAsync(1_700)
       })
 
-      expect(awardPlayer).toHaveBeenCalledWith('room-1', 'player-1')
+      expect(awardPlayer).toHaveBeenCalledWith('room-1', 'player-1', 'organizer-token')
     } finally {
       vi.useRealTimers()
     }
@@ -167,6 +172,7 @@ describe('useAuctionControl', () => {
         useAuctionControl({
           roomId: 'room-1',
           effectiveRole: 'LEADER',
+          organizerToken: '',
           players: [inAuctionPlayer],
           currentPlayerId: 'player-1',
           timerEndsAt,

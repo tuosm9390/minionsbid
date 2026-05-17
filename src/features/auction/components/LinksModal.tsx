@@ -29,6 +29,7 @@ export function LinksModal() {
   const [linksError, setLinksError] = useState<string | null>(null);
 
   const roomId = useAuctionStore((state) => state.roomId);
+  const organizerToken = useAuctionStore((state) => state.organizerToken);
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
     setIsOpen(false),
   );
@@ -59,7 +60,9 @@ export function LinksModal() {
       try {
         const response = await fetch(`/api/room-links?roomId=${encodeURIComponent(roomId)}`, {
           method: "GET",
-          credentials: "same-origin",
+          headers: organizerToken
+            ? { "x-organizer-token": organizerToken }
+            : undefined,
           cache: "no-store",
         });
         const payload = (await response.json()) as
@@ -93,16 +96,16 @@ export function LinksModal() {
     return () => {
       cancelled = true;
     };
-  }, [isOpen, roomId]);
+  }, [isOpen, roomId, organizerToken]);
 
   if (!roomId) return null;
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const organizerLink = links?.organizerToken
-    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=ORGANIZER&token=${links.organizerToken}`
+    ? `${baseUrl}/room/${roomId}?role=ORGANIZER&authToken=${links.organizerToken}`
     : null;
   const viewerLink = links?.viewerToken
-    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=VIEWER&token=${links.viewerToken}`
+    ? `${baseUrl}/room/${roomId}?role=VIEWER&authToken=${links.viewerToken}`
     : null;
 
   const modalContent = (
@@ -162,7 +165,7 @@ export function LinksModal() {
                 .sort((a, b) => a.teamName.localeCompare(b.teamName, undefined, { numeric: true }))
                 .map((team, i: number) => {
                   const link = team.token
-                    ? `${baseUrl}/api/room-auth?roomId=${roomId}&role=LEADER&teamId=${team.teamId}&token=${team.token}`
+                    ? `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.teamId}&authToken=${team.token}`
                     : null;
                   if (!link) return null;
                   return (

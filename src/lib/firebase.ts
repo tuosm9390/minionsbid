@@ -24,9 +24,11 @@ export async function ensureRoomFirebaseAuth(args: {
   roomId: string
   role: string | null
   teamId?: string | null
+  token?: string | null
 }): Promise<string | null> {
   if (typeof window === 'undefined') return null
   if (!args.role) return null
+  if (!args.token) return null
 
   const key = `${args.roomId}:${args.role}:${args.teamId ?? ''}`
   if (auth.currentUser?.uid && roomAuthKey === key) {

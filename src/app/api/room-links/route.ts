@@ -1,5 +1,5 @@
+// 주최자 토큰을 헤더로 받아 방 링크 정보를 반환한다.
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
 import {
   getE2EAuctionFixtureRoomLinks,
@@ -8,10 +8,19 @@ import {
 import {
   ROOM_AUTH_COLLECTION,
   ROOM_AUTH_TEAM_TOKENS_COLLECTION,
-  buildRoomAuthCookieName,
-  parseRoomAuthCookie,
   validateRoomAuthToken,
 } from '@/features/auction/utils/roomAuth'
+
+function extractToken(request: NextRequest): string | null {
+  const headerToken = request.headers.get('x-organizer-token')
+  if (headerToken) return headerToken
+  const authHeader = request.headers.get('authorization')
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim()
+  }
+  const queryToken = request.nextUrl.searchParams.get('token')
+  return queryToken ? queryToken : null
+}
 
 export async function GET(request: NextRequest) {
   const roomId = request.nextUrl.searchParams.get('roomId')?.trim()
@@ -19,15 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'roomId가 필요합니다.' }, { status: 400 })
   }
 
-  const cookieStore = await cookies()
-  const authCookie = cookieStore.get(buildRoomAuthCookieName(roomId, 'ORGANIZER'))
-  const parsed = parseRoomAuthCookie(authCookie?.value)
-  if (!parsed || parsed.role !== 'ORGANIZER' || typeof parsed.token !== 'string') {
+  const organizerToken = extractToken(request)
+  if (!organizerToken) {
     return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
   }
+
   if (isE2EAuctionFixtureEnabled()) {
     const fixtureLinks = getE2EAuctionFixtureRoomLinks(roomId)
-    if (fixtureLinks.organizerToken !== parsed.token) {
+    if (fixtureLinks.organizerToken !== organizerToken) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
     return NextResponse.json(fixtureLinks)
@@ -48,7 +56,7 @@ export async function GET(request: NextRequest) {
     const isValid = await validateRoomAuthToken({
       roomId,
       role: 'ORGANIZER',
-      token: parsed.token,
+      token: organizerToken,
       isFixtureEnabled: false,
       verifyFixtureAccess: () => false,
       loadTokenDocuments: async () => ({
@@ -63,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     const roomData = roomDoc.data() ?? {}
     const roomAuthData = roomAuthDoc.data() ?? {}
-    const organizerToken =
+    const resolvedOrganizerToken =
       typeof roomAuthData.organizer_token === 'string'
         ? roomAuthData.organizer_token
         : typeof roomData.organizer_token === 'string'
@@ -115,7 +123,7 @@ export async function GET(request: NextRequest) {
       )
 
     return NextResponse.json({
-      organizerToken,
+      organizerToken: resolvedOrganizerToken,
       viewerToken,
       captainLinks,
     })

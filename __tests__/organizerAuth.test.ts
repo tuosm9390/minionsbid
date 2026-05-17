@@ -1,17 +1,10 @@
-// 주최자 서버 인증 헬퍼의 쿠키 및 토큰 검증을 테스트한다.
+// 주최자 서버 인증 헬퍼의 토큰 검증을 테스트한다.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ORGANIZER_AUTH_ERROR, requireRoomOrganizer } from '@/features/auction/api/organizerAuth'
 
-const { mockCookieGet, mockRoomGet, mockRoomAuthGet } = vi.hoisted(() => ({
-  mockCookieGet: vi.fn(),
+const { mockRoomGet, mockRoomAuthGet } = vi.hoisted(() => ({
   mockRoomGet: vi.fn(),
   mockRoomAuthGet: vi.fn(),
-}))
-
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(() => ({
-    get: mockCookieGet,
-  })),
 }))
 
 vi.mock('@/features/auction/api/e2eAuctionFixture', () => ({
@@ -33,27 +26,17 @@ vi.mock('@/features/auction/realtime/serverAdapter', () => ({
 
 describe('requireRoomOrganizer', () => {
   beforeEach(() => {
-    mockCookieGet.mockReset()
     mockRoomGet.mockReset()
     mockRoomAuthGet.mockReset()
   })
 
-  it('주최자 쿠키가 없으면 권한 오류를 반환한다', async () => {
-    mockCookieGet.mockReturnValue(undefined)
-
-    await expect(requireRoomOrganizer('room-1')).resolves.toBe(ORGANIZER_AUTH_ERROR)
+  it('토큰이 비어 있으면 권한 오류를 반환한다', async () => {
+    await expect(requireRoomOrganizer('room-1', '')).resolves.toBe(ORGANIZER_AUTH_ERROR)
     expect(mockRoomGet).not.toHaveBeenCalled()
     expect(mockRoomAuthGet).not.toHaveBeenCalled()
   })
 
-  it('주최자 쿠키 토큰이 저장된 토큰과 일치하면 통과한다', async () => {
-    mockCookieGet.mockReturnValue({
-      value: JSON.stringify({
-        role: 'ORGANIZER',
-        teamId: null,
-        token: 'organizer-token',
-      }),
-    })
+  it('전달된 토큰이 저장된 토큰과 일치하면 통과한다', async () => {
     mockRoomGet.mockResolvedValue({
       exists: true,
       data: () => ({}),
@@ -63,17 +46,10 @@ describe('requireRoomOrganizer', () => {
       data: () => ({ organizer_token: 'organizer-token' }),
     })
 
-    await expect(requireRoomOrganizer('room-1')).resolves.toBeNull()
+    await expect(requireRoomOrganizer('room-1', 'organizer-token')).resolves.toBeNull()
   })
 
-  it('주최자 쿠키 토큰이 저장된 토큰과 다르면 권한 오류를 반환한다', async () => {
-    mockCookieGet.mockReturnValue({
-      value: JSON.stringify({
-        role: 'ORGANIZER',
-        teamId: null,
-        token: 'wrong-token',
-      }),
-    })
+  it('전달된 토큰이 저장된 토큰과 다르면 권한 오류를 반환한다', async () => {
     mockRoomGet.mockResolvedValue({
       exists: true,
       data: () => ({}),
@@ -83,6 +59,6 @@ describe('requireRoomOrganizer', () => {
       data: () => ({ organizer_token: 'organizer-token' }),
     })
 
-    await expect(requireRoomOrganizer('room-1')).resolves.toBe(ORGANIZER_AUTH_ERROR)
+    await expect(requireRoomOrganizer('room-1', 'wrong-token')).resolves.toBe(ORGANIZER_AUTH_ERROR)
   })
 })

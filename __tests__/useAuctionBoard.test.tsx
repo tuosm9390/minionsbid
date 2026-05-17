@@ -107,7 +107,7 @@ describe("useAuctionBoard", () => {
       await result.current.handleDraft("p-unsold");
     });
 
-    expect(draftPlayer).toHaveBeenCalledWith("room-1", "p-unsold", "team-1");
+    expect(draftPlayer).toHaveBeenCalledWith("room-1", "p-unsold", "team-1", "");
     expect(result.current.isProcessingAction).toBeNull();
   });
 
@@ -123,7 +123,7 @@ describe("useAuctionBoard", () => {
       await result.current.handleRestartAuction();
     });
 
-    expect(restartAuctionWithUnsold).toHaveBeenCalledWith("room-1");
+    expect(restartAuctionWithUnsold).toHaveBeenCalledWith("room-1", "");
     expect(useAuctionStore.getState().isReAuctionRound).toBe(true);
   });
 

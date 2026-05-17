@@ -5,6 +5,7 @@ import { awardPlayer, closeLotteryAction } from '@/features/auction/api/auctionA
 interface UseAuctionControlProps {
   roomId: string
   effectiveRole: Role
+  organizerToken: string
   players: Player[]
   currentPlayerId: string | null
   timerEndsAt: string | null
@@ -15,6 +16,7 @@ const AWARD_GRACE_MS = 1_500
 export function useAuctionControl({
   roomId,
   effectiveRole,
+  organizerToken,
   players,
   currentPlayerId,
   timerEndsAt,
@@ -53,7 +55,7 @@ export function useAuctionControl({
   const handleCloseLottery = async () => {
     if (effectiveRole !== 'ORGANIZER') return
     if (!lotteryPlayer || !roomId) return
-    const result = await closeLotteryAction(roomId, lotteryPlayer.name)
+    const result = await closeLotteryAction(roomId, lotteryPlayer.name, organizerToken)
     if (result.error) {
       console.error('[Lottery] close failed:', result.error)
       alert(`추첨 종료 오류: ${result.error}`)
@@ -78,7 +80,7 @@ export function useAuctionControl({
 
     awardLock.current = true
     try {
-      const result = await awardPlayer(roomId, playerId)
+      const result = await awardPlayer(roomId, playerId, organizerToken)
       if (result.error) {
         console.error('[Auto-Award] 낙찰 처리 실패:', result.error)
         alert(`낙찰 처리 오류: ${result.error}`)

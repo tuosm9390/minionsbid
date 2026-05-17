@@ -379,12 +379,13 @@ export async function broadcastBidEvent(
 /** 랜덤으로 WAITING 선수 1명을 IN_AUCTION으로 전환 */
 export async function drawNextPlayer(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return drawFixtureNextPlayer(roomId);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -489,13 +490,14 @@ export async function drawNextPlayer(
 /** 경매 시작 — timer_ends_at 설정 */
 export async function startAuction(
   roomId: string,
+  organizerToken: string,
   durationMs: number = AUCTION_DURATION_MS,
 ): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return startFixtureAuction(roomId, durationMs);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -567,12 +569,13 @@ export async function startAuction(
 /** 경매 일시정지 (팀장 연결 끊김) */
 export async function pauseAuction(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return pauseFixtureAuction(roomId);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -619,12 +622,13 @@ export async function pauseAuction(
 /** 경매 재개 (팀장 재연결) */
 export async function resumeAuction(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return resumeFixtureAuction(roomId);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -677,12 +681,13 @@ export async function resumeAuction(
 export async function closeLotteryAction(
   roomId: string,
   playerName: string,
+  organizerToken: string,
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return closeFixtureLottery(roomId, playerName);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -1040,8 +1045,9 @@ export async function submitSealedBid(
 /** 비공개 입찰 타이머 만료 후 제출을 잠근다. */
 export async function lockSealedBidRound(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string; locked?: boolean }> {
-  const authError = await requireRoomOrganizer(roomId);
+  const authError = await requireRoomOrganizer(roomId, organizerToken);
   if (authError) return { error: authError };
   return lockSealedBidRoundInternal(roomId);
 }
@@ -1105,9 +1111,10 @@ async function lockSealedBidRoundInternal(
 /** 점수공개: 제출 결과를 집계해 공개 카드 데이터를 확정한다. */
 export async function revealSealedBidRound(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string; revealResult?: SealedBidRevealCard[] }> {
   try {
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -1238,9 +1245,10 @@ export async function revealSealedBidRound(
 /** 카드 공개 애니메이션 완료 후 낙찰 또는 재입찰을 확정한다. */
 export async function completeSealedBidReveal(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string; awarded?: boolean; rebidStarted?: boolean }> {
   try {
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
@@ -1372,11 +1380,12 @@ export async function completeSealedBidReveal(
 export async function awardPlayer(
   roomId: string,
   playerId: string,
+  organizerToken: string,
 ): Promise<{ error?: string }> {
   if (isE2EAuctionFixtureEnabled()) {
     return awardFixturePlayer(roomId, playerId);
   }
-  const authError = await requireRoomOrganizer(roomId);
+  const authError = await requireRoomOrganizer(roomId, organizerToken);
   if (authError) return { error: authError };
   return awardPlayerInternal(roomId, playerId);
 }
@@ -1555,12 +1564,13 @@ export async function draftPlayer(
   roomId: string,
   playerId: string,
   teamId: string,
+  organizerToken: string,
 ): Promise<{ error?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return draftFixturePlayer(roomId, playerId, teamId);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const playerSnap = await getAuctionFirestore()
@@ -1730,12 +1740,13 @@ export async function draftPlayer(
 /** UNSOLD 선수 전부 WAITING으로 전환 (재경매) */
 export async function restartAuctionWithUnsold(
   roomId: string,
+  organizerToken: string,
 ): Promise<{ error?: string; reAuctionStarted?: boolean }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
       return restartFixtureAuctionWithUnsold(roomId);
     }
-    const authError = await requireRoomOrganizer(roomId);
+    const authError = await requireRoomOrganizer(roomId, organizerToken);
     if (authError) return { error: authError };
 
     const unsoldSnap = await getAuctionFirestore()

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { pauseAuction, resumeAuction } from '@/features/auction/api/auctionActions'
-import type { Role } from '@/features/auction/store/useAuctionStore'
+import { useAuctionStore, type Role } from '@/features/auction/store/useAuctionStore'
 
 interface UseAuctionPresenceGuardProps {
   roomId: string
@@ -26,6 +26,7 @@ export function useAuctionPresenceGuard({
   timerEndsAt,
   lotteryPlayerId,
 }: UseAuctionPresenceGuardProps) {
+  const organizerToken = useAuctionStore((s) => s.organizerToken)
   const phaseRef = useRef<GuardPhase>('idle')
   const pauseTimeoutRef = useRef<number | null>(null)
   const latestStateRef = useRef({
@@ -80,7 +81,7 @@ export function useAuctionPresenceGuard({
           }
 
           phaseRef.current = 'pausing'
-          void pauseAuction(roomId).then((result) => {
+          void pauseAuction(roomId, organizerToken ?? '').then((result) => {
             if (result.error) {
               phaseRef.current = 'idle'
               return
@@ -105,7 +106,7 @@ export function useAuctionPresenceGuard({
       !isLotteryPhase
     ) {
       phaseRef.current = 'resuming'
-      void resumeAuction(roomId).then((result) => {
+      void resumeAuction(roomId, organizerToken ?? '').then((result) => {
         if (result.error) {
           phaseRef.current = 'paused'
           return
@@ -124,6 +125,7 @@ export function useAuctionPresenceGuard({
     effectiveRole,
     isPresenceLoaded,
     lotteryPlayerId,
+    organizerToken,
     roomId,
     timerEndsAt,
   ])

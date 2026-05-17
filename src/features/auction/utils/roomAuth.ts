@@ -5,20 +5,14 @@ export type RoomAuthRole = Exclude<Role, null>
 export const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
 export const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
 
-type AuthCookiePayload = {
-  role: Role | null
-  teamId: string | null
-  token?: string | null
-}
-
-type TokenDocuments = {
+export type TokenDocuments = {
   roomData?: Record<string, unknown> | null
   roomAuthData?: Record<string, unknown> | null
   teamData?: Record<string, unknown> | null
   teamTokenData?: Record<string, unknown> | null
 }
 
-type ValidateRoomAuthTokenArgs = {
+export type ValidateRoomAuthTokenArgs = {
   roomId: string
   role: RoomAuthRole
   teamId?: string | null
@@ -39,45 +33,6 @@ type ValidateRoomAuthTokenArgs = {
 
 export function isValidRoomRole(role: string | null | undefined): role is RoomAuthRole {
   return role === 'ORGANIZER' || role === 'LEADER' || role === 'VIEWER'
-}
-
-export function buildRoomAuthCookieName(roomId: string, role: RoomAuthRole, teamId?: string | null) {
-  const cookieSuffix = role === 'LEADER' && teamId ? `LEADER_${teamId}` : role.toUpperCase()
-  return `room_auth_${roomId}_${cookieSuffix}`
-}
-
-export function parseRoomAuthCookie(cookieValue: string | undefined) {
-  if (!cookieValue) {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(cookieValue) as Partial<AuthCookiePayload>
-    return {
-      role: parsed.role ?? null,
-      teamId: parsed.teamId ?? null,
-      token: parsed.token ?? null,
-    }
-  } catch {
-    return null
-  }
-}
-
-export function isRoomAuthCookieMatch(args: {
-  parsed: ReturnType<typeof parseRoomAuthCookie>
-  role: RoomAuthRole
-  teamId?: string | null
-}) {
-  const { parsed, role, teamId } = args
-  if (!parsed || parsed.role !== role) {
-    return false
-  }
-
-  if (role === 'LEADER') {
-    return Boolean(parsed.teamId) && (!teamId || parsed.teamId === teamId)
-  }
-
-  return parsed.teamId === null
 }
 
 function getOrganizerToken(roomData?: Record<string, unknown> | null, roomAuthData?: Record<string, unknown> | null) {
