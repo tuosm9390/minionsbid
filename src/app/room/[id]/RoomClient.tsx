@@ -53,14 +53,10 @@ export function RoomClient({
   roomId,
   roleParam,
   teamIdParam,
-  organizerToken: organizerTokenParam,
-  authToken,
 }: {
   roomId: string;
   roleParam: Role;
   teamIdParam: string | null;
-  organizerToken: string | null;
-  authToken: string | null;
 }) {
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
@@ -97,7 +93,6 @@ export function RoomClient({
   const { effectiveRole } = useRoomAuth({
     role: roleParam,
     teamId: teamIdParam || undefined,
-    organizerToken: organizerTokenParam,
     roomId,
     setRoomContext,
   });
@@ -110,7 +105,6 @@ export function RoomClient({
     teamId: storeTeamId,
     role: effectiveRole,
     teamName: myTeamForPresence?.name,
-    authToken,
   });
 
   const connectedLeaderIds = new Set(
