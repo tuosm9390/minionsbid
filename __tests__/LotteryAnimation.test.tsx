@@ -159,7 +159,7 @@ describe("LotteryAnimation", () => {
       />,
     );
 
-    expect(screen.getByText("무작위 총력전")).toBeInTheDocument();
+    expect(screen.getByText(/무작위 총력전/)).toBeInTheDocument();
     expect(screen.getByText("증바람 악귀")).toBeInTheDocument();
     expect(screen.getByText("전략적 팀 전투")).toBeInTheDocument();
     expect(screen.getByText("다이아")).toBeInTheDocument();

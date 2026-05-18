@@ -165,3 +165,12 @@
 - [x] direct bid 후속 broadcast canonical room state 재검산
 - [x] 핵심 단위 테스트와 빌드 검증
 - [x] Firestore rules smoke 검증
+
+## 기존 테스트 실패 2건 정리
+
+- [x] `useAuctionControl` 실패 원인과 추첨 종료 계약 확인
+- [x] `LotteryAnimation` 실패 원인과 실제 표시 문구 확인
+- [x] 테스트 기대값 최소 수정
+- [x] 대상 테스트 실행
+- [x] 전체 `npm run test` 실행
+- [x] 변경 커밋

@@ -136,3 +136,9 @@
 - 2026-05-19: `broadcastBidEvent`는 클라이언트가 보낸 revision과 timer 값을 그대로 쓰지 않고, room canonical `active_bid`, `auction_revision`, team name을 재조회해 일치할 때만 발행한다.
 - 2026-05-19: 검증 결과 `npm run build`, `npx tsc --noEmit`, 핵심 Vitest 7개 파일, `npm run smoke:room-rules`는 통과했다. `npm run test` 전체는 기존 `useAuctionControl`, `LotteryAnimation` 2건 실패가 남아 있다.
 
+## 기존 테스트 실패 2건 정리
+
+- 2026-05-19: `useAuctionControl`의 기존 실패 테스트는 `lotteryPlayer`가 `null`인 상태에서 `IN_AUCTION` snapshot만으로 추첨 모달을 다시 열리길 기대한다. 현재 구현과 `auctionRealtime` 계약은 `LOTTERY_CLOSED`, `AUCTION_STARTED`, `AUCTION_RESUMED` 이후 stale lottery player를 null로 유지하는 쪽이므로 테스트 기대값을 그 계약에 맞춘다.
+- 2026-05-19: `LotteryAnimation`은 무작위 총력전 라벨을 `무작위 총력전 : 아수라장`으로 표시한다. 테스트는 exact text로 `무작위 총력전`만 찾고 있어 현재 화면 문구와 맞지 않으므로 부분 매칭으로 바꾼다.
+- 2026-05-19: 대상 검증 `npx vitest run src/features/auction/hooks/useAuctionControl.test.ts __tests__/LotteryAnimation.test.tsx`는 10개 테스트 통과, 전체 검증 `npm run test`는 27개 파일 192개 테스트 통과 상태다.
+

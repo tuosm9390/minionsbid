@@ -45,7 +45,7 @@ describe('useAuctionControl', () => {
     ;(awardPlayer as Mock).mockResolvedValue({})
   })
 
-  it('IN_AUCTION 전환을 감지하면 lotteryPlayer를 설정한다', async () => {
+  it('추첨 종료 후 IN_AUCTION snapshot이 와도 lotteryPlayer를 다시 설정하지 않는다', async () => {
     const { rerender } = renderHook(
       ({ players }) =>
         useAuctionControl({
@@ -72,7 +72,7 @@ describe('useAuctionControl', () => {
     })
 
     await waitFor(() => {
-      expect(useAuctionStore.getState().lotteryPlayer?.id).toBe('player-1')
+      expect(useAuctionStore.getState().lotteryPlayer).toBeNull()
     })
   })
 
