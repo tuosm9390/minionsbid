@@ -241,6 +241,90 @@ describe('applyAuctionEventToState', () => {
     expect(getAuctionExpiryWakeUpDelay('2099-12-31T23:59:59.000Z', 0)).toBe(2147483647)
   })
 
+  describe('missed intermediate event 회귀 방지', () => {
+    it('AUCTION_STARTED는 stale lotteryPlayer를 null로 초기화한다 (missed LOTTERY_CLOSED 회귀 방지)', () => {
+      const state = createBaseState()
+      state.lotteryPlayer = state.players[0]
+
+      const result = applyAuctionEventToState(
+        state,
+        createEvent({
+          type: 'AUCTION_STARTED',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:08.000Z',
+        }),
+      )
+
+      expect(result.applied).toBe(true)
+      expect(result.lotteryPlayer).toBeNull()
+    })
+
+    it('AUCTION_RESUMED도 stale lotteryPlayer를 null로 초기화한다 (missed LOTTERY_CLOSED 회귀 방지)', () => {
+      const state = createBaseState()
+      state.lotteryPlayer = state.players[0]
+
+      const result = applyAuctionEventToState(
+        state,
+        createEvent({
+          type: 'AUCTION_RESUMED',
+          currentPlayerId: 'player-1',
+          timerEndsAt: '2026-04-29T00:00:08.000Z',
+        }),
+      )
+
+      expect(result.applied).toBe(true)
+      expect(result.lotteryPlayer).toBeNull()
+    })
+
+    it('PLAYER_AWARDED는 stale liveBid를 null로 초기화한다 (missed BID_PLACED 회귀 방지)', () => {
+      const state = createBaseState()
+      state.liveBid = {
+        player_id: 'player-1',
+        team_id: 'team-1',
+        amount: 150,
+        created_at: '2026-04-29T00:00:01.000Z',
+      }
+
+      const result = applyAuctionEventToState(
+        state,
+        createEvent({
+          type: 'PLAYER_AWARDED',
+          currentPlayerId: null,
+          timerEndsAt: null,
+        }),
+      )
+
+      expect(result.applied).toBe(true)
+      expect(result.liveBid).toBeNull()
+      expect(result.currentPlayerId).toBeNull()
+      expect(result.timerEndsAt).toBeNull()
+    })
+
+    it('PLAYER_UNSOLD도 stale liveBid를 null로 초기화한다 (missed BID_PLACED 회귀 방지)', () => {
+      const state = createBaseState()
+      state.liveBid = {
+        player_id: 'player-1',
+        team_id: 'team-1',
+        amount: 150,
+        created_at: '2026-04-29T00:00:01.000Z',
+      }
+
+      const result = applyAuctionEventToState(
+        state,
+        createEvent({
+          type: 'PLAYER_UNSOLD',
+          currentPlayerId: null,
+          timerEndsAt: null,
+        }),
+      )
+
+      expect(result.applied).toBe(true)
+      expect(result.liveBid).toBeNull()
+      expect(result.currentPlayerId).toBeNull()
+      expect(result.timerEndsAt).toBeNull()
+    })
+  })
+
   it('재경매 플래그는 RE_AUCTION_STARTED에서 true가 되고 PLAYER_AWARDED/UNSOLD에서 false로 닫힌다', () => {
     expect(
       getNextReAuctionRoundState({
