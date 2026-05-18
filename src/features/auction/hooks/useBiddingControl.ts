@@ -23,6 +23,7 @@ import {
 interface UseBiddingControlProps {
   roomId: string
   teamId: string
+  leaderToken: string
   currentPlayer: Player | null
   myTeam: Team | null
   isAuctionActive: boolean
@@ -51,6 +52,7 @@ function isRealtimeDebugEnabled() {
 export function useBiddingControl({
   roomId,
   teamId,
+  leaderToken,
   currentPlayer,
   myTeam,
   isAuctionActive,
@@ -205,11 +207,9 @@ export function useBiddingControl({
             roomId,
             currentPlayer.id,
             teamId,
-            myTeam?.name ?? '팀',
+            leaderToken,
             finalAmount,
-            directResult.timerExtended ? (directResult.timerEndsAt ?? null) : null,
             directResult.revision ?? useAuctionStore.getState().auctionEventRevision,
-            directResult.timerExtended ? EXTEND_DURATION_MS : null,
           )
         }
         if (LATENCY_DEBUG) {
@@ -223,7 +223,7 @@ export function useBiddingControl({
         return
       }
 
-      const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount)
+      const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount, leaderToken)
       if (res.error) {
         setLiveBid(previousLiveBid ?? null)
         if (shouldOptimisticallyResetTimer) {

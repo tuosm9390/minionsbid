@@ -53,12 +53,12 @@ export function RoomClient({
   roomId,
   roleParam,
   teamIdParam,
-  organizerTokenParam,
+  roomAuthTokenParam,
 }: {
   roomId: string;
   roleParam: Role;
   teamIdParam: string | null;
-  organizerTokenParam: string | null;
+  roomAuthTokenParam: string | null;
 }) {
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
@@ -76,6 +76,7 @@ export function RoomClient({
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const organizerToken = useAuctionStore((s) => s.organizerToken);
+  const roomAuthToken = useAuctionStore((s) => s.roomAuthToken);
   const setLotteryPlayer = useAuctionStore((s) => s.setLotteryPlayer);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData);
@@ -96,7 +97,7 @@ export function RoomClient({
   const { effectiveRole } = useRoomAuth({
     role: roleParam,
     teamId: teamIdParam || undefined,
-    organizerToken: organizerTokenParam,
+    roomAuthToken: roomAuthTokenParam,
     roomId,
     setRoomContext,
   });
@@ -188,7 +189,7 @@ export function RoomClient({
     if (!noticeText.trim() || !roomId || isSendingNotice) return;
     setIsSendingNotice(true);
     try {
-      await sendNotice(roomId, noticeText.trim());
+      await sendNotice(roomId, organizerToken ?? "", noticeText.trim());
       setNoticeText("");
     } finally {
       setIsSendingNotice(false);
@@ -462,6 +463,7 @@ export function RoomClient({
                 <SealedBiddingControl
                   roomId={roomId}
                   teamId={storeTeamId}
+                  leaderToken={roomAuthToken ?? ""}
                   currentPlayer={currentPlayer || null}
                   myTeam={myTeam || null}
                   isAuctionActive={isAuctionActive}
@@ -473,6 +475,7 @@ export function RoomClient({
                 <BiddingControl
                   roomId={roomId}
                   teamId={storeTeamId}
+                  leaderToken={roomAuthToken ?? ""}
                   currentPlayer={currentPlayer || null}
                   myTeam={myTeam || null}
                   isAuctionActive={isAuctionActive}

@@ -132,6 +132,11 @@ vi.mock('@/features/auction/api/organizerAuth', () => ({
   requireRoomOrganizer: vi.fn().mockResolvedValue(null),
 }))
 
+vi.mock('@/features/auction/api/roomRoleAuth', () => ({
+  LEADER_AUTH_ERROR: '팀장 권한이 필요합니다.',
+  requireRoomLeader: vi.fn().mockResolvedValue(null),
+}))
+
 // ─────────────────────────────────────────────────────────────
 // 공통 beforeEach
 // ─────────────────────────────────────────────────────────────

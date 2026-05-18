@@ -12,6 +12,7 @@ interface PresenceOptions {
   teamId: string | null
   role: string | null
   teamName?: string
+  authToken?: string | null
 }
 
 type PresenceRecord = {
@@ -25,10 +26,11 @@ type PresenceRecord = {
  * Firebase RTDB 기반 Presence 훅.
  * onDisconnect를 활용하여 연결 끊김 시 자동으로 presence 정보를 제거한다.
  */
-export function useFirebasePresence({ roomId, teamId, role, teamName }: PresenceOptions) {
+export function useFirebasePresence({ roomId, teamId, role, teamName, authToken }: PresenceOptions) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setPresenceLoaded = useAuctionStore(s => s.setPresenceLoaded)
   const setLocalConnected = useAuctionStore(s => s.setLocalConnected)
+  const roomAuthToken = useAuctionStore(s => s.roomAuthToken)
   const localPresenceRef = useRef<PresenceUser | null>(null)
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
           roomId,
           role,
           teamId,
+          token: authToken ?? roomAuthToken,
         })
         if (cancelled) return
         const { rtdb } = getAuctionClientServices()
@@ -140,5 +143,5 @@ export function useFirebasePresence({ roomId, teamId, role, teamName }: Presence
       localPresenceRef.current = null
       unsubs.forEach((unsub) => unsub())
     }
-  }, [roomId, teamId, role, teamName, setRealtimeData, setPresenceLoaded, setLocalConnected])
+  }, [roomId, teamId, role, teamName, authToken, roomAuthToken, setRealtimeData, setPresenceLoaded, setLocalConnected])
 }

@@ -7,6 +7,7 @@ import {
   sendFixtureChatMessage,
   sendFixtureNotice,
 } from '@/features/auction/api/e2eAuctionFixture'
+import { requireRoomOrganizer } from '@/features/auction/api/organizerAuth'
 import type { MessageRole } from '@/features/auction/store/useAuctionStore'
 
 const VALID_ROLES = ['ORGANIZER', 'LEADER', 'VIEWER', 'SYSTEM', 'NOTICE'] as const
@@ -88,11 +89,15 @@ export async function sendChatMessage(
 /** 공지 전송 (ORGANIZER 전용 UI) */
 export async function sendNotice(
   roomId: string,
+  organizerToken: string,
   content: string,
 ): Promise<{ error?: string }> {
   if (!content.trim() || content.length > 200) return { error: '유효하지 않은 공지' }
 
   try {
+    const authError = await requireRoomOrganizer(roomId, organizerToken)
+    if (authError) return { error: authError }
+
     const trimmedContent = content.trim()
     if (isE2EAuctionFixtureEnabled()) {
       return sendFixtureNotice(roomId, trimmedContent)

@@ -46,6 +46,7 @@ describe("useBiddingControl", () => {
   const defaultProps = {
     roomId: "room-1",
     teamId: "team-1",
+    leaderToken: "leader-token",
     currentPlayer,
     myTeam,
     isAuctionActive: true,
@@ -150,11 +151,9 @@ describe("useBiddingControl", () => {
       "room-1",
       "p1",
       "team-1",
-      "팀1",
+      "leader-token",
       10,
-      serverTimerEndsAt,
       3,
-      8000,
     );
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
@@ -162,7 +161,7 @@ describe("useBiddingControl", () => {
   });
 
   it("남은 시간 < 8s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
-    let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
+    let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
@@ -186,7 +185,7 @@ describe("useBiddingControl", () => {
   });
 
   it("남은 시간 > 8s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
-    let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
+    let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
@@ -215,7 +214,7 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid는 성공 전에도 local liveBid를 optimistic하게 세팅한다", async () => {
-    let resolveBid!: (value: { timerEndsAt?: string | null }) => void;
+    let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
     );
@@ -271,7 +270,7 @@ describe("useBiddingControl", () => {
     const { result } = renderHook(() => useBiddingControl(defaultProps));
     await act(async () => { await result.current.handleBid(); });
 
-    expect(placeBid).toHaveBeenCalledWith("room-1", "p1", "team-1", 10);
+    expect(placeBid).toHaveBeenCalledWith("room-1", "p1", "team-1", 10, "leader-token");
     expect(result.current.bidAmount).toBe(20);
     expect(useAuctionStore.getState().auctionEventRevision).toBe(7);
   });

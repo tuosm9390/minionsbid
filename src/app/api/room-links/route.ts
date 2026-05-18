@@ -1,6 +1,8 @@
-// 방 링크 정보를 반환한다. 소규모 지인용 운영에서는 주최자 토큰 검증을 수행하지 않는다.
+// 방 링크 정보를 주최자 토큰 검증 후 반환한다.
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
+import { requireRoomOrganizer } from '@/features/auction/api/organizerAuth'
+import { ROOM_AUTH_COLLECTION, ROOM_AUTH_TEAM_TOKENS_COLLECTION } from '@/features/auction/utils/roomAuth'
 import {
   getE2EAuctionFixtureRoomLinks,
   isE2EAuctionFixtureEnabled,
@@ -8,6 +10,7 @@ import {
 
 export async function GET(request: NextRequest) {
   const roomId = request.nextUrl.searchParams.get('roomId')?.trim()
+  const organizerToken = request.nextUrl.searchParams.get('organizerToken')?.trim() ?? ''
   if (!roomId) {
     return NextResponse.json({ error: 'roomId가 필요합니다.' }, { status: 400 })
   }
@@ -17,27 +20,53 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const authError = await requireRoomOrganizer(roomId, organizerToken)
+    if (authError) {
+      return NextResponse.json({ error: authError }, { status: 403 })
+    }
+
     const { firestore } = getAuctionServerServices()
-    const [roomDoc, teamsSnapshot] = await Promise.all([
+    const [roomDoc, teamsSnapshot, teamTokensSnapshot] = await Promise.all([
       firestore.collection('rooms').doc(roomId).get(),
       firestore.collection('rooms').doc(roomId).collection('teams').get(),
+      firestore
+        .collection(ROOM_AUTH_COLLECTION)
+        .doc(roomId)
+        .collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION)
+        .get(),
     ])
 
     if (!roomDoc.exists) {
       return NextResponse.json({ error: '링크 정보를 찾을 수 없습니다.' }, { status: 404 })
     }
 
+    const privateTokensByTeamId = new Map(
+      teamTokensSnapshot.docs.map((teamTokenDoc) => [
+        teamTokenDoc.id,
+        teamTokenDoc.data()?.leader_token,
+      ]),
+    )
+
     const captainLinks = teamsSnapshot.docs
       .map((teamDoc) => {
         const teamData = teamDoc.data() ?? {}
         const teamName = typeof teamData.name === 'string' ? teamData.name : ''
         const leaderName = typeof teamData.leader_name === 'string' ? teamData.leader_name : ''
-        if (!teamName) return null
+        const privateToken = privateTokensByTeamId.get(teamDoc.id)
+        const legacyToken = teamData.leader_token
+        const leaderToken =
+          typeof privateToken === 'string'
+            ? privateToken
+            : typeof legacyToken === 'string'
+              ? legacyToken
+              : ''
+        if (!teamName || !leaderToken) return null
 
         return {
           teamId: teamDoc.id,
           teamName,
           leaderName,
+          leaderToken,
         }
       })
       .filter(
@@ -47,6 +76,7 @@ export async function GET(request: NextRequest) {
           teamId: string
           teamName: string
           leaderName: string
+          leaderToken: string
         } => link !== null,
       )
 

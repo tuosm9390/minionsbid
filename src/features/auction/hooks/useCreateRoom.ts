@@ -242,7 +242,7 @@ export function useCreateRoom() {
       organizerLink: `${baseUrl}${organizerPath}`,
       captainLinks: teamsResult.map((team) => ({
         teamName: team.name,
-        link: `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}`,
+        link: `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.id}&token=${encodeURIComponent(team.leader_token)}`,
       })),
       viewerLink: `${baseUrl}/room/${roomId}?role=VIEWER`,
     });

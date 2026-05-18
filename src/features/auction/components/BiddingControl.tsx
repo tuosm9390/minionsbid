@@ -11,6 +11,7 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 interface BiddingControlProps {
   roomId: string;
   teamId: string;
+  leaderToken: string;
   currentPlayer: Player | null;
   myTeam: Team | null;
   isAuctionActive: boolean;

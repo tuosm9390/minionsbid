@@ -12,6 +12,7 @@ import { submitSealedBid } from "@/features/auction/api/auctionActions";
 interface SealedBiddingControlProps {
   roomId: string;
   teamId: string;
+  leaderToken: string;
   currentPlayer: Player | null;
   myTeam: Team | null;
   isAuctionActive: boolean;
@@ -23,6 +24,7 @@ interface SealedBiddingControlProps {
 export function SealedBiddingControl({
   roomId,
   teamId,
+  leaderToken,
   currentPlayer,
   myTeam,
   isAuctionActive,
@@ -67,6 +69,7 @@ export function SealedBiddingControl({
         currentPlayer.id,
         teamId,
         normalizedAmount,
+        leaderToken,
       );
       if (result.error) {
         setError(result.error);

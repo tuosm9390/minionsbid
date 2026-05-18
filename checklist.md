@@ -136,3 +136,32 @@
 - [x] 대기 아이템을 닉네임 / 티어 / 포지션 한 줄 표시로 변경
 - [x] 빌드 검증
 - [x] 커밋 여부 결정
+
+## 현재 상태 코드 리뷰
+
+- [x] 리뷰 범위와 성공 기준 정리
+- [x] 프로젝트 구조와 주요 문서 확인
+- [x] 패키지 스크립트와 검증 명령 확인
+- [x] 정적 검사와 단위 테스트 실행
+- [x] 보안, 권한, 실시간 경매 경계 검토
+- [x] 발견 사항을 심각도 순으로 정리
+
+## 최소 보안선 구현 계획
+
+- [x] 기존 분석 보고서에서 최소 유지 범위 추출
+- [x] 구현 대상 서버 액션과 rules 경계 정리
+- [x] 단계별 구현 계획 작성
+- [x] 최소 검증 명령과 완료 기준 작성
+
+## 최소 보안선 구현
+
+- [x] 역할 token을 room context와 Firebase custom token 발급 요청에 전달
+- [x] 팀장 링크에 leader token 포함
+- [x] `requireRoomLeader` 서버 헬퍼 추가
+- [x] custom token 발급 전 역할 token 검증
+- [x] 공개 입찰 fallback leader token 검증
+- [x] 비공개 입찰 제출 leader token 검증
+- [x] 공지 organizer token 검증
+- [x] direct bid 후속 broadcast canonical room state 재검산
+- [x] 핵심 단위 테스트와 빌드 검증
+- [x] Firestore rules smoke 검증

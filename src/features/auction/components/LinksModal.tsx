@@ -15,6 +15,7 @@ interface OrganizerLinksPayload {
     teamId: string;
     teamName: string;
     leaderName: string;
+    leaderToken: string;
   }>;
 }
 
@@ -55,10 +56,13 @@ export function LinksModal() {
       setLinksError(null);
 
       try {
-        const response = await fetch(`/api/room-links?roomId=${encodeURIComponent(roomId)}`, {
+        const response = await fetch(
+          `/api/room-links?roomId=${encodeURIComponent(roomId)}&organizerToken=${encodeURIComponent(organizerToken ?? "")}`,
+          {
           method: "GET",
           cache: "no-store",
-        });
+          },
+        );
         const payload = (await response.json()) as
           | OrganizerLinksPayload
           | { error?: string };
@@ -154,7 +158,7 @@ export function LinksModal() {
               {[...(links?.captainLinks ?? [])]
                 .sort((a, b) => a.teamName.localeCompare(b.teamName, undefined, { numeric: true }))
                 .map((team, i: number) => {
-                  const link = `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.teamId}`;
+                  const link = `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.teamId}&token=${encodeURIComponent(team.leaderToken)}`;
                   return (
                     <LinkCard
                       key={team.teamId} label={team.teamName}

@@ -113,3 +113,26 @@
 - 현재 `RoomClient`, `WaitingPanel`, `TeamList`에 기존 미커밋 변경이 있으므로, 사용자 변경을 보존하고 이번 변경은 필요한 부분에 덧붙인다. 커밋은 기존 미커밋 변경과 분리 가능할 때만 진행한다.
 - 이번 변경은 기존 미커밋 변경과 같은 파일에 섞여 있으므로 커밋하지 않고 워킹트리에 둔다.
 
+## 현재 상태 코드 리뷰
+
+- 2026-05-18: 사용자는 현재 프로젝트 상태 파악과 코드 리뷰를 요청했다.
+- 2026-05-18: 작업 트리에는 추적되지 않은 `event-miss-analysis.md`, `security-report.md`가 있으며 사용자 산출물로 간주하고 건드리지 않는다.
+- 2026-05-18: `/api/room-auth/firebase-token`은 문서와 달리 room cookie 또는 역할 토큰 검증 없이 요청 본문만으로 Firebase custom token을 발급한다.
+- 2026-05-18: `placeBid`, `submitSealedBid`, `broadcastBidEvent`, `sendNotice` 서버 액션에는 호출자 권한 검증이 없거나 부족하다.
+- 2026-05-18: `npm run lint`는 38 errors, 24 warnings로 실패했고, `npm run test`는 2개 테스트 실패 상태다.
+
+## 최소 보안선 구현 계획
+
+- 2026-05-19: 사용자 요청에 따라 소규모 링크 공유 운영 모델을 유지하는 최소 권장 범위와 구현 계획을 `minimal-security-implementation-plan.md`로 분리해 작성했다.
+- 2026-05-19: 최종 권장 범위는 custom token 발급 전 역할 token 대조, 공개 입찰 fallback leader token 대조, 비공개 입찰 제출 leader token 대조, 공지 organizer token 대조, `broadcastBidEvent` canonical room state 재검산이다.
+- 2026-05-19: Firestore rules는 완화하지 않는 쪽을 계획의 기본값으로 둔다. direct bid rules는 보안이라기보다 경매 정합성 검증이므로 유지 대상이다.
+
+## 최소 보안선 구현
+
+- 2026-05-19: `roomAuthToken`을 store에 추가하고, 방 입장 URL의 `token` 또는 `authToken`을 room context와 Firebase custom token 요청에 전달하도록 수정했다.
+- 2026-05-19: 팀장 링크 생성 경로에 leader token을 포함했다. 주최자 링크 모달의 `/api/room-links`는 organizer token 검증 후 private team token을 반환한다.
+- 2026-05-19: `requireRoomLeader`와 `requireRoomViewer` 서버 헬퍼를 추가했다. 신규 private token 문서를 우선하고 legacy public token fallback을 유지한다.
+- 2026-05-19: `placeBid`, `submitSealedBid`, `sendNotice`, `broadcastBidEvent`에 최소 권한 검증을 추가했다.
+- 2026-05-19: `broadcastBidEvent`는 클라이언트가 보낸 revision과 timer 값을 그대로 쓰지 않고, room canonical `active_bid`, `auction_revision`, team name을 재조회해 일치할 때만 발행한다.
+- 2026-05-19: 검증 결과 `npm run build`, `npx tsc --noEmit`, 핵심 Vitest 7개 파일, `npm run smoke:room-rules`는 통과했다. `npm run test` 전체는 기존 `useAuctionControl`, `LotteryAnimation` 2건 실패가 남아 있다.
+

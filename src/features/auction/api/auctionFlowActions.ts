@@ -35,6 +35,7 @@ import {
   RE_AUCTION_DURATION_MS,
 } from "@/features/auction/constants/auctionTimings";
 import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
+import { requireRoomLeader } from "@/features/auction/api/roomRoleAuth";
 
 // ---------- 상수 ----------
 
@@ -349,23 +350,39 @@ export async function broadcastBidEvent(
   roomId: string,
   playerId: string,
   teamId: string,
-  teamName: string,
+  leaderToken: string,
   amount: number,
-  timerEndsAt: string | null,
-  revision: number,
-  timerDurationMs: number | null = null,
+  expectedRevision: number,
 ): Promise<void> {
+  const authError = await requireRoomLeader(roomId, teamId, leaderToken);
+  if (authError) return;
+
+  const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
+  const [roomSnap, teamSnap] = await Promise.all([
+    roomRef.get(),
+    roomRef.collection("teams").doc(teamId).get(),
+  ]);
+  if (!roomSnap.exists || !teamSnap.exists) return;
+
+  const roomData = (roomSnap.data() ?? {}) as AuctionRoomState;
+  const liveBid = roomData.active_bid ?? null;
+  const revision = roomData.auction_revision ?? 0;
+  if (
+    revision !== expectedRevision ||
+    liveBid?.player_id !== playerId ||
+    liveBid.team_id !== teamId ||
+    liveBid.amount !== amount
+  ) {
+    return;
+  }
+
+  const teamName = String(teamSnap.data()?.name ?? "팀");
+  const timerEndsAt = toTimestamp(roomData.timer_ends_at);
   const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
     currentPlayerId: playerId,
-    // timerEndsAt이 제공된 경우에만 포함, 아니면 undefined로 설정하여 수신측에서 기존 값을 유지하게 함
     ...(timerEndsAt ? { timerEndsAt } : {}),
-    timerDurationMs,
-    liveBid: {
-      player_id: playerId,
-      team_id: teamId,
-      amount,
-      created_at: new Date().toISOString(),
-    },
+    timerDurationMs: null,
+    liveBid,
   });
 
   // RTDB 이벤트 먼저 발행 — 채팅·Firestore 기록과 독립적으로 타이머를 갱신한다
@@ -756,6 +773,7 @@ export async function placeBid(
   playerId: string,
   teamId: string,
   amount: number,
+  leaderToken: string = "",
 ): Promise<{
   error?: string;
   timerEndsAt?: string;
@@ -782,6 +800,9 @@ export async function placeBid(
     if (isE2EAuctionFixtureEnabled()) {
       return placeFixtureBid(roomId, playerId, teamId, amount);
     }
+    const authError = await requireRoomLeader(roomId, teamId, leaderToken);
+    if (authError) return { error: authError };
+
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const teamRef = roomRef.collection("teams").doc(teamId);
     const soldCountQuery = roomRef
@@ -978,12 +999,16 @@ export async function submitSealedBid(
   playerId: string,
   teamId: string,
   amount: number,
+  leaderToken: string = "",
 ): Promise<{ error?: string; submittedAmount?: number }> {
   if (!Number.isInteger(amount) || amount < 0) {
     return { error: "0 이상의 정수 금액을 입력하세요." };
   }
 
   try {
+    const authError = await requireRoomLeader(roomId, teamId, leaderToken);
+    if (authError) return { error: authError };
+
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const roomSnap = await roomRef.get();
     if (!roomSnap.exists) return { error: "방을 찾을 수 없습니다." };
