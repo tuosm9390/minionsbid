@@ -270,6 +270,15 @@ export function applyAuctionEventToState(
   let nextLotteryPlayer = state.lotteryPlayer
   let nextSealedBid = state.sealedBid
 
+  const SEALED_BID_CLEARED: Partial<SealedBidState> = {
+    phase: null,
+    roundId: null,
+    revealResult: [],
+    revealOrder: [],
+    tiedTeamIds: [],
+    highestAmount: 0,
+  }
+
   if (event.player) {
     nextPlayers = state.players.map((player) =>
       player.id === event.player?.id ? { ...player, ...event.player } : player,
@@ -287,6 +296,9 @@ export function applyAuctionEventToState(
       nextCurrentPlayerId =
         event.currentPlayerId ?? event.player?.id ?? nextCurrentPlayerId
       nextLotteryPlayer = event.lotteryPlayer ?? null
+      nextLiveBid = null
+      nextTimerEndsAt = null
+      nextSealedBid = { ...nextSealedBid, ...SEALED_BID_CLEARED }
       break
     case 'LOTTERY_CLOSED':
       nextLotteryPlayer = null
@@ -297,6 +309,8 @@ export function applyAuctionEventToState(
         event.currentPlayerId ?? event.player?.id ?? nextCurrentPlayerId
       nextTimerEndsAt = event.timerEndsAt ?? null
       nextLotteryPlayer = null
+      nextLiveBid = null
+      nextSealedBid = { ...nextSealedBid, ...SEALED_BID_CLEARED }
       break
     case 'AUCTION_PAUSED':
       nextCurrentPlayerId =
@@ -332,6 +346,9 @@ export function applyAuctionEventToState(
           ? { ...player, status: 'WAITING', sold_price: null, team_id: null }
           : player,
       )
+      nextLiveBid = null
+      nextTimerEndsAt = null
+      nextSealedBid = { ...nextSealedBid, ...SEALED_BID_CLEARED }
       break
     case 'SEALED_BID_STARTED':
     case 'SEALED_BID_REBID_STARTED':
@@ -340,6 +357,7 @@ export function applyAuctionEventToState(
       nextLiveBid = null
       nextSealedBid = {
         ...nextSealedBid,
+        ...SEALED_BID_CLEARED,
         ...event.sealedBid,
         phase: 'ACTIVE',
       }
