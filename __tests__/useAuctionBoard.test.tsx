@@ -124,7 +124,6 @@ describe("useAuctionBoard", () => {
     });
 
     expect(restartAuctionWithUnsold).toHaveBeenCalledWith("room-1", "");
-    expect(useAuctionStore.getState().isReAuctionRound).toBe(true);
   });
 
   it("AutoDraftMode 활성화 조건", () => {

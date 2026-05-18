@@ -53,8 +53,6 @@ export function useAuctionBoard({
   const currentPlayerId = useAuctionStore((s) => s.currentPlayerId)
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam)
   const captainMode = useAuctionStore((s) => s.captainMode)
-  const setReAuctionRound = useAuctionStore((s) => s.setReAuctionRound)
-
   // ── 로컬 상태 ──
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null)
   const [isRestarting, setIsRestarting] = useState(false)
@@ -219,7 +217,6 @@ export function useAuctionBoard({
     try {
       const res = await restartAuctionWithUnsold(roomId, organizerToken ?? '')
       if (res.error) alert(res.error)
-      else if (res.reAuctionStarted) setReAuctionRound(true)
     } finally {
       setIsRestarting(false)
     }

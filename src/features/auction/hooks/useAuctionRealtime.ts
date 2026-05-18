@@ -30,7 +30,6 @@ import {
   applyAuctionEventToState,
   getAuctionExpiryWakeUpDelay,
   getAuctionRecoveryKey,
-  getNextReAuctionRoundState,
   shouldRecoverExpiredAuction,
   type AuctionEventEnvelope,
 } from '../utils/auctionRealtime'
@@ -168,7 +167,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const setMessages = useAuctionStore(s => s.setMessages)
   const appendMessage = useAuctionStore(s => s.appendMessage)
   const setAuctionEventRevision = useAuctionStore(s => s.setAuctionEventRevision)
-  const setReAuctionRound = useAuctionStore(s => s.setReAuctionRound)
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
@@ -178,6 +176,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const lastLiveMessageIdRef = useRef<string | null>(null)
   const auctionEventHistoryInitRef = useRef(true)
   const auctionEventLiveRef = useRef(false)
+  const historyReadyRef = useRef(false)
+  const pendingAuctionEventRef = useRef<AuctionEventEnvelope | null>(null)
 
   useEffect(() => {
     if (!roomId) return
@@ -473,12 +473,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             : fallbackEvent
         const next = applyAuctionEventToState(useAuctionStore.getState(), resolvedFallbackEvent)
         if (next.applied) {
-          setReAuctionRound(
-            getNextReAuctionRoundState({
-              current: useAuctionStore.getState().isReAuctionRound,
-              eventType: fallbackEvent.type,
-            }),
-          )
           recordBidLatencyFromEvent(fallbackEvent, 'room-fallback')
           setLiveBid(next.liveBid)
           setLotteryPlayer(next.lotteryPlayer)
@@ -638,12 +632,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           next.timerEndsAt = currentTimerEndsAt
         }
       }
-      setReAuctionRound(
-        getNextReAuctionRoundState({
-          current: state.isReAuctionRound,
-          eventType: event.type,
-        }),
-      )
       recordBidLatencyFromEvent(event, 'rtdb')
       setLiveBid(next.liveBid)
       setLotteryPlayer(next.lotteryPlayer)
@@ -693,6 +681,11 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       if (!data?.eventId) {
         return
       }
+      if (!historyReadyRef.current) {
+        // 히스토리 재전송이 완료되기 전 — 펜딩 큐에 보관
+        pendingAuctionEventRef.current = data
+        return
+      }
       if (!auctionEventLiveRef.current) {
         // 최초 구독 시 수신되는 초기값은 절대 타임스탬프 사용 (과거 이벤트일 수 있음)
         auctionEventLiveRef.current = true
@@ -704,11 +697,25 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     unsubs.push(() => auctionEventUnsub())
 
     const auctionEventHistoryRef = ref(rtdb, `signals/${roomId}/auctionEvents`)
+    historyReadyRef.current = false
+    pendingAuctionEventRef.current = null
     auctionEventHistoryInitRef.current = true
     const auctionEventHistoryUnsub = onValue(auctionEventHistoryRef, (snapshot) => {
       const data = snapshot.val() as Record<string, AuctionEventEnvelope> | null
       if (auctionEventHistoryInitRef.current) {
         auctionEventHistoryInitRef.current = false
+        if (data) {
+          applyAuctionEventHistory(Object.values(data))
+        }
+        // 히스토리 재전송 완료 — 펜딩 overwrite-node 이벤트 처리
+        historyReadyRef.current = true
+        if (pendingAuctionEventRef.current) {
+          const pending = pendingAuctionEventRef.current
+          pendingAuctionEventRef.current = null
+          auctionEventLiveRef.current = true
+          applyAuctionEvent(pending)
+        }
+        return
       }
       if (!data) {
         return
@@ -768,6 +775,5 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     setMessages,
     appendMessage,
     setAuctionEventRevision,
-    setReAuctionRound,
   ])
 }

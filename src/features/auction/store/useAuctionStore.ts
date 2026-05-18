@@ -119,7 +119,6 @@ interface AuctionState {
   createdAt: string | null
   roomExists: boolean
   isRoomLoaded: boolean
-  isReAuctionRound: boolean
   nextAuctionDurationMs: number | null
   auctionEventRevision: number
   teams: Team[]
@@ -143,7 +142,6 @@ interface AuctionState {
   setRoomContext: (roomId: string, role: Role, teamId?: string, organizerToken?: string) => void
   setRealtimeData: (data: Partial<AuctionState>) => void
   setRoomNotFound: () => void
-  setReAuctionRound: (isRe: boolean) => void
   setLotteryPlayer: (player: Player | null) => void
   setAuctionEventRevision: (revision: number) => void
   setPresenceLoaded: (loaded: boolean) => void
@@ -171,7 +169,6 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   createdAt: null,
   roomExists: true,
   isRoomLoaded: false,
-  isReAuctionRound: false,
   nextAuctionDurationMs: null,
   auctionEventRevision: 0,
   teams: [],
@@ -203,7 +200,6 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     teamId: teamId || null,
     organizerToken: organizerToken || null,
     roomExists: true,
-    isReAuctionRound: false,
     nextAuctionDurationMs: null,
     auctionEventRevision: 0,
   }),
@@ -211,7 +207,6 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     ...state, ...data, isRoomLoaded: true
   })),
   setRoomNotFound: () => set({ roomExists: false, isRoomLoaded: true }),
-  setReAuctionRound: (isRe) => set({ isReAuctionRound: isRe }),
   setLotteryPlayer: (player) => set({ lotteryPlayer: player }),
   setAuctionEventRevision: (revision) => set({ auctionEventRevision: revision }),
   setPresenceLoaded: (loaded) => set({ isPresenceLoaded: loaded }),

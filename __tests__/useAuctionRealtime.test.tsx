@@ -2,6 +2,7 @@ import { renderHook, act } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useFirebaseRealtime } from '@/features/auction/hooks/useAuctionRealtime'
 import { useAuctionStore } from '@/features/auction/store/useAuctionStore'
+import { selectIsReAuctionRound } from '@/features/auction/store/auctionSelectors'
 
 const {
   roomSnapshotListeners,
@@ -60,6 +61,10 @@ vi.mock('firebase/database', () => ({
     callback: (snap: { val: () => unknown; exists: () => boolean }) => void,
   ) => {
     valueListeners.set(target.path, callback)
+    // Firebase always fires onValue immediately with the current value (or null for
+    // empty nodes). Simulate that initial emission so init-gate refs (historyReadyRef,
+    // latestMessageInitRef) advance correctly even when no explicit emit is made.
+    callback({ val: () => null, exists: () => false })
     return () => {
       valueListeners.delete(target.path)
     }
@@ -136,7 +141,6 @@ describe('useFirebaseRealtime', () => {
       createdAt: null,
       roomExists: true,
       isRoomLoaded: false,
-      isReAuctionRound: false,
       auctionEventRevision: 0,
       teams: [],
       bids: [],
@@ -401,22 +405,23 @@ describe('useFirebaseRealtime', () => {
     expect(recoverExpiredAuction).toHaveBeenCalledTimes(1)
   })
 
-  it('재경매 플래그는 RE_AUCTION_STARTED에서 올라오고 AUCTION_STARTED에서도 유지된다', () => {
+  it('재경매 플래그는 next_auction_duration_ms가 non-null이면 참이고 AUCTION_STARTED 이후에도 유지된다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
     act(() => {
-      emitAuctionEvent('signals/room-1/auctionEvent', null)
-      emitAuctionEvent('signals/room-1/auctionEvent', {
-        eventId: 'reauction-1',
-        revision: 3,
-        roomId: 'room-1',
-        type: 'RE_AUCTION_STARTED',
-        serverCreatedAt: '2026-04-29T00:00:00.000Z',
-        playerIdsToWaiting: ['player-1'],
+      emitRoomSnapshot({
+        id: 'room-1',
+        name: 'Test Room',
+        base_point: 1000,
+        total_teams: 2,
+        members_per_team: 5,
+        captain_mode: 'IN_ROSTER',
+        auction_mode: 'OPEN_ASCENDING',
+        next_auction_duration_ms: 5000,
       })
     })
 
-    expect(useAuctionStore.getState().isReAuctionRound).toBe(true)
+    expect(selectIsReAuctionRound(useAuctionStore.getState())).toBe(true)
 
     act(() => {
       emitAuctionEvent('signals/room-1/auctionEvent', {
@@ -430,7 +435,7 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    expect(useAuctionStore.getState().isReAuctionRound).toBe(true)
+    expect(selectIsReAuctionRound(useAuctionStore.getState())).toBe(true)
   })
 
   it('players snapshot이 SOLD terminal 상태를 내리면 stale currentPlayerId를 비운다', () => {

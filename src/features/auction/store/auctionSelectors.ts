@@ -1,6 +1,10 @@
 import { getAuctionSlotsPerTeam, type CaptainMode } from '@/features/auction/utils/roster'
 import type { Message, Player, Team } from '@/features/auction/store/useAuctionStore'
 
+export function selectIsReAuctionRound(state: { nextAuctionDurationMs: number | null }): boolean {
+  return state.nextAuctionDurationMs !== null
+}
+
 export interface AuctionPlayerBuckets {
   currentPlayer: Player | null
   waitingPlayers: Player[]
