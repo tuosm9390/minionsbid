@@ -214,6 +214,28 @@ function queueSystemMessage(roomId: string, content: string, eventId: string) {
   });
 }
 
+/**
+ * 경매 이벤트 히스토리에서 지정된 revision보다 오래된 항목을 삭제한다. (fire-and-forget)
+ * PLAYER_AWARDED / SEALED_BID_AWARDED 이벤트 발행 후에만 호출한다.
+ */
+function pruneAuctionEventHistory(roomId: string, currentRevision: number) {
+  const { rtdb } = getAuctionServerServices();
+  rtdb
+    .ref(`signals/${roomId}/auctionEvents`)
+    .orderByChild("revision")
+    .endBefore(currentRevision)
+    .get()
+    .then((snap) => {
+      if (!snap.exists()) return;
+      const updates: Record<string, null> = {};
+      snap.forEach((child) => {
+        updates[child.key!] = null;
+      });
+      return rtdb.ref(`signals/${roomId}/auctionEvents`).update(updates);
+    })
+    .catch(() => {});
+}
+
 function getSealedBidPatch(roomData: AuctionRoomState): SealedBidState {
   return {
     phase: roomData.sealed_bid_phase ?? null,
@@ -1366,6 +1388,7 @@ export async function completeSealedBidReveal(
     if (awardEvent) {
       const event = awardEvent as AuctionEventEnvelope;
       await publishAuctionEvent(event);
+      pruneAuctionEventHistory(roomId, event.revision);
       queueSystemMessage(roomId, msgContent, event.eventId);
     }
 
@@ -1500,6 +1523,9 @@ async function awardPlayerInternal(
       const event = awardEvent as AuctionEventEnvelope;
       // RTDB 이벤트 전송 (시스템 메시지는 fire-and-forget)
       await publishAuctionEvent(event);
+      if (event.type === "PLAYER_AWARDED") {
+        pruneAuctionEventHistory(roomId, event.revision);
+      }
       // RTDB 입찰 내역 정리 (fire-and-forget)
       getAuctionServerServices()
         .rtdb.ref(`bids/${roomId}/${playerId}`)
