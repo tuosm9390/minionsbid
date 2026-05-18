@@ -293,6 +293,11 @@ export function applyAuctionEventToState(
       break
     case 'AUCTION_STARTED':
     case 'AUCTION_RESUMED':
+      nextCurrentPlayerId =
+        event.currentPlayerId ?? event.player?.id ?? nextCurrentPlayerId
+      nextTimerEndsAt = event.timerEndsAt ?? null
+      nextLotteryPlayer = null
+      break
     case 'AUCTION_PAUSED':
       nextCurrentPlayerId =
         event.currentPlayerId ?? event.player?.id ?? nextCurrentPlayerId

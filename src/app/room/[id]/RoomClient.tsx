@@ -53,10 +53,12 @@ export function RoomClient({
   roomId,
   roleParam,
   teamIdParam,
+  organizerTokenParam,
 }: {
   roomId: string;
   roleParam: Role;
   teamIdParam: string | null;
+  organizerTokenParam: string | null;
 }) {
   const players = useAuctionStore((s) => s.players);
   const teams = useAuctionStore((s) => s.teams);
@@ -74,6 +76,7 @@ export function RoomClient({
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const organizerToken = useAuctionStore((s) => s.organizerToken);
+  const setLotteryPlayer = useAuctionStore((s) => s.setLotteryPlayer);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData);
   const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
@@ -93,6 +96,7 @@ export function RoomClient({
   const { effectiveRole } = useRoomAuth({
     role: roleParam,
     teamId: teamIdParam || undefined,
+    organizerToken: organizerTokenParam,
     roomId,
     setRoomContext,
   });
@@ -206,6 +210,7 @@ export function RoomClient({
     const optimisticTimerEndsAt = new Date(
       Date.now() + optimisticDurationMs,
     ).toISOString();
+    setLotteryPlayer(null);
     setRealtimeData({ timerEndsAt: optimisticTimerEndsAt });
     try {
       const res = await startAuction(roomId, organizerToken ?? "");
