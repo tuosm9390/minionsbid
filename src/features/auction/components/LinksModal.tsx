@@ -26,6 +26,7 @@ export function LinksModal() {
   const [linksError, setLinksError] = useState<string | null>(null);
 
   const roomId = useAuctionStore((state) => state.roomId);
+  const organizerToken = useAuctionStore((state) => state.organizerToken);
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
     setIsOpen(false),
   );
@@ -94,7 +95,9 @@ export function LinksModal() {
   if (!roomId) return null;
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const organizerLink = `${baseUrl}/room/${roomId}?role=ORGANIZER`;
+  const organizerLink = organizerToken
+    ? `${baseUrl}/room/${roomId}?role=ORGANIZER&token=${encodeURIComponent(organizerToken)}`
+    : `${baseUrl}/room/${roomId}?role=ORGANIZER`;
   const viewerLink = `${baseUrl}/room/${roomId}?role=VIEWER`;
 
   const modalContent = (

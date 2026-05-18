@@ -211,13 +211,15 @@ export function useCreateRoom() {
     });
     if (result.error) throw new Error(result.error);
 
-    const { roomId, teams: teamsResult } = result;
+    const { roomId, organizerToken, teams: teamsResult } = result;
     if (!roomId || !teamsResult) {
       throw new Error("방 생성 결과가 올바르지 않습니다.");
     }
 
     const baseUrl = window.location.origin;
-    const organizerPath = `/room/${roomId}?role=ORGANIZER`;
+    const organizerPath = organizerToken
+      ? `/room/${roomId}?role=ORGANIZER&token=${encodeURIComponent(organizerToken)}`
+      : `/room/${roomId}?role=ORGANIZER`;
 
     const storedRoom = {
       id: roomId,

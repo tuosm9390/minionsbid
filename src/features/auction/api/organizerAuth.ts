@@ -1,9 +1,25 @@
-// 소규모 지인용 경매방에서는 URL role을 신뢰하고 서버 액션 토큰 검증은 수행하지 않는다.
+// 주최자 토큰을 Firestore room_auth_secrets에서 검증한다.
+import { timingSafeEqual } from 'node:crypto'
+import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
+
 export const ORGANIZER_AUTH_ERROR = '주최자 권한이 필요합니다.'
 
 export async function requireRoomOrganizer(
-  _roomId: string,
-  _token?: string,
+  roomId: string,
+  token?: string,
 ): Promise<string | null> {
-  return null
+  if (!token) return ORGANIZER_AUTH_ERROR
+
+  const { firestore } = getAuctionServerServices()
+  const secretSnap = await firestore
+    .collection('room_auth_secrets')
+    .doc(roomId)
+    .get()
+
+  const expected = secretSnap.data()?.organizer_token
+  if (typeof expected !== 'string' || expected.length !== token.length) {
+    return ORGANIZER_AUTH_ERROR
+  }
+
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(token)) ? null : ORGANIZER_AUTH_ERROR
 }
