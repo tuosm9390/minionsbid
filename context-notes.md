@@ -150,3 +150,8 @@
 - 2026-05-19: 일정 저장은 관리자 코드를 요구하지만 `saveLeagueScheduleDay()`가 팀 이름을 roster source와 대조하지 않고, schedule 시작/종료 날짜 범위도 서버에서 확인하지 않는다. `LeagueScheduleManager`는 일정 전환 시 기존 `selectedDateKey`를 유지할 수 있어 잘못된 날짜 저장 위험이 더 커진다.
 - 2026-05-19: 검증은 `npx vitest run src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts src/features/schedules/api/__tests__/scheduleActions.test.ts src/features/schedules/utils/leagueRecords.test.ts src/features/schedules/utils/leagueNextMatches.test.ts src/features/schedules/utils/leagueMatchTime.test.ts src/features/schedules/utils/leagueMatchRules.test.ts __tests__/ScheduleMatchDayEditor.test.tsx`와 `npm run build`가 통과했다.
 
+## 명예의 전당과 일정 관리 안정화 전제
+
+- 2026-05-19: 리뷰 결과를 바탕으로 `schedule-hof-stability-premises.md`를 작성한다. 문서는 구현 계획보다 앞선 전제로서 공개 읽기 경로 유지, 서버 액션 권위성, 클라이언트 payload 불신, roster/date 검증, 결정적 명예의 전당 문서 id, 최소 테스트 범위를 정의한다.
+- 2026-05-19: 이번 문서 작업은 기능 파일을 수정하지 않는다. 기존 미추적 `event-miss-analysis.md`, `security-report.md`와 수정된 `DESCRIPTION.md`는 사용자 작업으로 간주하고 건드리지 않는다.
+
