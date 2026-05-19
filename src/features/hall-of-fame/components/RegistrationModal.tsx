@@ -69,14 +69,11 @@ export function RegistrationModal({ onClose, onSuccess }: RegistrationModalProps
 
     const result = await registerHallOfFameEntry(
       {
-        archive_id: selectedArchive.id,
-        room_id: selectedArchive.room_id,
-        season_name: seasonName.trim() || selectedArchive.room_name,
-        season_label: seasonLabel.trim() || null,
-        winning_team_name: team.name,
-        winning_team_leader: team.leader_name,
-        winning_team_players: team.players,
-        won_at: selectedArchive.closed_at,
+        archiveId: selectedArchive.id,
+        teamId: team.id,
+        teamName: team.name,
+        seasonName: seasonName.trim() || selectedArchive.room_name,
+        seasonLabel: seasonLabel.trim() || null,
       },
       adminCode
     );
