@@ -155,3 +155,8 @@
 - 2026-05-19: 리뷰 결과를 바탕으로 `schedule-hof-stability-premises.md`를 작성한다. 문서는 구현 계획보다 앞선 전제로서 공개 읽기 경로 유지, 서버 액션 권위성, 클라이언트 payload 불신, roster/date 검증, 결정적 명예의 전당 문서 id, 최소 테스트 범위를 정의한다.
 - 2026-05-19: 이번 문서 작업은 기능 파일을 수정하지 않는다. 기존 미추적 `event-miss-analysis.md`, `security-report.md`와 수정된 `DESCRIPTION.md`는 사용자 작업으로 간주하고 건드리지 않는다.
 
+## 명예의 전당과 일정 관리 안정화 구현 계획
+
+- 2026-05-19: `schedule-hof-stability-premises.md`를 기준으로 `schedule-hof-stability-implementation-plan.md`를 작성한다. 구현 순서는 명예의 전당 서버 권위성, 일정 서버 검증, 일정 전환 UI 상태, fixture/E2E 유지 순으로 둔다.
+- 2026-05-19: 계획서의 기본 결정은 명예의 전당 수동 등록 문서 id를 `archive:{archiveId}`로 쓰고, 기존 `.add()` 문서는 조회와 제외 목록에서 계속 인정하는 것이다. 일정 저장은 date range와 roster team 검증을 서버에서 수행한다.
+
