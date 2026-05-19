@@ -174,3 +174,8 @@
 - 2026-05-19: 현재 구현 기준 주요 안정성 리스크는 대부분 닫혔다. 남은 최소 필수 개선은 기존 `.add()` 기반 hall of fame 문서가 같은 `archive_id`를 이미 가진 경우에도 직접 `registerHallOfFameEntry()` 호출로 `archive:{archiveId}` 문서가 새로 생길 수 있는 호환성 중복 경계다.
 - 2026-05-19: 후속 분석은 `schedule-hof-post-stability-analysis.md`로 작성한다. 필수 후속 전제는 UI 제외 목록뿐 아니라 서버 액션 자체가 legacy 문서와 deterministic 문서 모두를 같은 archive id 기준으로 중복 거부하는 것이다.
 
+## 명예의 전당 legacy 중복 방지 구현 계획
+
+- 2026-05-19: 후속 분석에서 남은 최소 필수 개선을 `schedule-hof-legacy-duplicate-implementation-plan.md`로 분리한다. 구현 범위는 `registerHallOfFameEntry()`의 같은 `archive_id` legacy 문서 중복 검사와 해당 Vitest 보강으로 제한한다.
+- 2026-05-19: 계획상 구현은 `hall_of_fame.where('archive_id', '==', archiveId).limit(1).get()` 기반 중복 검사와 기존 deterministic transaction 중복 검사를 함께 사용한다. 별도 unique index 컬렉션은 이번 최소 범위에서 제외한다.
+
