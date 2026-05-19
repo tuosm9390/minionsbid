@@ -160,3 +160,12 @@
 - 2026-05-19: `schedule-hof-stability-premises.md`를 기준으로 `schedule-hof-stability-implementation-plan.md`를 작성한다. 구현 순서는 명예의 전당 서버 권위성, 일정 서버 검증, 일정 전환 UI 상태, fixture/E2E 유지 순으로 둔다.
 - 2026-05-19: 계획서의 기본 결정은 명예의 전당 수동 등록 문서 id를 `archive:{archiveId}`로 쓰고, 기존 `.add()` 문서는 조회와 제외 목록에서 계속 인정하는 것이다. 일정 저장은 date range와 roster team 검증을 서버에서 수행한다.
 
+## 명예의 전당과 일정 관리 안정화 구현
+
+- 2026-05-19: `registerHallOfFameEntry()`는 클라이언트가 보낸 room id, won at, 선수 목록을 저장하지 않고 `auction_archives/{archiveId}`를 transaction 안에서 재조회해 `hall_of_fame/archive:{archiveId}`에 저장한다. 기존 `.add()` 기반 문서는 조회와 archive 제외 목록에서 계속 인정한다.
+- 2026-05-19: 명예의 전당 archive 제외 목록의 200개 제한을 제거했다. 수동 등록 중복은 deterministic id 존재 여부로 막는다.
+- 2026-05-19: `saveLeagueScheduleDay()`는 저장 전 schedule을 로드해 date key가 `startsAt`과 `endsAt` 범위 안인지 확인하고, roster source에서 복원된 팀만 저장하도록 검증한다. 같은 날짜 payload 안 중복 팀 배정도 거부한다.
+- 2026-05-19: `e2eScheduleFixture`도 운영 경로와 같은 date range, roster team, 같은 팀/중복 배정 검증을 적용한다.
+- 2026-05-19: `LeagueScheduleManager`는 timeline이 바뀌면 첫 match day 또는 schedule 시작일로 `selectedDateKey`를 재설정한다. 다른 일정에서 선택한 날짜가 새 일정 저장 payload로 새는 문제를 막는다.
+- 2026-05-19: 검증 결과 대상 Vitest 8개 파일 45개 테스트, `npm run build`, `npx playwright test playwright/league-schedule.spec.ts`가 통과했다.
+

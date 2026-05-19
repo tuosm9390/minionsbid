@@ -198,3 +198,14 @@
 - [x] 서버 액션, UI, fixture, 테스트 작업 순서 작성
 - [x] 커밋 분리 기준과 검증 명령 작성
 - [x] 변경 문서 검토 및 커밋
+
+## 명예의 전당과 일정 관리 안정화 구현
+
+- [x] 명예의 전당 등록 테스트를 archive 재조회와 중복 방지 기준으로 보강
+- [x] 명예의 전당 수동 등록을 서버 archive 재조회와 deterministic id 저장으로 변경
+- [x] 일정 저장 date range, roster team, 중복 배정 검증 테스트 추가
+- [x] 일정 저장 서버 액션과 E2E fixture 검증 보강
+- [x] 일정 전환 시 선택 날짜 reset UI 테스트 추가
+- [x] 일정 전환 날짜 상태 보정
+- [x] 대상 Vitest, 빌드, Playwright 일정 E2E 검증
+- [x] 논리 단위별 커밋
