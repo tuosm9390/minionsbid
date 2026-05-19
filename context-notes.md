@@ -169,3 +169,8 @@
 - 2026-05-19: `LeagueScheduleManager`는 timeline이 바뀌면 첫 match day 또는 schedule 시작일로 `selectedDateKey`를 재설정한다. 다른 일정에서 선택한 날짜가 새 일정 저장 payload로 새는 문제를 막는다.
 - 2026-05-19: 검증 결과 대상 Vitest 8개 파일 45개 테스트, `npm run build`, `npx playwright test playwright/league-schedule.spec.ts`가 통과했다.
 
+## 명예의 전당과 일정 관리 안정화 후속 분석
+
+- 2026-05-19: 현재 구현 기준 주요 안정성 리스크는 대부분 닫혔다. 남은 최소 필수 개선은 기존 `.add()` 기반 hall of fame 문서가 같은 `archive_id`를 이미 가진 경우에도 직접 `registerHallOfFameEntry()` 호출로 `archive:{archiveId}` 문서가 새로 생길 수 있는 호환성 중복 경계다.
+- 2026-05-19: 후속 분석은 `schedule-hof-post-stability-analysis.md`로 작성한다. 필수 후속 전제는 UI 제외 목록뿐 아니라 서버 액션 자체가 legacy 문서와 deterministic 문서 모두를 같은 archive id 기준으로 중복 거부하는 것이다.
+
