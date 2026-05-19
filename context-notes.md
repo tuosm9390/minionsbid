@@ -179,3 +179,9 @@
 - 2026-05-19: 후속 분석에서 남은 최소 필수 개선을 `schedule-hof-legacy-duplicate-implementation-plan.md`로 분리한다. 구현 범위는 `registerHallOfFameEntry()`의 같은 `archive_id` legacy 문서 중복 검사와 해당 Vitest 보강으로 제한한다.
 - 2026-05-19: 계획상 구현은 `hall_of_fame.where('archive_id', '==', archiveId).limit(1).get()` 기반 중복 검사와 기존 deterministic transaction 중복 검사를 함께 사용한다. 별도 unique index 컬렉션은 이번 최소 범위에서 제외한다.
 
+## 명예의 전당 legacy 중복 방지 구현
+
+- 2026-05-19: `registerHallOfFameEntry()`에 `hasHallOfFameEntryForArchive()`를 추가해 deterministic id 문서뿐 아니라 같은 `archive_id`를 가진 legacy random id 문서도 중복으로 거부한다.
+- 2026-05-19: hall of fame 액션 테스트 더블에 `where('archive_id', '==', archiveId).limit(1).get()` 흐름을 추가하고, legacy random id 문서가 있을 때 `archive:{archiveId}` 새 문서가 생성되지 않는 테스트를 추가했다.
+- 2026-05-19: 검증 결과 `npx vitest run src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts`, 통합 `npx vitest run src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts src/features/schedules/api/__tests__/scheduleActions.test.ts __tests__/LeagueScheduleManager.test.tsx`, `npm run build`가 통과했다.
+

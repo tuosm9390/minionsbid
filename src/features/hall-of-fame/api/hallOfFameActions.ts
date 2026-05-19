@@ -20,6 +20,16 @@ async function getHallOfFameArchiveIdSet(): Promise<Set<string>> {
   )
 }
 
+async function hasHallOfFameEntryForArchive(archiveId: string): Promise<boolean> {
+  const snapshot = await adminDb
+    .collection('hall_of_fame')
+    .where('archive_id', '==', archiveId)
+    .limit(1)
+    .get()
+
+  return !snapshot.empty
+}
+
 function normalizeText(value: unknown): string {
   if (typeof value !== 'string') return ''
   return value.trim()
@@ -153,6 +163,10 @@ export async function registerHallOfFameEntry(
   if (!teamId && !teamName) return { error: '우승팀을 선택해주세요.' }
 
   try {
+    if (await hasHallOfFameEntryForArchive(archiveId)) {
+      return { error: '이미 명예의 전당에 등록된 경매입니다.' }
+    }
+
     const archiveRef = adminDb.collection('auction_archives').doc(archiveId)
     const hallOfFameRef = adminDb.collection('hall_of_fame').doc(`archive:${archiveId}`)
 

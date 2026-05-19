@@ -224,3 +224,12 @@
 - [x] 테스트 더블 보강과 테스트 케이스 계획 작성
 - [x] 검증 명령과 커밋 기준 작성
 - [x] 문서 검토 및 커밋
+
+## 명예의 전당 legacy 중복 방지 구현
+
+- [x] legacy random id 중복 등록 실패 테스트 추가
+- [x] hall of fame 테스트 더블에 where/limit query 지원 추가
+- [x] `archive_id` 기반 legacy 중복 검사 헬퍼 추가
+- [x] 대상 Vitest와 통합 Vitest 실행
+- [x] 빌드 검증
+- [x] 변경 커밋

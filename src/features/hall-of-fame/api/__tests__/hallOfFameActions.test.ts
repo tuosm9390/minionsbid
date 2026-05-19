@@ -76,7 +76,11 @@ function buildDocRef(collectionName: string, docId: string) {
   }
 }
 
-function buildCollectionRef(collectionName: string) {
+function buildCollectionRef(
+  collectionName: string,
+  filters: Array<{ field: string; op: string; value: unknown }> = [],
+  resultLimit?: number,
+) {
   return {
     doc(docId: string) {
       return buildDocRef(collectionName, docId)
@@ -84,24 +88,36 @@ function buildCollectionRef(collectionName: string) {
     orderBy() {
       return this
     },
-    limit() {
-      return this
+    where(field: string, op: string, value: unknown) {
+      return buildCollectionRef(collectionName, [...filters, { field, op, value }], resultLimit)
+    },
+    limit(limitValue: number) {
+      return buildCollectionRef(collectionName, filters, limitValue)
     },
     async get() {
       if (collectionName === 'auction_archives') {
+        const docs = Array.from(dbState.auctionArchives.entries()).map(([id, data]) => ({
+          id,
+          data,
+        }))
         return createQuerySnapshot(
-          Array.from(dbState.auctionArchives.entries()).map(([id, data]) => ({
-            id,
-            data,
-          })),
+          typeof resultLimit === 'number' ? docs.slice(0, resultLimit) : docs,
         )
       }
       if (collectionName === 'hall_of_fame') {
-        return createQuerySnapshot(
-          Array.from(dbState.hallOfFame.entries()).map(([id, data]) => ({
+        const docs = Array.from(dbState.hallOfFame.entries())
+          .map(([id, data]) => ({
             id,
             data,
-          })),
+          }))
+          .filter((doc) =>
+            filters.every((filter) => {
+              if (filter.op !== '==') return false
+              return doc.data[filter.field] === filter.value
+            }),
+          )
+        return createQuerySnapshot(
+          typeof resultLimit === 'number' ? docs.slice(0, resultLimit) : docs,
         )
       }
       return createQuerySnapshot([])
@@ -261,6 +277,27 @@ describe('hallOfFameActions', () => {
       )
 
       expect(result.error).toBe('이미 명예의 전당에 등록된 경매입니다.')
+    })
+
+    it('legacy random id 문서가 같은 archive_id를 가진 경우에도 중복 등록을 거부한다', async () => {
+      seedArchive()
+      dbState.hallOfFame.set('legacy-random-id', {
+        archive_id: 'arc1',
+        winning_team_name: '팀A',
+      })
+
+      const { registerHallOfFameEntry } = await import('../hallOfFameActions')
+      const result = await registerHallOfFameEntry(
+        {
+          archiveId: 'arc1',
+          teamId: 'team-a',
+          seasonName: '제1회 리그',
+        },
+        VALID_CODE,
+      )
+
+      expect(result.error).toBe('이미 명예의 전당에 등록된 경매입니다.')
+      expect(dbState.hallOfFame.has('archive:arc1')).toBe(false)
     })
   })
 
