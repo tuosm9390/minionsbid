@@ -1,6 +1,6 @@
 # Minions Bid
 
-작성일: 2026-05-15
+작성일: 2026-05-19
 
 ## 프로젝트 개요
 
@@ -22,6 +22,7 @@ Minions Bid는 리그 오브 레전드 커뮤니티 리그를 운영하기 위�
 - 팀장과 선수 정보는 수동 입력 또는 Excel 업로드로 등록합니다.
 - Excel 업로드는 닉네임, 소환사의 협곡 티어, 주/부라인, 무작위 총력전, 전략적 팀 전투, 한마디 정보를 읽어 선수 및 팀장 데이터로 변환합니다.
 - 주최자, 팀장, 관전자 링크를 생성하고 각 역할에 맞는 화면과 권한을 제공합니다.
+- 방 링크는 Buly 단축 URL API를 통해 짧은 형태로 변환되어 공유됩니다. 링크에는 인증 토큰을 포함하지 않으며, 입장 시 서버에서 별도 인증합니다.
 - 선수 추첨, 경매 시작, 타이머, 입찰, 낙찰, 유찰, 재경매, 드래프트 영입을 처리합니다.
 - 공개 입찰과 비공개 입찰을 모두 지원합니다.
 
@@ -107,6 +108,8 @@ Realtime Database는 저지연 fanout과 presence 전용입니다.
 - `rooms/{roomId}/teams/{teamId}`에 팀 정보
 - `rooms/{roomId}/players/{playerId}`에 `WAITING` 상태 선수
 - `room_auth_secrets/{roomId}`에 organizer/viewer token
+
+반환된 링크는 Buly 단축 URL API(`/api/short-links`)를 통해 짧은 형태로 변환됩니다. 링크 자체에 인증 토큰을 포함하지 않으므로 URL이 유출되어도 바로 권한을 얻지 못합니다.
 - `room_auth_secrets/{roomId}/team_tokens/{teamId}`에 팀장 token
 
 반환된 token은 링크 생성에만 사용됩니다. 신규 방의 public room/team 문서에는 역할 token을 저장하지 않습니다. 기존 데이터 호환을 위해 인증 유틸은 legacy public token fallback을 읽을 수 있지만, 현재 구조의 정식 저장 위치는 private auth 문서입니다.
@@ -136,12 +139,13 @@ Realtime Database는 저지연 fanout과 presence 전용입니다.
 3. Firestore rules가 role, roomId, teamId, 금액, 잔액, 현재 선수, timer, `auction_revision` 증가를 검증합니다.
 4. 성공하면 Firestore room snapshot이 모든 클라이언트에 1차 전파됩니다.
 5. `broadcastBidEvent()` 서버 액션이 fire-and-forget으로 RTDB 이벤트, `last_auction_event`, 시스템 메시지를 뒤따라 생성합니다.
+6. RTDB `auctionEvents` 히스토리는 `PLAYER_AWARDED` 또는 `SEALED_BID_AWARDED` 발행 시 서버가 정리합니다. 이 prune 로직은 이전 선수의 이벤트가 새 경매에 간섭하는 것을 방지합니다.
 6. direct bid가 실패하면 기존 Server Action `placeBid()`로 fallback합니다.
 
 공개 입찰 타이머 정책은 공유 상수 `auctionTimings.ts`에 모여 있습니다.
 
 - 일반 경매 시작은 10초입니다.
-- 재경매 시작은 5초입니다.
+- 재경매 여부는 `nextAuctionDurationMs` 값으로 판별합니다. `nextAuctionDurationMs`가 재경매 지속 시간과 같으면 재경매 라운드입니다.
 - 입찰 단위와 최초 최소 입찰가는 10P입니다.
 - 남은 시간이 8초 이하일 때 성공한 입찰은 타이머를 8초 기준으로 연장합니다.
 - 남은 시간이 8초 초과이면 기존 종료 시각을 유지합니다.
@@ -211,6 +215,7 @@ src/
       e2e/                           Playwright fixture API
       room-auth/                     역할 링크 인증과 Firebase custom token 발급
       room-links/                    주최자 쿠키 기반 방 링크 조회
+      short-links/                   Buly 단축 URL 프록시 API
     auction-timer-lab/               타이머 정책 검증용 실험 페이지
     hall-of-fame/                    명예의 전당 App Router 페이지
     league-schedule/                 리그 일정 App Router 페이지
@@ -372,9 +377,21 @@ npm run migrate:room-auth-secrets:dry-run
 
 경매 이벤트는 `revision`을 포함합니다. 클라이언트는 현재 revision 이하의 이벤트를 무시합니다. RTDB event, Firestore snapshot, `last_auction_event` fallback이 섞여 들어와도 더 오래된 상태가 최신 상태를 덮어쓰지 못합니다.
 
+### RTDB 이벤트 히스토리 정리
+
+낙찰(`PLAYER_AWARDED`, `SEALED_BID_AWARDED`) 발행 시 서버가 이전 경매의 RTDB `auctionEvents` 히스토리를 정리합니다. 이 prune 전략은 긴 경매 세션에서 이벤트가 누적되어 새 라운드에 간섭하는 문제를 방지합니다.
+
+### 누락 RTDB 이벤트 방어
+
+`applyAuctionEventToState`는 이전 이벤트가 누락된 채 후속 이벤트만 도착하는 상황에 대비해 방어적 null 초기화를 수행합니다. 예를 들어 `AUCTION_STARTED` 또는 `AUCTION_RESUMED` 이벤트 수신 시 `lotteryPlayer`를 강제로 초기화하여 추첨 패널이 잔류하는 버그를 방지합니다.
+
 ### 공개 입찰과 비공개 입찰의 경계 분리
 
 공개 입찰은 속도가 중요하므로 direct Firestore transaction을 사용합니다. 비공개 입찰은 금액 비공개와 공개 시점 통제가 중요하므로 서버 액션 경계에서만 처리합니다. 두 방식이 같은 room UI 안에서 작동하지만, 데이터 경로와 이벤트 타입은 명확히 분리되어 있습니다.
+
+### 인증 토큰 없는 단축 링크
+
+방 링크에서 인증 토큰을 제거하고, Buly 단축 URL API를 통해 짧은 형태로 변환합니다. 입장 시 `/api/room-auth`가 서버에서 토큰을 검증하므로, URL 유출 시 바로 권한을 얻지 못합니다. 이 변경은 토큰 비공개 저장 구조와 함께 보안 경계를 강화합니다.
 
 ### 토큰 비공개 저장 구조
 
