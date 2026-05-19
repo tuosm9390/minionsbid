@@ -142,3 +142,11 @@
 - 2026-05-19: `LotteryAnimation`은 무작위 총력전 라벨을 `무작위 총력전 : 아수라장`으로 표시한다. 테스트는 exact text로 `무작위 총력전`만 찾고 있어 현재 화면 문구와 맞지 않으므로 부분 매칭으로 바꾼다.
 - 2026-05-19: 대상 검증 `npx vitest run src/features/auction/hooks/useAuctionControl.test.ts __tests__/LotteryAnimation.test.tsx`는 10개 테스트 통과, 전체 검증 `npm run test`는 27개 파일 192개 테스트 통과 상태다.
 
+## 명예의 전당과 일정 관리 코드 리뷰
+
+- 2026-05-19: 사용자 요청은 구현 변경이 아니라 명예의 전당과 일정 관리 기능의 정밀 코드 리뷰 및 안정성 검사다. 기능 파일 수정 없이 실제 라우트, 서버 액션, 컴포넌트, 테스트를 읽고 리스크를 심각도 순으로 보고한다.
+- 2026-05-19: 작업 트리에는 기존 추적되지 않은 `event-miss-analysis.md`, `security-report.md`가 있으며 이번 리뷰와 무관한 사용자 산출물로 간주한다.
+- 2026-05-19: 명예의 전당 수동 등록은 `registerHallOfFameEntry()`가 클라이언트 payload를 그대로 저장하고 `.add()`를 사용한다. 서버가 archive와 team을 재조회하지 않고 중복 방지도 transaction/document id로 보장하지 않는다.
+- 2026-05-19: 일정 저장은 관리자 코드를 요구하지만 `saveLeagueScheduleDay()`가 팀 이름을 roster source와 대조하지 않고, schedule 시작/종료 날짜 범위도 서버에서 확인하지 않는다. `LeagueScheduleManager`는 일정 전환 시 기존 `selectedDateKey`를 유지할 수 있어 잘못된 날짜 저장 위험이 더 커진다.
+- 2026-05-19: 검증은 `npx vitest run src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts src/features/schedules/api/__tests__/scheduleActions.test.ts src/features/schedules/utils/leagueRecords.test.ts src/features/schedules/utils/leagueNextMatches.test.ts src/features/schedules/utils/leagueMatchTime.test.ts src/features/schedules/utils/leagueMatchRules.test.ts __tests__/ScheduleMatchDayEditor.test.tsx`와 `npm run build`가 통과했다.
+
