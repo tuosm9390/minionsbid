@@ -264,9 +264,9 @@ export function LeagueScheduleManager() {
     const schedule = timeline?.schedule;
     if (!schedule) return;
     setSelectedDateKey(
-      (prev) => prev || formatDateKey(new Date(schedule.startsAt)),
+      timeline.days[0]?.dateKey ?? formatDateKey(new Date(schedule.startsAt)),
     );
-  }, [timeline?.schedule?.id, timeline?.schedule?.startsAt]);
+  }, [timeline?.days, timeline?.schedule?.id, timeline?.schedule?.startsAt]);
 
   const selectedDay = useMemo(
     () => timeline?.days.find((day) => day.dateKey === selectedDateKey) ?? null,

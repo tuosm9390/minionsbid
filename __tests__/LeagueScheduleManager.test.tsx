@@ -24,7 +24,12 @@ vi.mock('@/features/schedules/api/scheduleActions', () => ({
 }))
 
 vi.mock('@/components/ScheduleCalendar', () => ({
-  formatDateKey: () => '2026-04-27',
+  formatDateKey: (date: Date) => {
+    const year = date.getFullYear()
+    const month = `${date.getMonth() + 1}`.padStart(2, '0')
+    const day = `${date.getDate()}`.padStart(2, '0')
+    return `${year}-${month}-${day}`
+  },
   ScheduleCalendar: ({ label }: { label: string }) => <div>{label}</div>,
 }))
 
@@ -105,14 +110,34 @@ const baseTimeline = {
   nextMatches: [],
 }
 
+const secondTimeline = {
+  ...baseTimeline,
+  schedule: {
+    ...baseTimeline.schedule,
+    id: 'schedule-2',
+    name: 'Summer Split',
+    linkedAuctionId: 'archive-2',
+    linkedLeagueName: '2026 서머',
+    rosterSourceId: 'archive-2',
+    startsAt: '2026-05-05T00:00:00.000Z',
+    endsAt: '2026-05-10T00:00:00.000Z',
+  },
+  days: [],
+}
+
 describe('LeagueScheduleManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetLeagueScheduleCatalog.mockResolvedValue({
-      leagueOptions: [{ id: 'archive-1', name: '2026 스프링', closedAt: '2026-04-01T00:00:00.000Z' }],
-      schedules: [baseTimeline.schedule],
+      leagueOptions: [
+        { id: 'archive-1', name: '2026 스프링', closedAt: '2026-04-01T00:00:00.000Z' },
+        { id: 'archive-2', name: '2026 서머', closedAt: '2026-05-01T00:00:00.000Z' },
+      ],
+      schedules: [baseTimeline.schedule, secondTimeline.schedule],
     })
-    mockGetLeagueScheduleTimeline.mockResolvedValue(baseTimeline)
+    mockGetLeagueScheduleTimeline.mockImplementation((scheduleId: string) =>
+      Promise.resolve(scheduleId === 'schedule-2' ? secondTimeline : baseTimeline),
+    )
     mockVerifyScheduleAdminCode.mockResolvedValue({ valid: true })
     mockCreateLeagueSchedule.mockResolvedValue({})
     mockSaveLeagueScheduleDay.mockResolvedValue({})
@@ -182,5 +207,29 @@ describe('LeagueScheduleManager', () => {
       expect(screen.getByText('save exploded')).toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: 'save-day' })).toBeInTheDocument()
+  })
+
+  it('resets selected date to the newly selected schedule before saving', async () => {
+    const user = userEvent.setup()
+    render(<LeagueScheduleManager />)
+
+    await waitFor(() => {
+      expect(mockGetLeagueScheduleTimeline).toHaveBeenCalledWith('schedule-1')
+    })
+
+    await user.click(screen.getByRole('button', { name: /Summer Split/i }))
+    await waitFor(() => {
+      expect(mockGetLeagueScheduleTimeline).toHaveBeenCalledWith('schedule-2')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'save-day' }))
+
+    await waitFor(() => {
+      expect(mockSaveLeagueScheduleDay).toHaveBeenCalledWith(
+        'schedule-2',
+        expect.objectContaining({ dateKey: '2026-05-05' }),
+        undefined,
+      )
+    })
   })
 })
