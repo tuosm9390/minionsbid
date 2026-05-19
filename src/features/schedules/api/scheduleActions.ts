@@ -74,6 +74,24 @@ function toDateKey(value: string) {
   return value
 }
 
+function dateKeyFromIso(value: string | null): string | null {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function isDateKeyInScheduleRange(dateKey: string, schedule: LeagueScheduleItem): boolean {
+  const startKey = dateKeyFromIso(schedule.startsAt)
+  const endKey = dateKeyFromIso(schedule.endsAt)
+  if (startKey && dateKey < startKey) return false
+  if (endKey && dateKey > endKey) return false
+  return true
+}
+
 function formatDateLabel(dateKey: string) {
   const date = new Date(`${dateKey}T00:00:00`)
   if (Number.isNaN(date.getTime())) return dateKey
@@ -451,6 +469,36 @@ async function loadRosterTeams(schedule: LeagueScheduleItem): Promise<LeagueRost
   return Array.from(rosterMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
 }
 
+function validateScheduleMatchTeams(
+  matches: Array<{ homeTeamName: string; awayTeamName: string }>,
+  rosterTeams: LeagueRosterTeam[]
+): { error?: string } {
+  if (matches.length === 0) return {}
+
+  const rosterTeamNames = new Set(rosterTeams.map((team) => team.name))
+  if (
+    rosterTeamNames.size === 0 ||
+    matches.some(
+      (match) =>
+        !rosterTeamNames.has(match.homeTeamName) || !rosterTeamNames.has(match.awayTeamName)
+    )
+  ) {
+    return { error: '일정 로스터에 없는 팀은 저장할 수 없습니다.' }
+  }
+
+  const assignedTeamNames = new Set<string>()
+  for (const match of matches) {
+    for (const teamName of [match.homeTeamName, match.awayTeamName]) {
+      if (assignedTeamNames.has(teamName)) {
+        return { error: '같은 날짜에 같은 팀을 여러 경기에 배정할 수 없습니다.' }
+      }
+      assignedTeamNames.add(teamName)
+    }
+  }
+
+  return {}
+}
+
 export async function getLeagueScheduleCatalog(): Promise<LeagueScheduleCatalog> {
   if (isE2EScheduleFixtureEnabled()) {
     return getFixtureLeagueScheduleCatalog()
@@ -670,6 +718,15 @@ export async function saveLeagueScheduleDay(
   }
 
   try {
+    const schedule = await getScheduleById(scheduleId)
+    if (!schedule) return { error: '일정을 찾을 수 없습니다.' }
+    if (!isDateKeyInScheduleRange(dateKey, schedule)) {
+      return { error: '일정 기간 안의 날짜만 저장할 수 있습니다.' }
+    }
+    const rosterTeams = await loadRosterTeams(schedule)
+    const { error: teamError } = validateScheduleMatchTeams(sanitizedMatches, rosterTeams)
+    if (teamError) return { error: teamError }
+
     const now = admin.firestore.Timestamp.now()
     const scheduleRef = adminDb.collection('league_schedules').doc(scheduleId)
     const dayRef = adminDb
@@ -686,6 +743,11 @@ export async function saveLeagueScheduleDay(
 
       if (!scheduleSnap.exists) {
         throw new Error('일정을 찾을 수 없습니다.')
+      }
+
+      const latestSchedule = mapScheduleDoc(scheduleSnap)
+      if (!isDateKeyInScheduleRange(dateKey, latestSchedule)) {
+        throw new Error('일정 기간 안의 날짜만 저장할 수 있습니다.')
       }
 
       const existingMatches = Array.isArray(existingSnap.data()?.matches)

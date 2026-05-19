@@ -313,8 +313,18 @@ describe('scheduleActions', () => {
   it('saveLeagueScheduleDay requires admin code and persists through a transaction', async () => {
     dbState.leagueSchedules.set('schedule-1', {
       name: 'Spring Split',
+      roster_source_type: 'archive',
+      roster_source_id: 'archive-1',
       starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      ends_at: createTimestamp('2026-04-10T00:00:00.000Z'),
       status: 'ACTIVE',
+    })
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      result_snapshot: [
+        { id: 'team-blue', name: 'Blue', leader_name: 'Blue Captain', players: [] },
+        { id: 'team-red', name: 'Red', leader_name: 'Red Captain', players: [] },
+      ],
     })
     getMatchDayMap('schedule-1').set('2026-04-03', {
       date_key: '2026-04-03',
@@ -387,6 +397,106 @@ describe('scheduleActions', () => {
     expect(saved?.revision).toBe(4)
     expect((saved?.matches as Array<Record<string, unknown>>)[0].winner).toBe('HOME')
     expect((saved?.matches as Array<Record<string, unknown>>)[0].note).toBe('기존 결과')
+  })
+
+  it('saveLeagueScheduleDay rejects dates outside the schedule range', async () => {
+    dbState.leagueSchedules.set('schedule-1', {
+      name: 'Spring Split',
+      roster_source_type: 'archive',
+      roster_source_id: 'archive-1',
+      starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      ends_at: createTimestamp('2026-04-10T00:00:00.000Z'),
+      status: 'ACTIVE',
+    })
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      result_snapshot: [
+        { id: 'team-blue', name: 'Blue', leader_name: 'Blue Captain', players: [] },
+        { id: 'team-red', name: 'Red', leader_name: 'Red Captain', players: [] },
+      ],
+    })
+
+    const { saveLeagueScheduleDay } = await import('../scheduleActions')
+    const result = await saveLeagueScheduleDay(
+      'schedule-1',
+      {
+        dateKey: '2026-04-11',
+        matches: [
+          {
+            startsAt: '19:00',
+            homeTeamName: 'Blue',
+            awayTeamName: 'Red',
+            winsToClinch: 2,
+            maxGames: 3,
+          },
+        ],
+      },
+      'secret-code',
+    )
+
+    expect(result.error).toBe('일정 기간 안의 날짜만 저장할 수 있습니다.')
+    expect(getMatchDayMap('schedule-1').has('2026-04-11')).toBe(false)
+  })
+
+  it('saveLeagueScheduleDay rejects teams outside the roster source and duplicate assignments', async () => {
+    dbState.leagueSchedules.set('schedule-1', {
+      name: 'Spring Split',
+      roster_source_type: 'archive',
+      roster_source_id: 'archive-1',
+      starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      status: 'ACTIVE',
+    })
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      result_snapshot: [
+        { id: 'team-blue', name: 'Blue', leader_name: 'Blue Captain', players: [] },
+        { id: 'team-red', name: 'Red', leader_name: 'Red Captain', players: [] },
+      ],
+    })
+
+    const { saveLeagueScheduleDay } = await import('../scheduleActions')
+    const unknownTeam = await saveLeagueScheduleDay(
+      'schedule-1',
+      {
+        dateKey: '2026-04-03',
+        matches: [
+          {
+            startsAt: '19:00',
+            homeTeamName: 'Blue',
+            awayTeamName: 'Green',
+            winsToClinch: 2,
+            maxGames: 3,
+          },
+        ],
+      },
+      'secret-code',
+    )
+    const duplicateTeam = await saveLeagueScheduleDay(
+      'schedule-1',
+      {
+        dateKey: '2026-04-03',
+        matches: [
+          {
+            startsAt: '19:00',
+            homeTeamName: 'Blue',
+            awayTeamName: 'Red',
+            winsToClinch: 2,
+            maxGames: 3,
+          },
+          {
+            startsAt: '20:00',
+            homeTeamName: 'Blue',
+            awayTeamName: 'Red',
+            winsToClinch: 2,
+            maxGames: 3,
+          },
+        ],
+      },
+      'secret-code',
+    )
+
+    expect(unknownTeam.error).toBe('일정 로스터에 없는 팀은 저장할 수 없습니다.')
+    expect(duplicateTeam.error).toBe('같은 날짜에 같은 팀을 여러 경기에 배정할 수 없습니다.')
   })
 
   it('registerLeagueMatchResult writes completed results through a transaction', async () => {

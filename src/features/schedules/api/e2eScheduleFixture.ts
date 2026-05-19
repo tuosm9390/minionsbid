@@ -183,6 +183,52 @@ function statefulRoster(sourceId: string) {
   return state.rosterTeamsBySourceId.get(sourceId) ?? []
 }
 
+function dateKeyFromIso(value: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function isDateKeyInFixtureScheduleRange(dateKey: string, schedule: LeagueScheduleItem) {
+  const startKey = dateKeyFromIso(schedule.startsAt)
+  const endKey = dateKeyFromIso(schedule.endsAt)
+  if (startKey && dateKey < startKey) return false
+  if (endKey && dateKey > endKey) return false
+  return true
+}
+
+function validateFixtureMatchTeams(
+  matches: Array<{ homeTeamName: string; awayTeamName: string }>,
+  rosterTeams: LeagueRosterTeam[],
+): { error?: string } {
+  if (matches.length === 0) return {}
+  const rosterTeamNames = new Set(rosterTeams.map((team) => team.name))
+  if (
+    rosterTeamNames.size === 0 ||
+    matches.some(
+      (match) =>
+        !rosterTeamNames.has(match.homeTeamName) || !rosterTeamNames.has(match.awayTeamName),
+    )
+  ) {
+    return { error: '일정 로스터에 없는 팀은 저장할 수 없습니다.' }
+  }
+
+  const assignedTeamNames = new Set<string>()
+  for (const match of matches) {
+    for (const teamName of [match.homeTeamName, match.awayTeamName]) {
+      if (assignedTeamNames.has(teamName)) {
+        return { error: '같은 날짜에 같은 팀을 여러 경기에 배정할 수 없습니다.' }
+      }
+      assignedTeamNames.add(teamName)
+    }
+  }
+  return {}
+}
+
 export async function getFixtureLeagueScheduleTimeline(
   scheduleId: string,
 ): Promise<LeagueScheduleTimeline> {
@@ -254,6 +300,9 @@ export async function saveFixtureLeagueScheduleDay(
   const state = getFixtureState()
   const schedule = state.schedules.find((item) => item.id === scheduleId)
   if (!schedule) return { error: '일정을 찾을 수 없습니다.' }
+  if (!isDateKeyInFixtureScheduleRange(payload.dateKey, schedule)) {
+    return { error: '일정 기간 안의 날짜만 저장할 수 있습니다.' }
+  }
 
   const dateLabel = new Date(`${payload.dateKey}T00:00:00`).toLocaleDateString('ko-KR', {
     month: 'long',
@@ -295,6 +344,13 @@ export async function saveFixtureLeagueScheduleDay(
       }
     })
     .filter((match) => match.homeTeamName && match.awayTeamName)
+
+  if (matches.some((match) => match.homeTeamName === match.awayTeamName)) {
+    return { error: '같은 팀끼리의 경기는 저장할 수 없습니다.' }
+  }
+
+  const { error: teamError } = validateFixtureMatchTeams(matches, getFixtureRosterTeams(schedule))
+  if (teamError) return { error: teamError }
 
   const nextDay: LeagueScheduleDay = {
     id: payload.dateKey,
