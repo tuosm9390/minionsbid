@@ -226,3 +226,9 @@
 - 2026-05-20: 현재 `src/lib/firebase.ts`에는 client SDK emulator 연결이 없고, `src/lib/firebaseAdmin.ts`는 `E2E_SCHEDULE_FIXTURE=1`이면 Admin 초기화를 스킵한다. 따라서 통합 테스트는 fixture runner와 별도 실행 경로가 필요하다.
 - 2026-05-20: `firebase-integration-test-prerequisites.md`에 Emulator Suite 기반 1차 통합 테스트 전제, 운영 Firebase 수동 검증 전제, 성공 기준, 비범위, 구현 순서를 정리했다.
 
+## Firebase 통합 환경 테스트 구현 계획
+
+- 2026-05-20: 전제조건 문서를 바탕으로 `firebase-integration-test-implementation-plan.md`를 작성했다.
+- 2026-05-20: 계획은 emulator 연결 기반, production runner, Firebase 통합 helper route, 8팀장 emulator Playwright spec, 진단 첨부, 문서화 순서로 나눴다.
+- 2026-05-20: 핵심 결정은 fixture 플래그를 끄고 `USE_FIREBASE_EMULATOR=1`과 `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=1`로 실제 Firebase SDK 경로를 emulator에 연결하는 것이다.
+
