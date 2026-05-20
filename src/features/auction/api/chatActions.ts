@@ -95,13 +95,13 @@ export async function sendNotice(
   if (!content.trim() || content.length > 200) return { error: '유효하지 않은 공지' }
 
   try {
-    const authError = await requireRoomOrganizer(roomId, organizerToken)
-    if (authError) return { error: authError }
-
     const trimmedContent = content.trim()
     if (isE2EAuctionFixtureEnabled()) {
       return sendFixtureNotice(roomId, trimmedContent)
     }
+    const authError = await requireRoomOrganizer(roomId, organizerToken)
+    if (authError) return { error: authError }
+
     const eventId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await Promise.all([
       getAuctionServerServices().firestore

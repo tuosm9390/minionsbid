@@ -192,3 +192,10 @@
 - 2026-05-20: 구성 범위는 대표 다중 클라이언트 smoke spec, 실행 npm script, LAN 수동 접속 문서로 제한한다. Firebase rules나 실시간 이벤트 필드명은 변경하지 않는다.
 - 2026-05-20: 검증 결과 `npm run test:e2e:multi-pc`가 통과했다. 첫 sandbox 실행은 `spawn EPERM`으로 실패했고 승인 후 sandbox 밖 실행에서 1개 테스트가 통과했다.
 
+## 경매 E2E 실패 3건 정리
+
+- 2026-05-20: `auction-realtime.spec.ts` 실패 3건은 `active-auction` fixture 타이머가 18초로 시작해 12초 안에 2.5초 이하가 될 수 없는 문제, `active-auction-expiring` fixture가 7초로 시작해 5초 유찰 기대와 맞지 않는 문제, `sendNotice()`가 fixture 분기 전에 Firestore organizer auth를 먼저 실행하는 문제로 분리된다.
+- 2026-05-20: 수정 범위는 E2E fixture 초기 타이머와 fixture 전용 공지 전송 분기로 제한한다. 운영 타이밍 상수, RTDB event envelope, room canonical state 계약은 변경하지 않는다.
+- 2026-05-20: `active-auction` fixture는 8초, `active-auction-expiring` fixture는 1.5초 남은 상태로 시작하도록 조정했다. `sendNotice()`는 fixture 환경에서 fixture 저장소로 먼저 분기하고, 운영 환경에서는 기존 organizer auth를 유지한다.
+- 2026-05-20: 검증 결과 실패 3개만 재실행한 `npx playwright test playwright/auction-realtime.spec.ts --project=chromium -g "extends timer|marks the player unsold|syncs organizer notice"`가 통과했고, 전체 `npm run test:e2e:auction`도 14개 테스트 통과했다.
+

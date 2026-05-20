@@ -241,3 +241,10 @@
 - [x] 로컬 실행 스크립트 추가
 - [x] 수동 LAN 접속 방법 문서화
 - [x] 대상 Playwright 검증
+
+## 경매 E2E 실패 3건 정리
+
+- [x] 실패 error context와 fixture 코드 확인
+- [x] active auction fixture 타이머를 테스트 기대와 맞춤
+- [x] fixture 공지 전송 인증 흐름 복구
+- [x] 실패한 Playwright 테스트 재검증

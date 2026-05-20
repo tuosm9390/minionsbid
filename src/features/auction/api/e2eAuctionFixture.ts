@@ -300,12 +300,12 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
   if (options.stage === 'active-auction') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + AUCTION_DURATION_MS + EXTEND_DURATION_MS).toISOString()
+    room.timerEndsAt = new Date(Date.now() + EXTEND_THRESHOLD_MS).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-expiring') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + EXTEND_THRESHOLD_MS - 1000).toISOString()
+    room.timerEndsAt = new Date(Date.now() + 1_500).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-final-second') {
     room.players[0].status = 'IN_AUCTION'
