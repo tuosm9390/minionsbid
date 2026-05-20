@@ -6,8 +6,34 @@ function initializeFirebaseAdmin() {
   if (process.env.E2E_SCHEDULE_FIXTURE === '1') return;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
+  const databaseURL = process.env.FIREBASE_DATABASE_URL;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (process.env.USE_FIREBASE_EMULATOR === '1') {
+    if (!projectId) {
+      console.warn('[firebaseAdmin] emulator project id missing');
+      return;
+    }
+
+    if (clientEmail && privateKey) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
+        }),
+        databaseURL,
+      });
+      return;
+    }
+
+    admin.initializeApp({
+      projectId,
+      databaseURL,
+    });
+    return;
+  }
 
   if (!projectId || !clientEmail || !privateKey) {
     console.warn('[firebaseAdmin] 누락된 환경변수:', {
@@ -24,7 +50,7 @@ function initializeFirebaseAdmin() {
       clientEmail,
       privateKey: privateKey.replace(/\\n/g, '\n'),
     }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
+    databaseURL,
   });
 }
 

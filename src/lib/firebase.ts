@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, signInWithCustomToken } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { connectAuthEmulator, getAuth, getIdTokenResult, signInWithCustomToken } from 'firebase/auth'
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,6 +16,24 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 const databaseId = process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID || '(default)'
 const db = getFirestore(app, databaseId)
 const auth = getAuth(app)
+
+declare global {
+  var __firebaseClientEmulatorsConnected__: boolean | undefined
+}
+
+function connectClientEmulators() {
+  if (typeof window === 'undefined') return
+  if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR !== '1') return
+  if (globalThis.__firebaseClientEmulatorsConnected__) return
+
+  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', {
+    disableWarnings: true,
+  })
+  globalThis.__firebaseClientEmulatorsConnected__ = true
+}
+
+connectClientEmulators()
 
 let roomAuthPromise: Promise<string | null> | null = null
 let roomAuthKey: string | null = null
@@ -54,6 +72,20 @@ export async function ensureRoomFirebaseAuth(args: {
       })
       .then(async (credential) => {
         await credential.user.getIdToken(true)
+        if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === '1') {
+          const tokenResult = await getIdTokenResult(credential.user, true)
+          ;(
+            window as Window & {
+              __roomAuthDebug__?: {
+                uid: string
+                claims: Record<string, unknown>
+              }
+            }
+          ).__roomAuthDebug__ = {
+            uid: credential.user.uid,
+            claims: tokenResult.claims,
+          }
+        }
         return credential.user.uid
       })
       .catch((error) => {

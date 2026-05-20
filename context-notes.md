@@ -232,3 +232,12 @@
 - 2026-05-20: 계획은 emulator 연결 기반, production runner, Firebase 통합 helper route, 8팀장 emulator Playwright spec, 진단 첨부, 문서화 순서로 나눴다.
 - 2026-05-20: 핵심 결정은 fixture 플래그를 끄고 `USE_FIREBASE_EMULATOR=1`과 `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=1`로 실제 Firebase SDK 경로를 emulator에 연결하는 것이다.
 
+## Firebase 통합 환경 테스트 구현
+
+- 2026-05-20: `firebase.json`에 Firestore, Realtime Database, Auth Emulator 포트를 고정했다. 테스트 runner는 운영 Firebase 환경 변수 대신 `minionsbid-e2e` 프로젝트와 임시 RSA private key를 주입해 Admin custom token 발급도 emulator 경로에서 수행한다.
+- 2026-05-20: client SDK는 `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=1`일 때 Firestore, Auth, RTDB emulator에 연결한다. Firebase Auth custom token sign-in 뒤에는 emulator 통합 테스트 진단을 위해 `window.__roomAuthDebug__`에 uid와 claim을 남긴다.
+- 2026-05-20: Firebase 통합 helper route는 emulator 플래그가 켜진 경우에만 활성화한다. 방 생성, 첫 라운드 시작, 상태 조회, cleanup을 분리해 Playwright가 실제 Firestore와 RTDB 상태를 검증할 수 있게 했다.
+- 2026-05-20: `playwright/auction-eight-leaders-emulator.spec.ts`는 주최자 1명과 팀장 8명을 독립 browser context로 열고, custom token claim, RTDB leader presence 8명, 모든 팀장 입찰 버튼 활성화, Firestore bid 8건 누적을 확인한다.
+- 2026-05-20: Windows에서 Node가 `firebase.cmd`를 직접 spawn하면 `EINVAL`이 발생해 runner를 `cmd.exe /d /s /c firebase.cmd` 실행으로 변경했다. 임시 RSA private key는 Windows env 호환을 위해 `\n` 이스케이프 문자열로 주입한다.
+- 2026-05-20: 현재 로컬 환경에는 Java가 PATH에 없어 Firebase Emulator Suite가 기동되지 않는다. runner는 `java -version` 사전 점검으로 이 조건을 명확히 실패 처리한다. `npm run build`, `npm run test:e2e:auction:8leaders`, `npm run test:e2e:multi-pc`는 통과했다.
+

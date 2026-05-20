@@ -72,6 +72,7 @@ npm run start
 npm run lint
 npm run test
 npm run test:e2e:auction:8leaders
+npm run test:e2e:auction:8leaders:emulator
 npm run test:e2e:multi-pc
 npm run test:e2e:auction
 npm run audit:room-auth-secrets
@@ -126,6 +127,31 @@ npm run test:e2e:auction:8leaders:debug
 
 실패하면 테스트 결과에 팀장별 `teamId`, URL, 입찰 버튼 상태, input 값, 경고 문구가 JSON 첨부로 남습니다.
 테스트용 경매 타이머는 화면 로드가 끝난 뒤 60초로 시작합니다.
+
+### Firebase Emulator 통합 8팀장 테스트
+
+fixture가 아니라 Firebase Auth, Firestore, Realtime Database Emulator를 모두 붙인 상태에서 주최자 1명과 팀장 8명의 권한, presence, 입찰 쓰기를 검증합니다.
+이 테스트는 `firebase-tools` CLI와 Java가 PATH에 있어야 하며, 운영 Firebase 프로젝트에는 데이터를 쓰지 않습니다.
+
+```bash
+npm run test:e2e:auction:8leaders:emulator
+```
+
+실제 화면을 보면서 확인하려면 headed 실행을 사용합니다.
+
+```bash
+npm run test:e2e:auction:8leaders:emulator:headed
+```
+
+경매 시작 직후 멈춰서 Firebase custom token claim, RTDB presence, 8개 팀장 입찰 버튼 상태를 눈으로 확인하려면 PowerShell에서 pause 플래그를 켭니다.
+
+```powershell
+$env:E2E_VISUAL_PAUSE="1"
+npm run test:e2e:auction:8leaders:emulator:headed
+```
+
+실패하면 테스트 결과에 `firebase-eight-leader-diagnostics.json`과 `firebase-eight-leader-room-state.json` 첨부가 남습니다.
+여기에는 팀장별 auth claim, 입찰 버튼 상태, Firestore room 상태, bid count, RTDB presence count가 포함됩니다.
 
 ## 운영 스크립트
 

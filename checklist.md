@@ -286,3 +286,16 @@
 - [x] 구현 단계와 파일별 변경 범위 작성
 - [x] 검증 명령과 성공 기준 작성
 - [x] 작업 기록 갱신 및 커밋
+
+## Firebase 통합 환경 테스트 구현
+
+- [x] Firebase Emulator 포트와 실행 스크립트 구성
+- [x] client SDK와 Admin SDK emulator 연결 분기 추가
+- [x] Firebase 통합 테스트용 방 생성, command, state, cleanup route 추가
+- [x] 주최자 1명과 팀장 8명 통합 Playwright spec 추가
+- [x] README에 emulator 실행 방법 문서화
+- [x] 빌드 검증
+- [ ] Firebase Emulator 통합 E2E 검증. 현재 로컬 Java PATH 누락으로 차단됨
+- [x] 기존 8팀장 fixture E2E 회귀 검증
+- [x] 다중 PC fixture smoke 회귀 검증
+- [x] 변경 커밋
