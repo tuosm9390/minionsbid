@@ -8,7 +8,7 @@ import {
   type TestInfo,
 } from '@playwright/test'
 
-test.setTimeout(420_000)
+test.setTimeout(240_000)
 
 type FixtureCreateResponse = {
   roomId: string
@@ -133,7 +133,7 @@ async function startFirstAuctionRound(request: APIRequestContext, roomId: string
   await sendFixtureCommand(request, {
     roomId,
     action: 'startAuction',
-    durationMs: 300_000,
+    durationMs: 60_000,
   })
 }
 

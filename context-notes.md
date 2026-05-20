@@ -212,3 +212,11 @@
 - 2026-05-20: `E2E_VISUAL_PAUSE=1`이면 검증 직후 `page.pause()`로 멈춰 사용자가 9개 화면을 직접 볼 수 있게 한다. 자동 실행은 경매 시작 직후 8팀장 모두의 입찰 버튼과 number input이 활성화되는지 확인하는 범위로 제한한다.
 - 2026-05-20: 검증 결과 `npm run test:e2e:auction:8leaders`, `npm run test:e2e:multi-pc`, `npm run test:e2e:auction`이 통과했다. 전체 경매 E2E 첫 실행에서는 500ms 레이턴시 테스트가 529ms로 1회 실패했으나, 단독 재실행과 전체 재실행 모두 통과했다.
 
+## 8팀장 visual 테스트 체감 개선
+
+- 2026-05-20: 사용자가 headed 실행에서 모든 화면에 컴파일/렌더링 알림이 표시되고 타이머가 4분대부터 시작한다고 보고했다.
+- 2026-05-20: 원인은 `test:e2e:auction:8leaders:headed`가 Playwright 기본 dev server를 사용해 9개 페이지에서 Turbopack dev overlay가 보이는 점, 그리고 테스트가 수동 확인 시간을 확보하려고 `durationMs: 300_000`으로 경매를 시작한 점이다.
+- 2026-05-20: 수정 방향은 기존 `test:e2e:auction`처럼 production build/start 서버에서 visual 테스트를 실행하고, 페이지가 모두 로드된 뒤 60초 타이머로 경매를 시작하는 것이다.
+- 2026-05-20: `scripts/run_auction_8leaders_visual.js`를 추가해 8팀장 visual 테스트를 `next build`와 `next start` 기반으로 실행하도록 변경했다. production 서버에서는 9개 화면의 fixture polling 중 command API를 호출하면 연결이 끊길 수 있어, fixture 경매 상태는 화면을 열기 전에 60초 타이머로 준비한다.
+- 2026-05-20: 검증 결과 `npm run test:e2e:auction:8leaders`와 `npm run test:e2e:multi-pc`가 통과했다. 8팀장 테스트는 production runner에서 컴파일 오버레이 없이 실행되며, 타이머는 60초로 시작한다.
+

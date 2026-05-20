@@ -263,3 +263,11 @@
 - [x] headed/debug 실행 스크립트 추가
 - [x] 직접 확인 방법 문서화
 - [x] 대상 Playwright와 경매 회귀 검증
+
+## 8팀장 visual 테스트 체감 개선
+
+- [x] 현재 headed 실행 문제 원인 분석
+- [x] production server 기반 visual runner 추가
+- [x] 8팀장 테스트 시작 순서와 타이머 조정
+- [x] 문서와 실행 스크립트 갱신
+- [x] 대상 테스트 재검증

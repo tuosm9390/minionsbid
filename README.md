@@ -99,6 +99,7 @@ npm run dev:lan -- --port 3000
 ### 8팀장 권한 직접 확인
 
 주최자 1명과 팀장 8명이 동시에 접속한 상태를 자동으로 열고, 모든 팀장의 입찰 권한을 확인합니다.
+이 명령은 production build/start 서버에서 실행되어 개발 서버의 컴파일 오버레이가 화면에 뜨지 않습니다.
 
 ```bash
 npm run test:e2e:auction:8leaders
@@ -124,6 +125,7 @@ npm run test:e2e:auction:8leaders:debug
 ```
 
 실패하면 테스트 결과에 팀장별 `teamId`, URL, 입찰 버튼 상태, input 값, 경고 문구가 JSON 첨부로 남습니다.
+테스트용 경매 타이머는 화면 로드가 끝난 뒤 60초로 시작합니다.
 
 ## 운영 스크립트
 
