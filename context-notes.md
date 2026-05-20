@@ -205,3 +205,10 @@
 - 2026-05-20: 현재 `createRoom()`은 E2E fixture mode에서 전달된 captains 수만큼 팀과 leader token을 생성하므로, 8팀 테스트는 기존 fixture 생성 경로를 활용하는 것이 최소 변경이다.
 - 2026-05-20: 전제 문서는 `eight-leader-visual-test-premises.md`, 구현 계획서는 `eight-leader-visual-test-implementation-plan.md`로 작성했다. Firebase Emulator 도입은 실제 Firebase 경계에서만 재현되는 문제가 확인된 뒤 후속 작업으로 분리한다.
 
+## 8팀장 직접 확인 테스트 구현
+
+- 2026-05-20: `POST /api/e2e/auction-fixture/create` route를 추가해 E2E fixture mode에서 임의 captains payload로 방과 8개 leader link를 생성할 수 있게 했다.
+- 2026-05-20: `playwright/auction-eight-leaders-visual.spec.ts`는 organizer 1개와 leader 8개를 독립 browser context로 열고, 경매 시작 직후 모든 leader의 `입찰하기` 버튼과 number input 상태를 진단한다.
+- 2026-05-20: `E2E_VISUAL_PAUSE=1`이면 검증 직후 `page.pause()`로 멈춰 사용자가 9개 화면을 직접 볼 수 있게 한다. 자동 실행은 경매 시작 직후 8팀장 모두의 입찰 버튼과 number input이 활성화되는지 확인하는 범위로 제한한다.
+- 2026-05-20: 검증 결과 `npm run test:e2e:auction:8leaders`, `npm run test:e2e:multi-pc`, `npm run test:e2e:auction`이 통과했다. 전체 경매 E2E 첫 실행에서는 500ms 레이턴시 테스트가 529ms로 1회 실패했으나, 단독 재실행과 전체 재실행 모두 통과했다.
+

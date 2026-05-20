@@ -80,7 +80,7 @@ type ResetResult = {
   captainLinks: Array<{ teamId: string; teamName: string; link: string }>
 }
 
-type FixtureCreateRoomPayload = {
+export type FixtureCreateRoomPayload = {
   name: string
   totalTeams: number
   basePoint: number

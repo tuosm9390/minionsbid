@@ -255,3 +255,11 @@
 - [x] 작업 전제 문서 작성
 - [x] 구현 계획서 작성
 - [x] 작업 기록 갱신 및 커밋
+
+## 8팀장 직접 확인 테스트 구현
+
+- [x] 8팀 fixture 생성 API route 추가
+- [x] 8팀장 visual Playwright spec 추가
+- [x] headed/debug 실행 스크립트 추가
+- [x] 직접 확인 방법 문서화
+- [x] 대상 Playwright와 경매 회귀 검증

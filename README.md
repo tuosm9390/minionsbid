@@ -71,6 +71,7 @@ npm run build
 npm run start
 npm run lint
 npm run test
+npm run test:e2e:auction:8leaders
 npm run test:e2e:multi-pc
 npm run test:e2e:auction
 npm run audit:room-auth-secrets
@@ -94,6 +95,35 @@ npm run dev:lan -- --port 3000
 ```
 
 같은 네트워크의 기기에서 `http://<로컬PC-IP>:3000`으로 접속한 뒤, 방 생성 화면에서 발급된 organizer, leader, viewer 링크를 각각 다른 브라우저나 기기에 배정합니다. 자동 검증은 fixture 기반 `test:e2e:multi-pc`를 우선 사용하고, 최종 체감 확인이 필요할 때만 LAN 접속을 병행합니다.
+
+### 8팀장 권한 직접 확인
+
+주최자 1명과 팀장 8명이 동시에 접속한 상태를 자동으로 열고, 모든 팀장의 입찰 권한을 확인합니다.
+
+```bash
+npm run test:e2e:auction:8leaders
+```
+
+브라우저 화면을 직접 보려면 headed 실행을 사용합니다.
+
+```bash
+npm run test:e2e:auction:8leaders:headed
+```
+
+경매 시작 직후 멈춘 상태에서 9개 화면을 직접 확인하려면 PowerShell에서 pause 플래그를 켭니다.
+
+```powershell
+$env:E2E_VISUAL_PAUSE="1"
+npm run test:e2e:auction:8leaders:headed
+```
+
+Playwright Inspector로 단계별 확인이 필요하면 debug 실행을 사용합니다.
+
+```bash
+npm run test:e2e:auction:8leaders:debug
+```
+
+실패하면 테스트 결과에 팀장별 `teamId`, URL, 입찰 버튼 상태, input 값, 경고 문구가 JSON 첨부로 남습니다.
 
 ## 운영 스크립트
 
