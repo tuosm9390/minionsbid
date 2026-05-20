@@ -248,3 +248,10 @@
 - [x] active auction fixture 타이머를 테스트 기대와 맞춤
 - [x] fixture 공지 전송 인증 흐름 복구
 - [x] 실패한 Playwright 테스트 재검증
+
+## 8팀장 직접 확인 테스트 계획
+
+- [x] 현재 room fixture, role token, Playwright 구조 확인
+- [x] 작업 전제 문서 작성
+- [x] 구현 계획서 작성
+- [x] 작업 기록 갱신 및 커밋

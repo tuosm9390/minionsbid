@@ -199,3 +199,9 @@
 - 2026-05-20: `active-auction` fixture는 8초, `active-auction-expiring` fixture는 1.5초 남은 상태로 시작하도록 조정했다. `sendNotice()`는 fixture 환경에서 fixture 저장소로 먼저 분기하고, 운영 환경에서는 기존 organizer auth를 유지한다.
 - 2026-05-20: 검증 결과 실패 3개만 재실행한 `npx playwright test playwright/auction-realtime.spec.ts --project=chromium -g "extends timer|marks the player unsold|syncs organizer notice"`가 통과했고, 전체 `npm run test:e2e:auction`도 14개 테스트 통과했다.
 
+## 8팀장 직접 확인 테스트 계획
+
+- 2026-05-20: 사용자는 예전에 발생한 "주최자 + 8팀장 경매에서 특정 팀장에게 입찰 권한이 부여되지 않음" 문제를 직접 화면으로 확인할 수 있는 테스트 진행안을 요청했다.
+- 2026-05-20: 현재 `createRoom()`은 E2E fixture mode에서 전달된 captains 수만큼 팀과 leader token을 생성하므로, 8팀 테스트는 기존 fixture 생성 경로를 활용하는 것이 최소 변경이다.
+- 2026-05-20: 전제 문서는 `eight-leader-visual-test-premises.md`, 구현 계획서는 `eight-leader-visual-test-implementation-plan.md`로 작성했다. Firebase Emulator 도입은 실제 Firebase 경계에서만 재현되는 문제가 확인된 뒤 후속 작업으로 분리한다.
+
