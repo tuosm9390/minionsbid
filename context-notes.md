@@ -220,3 +220,9 @@
 - 2026-05-20: `scripts/run_auction_8leaders_visual.js`를 추가해 8팀장 visual 테스트를 `next build`와 `next start` 기반으로 실행하도록 변경했다. production 서버에서는 9개 화면의 fixture polling 중 command API를 호출하면 연결이 끊길 수 있어, fixture 경매 상태는 화면을 열기 전에 60초 타이머로 준비한다.
 - 2026-05-20: 검증 결과 `npm run test:e2e:auction:8leaders`와 `npm run test:e2e:multi-pc`가 통과했다. 8팀장 테스트는 production runner에서 컴파일 오버레이 없이 실행되며, 타이머는 60초로 시작한다.
 
+## Firebase 통합 환경 테스트 전제조건
+
+- 2026-05-20: 사용자는 fixture가 아니라 Firebase까지 포함한 통합 환경 테스트가 필요하다고 요청했다.
+- 2026-05-20: 현재 `src/lib/firebase.ts`에는 client SDK emulator 연결이 없고, `src/lib/firebaseAdmin.ts`는 `E2E_SCHEDULE_FIXTURE=1`이면 Admin 초기화를 스킵한다. 따라서 통합 테스트는 fixture runner와 별도 실행 경로가 필요하다.
+- 2026-05-20: `firebase-integration-test-prerequisites.md`에 Emulator Suite 기반 1차 통합 테스트 전제, 운영 Firebase 수동 검증 전제, 성공 기준, 비범위, 구현 순서를 정리했다.
+

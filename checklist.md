@@ -271,3 +271,11 @@
 - [x] 8팀장 테스트 시작 순서와 타이머 조정
 - [x] 문서와 실행 스크립트 갱신
 - [x] 대상 테스트 재검증
+
+## Firebase 통합 환경 테스트 전제조건
+
+- [x] 현재 Firebase client/Admin/emulator 설정 확인
+- [x] 통합 테스트 범위와 비범위 정의
+- [x] Firebase Emulator 기반 실행 전제 작성
+- [x] 운영 Firebase 대상 실행 전제 작성
+- [x] 작업 기록 갱신 및 커밋
