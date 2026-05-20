@@ -185,3 +185,10 @@
 - 2026-05-19: hall of fame 액션 테스트 더블에 `where('archive_id', '==', archiveId).limit(1).get()` 흐름을 추가하고, legacy random id 문서가 있을 때 `archive:{archiveId}` 새 문서가 생성되지 않는 테스트를 추가했다.
 - 2026-05-19: 검증 결과 `npx vitest run src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts`, 통합 `npx vitest run src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts src/features/schedules/api/__tests__/scheduleActions.test.ts __tests__/LeagueScheduleManager.test.tsx`, `npm run build`가 통과했다.
 
+## 다수 PC 재현 테스트 환경 구성
+
+- 2026-05-20: 목표는 한 로컬 PC에서 organizer, 두 leader, viewer를 서로 다른 브라우저 컨텍스트로 분리해 다수 PC 경매 상황을 자동 재현하는 것이다.
+- 2026-05-20: 기존 `auction-realtime.spec.ts`와 fixture API가 이미 다중 컨텍스트, 독립 쿠키, 경매 fanout 검증을 지원하므로 데이터 계약이나 fixture shape는 변경하지 않는다.
+- 2026-05-20: 구성 범위는 대표 다중 클라이언트 smoke spec, 실행 npm script, LAN 수동 접속 문서로 제한한다. Firebase rules나 실시간 이벤트 필드명은 변경하지 않는다.
+- 2026-05-20: 검증 결과 `npm run test:e2e:multi-pc`가 통과했다. 첫 sandbox 실행은 `spawn EPERM`으로 실패했고 승인 후 sandbox 밖 실행에서 1개 테스트가 통과했다.
+

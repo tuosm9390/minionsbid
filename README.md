@@ -71,11 +71,29 @@ npm run build
 npm run start
 npm run lint
 npm run test
+npm run test:e2e:multi-pc
+npm run test:e2e:auction
 npm run audit:room-auth-secrets
 npm run smoke:room-rules
 npm run migrate:room-auth-secrets:dry-run
 npm run migrate:room-auth-secrets
 ```
+
+## 다수 PC 상황 재현 테스트
+
+한 로컬 PC에서 자동 재현할 때는 Playwright가 organizer, 두 leader, viewer를 서로 다른 브라우저 컨텍스트로 띄웁니다. 각 컨텍스트는 쿠키와 세션 저장소가 분리되어 서로 다른 PC의 브라우저처럼 동작합니다.
+
+```bash
+npm run test:e2e:multi-pc
+```
+
+실제 휴대폰이나 다른 노트북까지 붙여 수동 확인하려면 개발 서버를 LAN에 열어 둡니다.
+
+```bash
+npm run dev:lan -- --port 3000
+```
+
+같은 네트워크의 기기에서 `http://<로컬PC-IP>:3000`으로 접속한 뒤, 방 생성 화면에서 발급된 organizer, leader, viewer 링크를 각각 다른 브라우저나 기기에 배정합니다. 자동 검증은 fixture 기반 `test:e2e:multi-pc`를 우선 사용하고, 최종 체감 확인이 필요할 때만 LAN 접속을 병행합니다.
 
 ## 운영 스크립트
 
