@@ -309,3 +309,12 @@
 - [x] Firebase Emulator CSP 허용 범위 수정
 - [x] 관련 검증 실행
 - [x] 변경 커밋
+
+## Firebase 통합 E2E headed 입찰 안정화
+
+- [x] headed 실패 지점과 입찰 컨트롤 로직 확인
+- [x] 버튼 라벨 의존 제거
+- [x] Firestore 정본 최고가 기준으로 다음 입찰 금액 입력
+- [x] headed emulator 테스트 재검증
+- [x] headless emulator 테스트 재검증
+- [x] 변경 커밋

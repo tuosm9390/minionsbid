@@ -193,18 +193,16 @@ async function assertAllLeadersCanBid(leaders: LeaderClient[], testInfo: TestInf
   expect(failures).toEqual([])
 }
 
-async function placeBid(leader: LeaderClient) {
+const BID_INCREMENT = 10
+
+async function placeBid(leader: LeaderClient, amount: number) {
   const button = leader.page.getByRole('button', { name: '입찰하기' })
   const input = leader.page.locator('input[type="number"]').first()
   await expect(button).toBeEnabled({ timeout: 10_000 })
   await expect(input).toBeVisible({ timeout: 10_000 })
-  const amount = Number.parseInt(await input.inputValue(), 10)
   expect(Number.isFinite(amount)).toBe(true)
   await input.fill(String(amount))
   await button.click()
-  await expect(leader.page.getByRole('button', { name: '최고 입찰 유지 중' })).toBeVisible({
-    timeout: 10_000,
-  })
 }
 
 test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore bids', async ({
@@ -300,18 +298,22 @@ test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore
     }
 
     for (let index = 0; index < leaders.length; index += 1) {
-      await placeBid(leaders[index])
+      const beforeBidState = await getFirebaseState(request, fixture.roomId)
+      const bidAmount = (beforeBidState.room.activeBid?.amount ?? 0) + BID_INCREMENT
+      await placeBid(leaders[index], bidAmount)
       await expect
         .poll(async () => {
           const state = await getFirebaseState(request, fixture.roomId)
           return {
             bids: state.counts.bids,
             teamId: state.room.activeBid?.team_id ?? null,
+            amount: state.room.activeBid?.amount ?? null,
           }
-        }, { timeout: 10_000 })
+        }, { timeout: 15_000 })
         .toEqual({
           bids: index + 1,
           teamId: leaders[index].teamId,
+          amount: bidAmount,
         })
     }
 

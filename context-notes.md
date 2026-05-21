@@ -250,3 +250,9 @@
 - 2026-05-21: `src/proxy.ts`는 emulator 플래그가 켜진 경우에만 Firestore, RTDB, Auth localhost 포트를 `connect-src`에 추가하고, RTDB long-polling용 `script-src`와 Firestore clear-dot용 `img-src`를 최소 허용한다. 운영 Firebase CSP는 유지한다.
 - 2026-05-21: 검증 결과 `npm run test:e2e:auction:8leaders:emulator`, `npm run test:e2e:auction:8leaders`, `npm run test:e2e:multi-pc`, `npm run build`가 통과했다. emulator runner 종료 후 8080, 9000, 9099 LISTENING 프로세스가 남지 않는 것도 확인했다.
 
+## Firebase 통합 E2E headed 입찰 안정화
+
+- 2026-05-21: 사용자 headed 실행에서 마지막 입찰 단계가 `최고 입찰 유지 중` 버튼 라벨을 기다리다 실패했다. 같은 명령이 통과하는 경우도 있어 앱 기능의 고정 실패가 아니라 테스트가 UI 라벨과 클라이언트 동기화 타이밍에 과하게 의존한 문제로 판단했다.
+- 2026-05-21: 라벨 대기는 제거하고, 각 입찰 전에 `/api/e2e/firebase-auction/state`로 Firestore 정본 `activeBid.amount`를 읽은 뒤 `+10` 금액을 명시적으로 입력하도록 변경했다. 실제 성공 판정은 Firestore bid count, active bid team, active bid amount로 한다.
+- 2026-05-21: 검증 결과 `npm run test:e2e:auction:8leaders:emulator:headed`, `npm run test:e2e:auction:8leaders:emulator`, `npm run build`가 통과했다.
+
