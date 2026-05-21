@@ -1,5 +1,7 @@
 // Firebase Emulator로 주최자와 8팀장 권한/입찰 흐름을 검증하는 통합 E2E 테스트
 import { expect, test, type APIRequestContext, type BrowserContext, type Page, type TestInfo } from '@playwright/test'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 test.setTimeout(240_000)
 
@@ -51,6 +53,12 @@ type LeaderDiagnostic = {
   bidButtonText: string | null
   inputCount: number
   inputValue: string | null
+}
+
+type PageLog = {
+  source: string
+  type: string
+  text: string
 }
 
 async function createFirebaseRoom(request: APIRequestContext, roomName: string) {
@@ -145,6 +153,31 @@ async function attachDiagnostics(
   })
 }
 
+function collectPageLogs(page: Page, source: string, logs: PageLog[]) {
+  page.on('console', (message) => {
+    logs.push({
+      source,
+      type: message.type(),
+      text: message.text(),
+    })
+  })
+  page.on('pageerror', (error) => {
+    logs.push({
+      source,
+      type: 'pageerror',
+      text: error.message,
+    })
+  })
+}
+
+async function collectPageSnapshot(page: Page) {
+  return {
+    url: page.url(),
+    title: await page.title().catch(() => null),
+    bodyText: await page.locator('body').innerText({ timeout: 1000 }).catch(() => null),
+  }
+}
+
 async function assertAllLeadersCanBid(leaders: LeaderClient[], testInfo: TestInfo) {
   const diagnostics = await Promise.all(leaders.map((leader) => collectLeaderDiagnostic(leader)))
   await attachDiagnostics(testInfo, 'firebase-eight-leader-diagnostics.json', diagnostics)
@@ -181,6 +214,7 @@ test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore
   const roomName = `Firebase 8팀장 통합 ${Date.now()}`
   let roomId: string | null = null
   const leaders: LeaderClient[] = []
+  const pageLogs: PageLog[] = []
   const organizerContext = await browser.newContext({
     viewport: { width: 1440, height: 960 },
     reducedMotion: 'reduce',
@@ -192,12 +226,14 @@ test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore
     expect(fixture.captainLinks).toHaveLength(8)
 
     const organizerPage = await organizerContext.newPage()
+    collectPageLogs(organizerPage, 'organizer', pageLogs)
     for (const captainLink of fixture.captainLinks) {
       const context = await browser.newContext({
         viewport: { width: 720, height: 900 },
         reducedMotion: 'reduce',
       })
       const page = await context.newPage()
+      collectPageLogs(page, captainLink.teamName, pageLogs)
       leaders.push({
         teamName: captainLink.teamName,
         teamId: captainLink.teamId,
@@ -212,12 +248,36 @@ test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore
       organizerPage.goto(fixture.organizerLink),
       ...leaders.map((leader) => leader.page.goto(leader.link)),
     ])
-    await Promise.all([
-      expect(organizerPage.getByText(roomName)).toBeVisible({ timeout: 20_000 }),
-      ...leaders.map((leader) =>
-        expect(leader.page.getByText(roomName)).toBeVisible({ timeout: 20_000 }),
-      ),
-    ])
+    try {
+      await Promise.all([
+        expect(organizerPage.getByText(roomName)).toBeVisible({ timeout: 20_000 }),
+        ...leaders.map((leader) =>
+          expect(leader.page.getByText(roomName)).toBeVisible({ timeout: 20_000 }),
+        ),
+      ])
+    } catch (error) {
+      const diagnostics = {
+        logs: pageLogs,
+        organizer: await collectPageSnapshot(organizerPage),
+        leaders: await Promise.all(
+          leaders.map(async (leader) => ({
+            teamName: leader.teamName,
+            teamId: leader.teamId,
+            snapshot: await collectPageSnapshot(leader.page),
+          })),
+        ),
+        state: await getFirebaseState(request, fixture.roomId).catch((err) => ({
+          error: err instanceof Error ? err.message : String(err),
+        })),
+      }
+      mkdirSync('test-results', { recursive: true })
+      writeFileSync(
+        join('test-results', 'firebase-page-load-diagnostics.json'),
+        JSON.stringify(diagnostics, null, 2),
+      )
+      await attachDiagnostics(testInfo, 'firebase-page-load-diagnostics.json', diagnostics)
+      throw error
+    }
     await Promise.all(leaders.map((leader) => waitForLeaderAuth(leader, fixture.roomId)))
 
     await expect

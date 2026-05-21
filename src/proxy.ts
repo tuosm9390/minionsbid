@@ -19,9 +19,17 @@ function getFirebaseOrigins() {
   }
 }
 
+function isFirebaseEmulatorEnabled() {
+  return (
+    process.env.USE_FIREBASE_EMULATOR === '1' ||
+    process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === '1'
+  )
+}
+
 export function proxy(request: NextRequest) {
   const { httpsOrigin: firebaseRtdbHttpsOrigin, wssOrigin: firebaseRtdbWssOrigin } =
     getFirebaseOrigins()
+  const allowFirebaseEmulator = isFirebaseEmulatorEnabled()
 
   const scriptSrc = [
     "'self'",
@@ -35,6 +43,7 @@ export function proxy(request: NextRequest) {
     'https://*.firebasedatabase.app',
     'https://*.firebaseio.com',
     firebaseRtdbHttpsOrigin,
+    allowFirebaseEmulator ? 'http://127.0.0.1:9000' : null,
   ]
     .filter(Boolean)
     .join(' ')
@@ -50,6 +59,18 @@ export function proxy(request: NextRequest) {
     'wss://*.firebasedatabase.app',
     firebaseRtdbHttpsOrigin,
     firebaseRtdbWssOrigin,
+    allowFirebaseEmulator ? 'http://127.0.0.1:8080' : null,
+    allowFirebaseEmulator ? 'http://127.0.0.1:9000' : null,
+    allowFirebaseEmulator ? 'http://127.0.0.1:9099' : null,
+    allowFirebaseEmulator ? 'ws://127.0.0.1:9000' : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const imgSrc = [
+    "'self'",
+    'data:',
+    allowFirebaseEmulator ? 'https://www.google.com' : null,
   ]
     .filter(Boolean)
     .join(' ')
@@ -60,7 +81,7 @@ export function proxy(request: NextRequest) {
     script-src-elem ${scriptSrc};
     style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
     connect-src ${connectSrc};
-    img-src 'self' data:;
+    img-src ${imgSrc};
     font-src 'self' https://cdn.jsdelivr.net;
     frame-src 'none';
     frame-ancestors 'none';

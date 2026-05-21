@@ -1,5 +1,5 @@
 // Firebase Emulator 기반 8팀장 통합 Playwright 테스트를 실행한다.
-const { spawn } = require('node:child_process')
+const { spawn, spawnSync } = require('node:child_process')
 const { generateKeyPairSync } = require('node:crypto')
 const net = require('node:net')
 const process = require('node:process')
@@ -10,6 +10,20 @@ const nextPort = 3017
 const nextHost = '127.0.0.1'
 const baseURL = `http://${nextHost}:${nextPort}`
 const nodeExec = process.execPath
+const firebaseCliPath = process.env.APPDATA
+  ? `${process.env.APPDATA}\\npm\\node_modules\\firebase-tools\\lib\\bin\\firebase.js`
+  : null
+const javaBinCandidates = [
+  'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.11.10-hotspot\\bin',
+  process.env.JAVA_HOME ? `${process.env.JAVA_HOME}\\bin` : null,
+  'C:\\Program Files\\Android\\Android Studio\\jbr\\bin',
+].filter(Boolean)
+const pathEnvKey = Object.keys(process.env).find((key) => key.toLowerCase() === 'path') ?? 'PATH'
+const processPath = process.env[pathEnvKey] ?? ''
+const runnerPath = [
+  ...javaBinCandidates.filter((candidate) => !processPath.includes(candidate)),
+  processPath,
+].join(';')
 
 const { privateKey } = generateKeyPairSync('rsa', {
   modulusLength: 2048,
@@ -27,6 +41,9 @@ const sharedEnv = {
   FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
   FIREBASE_DATABASE_EMULATOR_HOST: '127.0.0.1:9000',
   FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
+  [pathEnvKey]: runnerPath,
+  Path: runnerPath,
+  PATH: runnerPath,
   FIREBASE_PROJECT_ID: projectId,
   FIREBASE_CLIENT_EMAIL: `emulator-admin@${projectId}.iam.gserviceaccount.com`,
   FIREBASE_PRIVATE_KEY: emulatorPrivateKey,
@@ -47,7 +64,10 @@ function firebaseCommand() {
   if (process.platform !== 'win32') {
     return { command: 'firebase', argsPrefix: [] }
   }
-  return { command: 'cmd.exe', argsPrefix: ['/d', '/s', '/c', 'firebase.cmd'] }
+  if (!firebaseCliPath) {
+    return { command: 'cmd.exe', argsPrefix: ['/d', '/s', '/c', 'firebase.cmd'] }
+  }
+  return { command: nodeExec, argsPrefix: [firebaseCliPath] }
 }
 
 function waitForPort(port, host = '127.0.0.1', timeoutMs = 60_000) {
@@ -72,6 +92,35 @@ function waitForPort(port, host = '127.0.0.1', timeoutMs = 60_000) {
   })
 }
 
+function isPortOpen(port, host = '127.0.0.1') {
+  return new Promise((resolve) => {
+    const socket = net.connect(port, host)
+    socket.once('connect', () => {
+      socket.end()
+      resolve(true)
+    })
+    socket.once('error', () => {
+      socket.destroy()
+      resolve(false)
+    })
+  })
+}
+
+async function assertEmulatorPortsAvailable() {
+  const ports = [8080, 9000, 9099]
+  const occupiedPorts = []
+  for (const port of ports) {
+    if (await isPortOpen(port)) {
+      occupiedPorts.push(port)
+    }
+  }
+  if (occupiedPorts.length > 0) {
+    throw new Error(
+      `Firebase Emulator 포트가 이미 사용 중입니다: ${occupiedPorts.join(', ')}. 기존 emulator 프로세스를 종료한 뒤 다시 실행하세요.`,
+    )
+  }
+}
+
 function runProcess(command, args, env = sharedEnv) {
   const child = spawn(command, args, {
     cwd: process.cwd(),
@@ -83,6 +132,45 @@ function runProcess(command, args, env = sharedEnv) {
     child.once('error', reject)
     child.once('exit', (code) => resolve(code ?? 1))
   })
+}
+
+function stopChildProcess(child) {
+  if (!child || child.killed) return
+  if (process.platform === 'win32' && child.pid) {
+    spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    return
+  }
+  child.kill()
+}
+
+function stopWindowsListeningPorts(ports) {
+  if (process.platform !== 'win32') return
+  const result = spawnSync('netstat', ['-ano'], {
+    encoding: 'utf8',
+    windowsHide: true,
+  })
+  if (result.error || !result.stdout) return
+
+  const pids = new Set()
+  for (const line of result.stdout.split(/\r?\n/)) {
+    if (!line.includes('LISTENING')) continue
+    for (const port of ports) {
+      if (line.includes(`127.0.0.1:${port}`)) {
+        const pid = line.trim().split(/\s+/).at(-1)
+        if (pid && pid !== '0') pids.add(pid)
+      }
+    }
+  }
+
+  for (const pid of pids) {
+    spawnSync('taskkill', ['/PID', pid, '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+  }
 }
 
 function ensureJavaAvailable() {
@@ -112,6 +200,10 @@ async function main() {
     console.error(error instanceof Error ? error.message : error)
     process.exit(1)
   })
+  await assertEmulatorPortsAvailable().catch((error) => {
+    console.error(error instanceof Error ? error.message : error)
+    process.exit(1)
+  })
   const firebase = firebaseCommand()
   const emulator = spawn(
     firebase.command,
@@ -135,8 +227,9 @@ async function main() {
   const stop = () => {
     if (shuttingDown) return
     shuttingDown = true
-    if (!emulator.killed) emulator.kill()
-    if (server && !server.killed) server.kill()
+    stopChildProcess(emulator)
+    stopChildProcess(server)
+    stopWindowsListeningPorts([8080, 9000, 9099])
   }
 
   let server = null

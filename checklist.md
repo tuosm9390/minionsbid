@@ -299,3 +299,13 @@
 - [x] 기존 8팀장 fixture E2E 회귀 검증
 - [x] 다중 PC fixture smoke 회귀 검증
 - [x] 변경 커밋
+
+## Firebase 통합 E2E 첫 실행 실패 정리
+
+- [x] 실패 로그와 emulator 로그 확인
+- [x] Java 설치 위치와 현재 PATH 상태 확인
+- [x] runner에서 Java 경로 보강
+- [x] room 화면 로딩 실패 원인 재현
+- [x] Firebase Emulator CSP 허용 범위 수정
+- [x] 관련 검증 실행
+- [x] 변경 커밋

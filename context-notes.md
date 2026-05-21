@@ -241,3 +241,12 @@
 - 2026-05-20: Windows에서 Node가 `firebase.cmd`를 직접 spawn하면 `EINVAL`이 발생해 runner를 `cmd.exe /d /s /c firebase.cmd` 실행으로 변경했다. 임시 RSA private key는 Windows env 호환을 위해 `\n` 이스케이프 문자열로 주입한다.
 - 2026-05-20: 현재 로컬 환경에는 Java가 PATH에 없어 Firebase Emulator Suite가 기동되지 않는다. runner는 `java -version` 사전 점검으로 이 조건을 명확히 실패 처리한다. `npm run build`, `npm run test:e2e:auction:8leaders`, `npm run test:e2e:multi-pc`는 통과했다.
 
+## Firebase 통합 E2E 첫 실행 실패 정리
+
+- 2026-05-21: 사용자 로컬 실행에서는 Java 설치 후 emulator가 기동됐지만, 방 화면에서 생성된 방 이름을 찾지 못해 실패했다. 현재 저장소에는 Playwright error context는 없고 `firebase-debug.log`, `firestore-debug.log`, `database-debug.log`가 남아 있다.
+- 2026-05-21: 현재 Codex 세션의 PATH에는 `java`가 없지만 `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`이고, Adoptium JDK도 `C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot\bin\java.exe`에 설치되어 있다. runner가 `JAVA_HOME\bin`을 PATH에 보강하면 새 세션 없이도 emulator를 실행할 수 있다.
+- 2026-05-21: Java 경로 문제는 runner에서 Adoptium JDK bin을 PATH 앞에 보강하는 방식으로 정리했다. Codex sandbox에서는 Java pipe spawn이 `EPERM`으로 막히므로 Firebase Emulator 검증은 sandbox 밖 일반 로컬 권한으로 실행했다.
+- 2026-05-21: 방 이름 미렌더링 원인은 room 데이터가 없는 것이 아니라 CSP였다. production CSP가 `http://127.0.0.1:8080`, `ws://127.0.0.1:9000`, RTDB long-polling script를 막아 모든 클라이언트가 `ERROR: ROOM NOT FOUND`로 떨어졌다.
+- 2026-05-21: `src/proxy.ts`는 emulator 플래그가 켜진 경우에만 Firestore, RTDB, Auth localhost 포트를 `connect-src`에 추가하고, RTDB long-polling용 `script-src`와 Firestore clear-dot용 `img-src`를 최소 허용한다. 운영 Firebase CSP는 유지한다.
+- 2026-05-21: 검증 결과 `npm run test:e2e:auction:8leaders:emulator`, `npm run test:e2e:auction:8leaders`, `npm run test:e2e:multi-pc`, `npm run build`가 통과했다. emulator runner 종료 후 8080, 9000, 9099 LISTENING 프로세스가 남지 않는 것도 확인했다.
+
