@@ -256,3 +256,12 @@
 - 2026-05-21: 라벨 대기는 제거하고, 각 입찰 전에 `/api/e2e/firebase-auction/state`로 Firestore 정본 `activeBid.amount`를 읽은 뒤 `+10` 금액을 명시적으로 입력하도록 변경했다. 실제 성공 판정은 Firestore bid count, active bid team, active bid amount로 한다.
 - 2026-05-21: 검증 결과 `npm run test:e2e:auction:8leaders:emulator:headed`, `npm run test:e2e:auction:8leaders:emulator`, `npm run build`가 통과했다.
 
+## 미니언즈 철인 3종 경기 아카이브 생성
+
+- 2026-05-26: 사용자가 이미지의 팀 구성표를 기반으로 종료된 경매 결과를 `auction_archives`에 생성해 달라고 요청했다. 경매 이름은 `미니언즈 철인 3종 경기`, 진행 시즌은 `26년도 상반기 이벤트`다.
+- 2026-05-26: 기존 `scripts/seed_archive_from_json.js`는 `auctionArchiveDraft` JSON을 받아 `auction_archives/{archive_id}`에 merge 저장한다. 운영 데이터 스크립트가 이미 있으므로 새 Firestore 쓰기 로직은 만들지 않는다.
+- 2026-05-26: 현재 아카이브 문서에는 별도 `season_name` 필드가 없고 일정/명예의 전당 흐름은 `room_name`, `schedule_name`, `linked_league_name`을 사용한다. 이번 데이터는 `room_name`에 경매 이름, `schedule_name`과 `linked_league_name`에 시즌명을 저장한다.
+- 2026-05-26: 이미지에는 티어, 포지션, 낙찰가가 없으므로 각 선수의 `tier`, `main_position`, `sub_position`은 빈 문자열, `sold_price`는 `null`로 둔다.
+- 2026-05-26: `node scripts\seed_archive_from_json.js scripts\minions_triathlon_2026_h1_archive.json --dry-run` 결과 `archiveId=minions-triathlon-2026-h1-event`, 8팀, 32명으로 검증됐다.
+- 2026-05-26: 첫 실제 저장 시도는 sandbox proxy `127.0.0.1:9` 연결 실패로 timeout 됐다. 사용자 승인 후 sandbox 밖에서 같은 명령을 재실행했고 `auction_archives/minions-triathlon-2026-h1-event` 저장이 성공했다.
+

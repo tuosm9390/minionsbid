@@ -1,0 +1,303 @@
+{
+  "auctionArchiveDraft": {
+    "archive_id": "minions-triathlon-2026-h1-event",
+    "room_id": "closed-minions-triathlon-2026-h1-event",
+    "room_name": "미니언즈 철인 3종 경기",
+    "schedule_id": null,
+    "schedule_name": "26년도 상반기 이벤트",
+    "linked_auction_id": null,
+    "linked_league_name": "26년도 상반기 이벤트",
+    "room_created_at": null,
+    "closed_at": "2026-05-26T12:00:00+09:00",
+    "result_snapshot": [
+      {
+        "id": "team-4",
+        "name": "4팀",
+        "leader_name": "용범",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "야식울절대참지마#0908",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "새벽#AM",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "뜨푸쇼#kr2",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "Goinsung1109#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-3",
+        "name": "3팀",
+        "leader_name": "수형",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "셀력천초코#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "현의 산#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "엣트 공주#krx",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "가로로#KR1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-7",
+        "name": "7팀",
+        "leader_name": "상진",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "브라이어#광란시치",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "쿠 키#1997",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "강남순환로#KR1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "꽁미덤푸앙호",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-6",
+        "name": "6팀",
+        "leader_name": "진우",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "성산스#9722",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "곽기팔#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "GenG#kiin",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "unspecified#xxx",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-8",
+        "name": "8팀",
+        "leader_name": "일교",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "돌멩구#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "오로로#KR1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "즐겨없다#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "두 동벵 탁",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-2",
+        "name": "2팀",
+        "leader_name": "현수",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "하공#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "불낙의햇쌀#316",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "쯔엉기운#kr0",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "황D연#D의 의지",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-1",
+        "name": "1팀",
+        "leader_name": "승준",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "용냥냥#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "0to#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "Slaty#KR1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "Retter#1005",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      },
+      {
+        "id": "team-5",
+        "name": "5팀",
+        "leader_name": "종혁",
+        "point_balance": 0,
+        "players": [
+          {
+            "name": "엄만어릴때란거야#KR1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "수협지#1212",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "yeou#kr1",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          },
+          {
+            "name": "똘똘뭉친주먹밥#hui",
+            "tier": "",
+            "main_position": "",
+            "sub_position": "",
+            "sold_price": null
+          }
+        ]
+      }
+    ]
+  }
+}

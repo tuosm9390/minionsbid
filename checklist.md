@@ -318,3 +318,11 @@
 - [x] headed emulator 테스트 재검증
 - [x] headless emulator 테스트 재검증
 - [x] 변경 커밋
+
+## 미니언즈 철인 3종 경기 아카이브 생성
+
+- [x] 기존 `auction_archives` 입력 스키마 확인
+- [x] 이미지 전사 데이터를 JSON 초안으로 정리
+- [x] dry-run으로 문서 요약 검증
+- [x] `auction_archives` 실제 저장
+- [x] 저장 결과 보고
