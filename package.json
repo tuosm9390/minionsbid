@@ -21,6 +21,8 @@
     "test:coverage": "vitest run --coverage",
     "audit:room-auth-secrets": "node scripts/audit_room_auth_secrets.js",
     "smoke:room-rules": "node scripts/smoke_room_rules.js",
+    "backfill:team-roster-slots:dry-run": "node scripts/backfill_team_roster_slots.js",
+    "backfill:team-roster-slots": "node scripts/backfill_team_roster_slots.js --write",
     "migrate:room-auth-secrets:dry-run": "node scripts/migrate_room_auth_secrets.js",
     "migrate:room-auth-secrets": "node scripts/migrate_room_auth_secrets.js --write",
     "seed:archive-json": "node scripts/seed_archive_from_json.js",

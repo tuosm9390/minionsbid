@@ -21,6 +21,8 @@ export interface Team {
   room_id: string
   name: string
   point_balance: number
+  roster_slots_used?: number
+  roster_slots_total?: number
   leader_name: string
   leader_tier?: string
   leader_position: string
@@ -54,6 +56,7 @@ export interface Bid {
 }
 
 export interface LiveBidState {
+  event_id?: string
   player_id: string
   team_id: string
   amount: number

@@ -1,5 +1,14 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## direct bid 정본 수렴과 rules 강화
+
+- 2026-05-26: 현재 공개 입찰은 입찰자 본인 화면에 `useBiddingControl`이 optimistic `liveBid`를 즉시 표시하고, Firestore direct transaction commit 후 RTDB broadcast를 fire-and-forget으로 실행한다.
+- 2026-05-26: peer 화면은 RTDB `BID_PLACED` 또는 Firestore `last_auction_event` fallback을 주로 적용한다. direct bid commit은 성공했지만 RTDB/`last_auction_event`가 늦거나 실패한 경우에도 room snapshot의 `active_bid`, `timer_ends_at`, `auction_revision`으로 수렴해야 한다.
+- 2026-05-26: event 없는 room snapshot은 `liveBid`, `timerEndsAt`, `currentPlayerId`만 투영하고 `auctionEventRevision`을 올리지 않는다. 같은 revision의 RTDB `PLAYER_AWARDED` / `PLAYER_UNSOLD` 이벤트가 뒤늦게 와도 무시하면 안 되기 때문이다.
+- 2026-05-26: direct bid는 클라이언트-origin Firestore write라 rules가 최종 방어선이다. 팀 정원 검증은 rules에서 SOLD count query를 할 수 없으므로 팀 문서의 auction slot 사용량 정본 필드를 transaction으로 유지하는 방식으로 보강한다.
+- 2026-05-26: 기존 room/team 문서는 새 슬롯 필드가 없으므로 backfill 또는 legacy 허용 정책이 필요하다. rules는 새 필드를 요구하게 하고, 운영 적용 전 backfill 스크립트로 기존 문서를 채우는 방향을 기본값으로 둔다.
+- 2026-05-26: 검증 결과 Vitest 전체, Next build, room rules smoke는 통과했다. 경매 E2E 전체는 대표 입찰 500ms assertion이 559ms로 1회 실패했고, 해당 테스트 단독 재실행은 통과했다. Firebase rules dry-run은 "Dry run complete!"를 출력했지만 로컬 Firebase credentials/update-check 문제로 exit 1을 반환했다.
+
 ## 단일 PC 다중 탭 타이머 표시 보정
 
 - 재현 조건은 하나의 PC에서 주최자와 모든 팀장 브라우저를 동시에 띄운 테스트다. 서로 다른 PC에서 각자 접속했을 때는 문제가 없었으므로 서버 정본 `timer_ends_at` 자체보다 클라이언트 이벤트 처리 지연과 표시 보정 경로를 우선 의심한다.

@@ -67,6 +67,8 @@ interface FirestoreRoomData {
 interface FirestoreTeamData {
   name?: string
   point_balance?: number
+  roster_slots_used?: number
+  roster_slots_total?: number
   leader_name?: string
   leader_tier?: string
   leader_position?: string
@@ -148,6 +150,15 @@ function recordBidLatencyFromEvent(
     appliedAt: Date.now(),
     source,
   })
+}
+
+function isCommittedBidSnapshot(data: FirestoreRoomData) {
+  return (
+    !!data.current_player_id &&
+    !!data.timer_ends_at &&
+    !!data.active_bid &&
+    data.active_bid.player_id === data.current_player_id
+  )
 }
 
 /**
@@ -427,7 +438,10 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
       // current_player_id 변경 시 bids 구독 갱신 — fallback event 적용보다 먼저 실행해야 setLiveBid(null)이 덮어쓰이지 않음
       const newPlayerId = currentPlayerId
-      if (newPlayerId !== currentPlayerIdRef.current) {
+      if (
+        newPlayerId !== currentPlayerIdRef.current &&
+        roomRevision >= useAuctionStore.getState().auctionEventRevision
+      ) {
         currentPlayerIdRef.current = newPlayerId
         setLiveBid(null)
         // LOTTERY_DRAWN 단계에서는 플레이어가 WAITING 상태를 유지해야 하므로 IN_AUCTION 투영 생략
@@ -485,6 +499,18 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             sealedBid: next.sealedBid,
           })
         }
+      } else if (
+        roomRevision > useAuctionStore.getState().auctionEventRevision &&
+        isCommittedBidSnapshot(data)
+      ) {
+        // Direct bid의 Firestore commit은 정본이다. RTDB/last_auction_event가 늦거나 실패해도
+        // bid-shaped snapshot만으로 peer 화면을 수렴시키되, 같은 revision 이벤트를 막지 않도록
+        // auctionEventRevision은 올리지 않는다.
+        setLiveBid(data.active_bid ?? null)
+        setRealtimeData({
+          timerEndsAt: timestampToISO(data.timer_ends_at),
+          currentPlayerId: data.current_player_id ?? null,
+        })
       }
       // 테스트용 RTDB BID_PLACED 누적 타이머 확인을 위해 bid room snapshot의 revision 선반영을 막는다.
       // if (
@@ -523,6 +549,8 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             room_id: roomId,
             name: td.name ?? '',
             point_balance: td.point_balance ?? 0,
+            roster_slots_used: td.roster_slots_used,
+            roster_slots_total: td.roster_slots_total,
             leader_name: td.leader_name ?? '',
             leader_tier: td.leader_tier ?? '',
             leader_position: td.leader_position ?? '',

@@ -7,7 +7,7 @@ import type {
   SealedBidState,
   Team,
 } from '@/features/auction/store/useAuctionStore'
-import type { CaptainMode } from '@/features/auction/utils/roster'
+import { getAuctionSlotsPerTeam, type CaptainMode } from '@/features/auction/utils/roster'
 import type { AuctionMode } from '@/features/auction/utils/auctionMode'
 import {
   getAuctionBidState,
@@ -178,10 +178,12 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       room_id: roomId,
       name: 'Blue',
       point_balance: 1000,
-    leader_name: 'Blue Leader',
-    leader_tier: '팀장',
-    leader_position: 'TOP',
-    leader_description: '',
+      roster_slots_used: 0,
+      roster_slots_total: 4,
+      leader_name: 'Blue Leader',
+      leader_tier: '팀장',
+      leader_position: 'TOP',
+      leader_description: '',
       captain_points: 0,
     },
     {
@@ -189,10 +191,12 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       room_id: roomId,
       name: 'Red',
       point_balance: 1000,
-    leader_name: 'Red Leader',
-    leader_tier: '팀장',
-    leader_position: 'JGL',
-    leader_description: '',
+      roster_slots_used: 0,
+      roster_slots_total: 4,
+      leader_name: 'Red Leader',
+      leader_tier: '팀장',
+      leader_position: 'JGL',
+      leader_description: '',
       captain_points: 0,
     },
   ]
@@ -316,10 +320,13 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     room.membersPerTeam = 2
     room.teams[0].point_balance = 100
     room.teams[1].point_balance = 240
+    room.teams[0].roster_slots_total = 1
+    room.teams[1].roster_slots_total = 1
 
     room.players[0].status = 'SOLD'
     room.players[0].team_id = 'team-blue'
     room.players[0].sold_price = 300
+    room.teams[0].roster_slots_used = 1
 
     room.players[1].status = 'SOLD'
     room.players[1].team_id = 'team-red'
@@ -328,6 +335,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     room.players[2].status = 'SOLD'
     room.players[2].team_id = 'team-red'
     room.players[2].sold_price = 760
+    room.teams[1].roster_slots_used = 2
 
     room.players[3].status = 'UNSOLD'
     room.players[3].team_id = null
@@ -475,11 +483,17 @@ export function createE2EAuctionFixtureRoom(
   const organizerToken = randomId('fixture-organizer-token')
   const viewerToken = randomId('fixture-viewer-token')
 
+  const rosterSlotsTotal = getAuctionSlotsPerTeam(
+    payload.membersPerTeam,
+    payload.captainMode ?? 'IN_ROSTER',
+  )
   const teams: Team[] = payload.captains.map((captain, index) => ({
     id: randomId(`team-${index + 1}`),
     room_id: roomId,
     name: captain.teamName,
     point_balance: payload.basePoint - captain.captainPoints,
+    roster_slots_used: 0,
+    roster_slots_total: rosterSlotsTotal,
     leader_name: captain.name,
     leader_tier: captain.tier || '',
     leader_position: captain.position,
@@ -702,6 +716,9 @@ export async function placeFixtureBid(
       if (team.point_balance < amount) {
         return { error: `포인트 부족 (보유: ${team.point_balance}P)` }
       }
+      if ((team.roster_slots_used ?? 0) >= (team.roster_slots_total ?? room.membersPerTeam)) {
+        return { error: '팀 인원이 가득 찼습니다.' }
+      }
 
       const bid: Bid = {
         id: `bid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -772,6 +789,7 @@ export async function awardFixturePlayer(roomId: string, playerId: string): Prom
       player.team_id = team.id
       player.sold_price = topBid.amount
       team.point_balance -= topBid.amount
+      team.roster_slots_used = (team.roster_slots_used ?? 0) + 1
       appendMessage(room, '시스템', 'SYSTEM', `🏆 ${team.name}이 ${player.name} 선수를 ${topBid.amount}P에 낙찰!`)
       recordFixtureAuctionEvent(room, 'PLAYER_AWARDED', {
         player: clone(player),
@@ -869,6 +887,7 @@ export async function draftFixturePlayer(
     if (draftPrice > 0) {
       team.point_balance = 0
     }
+    team.roster_slots_used = (team.roster_slots_used ?? soldCount) + 1
 
     appendMessage(
       room,

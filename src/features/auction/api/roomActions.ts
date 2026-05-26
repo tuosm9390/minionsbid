@@ -2,7 +2,10 @@
 
 import * as admin from "firebase-admin";
 import type { CaptainMode } from "@/features/auction/utils/roster";
-import { normalizeCaptainMode } from "@/features/auction/utils/roster";
+import {
+  getAuctionSlotsPerTeam,
+  normalizeCaptainMode,
+} from "@/features/auction/utils/roster";
 import type { AuctionMode } from "@/features/auction/utils/auctionMode";
 import { normalizeAuctionMode } from "@/features/auction/utils/auctionMode";
 import { getAuctionServerServices } from "@/features/auction/realtime/serverAdapter";
@@ -117,6 +120,12 @@ export async function createRoom(
     const roomAuthRef = firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId);
     const batch = firestore.batch();
 
+    const captainMode = normalizeCaptainMode(payload.captainMode);
+    const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
+      payload.membersPerTeam,
+      captainMode,
+    );
+
     batch.set(roomRef, {
       name: payload.name,
       schedule_id: payload.scheduleId ?? null,
@@ -126,7 +135,7 @@ export async function createRoom(
       total_teams: payload.captains.length,
       base_point: payload.basePoint,
       members_per_team: payload.membersPerTeam,
-      captain_mode: normalizeCaptainMode(payload.captainMode),
+      captain_mode: captainMode,
       auction_mode: normalizeAuctionMode(payload.auctionMode),
       sealed_bid_phase: null,
       sealed_bid_round_id: null,
@@ -155,6 +164,8 @@ export async function createRoom(
       batch.set(teamRef, {
         name: captain.teamName,
         point_balance: payload.basePoint - captain.captainPoints,
+        roster_slots_used: 0,
+        roster_slots_total: auctionSlotsPerTeam,
         leader_name: captain.name,
         leader_tier: captain.tier || "",
         leader_position: captain.position,

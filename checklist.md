@@ -1,5 +1,14 @@
 # 비공개 입찰 구현 체크리스트
 
+## direct bid 정본 수렴과 rules 강화
+
+- [x] direct bid room snapshot-only 수렴 경로 구현
+- [x] event 없는 snapshot이 `auctionEventRevision`을 올리지 않는 회귀 테스트 추가
+- [x] direct bid 팀 슬롯 정본 필드 추가와 write 경로 보강
+- [x] direct bid Firestore rules에 팀 슬롯과 bid history 검증 추가
+- [x] legacy room/team backfill 스크립트 추가
+- [x] 관련 단위 테스트, rules smoke, 빌드 검증
+
 ## 단일 PC 다중 탭 타이머 표시 보정
 
 - [x] 문제 전제와 최소 수정 범위 정리

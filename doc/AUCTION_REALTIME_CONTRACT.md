@@ -160,6 +160,7 @@ leader click bid
             -> system message 생성
        -> Firestore onSnapshot이 즉시 전파 (1차 전파)
        -> broadcastBidEvent의 RTDB 이벤트가 뒤따라 전파 (2차 전파)
+       -> RTDB/last_auction_event가 늦거나 실패해도 bid-shaped room snapshot으로 peer 화면 수렴
   -> all clients converge on newer revision
   -> Firestore room snapshot / last_auction_event fallback heal where applicable
   -> Firestore players/teams/messages reconcile
@@ -173,6 +174,8 @@ leader click bid
 - Server Action fallback 경로에서는 서버가 동기적으로 발행한 RTDB envelope가 빠른 fanout 기준이 된다.
 - RTDB를 놓친 화면은 `rooms/{roomId}.last_auction_event`와 room canonical fields로 빠르게 회복해야 한다.
 - Firestore snapshot은 나중에 와도 같은 결과로 수렴해야 한다.
+- direct bid의 room snapshot fallback은 `current_player_id`, `timer_ends_at`, `active_bid`, `auction_revision`이 모두 bid 상태를 표현할 때만 `liveBid`와 `timerEndsAt`을 투영한다.
+- event 없는 room snapshot은 같은 revision의 RTDB 낙찰/유찰 이벤트를 막지 않도록 `auctionEventRevision`을 올리지 않는다.
 
 ## Direct Bid Rules
 
@@ -197,12 +200,16 @@ leader click bid
   - 자기 팀이 현재 최고 입찰자이면 거부
   - 새 금액이 기존 금액보다 큼
   - 팀 포인트 잔액이 입찰액 이상
+  - 팀 문서의 `roster_slots_used < roster_slots_total`
   - `auction_revision == before + 1`
+  - bid history create는 같은 transaction의 `getAfter(room).active_bid.event_id == bidId`와 일치
 - 성공한 입찰은 남은 시간이 8초 이하일 때만 `timer_ends_at`을 request time 기준 8초 근처로 재설정
 - 남은 시간이 8초 초과이면 입찰은 `active_bid`와 `auction_revision`만 갱신하고 기존 `timer_ends_at`을 유지
   - 클라이언트와 서버 시계 차이를 흡수하기 위해 request time 기준 5~11초 범위만 허용
 
 클라이언트 사전 검증은 UX용이다. 최종 방어선은 Firestore rules다.
+
+기존 room을 strict rules로 전환하기 전에는 `npm run backfill:team-roster-slots:dry-run`으로 누락 팀을 확인하고, `npm run backfill:team-roster-slots`로 `roster_slots_used` / `roster_slots_total`을 채워야 한다.
 
 ## Timer Rules
 

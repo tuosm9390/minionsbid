@@ -736,7 +736,7 @@ describe('useFirebaseRealtime', () => {
 
     expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
 
-    // step2: active_bid는 있지만 last_auction_event 없는 snapshot — timerEndsAt/liveBid 변경 안 됨
+    // step2: active_bid는 있지만 last_auction_event 없는 snapshot — Firestore 정본으로 bid 상태 수렴
     act(() => {
       emitRoomSnapshot({
         name: '테스트방',
@@ -753,13 +753,17 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    // timerEndsAt은 step1 fallback 값 그대로 유지
-    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:10.000Z')
-    // liveBid는 AUCTION_STARTED에 의해 null — active_bid로 덮어쓰지 않음
-    expect(useAuctionStore.getState().liveBid).toBeNull()
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-04-29T00:00:06.000Z')
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      player_id: 'player-1',
+      team_id: 'team-2',
+      amount: 110,
+    })
+    // Event-less snapshot은 같은 revision RTDB 이벤트를 막지 않도록 revision을 올리지 않는다.
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(5)
   })
 
-  it('direct bid room snapshot만 먼저 와도 이후 RTDB BID_PLACED가 서버의 timerEndsAt을 올바르게 적용한다', () => {
+  it('direct bid room snapshot만 먼저 와도 peer 화면이 Firestore 정본으로 수렴한다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
     // step1: revision 5 스냅샷, timer = 12:00:03
@@ -775,7 +779,7 @@ describe('useFirebaseRealtime', () => {
     })
 
     // step2: revision 6 Firestore 스냅샷, active_bid, 서버가 타이머를 12:00:10으로 연장
-    // last_auction_event 없음 → auctionEventRevision = 0 유지
+    // last_auction_event 없음 → 화면은 수렴하되 auctionEventRevision = 0 유지
     act(() => {
       emitRoomSnapshot({
         name: '테스트방',
@@ -793,8 +797,12 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    // Firestore last_auction_event 없어 timerEndsAt 미갱신, auctionEventRevision = 0
-    expect(useAuctionStore.getState().timerEndsAt).toBeNull()
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-04T12:00:10.000Z')
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      player_id: 'player-1',
+      team_id: 'team-2',
+      amount: 110,
+    })
     expect(useAuctionStore.getState().auctionEventRevision).toBe(0)
 
     // step3: RTDB BID_PLACED 도착, Firestore와 같은 서버 값 timerEndsAt = 12:00:10
@@ -817,9 +825,73 @@ describe('useFirebaseRealtime', () => {
       })
     })
 
-    // 서버의 timerEndsAt이 그대로 적용되어야 함
     expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-04T12:00:10.000Z')
     expect(useAuctionStore.getState().auctionEventRevision).toBe(6)
+  })
+
+  it('direct bid room snapshot은 bid 모양이 아니면 적용하지 않는다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-05-04T12:00:10.000Z') },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'other-player',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-05-04T12:00:02.000Z',
+        },
+        auction_revision: 6,
+        last_auction_event: null,
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull()
+    expect(useAuctionStore.getState().liveBid).toBeNull()
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(0)
+  })
+
+  it('오래된 event-less room snapshot은 더 최신 RTDB 상태를 되돌리지 않는다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    useAuctionStore.setState({
+      auctionEventRevision: 7,
+      timerEndsAt: '2026-05-04T12:00:12.000Z',
+      currentPlayerId: 'player-1',
+      liveBid: {
+        player_id: 'player-1',
+        team_id: 'team-3',
+        amount: 130,
+        created_at: '2026-05-04T12:00:04.000Z',
+      },
+    })
+
+    act(() => {
+      emitRoomSnapshot({
+        name: '테스트방',
+        timer_ends_at: { toDate: () => new Date('2026-05-04T12:00:10.000Z') },
+        current_player_id: 'player-1',
+        active_bid: {
+          player_id: 'player-1',
+          team_id: 'team-2',
+          amount: 110,
+          created_at: '2026-05-04T12:00:02.000Z',
+        },
+        auction_revision: 6,
+        last_auction_event: null,
+        created_at: { toDate: () => new Date('2026-05-04T12:00:00.000Z') },
+      })
+    })
+
+    expect(useAuctionStore.getState().timerEndsAt).toBe('2026-05-04T12:00:12.000Z')
+    expect(useAuctionStore.getState().liveBid).toMatchObject({
+      team_id: 'team-3',
+      amount: 130,
+    })
+    expect(useAuctionStore.getState().auctionEventRevision).toBe(7)
   })
 
   it('이미 더 최신 revision을 적용한 뒤 오래된 room snapshot은 만료 복구 타이머도 예약하지 않는다', async () => {

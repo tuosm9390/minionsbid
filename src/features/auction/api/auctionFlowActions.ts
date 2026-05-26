@@ -93,6 +93,10 @@ type PresenceRecord = {
   role?: string | null;
 };
 
+function getNextRosterSlotsUsed(teamData: admin.firestore.DocumentData): number {
+  return Math.max(0, Number(teamData.roster_slots_used ?? 0)) + 1;
+}
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1371,6 +1375,7 @@ export async function completeSealedBidReveal(
       if (winnerTeamId && winnerTeamRef && winnerTeamData) {
         const nextPointBalance =
           Number(winnerTeamData.point_balance ?? 0) - highestAmount;
+        const nextRosterSlotsUsed = getNextRosterSlotsUsed(winnerTeamData);
         tx.update(playerRef, {
           status: "SOLD",
           team_id: winnerTeamId,
@@ -1378,6 +1383,7 @@ export async function completeSealedBidReveal(
         });
         tx.update(winnerTeamRef, {
           point_balance: nextPointBalance,
+          roster_slots_used: nextRosterSlotsUsed,
         });
         awardEvent = {
           ...event,
@@ -1390,6 +1396,7 @@ export async function completeSealedBidReveal(
           team: {
             id: winnerTeamId,
             point_balance: nextPointBalance,
+            roster_slots_used: nextRosterSlotsUsed,
           },
         };
         tx.update(roomRef, { last_auction_event: awardEvent });
@@ -1503,13 +1510,16 @@ async function awardPlayerInternal(
       });
 
       if (topBid && teamRef && teamData) {
+        const nextPointBalance = teamData.point_balance - (topBid.amount as number);
+        const nextRosterSlotsUsed = getNextRosterSlotsUsed(teamData);
         tx.update(playerRef, {
           status: "SOLD",
           team_id: topBid.team_id,
           sold_price: topBid.amount,
         });
         tx.update(teamRef, {
-          point_balance: teamData.point_balance - (topBid.amount as number),
+          point_balance: nextPointBalance,
+          roster_slots_used: nextRosterSlotsUsed,
         });
         awardEvent = {
           ...event,
@@ -1522,7 +1532,8 @@ async function awardPlayerInternal(
           },
           team: {
             id: topBid.team_id,
-            point_balance: teamData.point_balance - topBid.amount,
+            point_balance: nextPointBalance,
+            roster_slots_used: nextRosterSlotsUsed,
           },
         };
         tx.update(roomRef, { last_auction_event: awardEvent });
@@ -1682,6 +1693,11 @@ export async function draftPlayer(
       .doc(teamId);
     let finalDraftPrice = draftPrice;
     let finalPointBalance = teamData.point_balance;
+    let finalIsLastSlot = isLastSlot;
+    let finalRosterSlotsUsed = Math.max(
+      0,
+      Number(teamData.roster_slots_used ?? soldCountSnap.size),
+    );
     let draftEvent: AuctionEventEnvelope | null = null;
 
     await getAuctionFirestore().runTransaction(async (tx) => {
@@ -1703,20 +1719,29 @@ export async function draftPlayer(
 
       const freshTeamData = freshTeamSnap.data()!;
       const freshPlayerData = freshPlayerSnap.data()!;
+      const freshRosterSlotsUsed = Math.max(
+        0,
+        Number(freshTeamData.roster_slots_used ?? soldCountSnap.size),
+      );
       if (
         freshPlayerData.status !== "UNSOLD" &&
         freshPlayerData.status !== "WAITING"
       ) {
         throw new Error("영입 요청할 수 없는 상태의 선수입니다.");
       }
+      if (freshRosterSlotsUsed >= auctionSlotsPerTeam) {
+        throw new Error("팀 인원이 가득 찼습니다.");
+      }
 
-      const transactionDraftPrice =
-        soldCountSnap.size === auctionSlotsPerTeam - 1
-          ? freshTeamData.point_balance
-          : 0;
+      finalIsLastSlot = freshRosterSlotsUsed === auctionSlotsPerTeam - 1;
+      const transactionDraftPrice = finalIsLastSlot
+        ? freshTeamData.point_balance
+        : 0;
       finalDraftPrice = transactionDraftPrice;
       finalPointBalance =
         transactionDraftPrice > 0 ? 0 : freshTeamData.point_balance;
+      const nextRosterSlotsUsed = freshRosterSlotsUsed + 1;
+      finalRosterSlotsUsed = nextRosterSlotsUsed;
 
       const { event, roomPatch } = createAuctionEventPatch(
         getAuctionFirestore().collection("rooms").doc(roomId),
@@ -1736,6 +1761,7 @@ export async function draftPlayer(
             id: teamId,
             point_balance:
               transactionDraftPrice > 0 ? 0 : freshTeamData.point_balance,
+            roster_slots_used: nextRosterSlotsUsed,
           },
         },
       );
@@ -1746,11 +1772,10 @@ export async function draftPlayer(
         sold_price: transactionDraftPrice,
       });
 
-      if (transactionDraftPrice > 0) {
-        tx.update(teamRef, {
-          point_balance: 0,
-        });
-      }
+      tx.update(teamRef, {
+        point_balance: finalPointBalance,
+        roster_slots_used: nextRosterSlotsUsed,
+      });
       tx.update(
         getAuctionFirestore().collection("rooms").doc(roomId),
         roomPatch,
@@ -1770,12 +1795,13 @@ export async function draftPlayer(
         team: {
           id: teamId,
           point_balance: finalPointBalance,
+          roster_slots_used: finalRosterSlotsUsed,
         },
       } as AuctionEventEnvelope;
       await publishAuctionEvent(event);
       queueSystemMessage(
         roomId,
-        isLastSlot
+        finalIsLastSlot
           ? `🤝 ${teamData.name}이(가) ${playerData.name} 선수를 ${finalDraftPrice}P에 드래프트 영입!`
           : `🤝 ${teamData.name}이(가) ${playerData.name} 선수를 자유계약으로 영입!`,
         event.eventId,
