@@ -1,0 +1,32 @@
+
+> league-auction@0.1.0 test:e2e:auction:compat
+> playwright test playwright/auction-os-compatibility.spec.ts --workers=1
+
+
+Running 5 tests using 1 worker
+
+  ✓  1 [chromium] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects (2.0s)
+  ✘  2 [firefox] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects (1.0m)
+  ✓  3 [webkit] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects (2.7s)
+  ✓  4 [mobile-chrome] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects (1.3s)
+  ✓  5 [mobile-safari] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects (3.1s)
+
+
+  1) [firefox] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects 
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: browserContext.newPage: Test ended.
+
+      77 |
+      78 |   try {
+    > 79 |     const bluePage = await blueContext.newPage()
+         |                                        ^
+      80 |     const redPage = await redContext.newPage()
+      81 |
+      82 |     await bluePage.goto(getRoleLink(fixture, 'Blue'))
+        at D:\development\league-auction\playwright\auction-os-compatibility.spec.ts:79:40
+
+  1 failed
+    [firefox] › playwright\auction-os-compatibility.spec.ts:64:5 › keeps direct bid state consistent across compatibility projects 
+  4 passed (1.3m)

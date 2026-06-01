@@ -1,5 +1,12 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## init-deep와 DESCRIPTION 갱신
+
+- 2026-06-01: 사용자가 `$omo:init-deep`와 `$project-describer`를 요청했다. 범위는 계층형 `AGENTS.md` 갱신과 현재 코드베이스 기준 `DESCRIPTION.md` 재작성이다.
+- 2026-06-01: 기존 하위 지침은 `src/features/auction`, `src/features/schedules`, `playwright`, `__tests__`, `scripts`에 이미 존재한다. 새 하위 후보는 route handler와 room shell 경계가 뚜렷한 `src/app`, 큰 UI shell과 공용 Cyber-Pixel 컴포넌트가 모인 `src/components`로 결정했다.
+- 2026-06-01: `src/features/hall-of-fame`은 파일 수와 독립 규칙 밀도가 낮아 이번에는 별도 `AGENTS.md`를 만들지 않고 루트와 `DESCRIPTION.md` 설명으로 커버한다.
+- 2026-06-01: `DESCRIPTION.md`는 Next.js 16, React 19, Firestore canonical state, RTDB fanout, direct bid hot path, sealed bid pipeline, schedule, hall of fame, OS compatibility smoke까지 현재 코드 상태를 기준으로 갱신했다.
+
 ## direct bid 운영 latency 관측
 
 - 2026-06-01: 사용자는 일정 화면 분리, match_days 문서 분리, room read rules 강화는 지금 하지 않는 것으로 결정했다. 경매는 주최자와 모든 팀장이 접속 중일 때만 진행되어야 하며, watchdog은 자동 진행 핵심 경로가 아니다.

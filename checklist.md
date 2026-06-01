@@ -1,5 +1,15 @@
 # 비공개 입찰 구현 체크리스트
 
+## init-deep와 DESCRIPTION 갱신
+
+- [x] 기존 AGENTS.md 계층과 CLAUDE.md 확인
+- [x] 프로젝트 구조, 핵심 entrypoint, 문서, 테스트/CI 구조 분석
+- [x] 하위 AGENTS.md 추가 위치 결정
+- [x] 루트 AGENTS.md를 현재 코드베이스 기준 knowledge base로 갱신
+- [x] `src/app`과 `src/components` 하위 AGENTS.md 추가
+- [x] DESCRIPTION.md를 현재 아키텍처와 기능 기준으로 갱신
+- [x] 문서 diff와 기본 검증 확인
+
 ## direct bid 운영 latency 관측
 
 - [x] direct bid eventId/marker 실패 테스트 추가

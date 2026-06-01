@@ -1,0 +1,27 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/development/league-auction[39m
+
+ [31m❯[39m __tests__/auctionOsCompatibilityConfig.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[90m 9[2mms[22m[39m
+[31m   [31m×[31m auction OS compatibility verification config[2m > [22mos-compat-config exposes a focused cross-browser and cross-OS auction check[90m 8[2mms[22m[31m[39m
+[31m     → ENOENT: no such file or directory, open 'D:\development\league-auction\.github\workflows\auction-realtime-ci.yml'[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/auctionOsCompatibilityConfig.test.ts > auction OS compatibility verification config > os-compat-config exposes a focused cross-browser and cross-OS auction check
+Error: ENOENT: no such file or directory, open 'D:\development\league-auction\.github\workflows\auction-realtime-ci.yml'
+ ❯ readProjectFile __tests__/auctionOsCompatibilityConfig.test.ts:9:10
+      7| 
+      8| function readProjectFile(...parts: string[]) {
+      9|   return readFileSync(path.join(rootDir, ...parts), 'utf8')
+       |          ^
+     10| }
+     11| 
+ ❯ __tests__/auctionOsCompatibilityConfig.test.ts:18:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m   Start at [22m 17:43:01
+[2m   Duration [22m 2.50s[2m (transform 63ms, setup 155ms, collect 16ms, tests 9ms, environment 1.51s, prepare 287ms)[22m
+

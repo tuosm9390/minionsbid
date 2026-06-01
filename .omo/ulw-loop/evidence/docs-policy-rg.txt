@@ -1,0 +1,33 @@
+checklist.md:5:- [ ] direct bid eventId/marker 실패 테스트 추가
+checklist.md:7:- [ ] direct bid eventId 반환과 client marker 기록 구현
+checklist.md:349:- [x] `/league-schedule` 단일 라우트 유지와 `match_days.matches[]` 유지 결정을 문서에 반영
+checklist.md:351:- [x] organizer와 모든 팀장 동시 연결 시에만 경매를 진행하고 watchdog는 자동 진행하지 않는 결정을 문서에 반영
+checklist.md:352:- [x] direct bid `eventId` marker 연쇄를 p95 관측 우선순위로 문서에 반영
+context-notes.md:5:- 2026-06-01: 사용자는 일정 화면 분리, match_days 문서 분리, room read rules 강화는 지금 하지 않는 것으로 결정했다. 경매는 주최자와 모든 팀장이 접속 중일 때만 진행되어야 하며, watchdog은 자동 진행 핵심 경로가 아니다.
+context-notes.md:6:- 2026-06-01: 다음 구현 우선순위는 운영 latency 관측이다. 현재 direct bid는 Firestore transaction에서 bid id를 만들지만 `placeBidDirect()` 응답이 eventId를 반환하지 않아 `client-response`와 이후 RTDB/Firestore fallback marker를 같은 eventId로 묶기 어렵다.
+context-notes.md:284:- 2026-06-01: `/league-schedule`는 단일 라우트로 유지하고 public/admin 분리는 현재 범위에서 제외한다. `match_days.matches[]`도 유지해 경기 단위 문서 분해를 하지 않는다.
+context-notes.md:286:- 2026-06-01: 경매는 organizer와 모든 팀장이 연결된 상태에서만 진행한다. watchdog는 핵심 경매 상태를 자동 진행하지 않으며, 참가자 부재 상태에서는 입찰이나 타이머를 대신 밀어주지 않는다.
+context-notes.md:287:- 2026-06-01: 운영 latency 관측의 우선순위는 direct bid `eventId` marker 연쇄다. p95 관점에서 direct bid의 응답과 marker를 연결해 추적할 수 있게 문서를 맞췄다.
+doc/ARCHITECTURE.md:29:- **스토리지**: `league_schedules`, `match_days`, `hall_of_fame`는 Firestore를 사용한다.
+doc/ARCHITECTURE.md:31:- `match_days.matches[]`는 유지한다. 경기별 문서 분해는 지금은 하지 않는다.
+doc/ARCHITECTURE.md:65:- 디버그/검증 계층에서는 `eventId` 기반 latency marker를 사용해 `client-response`, `rtdb`, `room-fallback` 적용 시점을 추적합니다.
+doc/ARCHITECTURE.md:79:- `/api/auction-watchdog`는 선택적 backup route로만 유지합니다. 실시간 경매 품질이나 500ms 입찰 SLA의 핵심 메커니즘은 아닙니다.
+doc/ARCHITECTURE.md:82:- representative bid 전파 품질은 DOM 변화만이 아니라 `eventId` 기반 latency marker로도 본다.
+doc/ARCHITECTURE.md:84:- Server Action fallback 경로는 네트워크 편차를 고려해 `client-response -> rtdb` 또는 `client-response -> room-fallback`의 동일 `eventId` correlation을 확인한다.
+doc/ARCHITECTURE.md:85:- direct bid 경로는 Firestore commit/snapshot 전파와 함께 `eventId` marker 연쇄를 본다. 운영 latency 관측의 기준은 p95를 추적할 수 있는 이 연결이다.
+doc/AUCTION_REALTIME_CONTRACT.md:39:  eventId: string
+doc/AUCTION_REALTIME_CONTRACT.md:75:- `eventId`는 end-to-end 추적 키다.
+doc/AUCTION_REALTIME_CONTRACT.md:242:- `/api/auction-watchdog`는 선택적 backup/manual sweep 경로일 뿐, 기본 실시간 경매 contract의 필수 구성요소는 아니다.
+doc/AUCTION_REALTIME_CONTRACT.md:243:- watchdog는 핵심 경매 상태를 자동 진행하지 않으며, 참가자 부재 상태에서는 입찰과 타이머 진행을 대신하지 않는다.
+doc/AUCTION_REALTIME_CONTRACT.md:247:- 서버 로그와 클라이언트 로그는 가능한 한 동일한 `eventId`와 `revision`을 찍는다.
+doc/AUCTION_REALTIME_CONTRACT.md:253:  - `client-response`: Server Action fallback 경로에서 입찰자가 `placeBid()` 응답 debug payload로 받은 `eventId`
+doc/AUCTION_REALTIME_CONTRACT.md:256:- direct bid 관측 보강의 우선순위는 `eventId`를 응답과 marker에 연결해 p95 지연 확인을 가능하게 하는 것이다.
+doc/AUCTION_REALTIME_CONTRACT.md:257:- marker는 운영 기능이 아니라 디버그/Playwright 검증용이다. 하지만 `eventId` 연쇄는 contract의 일부로 본다.
+doc/AUCTION_REALTIME_CONTRACT.md:263:  -> fallback placeBid response carries eventId=bid_123
+doc/AUCTION_REALTIME_CONTRACT.md:290:  - production-path 회귀는 `client-response -> rtdb` 또는 `client-response -> room-fallback`의 동일 `eventId`를 확인
+README.md:167:### Optional auction watchdog
+README.md:171:`/api/auction-watchdog` route는 이 흐름의 핵심이 아니라 선택적 backup path입니다.
+README.md:174:- 별도 서버 sweep를 쓰고 싶을 때만 `CRON_SECRET`을 설정하고 `/api/auction-watchdog`를 외부 scheduler에 연결한다.
+README.md:176:- watchdog는 핵심 경매 상태를 자동 진행하지 않는다. organizer와 모든 팀장이 연결되지 않은 동안에는 입찰, 타이머, 낙찰 진행을 대신 밀어주지 않는다.
+README.md:182:- `client-response`: 입찰자가 서버 응답에서 받은 `eventId`
+README.md:188:운영 관측 우선순위는 direct bid의 `eventId` 연쇄를 marker로 연결해 p95 중심 지연을 확인하는 것입니다.

@@ -1,0 +1,22 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › playwright\auction-realtime.spec.ts:220:5 › propagates a representative winning bid to another client within 500ms (4.8s)
+
+  1 passed (10.3s)
+
+  TCP    127.0.0.1:3015         127.0.0.1:54268        TIME_WAIT       0
+  TCP    [::1]:50113            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:50901            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:51767            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:52773            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:52877            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:56362            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:58681            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:59897            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:61608            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:63223            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:64972            [::1]:3015             TIME_WAIT       0
+  TCP    [::1]:65024            [::1]:3015             TIME_WAIT       0
+
+cleanup: Playwright closed browser contexts and webServer exited; netstat showed no LISTENING process on 3015, only TIME_WAIT sockets.

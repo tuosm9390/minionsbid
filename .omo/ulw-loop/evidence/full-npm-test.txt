@@ -1,0 +1,56 @@
+
+> league-auction@0.1.0 test
+> vitest run
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/development/league-auction[39m
+
+ [32m✓[39m src/features/hall-of-fame/api/__tests__/hallOfFameActions.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 177[2mms[22m[39m
+ [32m✓[39m __tests__/auctionRealtimeUtils.test.ts [2m([22m[2m13 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/schedules/utils/leagueRecords.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m __tests__/auctionActions.test.ts [2m([22m[2m37 tests[22m[2m)[22m[90m 39[2mms[22m[39m
+ [32m✓[39m src/features/auction/hooks/useAuctionPresenceGuard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 40[2mms[22m[39m
+ [32m✓[39m src/features/schedules/api/__tests__/scheduleActions.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 702[2mms[22m[39m
+   [33m[2m✓[22m[39m scheduleActions[2m > [22mverifyScheduleAdminCode returns false for wrong code and true for valid code [33m405[2mms[22m[39m
+ [32m✓[39m src/features/auction/hooks/useAuctionControl.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 59[2mms[22m[39m
+ [32m✓[39m src/features/auction/hooks/usePresence.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 40[2mms[22m[39m
+ [32m✓[39m __tests__/useAuctionBoard.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[90m 261[2mms[22m[39m
+ [32m✓[39m __tests__/useBiddingControl.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[90m 91[2mms[22m[39m
+ [32m✓[39m __tests__/useAuctionRealtime.test.tsx [2m([22m[2m24 tests[22m[2m)[22m[90m 146[2mms[22m[39m
+ [32m✓[39m __tests__/LotteryAnimation.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 902[2mms[22m[39m
+   [33m[2m✓[22m[39m LotteryAnimation[2m > [22m애니메이션 완료 후 완료 콜백을 호출한다 [33m605[2mms[22m[39m
+ [32m✓[39m src/features/schedules/utils/leagueNextMatches.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m __tests__/latencyDebug.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/app/api/short-links/__tests__/route.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m __tests__/roomAuthUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m __tests__/organizerAuth.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/schedules/utils/leagueMatchRules.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m __tests__/roomRoleAuth.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m __tests__/auctionSelectors.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m __tests__/displayUtils.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m __tests__/ScheduleMatchDayEditor.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 3342[2mms[22m[39m
+   [33m[2m✓[22m[39m ScheduleMatchDayEditor[2m > [22mcalls admin code change and verify handlers explicitly [33m1657[2mms[22m[39m
+   [33m[2m✓[22m[39m ScheduleMatchDayEditor[2m > [22mlocks editing controls for completed schedules until admin verification succeeds [33m789[2mms[22m[39m
+   [33m[2m✓[22m[39m ScheduleMatchDayEditor[2m > [22madds a set log row through onRowChange and trims to max games [33m466[2mms[22m[39m
+   [33m[2m✓[22m[39m ScheduleMatchDayEditor[2m > [22msubmits results through onSaveResult for the selected row [33m400[2mms[22m[39m
+ [32m✓[39m __tests__/SoldOverlay.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 75[2mms[22m[39m
+ [32m✓[39m src/components/ui/PixelIcon.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[90m 105[2mms[22m[39m
+ [32m✓[39m __tests__/proxy.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m __tests__/LeagueScheduleManager.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 4430[2mms[22m[39m
+   [33m[2m✓[22m[39m LeagueScheduleManager[2m > [22mverifies admin code and reloads catalog plus timeline after completion [33m3323[2mms[22m[39m
+   [33m[2m✓[22m[39m LeagueScheduleManager[2m > [22mrestores save-day button state and surfaces an error when save fails [33m496[2mms[22m[39m
+   [33m[2m✓[22m[39m LeagueScheduleManager[2m > [22mresets selected date to the newly selected schedule before saving [33m459[2mms[22m[39m
+ [32m✓[39m src/features/schedules/utils/leagueMatchTime.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m __tests__/CreateRoomModal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 4577[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateRoomModal - Phase 3 Optimization Integration[2m > [22mshould render create room button and open modal [33m510[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateRoomModal - Phase 3 Optimization Integration[2m > [22mshould load xlsx library dynamically and parse players on excel upload [33m2250[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateRoomModal - Phase 3 Optimization Integration[2m > [22mshould show excel upload button on captain registration step [33m417[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateRoomModal - Phase 3 Optimization Integration[2m > [22mshould use excel rows with captain marker as captain data [33m466[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateRoomModal - Phase 3 Optimization Integration[2m > [22mshould use rows containing captain marker in name-like column as captain data [33m464[2mms[22m[39m
+   [33m[2m✓[22m[39m CreateRoomModal - Phase 3 Optimization Integration[2m > [22mshould use nickname from rows whose real-name column contains captain marker [33m468[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m28 passed[39m[22m[90m (28)[39m
+[2m      Tests [22m [1m[32m204 passed[39m[22m[90m (204)[39m
+[2m   Start at [22m 13:59:06
+[2m   Duration [22m 10.49s[2m (transform 6.70s, setup 5.76s, collect 17.42s, tests 15.14s, environment 63.93s, prepare 5.29s)[22m
+

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "createdAt": "2026-06-01T04:42:31.460Z",
+  "updatedAt": "2026-06-01T04:58:46.151Z",
+  "briefPath": ".omo/ulw-loop/019e6407-9162-7733-abd9-4227ac6fcfc7/brief.md",
+  "goalsPath": ".omo/ulw-loop/019e6407-9162-7733-abd9-4227ac6fcfc7/goals.json",
+  "ledgerPath": ".omo/ulw-loop/019e6407-9162-7733-abd9-4227ac6fcfc7/ledger.jsonl",
+  "codexGoalMode": "aggregate",
+  "goals": [
+    {
+      "id": "G001-implement-the-decided-next-work-for",
+      "title": "Implement the decided next work for Minions Bid after design decision...",
+      "objective": "Implement the decided next work for Minions Bid after design decisions: keep league schedule single route, keep match_days.matches array, keep current room read rules, enforce auction progress only while organizer and leaders are connected, and add operating latency observability for auction direct bid/event propagation with p95-oriented evidence. Use TDD, captured manual QA artifacts, and update project docs/checklist/context notes.",
+      "status": "pending",
+      "successCriteria": [
+        {
+          "id": "C001",
+          "scenario": "Browser use via Playwright. Run npx playwright test playwright/auction-realtime.spec.ts --project=chromium -g propagates",
+          "userModel": "happy",
+          "expectedEvidence": ".omo/ulw-loop/evidence/direct-event-playwright.txt plus cleanup receipt from Playwright webServer shutdown",
+          "capturedEvidence": ".omo/ulw-loop/evidence/direct-event-playwright.txt | cleanup: Playwright closed browser contexts and webServer exited; no LISTENING process on 3015",
+          "status": "pass",
+          "capturedAt": "2026-06-01T04:58:33.587Z"
+        },
+        {
+          "id": "C002",
+          "scenario": "CLI data evidence. Run npx vitest run __tests__/latencyDebug.test.ts -t marker-merge and capture stdout to .omo/ulw-loop/evidence/marker-merge-vitest.txt. PASS iff marker merge and p95 summary test passes with no failed tests.",
+          "userModel": "edge",
+          "expectedEvidence": ".omo/ulw-loop/evidence/marker-merge-vitest.txt plus cleanup receipt no runtime process spawned",
+          "capturedEvidence": ".omo/ulw-loop/evidence/marker-merge-vitest.txt | cleanup: no persistent runtime process spawned",
+          "status": "pass",
+          "capturedAt": "2026-06-01T04:58:40.557Z"
+        },
+        {
+          "id": "C003",
+          "scenario": "Browser use via Playwright plus doc CLI. Run npx playwright test playwright/auction-realtime.spec.ts --project=chromium -g pauses and capture stdout to .omo/ulw-loop/evidence/presence-policy-playwright.txt. Append rg output for watchdog and connected policy from README.md and doc/AUCTION_REALTIME_CONTRACT.md. PASS iff Chromium presence guard test passes and docs prove watchdog does not auto-progress when participants are absent.",
+          "userModel": "regression",
+          "expectedEvidence": ".omo/ulw-loop/evidence/presence-policy-playwright.txt plus cleanup receipt from Playwright webServer shutdown",
+          "capturedEvidence": ".omo/ulw-loop/evidence/presence-policy-playwright.txt | cleanup: Playwright closed browser contexts and webServer exited; no LISTENING process on 3015",
+          "status": "pass",
+          "capturedAt": "2026-06-01T04:58:46.151Z"
+        }
+      ],
+      "attempt": 0,
+      "createdAt": "2026-06-01T04:42:31.460Z",
+      "updatedAt": "2026-06-01T04:58:46.151Z"
+    }
+  ],
+  "codexObjective": "Complete the durable ulw-loop plan in .omo/ulw-loop/019e6407-9162-7733-abd9-4227ac6fcfc7/goals.json, including later accepted/appended stories, under the original brief constraints; use .omo/ulw-loop/019e6407-9162-7733-abd9-4227ac6fcfc7/ledger.jsonl as the audit trail."
+}

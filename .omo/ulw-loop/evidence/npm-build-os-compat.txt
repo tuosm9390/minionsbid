@@ -1,0 +1,48 @@
+
+> league-auction@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 4.3s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/22) ...
+  Generating static pages using 15 workers (5/22) 
+  Generating static pages using 15 workers (10/22) 
+  Generating static pages using 15 workers (16/22) 
+✓ Generating static pages using 15 workers (22/22) in 346.7ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auction-watchdog
+├ ƒ /api/e2e/auction-fixture/command
+├ ƒ /api/e2e/auction-fixture/create
+├ ƒ /api/e2e/auction-fixture/reset
+├ ƒ /api/e2e/auction-fixture/state
+├ ƒ /api/e2e/firebase-auction/cleanup
+├ ƒ /api/e2e/firebase-auction/command
+├ ƒ /api/e2e/firebase-auction/create
+├ ƒ /api/e2e/firebase-auction/state
+├ ƒ /api/e2e/schedule-fixture/reset
+├ ƒ /api/room-auth/firebase-token
+├ ƒ /api/room-links
+├ ƒ /api/short-links
+├ ○ /auction-timer-lab
+├ ƒ /hall-of-fame
+├ ○ /league-schedule
+├ ○ /manifest.webmanifest
+├ ○ /robots.txt
+├ ƒ /room/[id]
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

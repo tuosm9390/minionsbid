@@ -1,0 +1,10 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/development/league-auction[39m
+
+ [32m✓[39m __tests__/auctionOsCompatibilityConfig.test.ts [2m([22m[2m1 test[22m[2m)[22m[90m 3[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 17:53:39
+[2m   Duration [22m 1.31s[2m (transform 37ms, setup 101ms, collect 11ms, tests 3ms, environment 693ms, prepare 138ms)[22m
+

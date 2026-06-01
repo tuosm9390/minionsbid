@@ -1,0 +1,26 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/development/league-auction[39m
+
+ [31m❯[39m __tests__/latencyDebug.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[90m 6[2mms[22m[39m
+[31m   [31m×[31m latencyDebug[2m > [22mmarker-merge 같은 eventId의 클릭, 응답, 적용 marker를 하나로 병합한다[90m 5[2mms[22m[31m[39m
+[31m     → getAuctionLatencySummary is not a function[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/latencyDebug.test.ts > latencyDebug > marker-merge 같은 eventId의 클릭, 응답, 적용 marker를 하나로 병합한다
+TypeError: getAuctionLatencySummary is not a function
+ ❯ __tests__/latencyDebug.test.ts:54:12
+     52|       },
+     53|     ])
+     54|     expect(getAuctionLatencySummary()).toMatchObject({
+       |            ^
+     55|       completedSamples: 1,
+     56|       p95EndToEndMs: 120,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m   Start at [22m 13:52:51
+[2m   Duration [22m 1.36s[2m (transform 45ms, setup 104ms, collect 17ms, tests 6ms, environment 716ms, prepare 145ms)[22m
+

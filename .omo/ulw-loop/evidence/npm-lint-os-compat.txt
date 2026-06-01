@@ -1,0 +1,228 @@
+
+> league-auction@0.1.0 lint
+> eslint
+
+
+D:\development\league-auction\__tests__\CreateRoomModal.test.tsx
+  1:26  warning  'fireEvent' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\__tests__\LotteryAnimation.test.tsx
+  28:11  warning  '_fill' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\playwright\auction-production-full-flow.spec.ts
+  117:16  warning  'getBidPanel' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\playwright\auction-realtime.spec.ts
+  774:9  warning  'organizerTimer' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\scripts\audit_room_auth_secrets.js
+  1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\backfill_team_roster_slots.js
+  2:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\delete_hall_of_fame_entry.js
+  1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\migrate_room_auth_secrets.js
+  1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\run_auction_8leaders_emulator.js
+  2:30  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:33  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:17  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\run_auction_8leaders_visual.js
+  2:19  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:17  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\run_auction_e2e.js
+  1:19  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:17  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\seed_archive_from_json.js
+  1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  6:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\seed_closed_auction.js
+  1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\seed_hall_of_fame_from_json.js
+  1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  6:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\scripts\smoke_room_rules.js
+   1:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+   3:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+   4:45  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+   5:72  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  14:5   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\development\league-auction\src\app\page.tsx
+  10:10  warning  'PIXEL_ICONS' is defined but never used  @typescript-eslint/no-unused-vars
+  11:10  warning  'PixelIcon' is defined but never used    @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\app\room\[id]\RoomClient.tsx
+    3:30  warning  'useRef' is defined but never used               @typescript-eslint/no-unused-vars
+    7:8   warning  'Player' is defined but never used               @typescript-eslint/no-unused-vars
+   38:10  warning  'PixelIcon' is defined but never used            @typescript-eslint/no-unused-vars
+   40:10  warning  'PIXEL_ICONS' is defined but never used          @typescript-eslint/no-unused-vars
+  139:11  warning  'highestBid' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\components\LeagueRecordSummaryPanel.tsx
+  57:6  warning  React Hook useMemo has a missing dependency: 'stageOrder'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\development\league-auction\src\components\LeagueScheduleManager.tsx
+  269:6  warning  React Hook useEffect has a missing dependency: 'timeline?.schedule'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\development\league-auction\src\components\ScheduleMatchDayEditor.tsx
+  374:21  warning  'homeAuction' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  377:21  warning  'awayAuction' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\components\create-room\CaptainRegistrationStep.tsx
+  6:10  warning  'ThreeDIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\components\create-room\PlayerRegistrationStep.tsx
+  4:10  warning  'ThreeDIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\components\ui\LinkCard.tsx
+  50:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\development\league-auction\src\components\ui\LinkCard.tsx:50:5
+  48 |   useEffect(() => {
+  49 |     let cancelled = false;
+> 50 |     setDisplayLink(sanitizedLink);
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  51 |
+  52 |     const shorten = async () => {
+  53 |       try {  react-hooks/set-state-in-effect
+
+D:\development\league-auction\src\features\auction\components\LatencyDebugPanel.tsx
+  41:34  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\development\league-auction\src\features\auction\components\LatencyDebugPanel.tsx:41:34
+  39 |   const [enabled, setEnabled] = useState(false);
+  40 |   const [markers, setMarkers] = useState<LatencyMarker[]>([]);
+> 41 |   const [now, setNow] = useState(Date.now());
+     |                                  ^^^^^^^^^^ Cannot call impure function
+  42 |
+  43 |   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt);
+  44 |   const currentPlayerId = useAuctionStore((s) => s.currentPlayerId);  react-hooks/purity
+
+D:\development\league-auction\src\features\auction\components\LinksModal.tsx
+  97:6  warning  React Hook useEffect has a missing dependency: 'organizerToken'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\development\league-auction\src\features\auction\components\LotteryAnimation.tsx
+  13:24  warning  'getPositionImage' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  16:10  warning  'PIXEL_ICONS' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  86:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\development\league-auction\src\features\auction\components\LotteryAnimation.tsx:86:5
+  84 |     let isMounted = true;
+  85 |     finishHandledRef.current = false;
+> 86 |     setIsSpinning(true);
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  87 |     setHasFinished(false);
+  88 |
+  89 |     const finishLottery = () => {  react-hooks/set-state-in-effect
+
+D:\development\league-auction\src\features\auction\components\board\CenterTimer.tsx
+  37:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\development\league-auction\src\features\auction\components\board\CenterTimer.tsx:37:5
+  35 |     // 입찰 연장 시에는 남은 시간으로 initialDuration을 갱신하되,
+  36 |     // auctionDurationMs가 있으면 그 값을 우선 사용
+> 37 |     setInitialDuration(auctionDurationMs ?? Math.max(target - Date.now(), 1));
+     |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  38 |     hasExpiredRef.current = false;
+  39 |   }, [target, auctionDurationMs]);
+  40 |                                      react-hooks/set-state-in-effect
+  58:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\development\league-auction\src\features\auction\components\board\CenterTimer.tsx:58:7
+  56 |     if (prevDisplayTimeRef.current !== displayTime && displayTime > 0) {
+  57 |       prevDisplayTimeRef.current = displayTime;
+> 58 |       setIsTickShaking(true);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  59 |       const t = setTimeout(() => setIsTickShaking(false), isUrgent ? 310 : 160);
+  60 |       return () => clearTimeout(t);
+  61 |     }  react-hooks/set-state-in-effect
+
+D:\development\league-auction\src\features\auction\components\board\PlayerInAuction.tsx
+  4:10  warning  'motion' is defined but never used    @typescript-eslint/no-unused-vars
+  4:18  warning  'Variants' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\features\auction\hooks\useAuctionBoard.ts
+  77:110  warning  'playersById' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\features\auction\hooks\useAuctionControl.ts
+  122:6  warning  React Hook useEffect has a missing dependency: 'triggerAward'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\development\league-auction\src\features\auction\hooks\useAuctionPresenceGuard.ts
+  39:3  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+D:\development\league-auction\src\features\auction\hooks\useAuctionPresenceGuard.ts:39:3
+  37 |   })
+  38 |
+> 39 |   latestStateRef.current = {
+     |   ^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  40 |     allConnected,
+  41 |     currentPlayerId,
+  42 |     timerEndsAt,  react-hooks/refs
+
+D:\development\league-auction\src\features\schedules\api\e2eScheduleFixture.ts
+  12:3  warning  'DEFAULT_LEAGUE_MATCH_FORMAT' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\development\league-auction\src\features\schedules\utils\leagueRecords.ts
+  49:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+✖ 73 problems (48 errors, 25 warnings)
+
