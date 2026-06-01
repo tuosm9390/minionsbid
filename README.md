@@ -73,6 +73,7 @@ npm run lint
 npm run test
 npm run test:e2e:auction:8leaders
 npm run test:e2e:auction:8leaders:emulator
+npm run test:e2e:auction:compat
 npm run test:e2e:multi-pc
 npm run test:e2e:auction
 npm run audit:room-auth-secrets
@@ -96,6 +97,16 @@ npm run dev:lan -- --port 3000
 ```
 
 같은 네트워크의 기기에서 `http://<로컬PC-IP>:3000`으로 접속한 뒤, 방 생성 화면에서 발급된 organizer, leader, viewer 링크를 각각 다른 브라우저나 기기에 배정합니다. 자동 검증은 fixture 기반 `test:e2e:multi-pc`를 우선 사용하고, 최종 체감 확인이 필요할 때만 LAN 접속을 병행합니다.
+
+### OS와 브라우저 호환성 확인
+
+로컬에서 현재 OS의 Chromium 대표 입찰 smoke를 실행합니다.
+
+```bash
+npm run test:e2e:auction:compat
+```
+
+실제 Ubuntu, Windows, macOS 동일성은 GitHub Actions의 `Auction realtime compatibility` 워크플로가 확인합니다. OS 매트릭스는 각 OS에서 Chromium 대표 경매 흐름을 실행하고, 브라우저 매트릭스는 Ubuntu에서 Chromium, Firefox, WebKit을 실행합니다.
 
 ### 8팀장 권한 직접 확인
 
@@ -166,23 +177,26 @@ npm run test:e2e:auction:8leaders:emulator:headed
 
 ### Optional auction watchdog
 
-기본 경매 흐름은 organizer 상시 참여 + presence guard를 전제로 동작합니다. 팀장 연결이 끊기면 organizer 화면이 즉시 경매를 일시정지하고, 재연결되면 다시 재개합니다.
+기본 경매 흐름은 organizer와 모든 팀장이 모두 연결된 상태를 전제로 동작합니다. 연결이 하나라도 빠지면 organizer 화면이 즉시 경매를 일시정지하고, 모두 다시 연결되면 재개합니다.
 
 `/api/auction-watchdog` route는 이 흐름의 핵심이 아니라 선택적 backup path입니다.
 
 - organizer가 항상 경매를 진행하는 운영이라면 cron 없이도 된다.
 - 별도 서버 sweep를 쓰고 싶을 때만 `CRON_SECRET`을 설정하고 `/api/auction-watchdog`를 외부 scheduler에 연결한다.
 - 이 route는 500ms급 실시간 입찰 품질을 담당하지 않는다. 입찰 즉시성은 room canonical state, RTDB fanout, organizer presence guard가 담당한다.
+- watchdog는 핵심 경매 상태를 자동 진행하지 않는다. organizer와 모든 팀장이 연결되지 않은 동안에는 입찰, 타이머, 낙찰 진행을 대신 밀어주지 않는다.
 
 ### Realtime debug markers
 
 실시간 경매 품질 검증용으로 브라우저는 최근 입찰 marker를 `window.__auctionLatencyMarkers__`에 남길 수 있습니다.
 
-- `client-response`: 입찰자가 서버 응답에서 받은 `eventId`
+- `client-response`: 입찰자가 direct bid 또는 서버 응답에서 받은 `eventId`
 - `rtdb`: 다른 화면이 RTDB `auctionEvent`로 반영한 시점
 - `room-fallback`: RTDB miss 후 Firestore room snapshot으로 복구한 시점
 
 이 marker는 운영 기능이 아니라 디버그/Playwright 검증용입니다.
+
+direct bid는 Firestore transaction의 bid `eventId`를 응답 marker와 후속 RTDB 이벤트에 함께 사용해 p95 중심 지연을 확인할 수 있게 합니다.
 
 ### legacy room token 정리
 

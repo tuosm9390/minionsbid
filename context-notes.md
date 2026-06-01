@@ -1,5 +1,21 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## direct bid 운영 latency 관측
+
+- 2026-06-01: 사용자는 일정 화면 분리, match_days 문서 분리, room read rules 강화는 지금 하지 않는 것으로 결정했다. 경매는 주최자와 모든 팀장이 접속 중일 때만 진행되어야 하며, watchdog은 자동 진행 핵심 경로가 아니다.
+- 2026-06-01: 다음 구현 우선순위는 운영 latency 관측이다. 현재 direct bid는 Firestore transaction에서 bid id를 만들지만 `placeBidDirect()` 응답이 eventId를 반환하지 않아 `client-response`와 이후 RTDB/Firestore fallback marker를 같은 eventId로 묶기 어렵다.
+- 2026-06-01: direct bid 응답에 `active_bid.event_id`를 반환하고, `useBiddingControl`이 같은 eventId로 click/response marker를 남기도록 구현했다. 후속 `broadcastBidEvent`도 `liveBid.event_id`를 RTDB envelope eventId로 사용해 RTDB/room fallback marker와 연결된다.
+- 2026-06-01: RED evidence는 `.omo/ulw-loop/evidence/red-direct-event.txt`, `.omo/ulw-loop/evidence/red-marker-merge.txt`에 저장했다. GREEN 및 manual QA evidence는 `.omo/ulw-loop/evidence/green-direct-event.txt`, `.omo/ulw-loop/evidence/green-marker-merge.txt`, `.omo/ulw-loop/evidence/direct-event-playwright.txt`, `.omo/ulw-loop/evidence/presence-policy-playwright.txt`에 저장했다.
+
+## 경매 OS와 브라우저 호환성 검증
+
+- 2026-06-01: 현재 로컬 세션은 Windows 단일 OS이므로 Ubuntu, macOS까지 실제로 동일 동작을 단정할 수 없다. 이번 작업은 로컬 브라우저 매트릭스와 GitHub Actions OS 매트릭스를 추가해 동일성 검증을 반복 가능한 절차로 고정하는 범위다.
+- 2026-06-01: 대표 smoke는 fixture `active-auction`에서 Blue와 Red 팀장을 독립 browser context로 열고, Blue 10점 입찰 후 Red 최소 입찰값이 20으로 수렴하며 Firestore fixture state의 canonical live bid와 bid history가 일치하는지 확인한다.
+- 2026-06-01: OS 매트릭스는 `ubuntu-latest`, `windows-latest`, `macos-latest`에서 Chromium 대표 smoke를 실행한다. 브라우저 엔진 차이는 Ubuntu에서 Chromium, Firefox, WebKit으로 별도 확인한다.
+- 2026-06-01: 로컬 Windows에서 `npm run test:e2e:auction:compat` Chromium smoke는 통과했다. 전체 프로젝트 실행에서는 Chromium, WebKit, mobile Chrome, mobile Safari가 통과했지만 Firefox는 `browserContext.newPage()`에서 60초 timeout으로 멈춰 앱 경매 로직에 도달하지 못했다. 기본 로컬 명령은 OS 대표 smoke인 Chromium으로 제한하고, Firefox/WebKit 엔진 검증은 CI 브라우저 매트릭스에 맡긴다.
+- 2026-06-01: 검증 evidence는 `.omo/ulw-loop/evidence/red-os-compat-config.txt`, `.omo/ulw-loop/evidence/green-os-compat-config-final.txt`, `.omo/ulw-loop/evidence/os-compat-local-chromium.txt`, `.omo/ulw-loop/evidence/full-npm-test-os-compat.txt`, `.omo/ulw-loop/evidence/npm-build-os-compat.txt`, `.omo/ulw-loop/evidence/npm-lint-os-compat.txt`에 저장했다.
+- 2026-06-01: `npm run lint`는 실패했지만 새로 추가한 OS 호환성 파일이 아니라 기존 scripts의 CommonJS `require`, 기존 React hook compiler rule, 기존 unused import 경고에서 실패한다.
+
 ## direct bid 정본 수렴과 rules 강화
 
 - 2026-05-26: 현재 공개 입찰은 입찰자 본인 화면에 `useBiddingControl`이 optimistic `liveBid`를 즉시 표시하고, Firestore direct transaction commit 후 RTDB broadcast를 fire-and-forget으로 실행한다.
@@ -273,4 +289,11 @@
 - 2026-05-26: 이미지에는 티어, 포지션, 낙찰가가 없으므로 각 선수의 `tier`, `main_position`, `sub_position`은 빈 문자열, `sold_price`는 `null`로 둔다.
 - 2026-05-26: `node scripts\seed_archive_from_json.js scripts\minions_triathlon_2026_h1_archive.json --dry-run` 결과 `archiveId=minions-triathlon-2026-h1-event`, 8팀, 32명으로 검증됐다.
 - 2026-05-26: 첫 실제 저장 시도는 sandbox proxy `127.0.0.1:9` 연결 실패로 timeout 됐다. 사용자 승인 후 sandbox 밖에서 같은 명령을 재실행했고 `auction_archives/minions-triathlon-2026-h1-event` 저장이 성공했다.
+
+## 문서화된 운영 결정 반영
+
+- 2026-06-01: `/league-schedule`는 단일 라우트로 유지하고 public/admin 분리는 현재 범위에서 제외한다. `match_days.matches[]`도 유지해 경기 단위 문서 분해를 하지 않는다.
+- 2026-06-01: room read rules는 현상 유지로 두고, token 분리와 write 보호로 현재 링크 공유 모델을 지킨다.
+- 2026-06-01: 경매는 organizer와 모든 팀장이 연결된 상태에서만 진행한다. watchdog는 핵심 경매 상태를 자동 진행하지 않으며, 참가자 부재 상태에서는 입찰이나 타이머를 대신 밀어주지 않는다.
+- 2026-06-01: 운영 latency 관측의 우선순위는 direct bid `eventId` marker 연쇄다. p95 관점에서 direct bid의 응답과 marker를 연결해 추적할 수 있게 문서를 맞췄다.
 

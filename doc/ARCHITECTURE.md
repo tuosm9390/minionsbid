@@ -27,6 +27,8 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 
 ### 일정 관리 서브시스템
 - **스토리지**: `league_schedules`, `match_days`, `hall_of_fame`는 Firestore를 사용한다.
+- `/league-schedule`은 단일 경로로 유지한다. public/admin 분리는 현재 범위에 넣지 않는다.
+- `match_days.matches[]`는 유지한다. 경기별 문서 분해는 지금은 하지 않는다.
 - **권한 경계**: `/league-schedule`은 공개 경로를 유지하지만 일정 생성/저장/결과 등록/삭제/종료는 모두 Server Action의 관리자 가드를 통과해야 한다.
 - **쓰기 일관성**: `saveLeagueScheduleDay`, `registerLeagueMatchResult`, `completeLeagueSchedule`는 transaction과 `revision`을 사용한다.
 - **로스터 연결**: 스케줄 문서는 `rosterSourceType` / `rosterSourceId`를 저장하고, 로스터 조회는 전체 스캔보다 직접 조회를 우선한다.
@@ -80,7 +82,7 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - representative bid 전파 품질은 DOM 변화만이 아니라 `eventId` 기반 latency marker로도 본다.
 - fixture 경로는 `appliedAt - clickedAt <= 500ms`를 직접 검증한다.
 - Server Action fallback 경로는 네트워크 편차를 고려해 `client-response -> rtdb` 또는 `client-response -> room-fallback`의 동일 `eventId` correlation을 확인한다.
-- direct bid 경로는 현재 Firestore commit/snapshot 전파 시간을 우선 본다. direct bid의 canonical `eventId` 반환/marker 연결은 운영 latency 관측 체계 도입 시 보강 대상이다.
+- direct bid 경로는 Firestore commit/snapshot 전파와 함께 `eventId` marker 연쇄를 본다. 운영 latency 관측의 기준은 p95를 추적할 수 있는 이 연결이다.
 
 ---
 

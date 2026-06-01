@@ -55,3 +55,29 @@ export function clearAuctionLatencyMarkers() {
   if (!store) return
   store.length = 0
 }
+
+export function getAuctionLatencySummary() {
+  const store = getMarkerStore() ?? []
+  const endToEndSamples = store
+    .filter(
+      (entry) =>
+        typeof entry.clickedAt === 'number' &&
+        typeof entry.appliedAt === 'number' &&
+        entry.appliedAt >= entry.clickedAt,
+    )
+    .map((entry) => entry.appliedAt! - entry.clickedAt!)
+    .sort((a, b) => a - b)
+
+  if (endToEndSamples.length === 0) {
+    return {
+      completedSamples: 0,
+      p95EndToEndMs: null,
+    }
+  }
+
+  const p95Index = Math.ceil(endToEndSamples.length * 0.95) - 1
+  return {
+    completedSamples: endToEndSamples.length,
+    p95EndToEndMs: endToEndSamples[p95Index],
+  }
+}

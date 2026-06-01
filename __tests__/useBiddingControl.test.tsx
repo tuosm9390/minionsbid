@@ -6,6 +6,7 @@ import {
   placeBid,
 } from "@/features/auction/api/auctionActions";
 import { placeBidDirect } from "@/features/auction/api/placeBidClient";
+import { clearAuctionLatencyMarkers } from "@/features/auction/utils/latencyDebug";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
 import type { Player, Team } from "@/features/auction/store/useAuctionStore";
 
@@ -69,6 +70,7 @@ describe("useBiddingControl", () => {
       players: [],
       auctionEventRevision: 0,
     });
+    clearAuctionLatencyMarkers();
   });
 
   it("초기 상태 및 최소 입찰가 설정 확인", () => {
@@ -131,6 +133,7 @@ describe("useBiddingControl", () => {
   it("handleBid 성공 시 placeBidDirect를 호출하고 bidAmount가 증가한다", async () => {
     const serverTimerEndsAt = new Date(Date.now() + 8000).toISOString();
     (placeBidDirect as Mock).mockResolvedValue({
+      eventId: "bid-direct-1",
       timerEndsAt: serverTimerEndsAt,
       revision: 3,
       timerExtended: true,
@@ -158,6 +161,32 @@ describe("useBiddingControl", () => {
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
     expect(useAuctionStore.getState().auctionEventRevision).toBe(3);
+  });
+
+  it("direct-event 성공 시 같은 eventId로 클릭과 응답 latency marker를 남긴다", async () => {
+    (placeBidDirect as Mock).mockResolvedValue({
+      eventId: "bid-direct-marker-1",
+      timerEndsAt: null,
+      revision: 3,
+    });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+    await act(async () => { await result.current.handleBid(); });
+
+    const markers = window.__auctionLatencyMarkers__ ?? [];
+    expect(markers).toHaveLength(1);
+    expect(markers[0]).toMatchObject({
+      eventId: "bid-direct-marker-1",
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 10,
+      revision: 3,
+      source: "client-response",
+    });
+    expect(markers[0].clickedAt).toEqual(expect.any(Number));
+    expect(markers[0].respondedAt).toEqual(expect.any(Number));
+    expect(markers[0].respondedAt!).toBeGreaterThanOrEqual(markers[0].clickedAt!);
   });
 
   it("남은 시간 < 8s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {

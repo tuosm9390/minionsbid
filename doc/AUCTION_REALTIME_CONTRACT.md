@@ -234,12 +234,13 @@ auction timer expires while any client is active
   -> RTDB publish + Firestore reconcile
 ```
 
-- organizer 상시 참여가 기본 운영 가정이다.
-- 팀장 연결 끊김 대응은 organizer presence guard가 1차 ownership을 가진다.
+- organizer와 모든 팀장은 함께 연결되어 있어야 경매가 진행된다.
+- organizer presence guard는 연결이 하나라도 빠지면 경매를 즉시 일시정지하고, 모든 참가자가 다시 연결될 때만 재개한다.
 - 경매 만료 복구는 organizer 전용이 아니다.
 - `timerEndsAt + currentPlayerId`를 본 어떤 활성 클라이언트든 만료 시각에 `recoverExpiredAuction(roomId)`를 깨울 수 있다.
 - 중복 호출은 클라이언트 `recoveryKey`와 서버 `awardPlayer()` 멱등성으로 흡수한다.
 - `/api/auction-watchdog`는 선택적 backup/manual sweep 경로일 뿐, 기본 실시간 경매 contract의 필수 구성요소는 아니다.
+- watchdog는 핵심 경매 상태를 자동 진행하지 않으며, 참가자 부재 상태에서는 입찰과 타이머 진행을 대신하지 않는다.
 
 ## Observability Rules
 
@@ -249,10 +250,10 @@ auction timer expires while any client is active
   - fallback bid: client -> server round trip, server canonical write + envelope publish
   - client receive / Firestore reconcile
 - 브라우저 디버그 계측은 `window.__auctionLatencyMarkers__`에 최근 marker를 남긴다.
-  - `client-response`: Server Action fallback 경로에서 입찰자가 `placeBid()` 응답 debug payload로 받은 `eventId`
+  - `client-response`: direct bid 또는 Server Action fallback 응답에서 입찰자가 받은 `eventId`
   - `rtdb`: 다른 클라이언트가 RTDB `auctionEvent`로 같은 입찰을 적용한 시점
   - `room-fallback`: RTDB를 놓친 클라이언트가 `last_auction_event`로 같은 입찰을 회복한 시점
-- direct bid 경로는 현재 `placeBidDirect()` 응답으로 canonical `eventId`를 반환하지 않는다. 운영 latency 관측을 강화할 때 direct bid event id 반환과 marker 연결을 보강해야 한다.
+- direct bid는 Firestore transaction의 `active_bid.event_id`를 응답 marker와 후속 RTDB `BID_PLACED` envelope에 함께 사용해 같은 입찰을 하나의 marker chain으로 묶는다.
 - marker는 운영 기능이 아니라 디버그/Playwright 검증용이다. 하지만 `eventId` 연쇄는 contract의 일부로 본다.
 
 예시:

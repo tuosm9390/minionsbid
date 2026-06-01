@@ -1,5 +1,23 @@
 # 비공개 입찰 구현 체크리스트
 
+## direct bid 운영 latency 관측
+
+- [x] direct bid eventId/marker 실패 테스트 추가
+- [x] latency marker merge 실패 테스트 추가
+- [x] direct bid eventId 반환과 client marker 기록 구현
+- [x] 운영 정책 문서 갱신
+- [x] 관련 테스트와 manual QA evidence 수집
+
+## 경매 OS와 브라우저 호환성 검증
+
+- [x] 현재 Playwright와 CI 구조 확인
+- [x] OS/browser 호환성 설정 실패 테스트 추가
+- [x] 대표 경매 smoke spec과 npm script 추가
+- [x] Playwright browser/mobile 프로젝트 추가
+- [x] GitHub Actions OS/browser 매트릭스 추가
+- [x] 로컬 compatibility smoke 실행
+- [x] 관련 단위 테스트와 빌드 검증
+
 ## direct bid 정본 수렴과 rules 강화
 
 - [x] direct bid room snapshot-only 수렴 경로 구현
@@ -335,3 +353,10 @@
 - [x] dry-run으로 문서 요약 검증
 - [x] `auction_archives` 실제 저장
 - [x] 저장 결과 보고
+
+## 문서화된 운영 결정 반영
+
+- [x] `/league-schedule` 단일 라우트 유지와 `match_days.matches[]` 유지 결정을 문서에 반영
+- [x] room read rule 현상 유지와 token 분리, write 보호 중심 결정을 문서에 반영
+- [x] organizer와 모든 팀장 동시 연결 시에만 경매를 진행하고 watchdog는 자동 진행하지 않는 결정을 문서에 반영
+- [x] direct bid `eventId` marker 연쇄를 p95 관측 우선순위로 문서에 반영

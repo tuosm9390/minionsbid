@@ -1,0 +1,70 @@
+name: Auction realtime compatibility
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/features/auction/**'
+      - 'playwright/**'
+      - 'scripts/run_auction_e2e.js'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/auction-realtime-ci.yml'
+
+jobs:
+  auction-os-matrix:
+    name: Auction OS smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npx playwright test playwright/auction-os-compatibility.spec.ts --project=chromium --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auction-os-${{ matrix.os }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
+  auction-browser-matrix:
+    name: Auction browser smoke (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test playwright/auction-os-compatibility.spec.ts --project=${{ matrix.browser }} --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auction-browser-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore

@@ -62,6 +62,7 @@ type AuctionRoomState = {
   timer_ends_at?: admin.firestore.Timestamp | null;
   next_auction_duration_ms?: number | null;
   active_bid?: {
+    event_id?: string;
     player_id: string;
     team_id: string;
     amount: number;
@@ -383,6 +384,9 @@ export async function broadcastBidEvent(
   const teamName = String(teamSnap.data()?.name ?? "팀");
   const timerEndsAt = toTimestamp(roomData.timer_ends_at);
   const event = createAuctionEvent(roomId, "BID_PLACED", revision, {
+    ...(typeof liveBid.event_id === "string"
+      ? { eventId: liveBid.event_id }
+      : {}),
     currentPlayerId: playerId,
     ...(timerEndsAt ? { timerEndsAt } : {}),
     timerDurationMs: null,

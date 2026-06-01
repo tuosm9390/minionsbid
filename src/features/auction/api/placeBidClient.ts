@@ -22,6 +22,7 @@ interface PlaceBidDirectArgs {
 }
 
 interface PlaceBidDirectResult {
+  eventId?: string
   timerEndsAt?: string | null
   revision?: number
   error?: string
@@ -29,6 +30,9 @@ interface PlaceBidDirectResult {
 }
 
 type FixtureBidResponse = {
+  debug?: {
+    eventId?: string
+  }
   timerEndsAt?: string | null
   revision?: number
   error?: string
@@ -65,6 +69,7 @@ export async function placeBidDirect(
       return { error: result.error ?? 'fixture bid failed' }
     }
     return {
+      eventId: result.debug?.eventId,
       timerEndsAt: result.timerEndsAt ?? null,
       revision: result.revision,
       error: result.error,
@@ -78,6 +83,7 @@ export async function placeBidDirect(
     let newTimerEndsAt: string | null = null
     let newRevision = 0
     let timerExtended = false
+    let bidId = ''
 
     const { serverTimeOffset = 0 } = useAuctionStore.getState()
     
@@ -120,7 +126,7 @@ export async function placeBidDirect(
       newTimerEndsAt = nextTimerEndsAt.toDate().toISOString()
       timerExtended = shouldExtendTimer
 
-      const bidId = `bid-${estimatedNow}-${Math.random().toString(36).slice(2, 8)}`
+      bidId = `bid-${estimatedNow}-${Math.random().toString(36).slice(2, 8)}`
       const liveBid = {
         event_id: bidId,
         player_id: playerId,
@@ -152,6 +158,7 @@ export async function placeBidDirect(
     })
 
     return { 
+      eventId: bidId,
       timerEndsAt: newTimerEndsAt, 
       revision: newRevision,
       timerExtended

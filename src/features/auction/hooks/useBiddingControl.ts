@@ -13,6 +13,7 @@ import {
 } from '@/features/auction/api/auctionActions'
 import { placeBidDirect } from '@/features/auction/api/placeBidClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
+import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
   EXTEND_THRESHOLD_MS,
@@ -199,6 +200,19 @@ export function useBiddingControl({
           // 서버 응답 성공 시에도 서버가 반환한 실제 종료 시간을 우선 사용
           setRealtimeData({
             timerEndsAt: directResult.timerEndsAt,
+          })
+        }
+        if (directResult.eventId) {
+          recordAuctionLatencyMarker({
+            eventId: directResult.eventId,
+            roomId,
+            playerId: currentPlayer.id,
+            teamId,
+            amount: finalAmount,
+            revision: directResult.revision ?? null,
+            source: 'client-response',
+            clickedAt: localNow,
+            respondedAt: Date.now(),
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
