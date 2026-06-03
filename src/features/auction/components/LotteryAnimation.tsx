@@ -10,10 +10,9 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { animate } from "motion";
 import { Player } from "@/features/auction/store/useAuctionStore";
-import { getTierImage, getPositionImage } from "../utils/display";
+import { getTierImage } from "../utils/display";
 import { cn } from "@/lib/utils";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { PIXEL_ICONS } from "../constants/icons";
 import { CheckedBoxBlue, DiceCube } from "@/components/ui/CyberIcons";
 
 interface LotteryAnimationProps {
@@ -35,8 +34,11 @@ export function LotteryAnimation({
   onFinished,
 }: LotteryAnimationProps) {
   const shouldReduceMotion = useReducedMotion();
-  const [isSpinning, setIsSpinning] = useState(true);
-  const [hasFinished, setHasFinished] = useState(false);
+  const [animationState, setAnimationState] = useState({
+    hasFinished: false,
+    isSpinning: true,
+    targetPlayer,
+  });
 
   const beltRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -46,6 +48,9 @@ export function LotteryAnimation({
   const finishHandledRef = useRef(false);
   const onFinishedRef = useRef(onFinished);
   const targetPlayerId = targetPlayer.id;
+  const isCurrentAnimation = animationState.targetPlayer === targetPlayer;
+  const isSpinning = isCurrentAnimation ? animationState.isSpinning : true;
+  const hasFinished = isCurrentAnimation ? animationState.hasFinished : false;
   const targetPlayerComment = targetPlayer.description.trim();
   const hasEventGameInfo =
     showEventGameInfo && (targetPlayer.aram_tier || targetPlayer.tft_tier);
@@ -83,14 +88,15 @@ export function LotteryAnimation({
   useEffect(() => {
     let isMounted = true;
     finishHandledRef.current = false;
-    setIsSpinning(true);
-    setHasFinished(false);
 
     const finishLottery = () => {
       if (!isMounted || finishHandledRef.current) return;
       finishHandledRef.current = true;
-      setIsSpinning(false);
-      setHasFinished(true);
+      setAnimationState({
+        hasFinished: true,
+        isSpinning: false,
+        targetPlayer,
+      });
       onFinishedRef.current?.();
     };
 
@@ -128,8 +134,11 @@ export function LotteryAnimation({
       if (!isMounted) return;
 
       // 4. 당첨 연출
-      setIsSpinning(false);
-      setHasFinished(true);
+      setAnimationState({
+        hasFinished: true,
+        isSpinning: false,
+        targetPlayer,
+      });
 
       if (containerRef.current) {
         animate(
@@ -157,6 +166,7 @@ export function LotteryAnimation({
     spinDuration,
     revealDelay,
     shouldReduceMotion,
+    targetPlayer,
   ]);
 
   return (

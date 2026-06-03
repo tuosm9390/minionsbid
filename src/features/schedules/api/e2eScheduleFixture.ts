@@ -9,7 +9,6 @@ import type {
   SaveLeagueScheduleDayPayload,
 } from '../types'
 import {
-  DEFAULT_LEAGUE_MATCH_FORMAT,
   deriveLeagueMatchWinner,
   normalizeLeagueMatchFormat,
   normalizeLeagueSetLogs,

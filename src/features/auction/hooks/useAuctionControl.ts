@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useAuctionStore, Player, Role } from '@/features/auction/store/useAuctionStore'
 import { awardPlayer, closeLotteryAction } from '@/features/auction/api/auctionActions'
 
@@ -70,7 +70,7 @@ export function useAuctionControl({
   const awardLock = useRef(false)
   const playersRef = useRef(players)
   playersRef.current = players
-  const triggerAward = async (playerId: string) => {
+  const triggerAward = useCallback(async (playerId: string) => {
     if (auctionMode === 'SEALED_BID') return
     if (awardLock.current) return
     const stillActive = playersRef.current.find(
@@ -90,7 +90,7 @@ export function useAuctionControl({
     } finally {
       awardLock.current = false
     }
-  }
+  }, [auctionMode, organizerToken, roomId])
 
   useEffect(() => {
     // ORGANIZER 클라이언트만 직접 자동 낙찰을 시도한다.
@@ -119,7 +119,7 @@ export function useAuctionControl({
     }, delay)
 
     return () => { cancelled = true; clearTimeout(t) }
-  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId, auctionMode])
+  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId, auctionMode, triggerAward])
 
   return {
     lotteryPlayer,

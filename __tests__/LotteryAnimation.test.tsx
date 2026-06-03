@@ -24,11 +24,11 @@ const mockAnimate = {
 };
 
 vi.mock("next/image", () => ({
-  default: ({
-    fill: _fill,
-    ...props
-  }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) =>
-    React.createElement("img", props),
+  default: (props: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => {
+    const imageProps = { ...props };
+    delete imageProps.fill;
+    return React.createElement("img", imageProps);
+  },
 }));
 
 vi.mock("motion/react", () => ({

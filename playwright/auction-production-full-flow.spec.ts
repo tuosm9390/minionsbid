@@ -114,15 +114,6 @@ async function dismissOverlayIfPresent(page: Page) {
   }
 }
 
-async function getBidPanel(page: Page) {
-  await expect(page.getByText('경매 대기중...')).toHaveCount(0, { timeout: 15_000 })
-  const button = page.getByRole('button', { name: '입찰하기' })
-  const input = page.locator('input[type="number"]').first()
-  await expect(button).toBeEnabled({ timeout: 15_000 })
-  await expect(input).toBeVisible({ timeout: 15_000 })
-  return { button, input }
-}
-
 async function getBidPanelQuick(page: Page) {
   const button = page.getByRole('button', { name: '입찰하기' })
   const input = page.locator('input[type="number"]').first()

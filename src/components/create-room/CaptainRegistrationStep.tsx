@@ -3,7 +3,6 @@
 import { POSITIONS } from "@/features/auction/constants/room";
 import { CaptainInfo } from "@/features/auction/utils/roomGenerator";
 import { Upload } from "@/components/ui/CyberIcons";
-import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 
 interface CaptainRegistrationStepProps {
   captains: CaptainInfo[];

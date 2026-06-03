@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { motion, Variants } from "framer-motion";
 import { Player } from "@/features/auction/store/useAuctionStore";
 import { getTierImage, getPositionImage } from "../../utils/display";
 import { TIER_COLOR } from "../../constants/room";

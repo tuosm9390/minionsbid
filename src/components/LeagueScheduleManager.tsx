@@ -225,6 +225,7 @@ export function LeagueScheduleManager() {
     setIsOpen(false),
   );
   const [selectedChampionName, setSelectedChampionName] = useState("");
+  const schedule = timeline?.schedule;
 
   const loadCatalog = useCallback(async () => {
     setIsLoading(true);
@@ -261,12 +262,11 @@ export function LeagueScheduleManager() {
   }, [loadTimeline, selectedScheduleId]);
 
   useEffect(() => {
-    const schedule = timeline?.schedule;
     if (!schedule) return;
     setSelectedDateKey(
       timeline.days[0]?.dateKey ?? formatDateKey(new Date(schedule.startsAt)),
     );
-  }, [timeline?.days, timeline?.schedule?.id, timeline?.schedule?.startsAt]);
+  }, [schedule, timeline?.days]);
 
   const selectedDay = useMemo(
     () => timeline?.days.find((day) => day.dateKey === selectedDateKey) ?? null,

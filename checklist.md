@@ -1,5 +1,14 @@
 # 비공개 입찰 구현 체크리스트
 
+## lint 문제 해결과 evidence 정책 정리
+
+- [x] 초기 lint RED와 `.omo` 추적 정책 RED evidence 캡처
+- [x] ESLint 설정과 `.omo` ignore 정책 테스트 추가
+- [x] lint 오류를 최소 변경으로 수정
+- [x] `.omo` evidence 추적 대상 정리
+- [x] lint, 테스트, 빌드, CLI stdout QA evidence 수집
+- [x] 최종 품질 게이트 점검
+
 ## init-deep와 DESCRIPTION 갱신
 
 - [x] 기존 AGENTS.md 계층과 CLAUDE.md 확인

@@ -13,6 +13,8 @@ import {
   type LeagueMatchStatusFilter,
 } from "@/features/schedules/utils/leagueRecords";
 
+const stageOrder = ["결승", "4강", "8강", "플레이오프", "조별리그"];
+
 export function LeagueRecordSummaryPanel({
   scheduleName,
   championTeamName,
@@ -27,8 +29,6 @@ export function LeagueRecordSummaryPanel({
   const [selectedStageLabel, setSelectedStageLabel] = useState("ALL");
   const [selectedStatus, setSelectedStatus] =
     useState<LeagueMatchStatusFilter>("ALL");
-
-  const stageOrder = ["결승", "4강", "8강", "플레이오프", "조별리그"];
 
   const stageOptions = useMemo(() => {
     const stages = new Set<string>();

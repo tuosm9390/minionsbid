@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { Upload } from "@/components/ui/CyberIcons";
-import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { TIERS, POSITIONS } from "@/features/auction/constants/room";
 import { PlayerInfo } from "@/features/auction/utils/roomGenerator";
 

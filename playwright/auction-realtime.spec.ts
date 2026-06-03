@@ -771,7 +771,6 @@ test('awards the winning bid and syncs roster plus point balance across clients'
   await bluePage.goto(blueLink)
   await viewerPage.goto(fixture.viewerLink)
 
-  const organizerTimer = organizerPage.locator('[role="timer"]')
   const blueBidInput = bluePage.locator('input[type="number"]').first()
   const blueTimer = bluePage.locator('[role="timer"]')
 

@@ -13,17 +13,23 @@ interface CenterTimerProps {
 
 export function CenterTimer({ timerEndsAt, auctionDurationMs, onExpire }: CenterTimerProps) {
   const [now, setNow] = useState(() => Date.now());
+  const target = new Date(timerEndsAt).getTime();
+  const durationKey = `${target}:${auctionDurationMs ?? "auto"}`;
   // auctionDurationMs가 주어지면 progress bar 계산에 사용 (연장 시에도 일관된 비율)
   // 주어지지 않으면 기존 로직대로 timerEndsAt에서 역산
-  const [initialDuration, setInitialDuration] = useState<number>(() =>
-    auctionDurationMs ?? Math.max(new Date(timerEndsAt).getTime() - Date.now(), 1)
-  );
+  const [durationState, setDurationState] = useState(() => ({
+    duration: auctionDurationMs ?? Math.max(target - Date.now(), 1),
+    key: durationKey,
+  }));
   const hasExpiredRef = useRef(false);
 
-  const target = new Date(timerEndsAt).getTime();
   const timeLeftMs = Math.max(0, target - now);
   const timeLeftSec = Math.max(0, (timeLeftMs - 100) / 1000);
   const isUrgent = Math.ceil(timeLeftSec) > 0 && Math.ceil(timeLeftSec) <= 5;
+  const initialDuration =
+    durationState.key === durationKey
+      ? durationState.duration
+      : auctionDurationMs ?? Math.max(target - now, 1);
 
   // urgent 구간(≤5s)에서만 100ms, 평상시는 200ms로 렌더링 빈도 절반 감소
   useEffect(() => {
@@ -34,9 +40,15 @@ export function CenterTimer({ timerEndsAt, auctionDurationMs, onExpire }: Center
   useEffect(() => {
     // 입찰 연장 시에는 남은 시간으로 initialDuration을 갱신하되,
     // auctionDurationMs가 있으면 그 값을 우선 사용
-    setInitialDuration(auctionDurationMs ?? Math.max(target - Date.now(), 1));
     hasExpiredRef.current = false;
-  }, [target, auctionDurationMs]);
+    const timeoutId = window.setTimeout(() => {
+      setDurationState({
+        duration: auctionDurationMs ?? Math.max(target - Date.now(), 1),
+        key: durationKey,
+      });
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [auctionDurationMs, durationKey, target]);
 
   useEffect(() => {
     if (timeLeftMs > 0 || hasExpiredRef.current) return;
@@ -55,9 +67,12 @@ export function CenterTimer({ timerEndsAt, auctionDurationMs, onExpire }: Center
   useEffect(() => {
     if (prevDisplayTimeRef.current !== displayTime && displayTime > 0) {
       prevDisplayTimeRef.current = displayTime;
-      setIsTickShaking(true);
+      const start = window.setTimeout(() => setIsTickShaking(true), 0);
       const t = setTimeout(() => setIsTickShaking(false), isUrgent ? 310 : 160);
-      return () => clearTimeout(t);
+      return () => {
+        window.clearTimeout(start);
+        clearTimeout(t);
+      };
     }
   }, [displayTime, isUrgent]);
 

@@ -36,12 +36,14 @@ export function useAuctionPresenceGuard({
     lotteryPlayerId,
   })
 
-  latestStateRef.current = {
-    allConnected,
-    currentPlayerId,
-    timerEndsAt,
-    lotteryPlayerId,
-  }
+  useEffect(() => {
+    latestStateRef.current = {
+      allConnected,
+      currentPlayerId,
+      timerEndsAt,
+      lotteryPlayerId,
+    }
+  }, [allConnected, currentPlayerId, lotteryPlayerId, timerEndsAt])
 
   useEffect(() => {
     const clearPendingPause = () => {

@@ -46,7 +46,7 @@ export interface LeagueMatchListItem {
   note: string;
 }
 
-interface MutableLeagueRecordRow extends Omit<LeagueRecordRow, "rank"> {}
+type MutableLeagueRecordRow = Omit<LeagueRecordRow, "rank">;
 
 interface LeagueRecordFilters {
   stageLabel?: string | null;

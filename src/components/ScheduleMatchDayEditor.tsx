@@ -371,12 +371,6 @@ export function ScheduleMatchDayEditor({
                 row.homeTeamName,
                 row.homeTeamName,
               );
-              const homeAuction = row.homeTeamName
-                ? (teamMap.get(row.homeTeamName)?.auctionName ?? null)
-                : null;
-              const awayAuction = row.awayTeamName
-                ? (teamMap.get(row.awayTeamName)?.auctionName ?? null)
-                : null;
               const format = normalizeLeagueMatchFormat({
                 winsToClinch: row.winsToClinch,
                 maxGames: row.maxGames,

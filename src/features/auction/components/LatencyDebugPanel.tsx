@@ -36,9 +36,15 @@ function formatDelta(now: number, at?: number) {
 }
 
 export function LatencyDebugPanel() {
-  const [enabled, setEnabled] = useState(false);
-  const [markers, setMarkers] = useState<LatencyMarker[]>([]);
-  const [now, setNow] = useState(Date.now());
+  const [debugState, setDebugState] = useState<{
+    enabled: boolean;
+    markers: LatencyMarker[];
+    now: number;
+  }>({
+    enabled: false,
+    markers: [],
+    now: 0,
+  });
 
   const timerEndsAt = useAuctionStore((s) => s.timerEndsAt);
   const currentPlayerId = useAuctionStore((s) => s.currentPlayerId);
@@ -47,16 +53,27 @@ export function LatencyDebugPanel() {
 
   useEffect(() => {
     if (!isDebugEnabled()) return;
-    setEnabled(true);
-    setMarkers(readMarkers());
+    const initialSnapshotId = window.setTimeout(() => {
+      setDebugState({
+        enabled: true,
+        markers: readMarkers(),
+        now: Date.now(),
+      });
+    }, 0);
     const intervalId = window.setInterval(() => {
-      setNow(Date.now());
-      setMarkers(readMarkers());
+      setDebugState({
+        enabled: true,
+        markers: readMarkers(),
+        now: Date.now(),
+      });
     }, 250);
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearTimeout(initialSnapshotId);
+      window.clearInterval(intervalId);
+    };
   }, []);
 
-  if (!enabled) return null;
+  if (!debugState.enabled) return null;
 
   return (
     <aside className="fixed bottom-4 right-4 z-[140] w-[320px] max-w-[calc(100vw-2rem)] pixel-box border-2 border-minion-blue bg-black/90 text-white shadow-[8px_8px_0px_rgba(0,0,0,1)] backdrop-blur-sm">
@@ -77,10 +94,10 @@ export function LatencyDebugPanel() {
 
         <div className="space-y-2">
           <div className="font-heading uppercase text-minion-yellow">Recent Markers</div>
-          {markers.length === 0 ? (
+          {debugState.markers.length === 0 ? (
             <div className="font-mono text-gray-400">no markers</div>
           ) : (
-            markers.map((marker) => (
+            debugState.markers.map((marker) => (
               <div
                 key={`${marker.eventId}:${marker.source ?? "unknown"}`}
                 className="border border-white/15 bg-white/5 p-2 font-mono"
@@ -95,7 +112,7 @@ export function LatencyDebugPanel() {
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2 text-gray-300">
                   <span>amount {marker.amount ?? "-"}</span>
-                  <span>{formatDelta(now, marker.appliedAt ?? marker.respondedAt)}</span>
+                  <span>{formatDelta(debugState.now, marker.appliedAt ?? marker.respondedAt)}</span>
                 </div>
               </div>
             ))

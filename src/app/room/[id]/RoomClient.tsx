@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useAuctionStore,
-  type Player,
   Role,
   PresenceUser,
 } from "@/features/auction/store/useAuctionStore";
@@ -35,9 +34,7 @@ import { AuctionResultModal } from "@/features/auction/components/AuctionResultM
 import { LeaveRoomModal } from "@/features/auction/components/LeaveRoomModal";
 import { RoomHeader } from "./components/RoomHeader";
 import { OrganizerControlPanel } from "./components/OrganizerControlPanel";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
-import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import {
   buildRosterWithCaptain,
   getAuctionSlotsPerTeam,
@@ -136,7 +133,7 @@ export function RoomClient({
 
   const liveBid = useAuctionStore((s) => s.liveBid);
   const isCurrentPlayerBid = liveBid?.player_id === currentPlayer?.id;
-  const { highestBid, minBid } = getAuctionBidState({
+  const { minBid } = getAuctionBidState({
     currentBidAmount: isCurrentPlayerBid && liveBid ? liveBid.amount : null,
     currentBidTeamId: isCurrentPlayerBid && liveBid ? liveBid.team_id : null,
   });

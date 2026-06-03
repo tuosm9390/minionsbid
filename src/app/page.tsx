@@ -7,8 +7,6 @@ import { UpdateTicker } from "@/components/UpdateTicker";
 import { LegalInfoModal } from "@/components/LegalInfoModal";
 import Image from "next/image";
 import Link from "next/link";
-import { PIXEL_ICONS } from "@/features/auction/constants/icons";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { HOW_TO_USE_STEPS } from "@/features/auction/constants/howToUse";
 

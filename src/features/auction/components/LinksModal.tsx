@@ -94,7 +94,7 @@ export function LinksModal() {
     return () => {
       cancelled = true;
     };
-  }, [isOpen, roomId]);
+  }, [isOpen, roomId, organizerToken]);
 
   if (!roomId) return null;
 

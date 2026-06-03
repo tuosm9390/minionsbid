@@ -74,7 +74,7 @@ export function useAuctionBoard({
       .map((p: PresenceUser) => p.teamId),
   )
 
-  const { currentPlayer: bucketedCurrentPlayer, unsoldPlayers, waitingPlayers, soldPlayers, soldCountByTeam, playersById } =
+  const { currentPlayer: bucketedCurrentPlayer, unsoldPlayers, waitingPlayers, soldPlayers, soldCountByTeam } =
     useMemo(() => bucketAuctionPlayers(players, currentPlayerId), [players, currentPlayerId])
   const teamMap = useMemo(() => buildTeamMap(teams), [teams])
 

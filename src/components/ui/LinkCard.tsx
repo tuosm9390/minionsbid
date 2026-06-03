@@ -43,11 +43,18 @@ export function LinkCard({
 }: LinkCardProps) {
   const isCompact = variant === "compact";
   const sanitizedLink = useMemo(() => stripAuthToken(link), [link]);
-  const [displayLink, setDisplayLink] = useState(sanitizedLink);
+  const [shortLink, setShortLink] = useState<{
+    linkKey: string;
+    originalLink: string;
+    shortUrl: string;
+  } | null>(null);
+  const displayLink =
+    shortLink?.linkKey === linkKey && shortLink.originalLink === sanitizedLink
+      ? shortLink.shortUrl
+      : sanitizedLink;
 
   useEffect(() => {
     let cancelled = false;
-    setDisplayLink(sanitizedLink);
 
     const shorten = async () => {
       try {
@@ -65,7 +72,11 @@ export function LinkCard({
         const payload = (await response.json()) as ShortLinkResponse;
         const result = payload.links?.find((item) => item.key === linkKey);
         if (!cancelled && result?.shortUrl) {
-          setDisplayLink(result.shortUrl);
+          setShortLink({
+            linkKey,
+            originalLink: sanitizedLink,
+            shortUrl: result.shortUrl,
+          });
         }
       } catch {
         // 단축 실패 시 authToken을 제거한 원본 링크를 그대로 사용한다.
