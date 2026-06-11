@@ -24,7 +24,7 @@ import {
   placeBid,
   getFixtureState,
 } from '../helpers/auction-api.js'
-import { THRESHOLDS, BID_INCREMENT, BASE_URL, JSON_HEADERS, buildFixtureRoomPayload } from '../config.js'
+import { THRESHOLDS, BID_INCREMENT, BASE_URL, buildFixtureRoomPayload } from '../config.js'
 
 // 커스텀 메트릭
 const bidOpsCount = new Counter('mixed_bid_ops')
@@ -35,8 +35,8 @@ const stateUnderMixedLoad = new Trend('state_under_mixed_load_ms', true)
 const bidSuccessRate = new Rate('mixed_bid_success_rate')
 
 // VU 역할 분배: VU 번호 기준으로 70% 입찰 / 30% 상태 조회(채팅 대리)
-function getVuRole(vuId, totalVus) {
-  // totalVus를 알 수 없으므로 VU ID의 나머지로 분기
+function getVuRole(vuId) {
+  // VU ID의 나머지로 역할 분기 (70% 입찰 / 30% 관찰)
   return vuId % 10 < 7 ? 'bidder' : 'observer'
 }
 
@@ -75,9 +75,9 @@ export function setup() {
   }
 }
 
-export default function (data) {
-  const { roomId, teamIds, players } = data
-  const role = getVuRole(__VU, 15)
+export default function mixedLoadScenario(data) {
+  const { roomId, teamIds } = data
+  const role = getVuRole(__VU)
   const teamId = teamIds[(__VU - 1) % teamIds.length]
 
   if (role === 'bidder') {

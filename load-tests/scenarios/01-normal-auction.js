@@ -65,7 +65,7 @@ export function setup() {
 }
 
 // 기본 시나리오: 각 VU가 팀 ID를 순환하며 입찰
-export default function (data) {
+export default function normalAuctionScenario(data) {
   const { roomId, teamIds, players } = data
 
   // VU 번호(1-based)로 팀을 배정 (팀 수 초과 시 순환)

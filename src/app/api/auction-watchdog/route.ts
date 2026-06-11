@@ -21,9 +21,6 @@ function isAuthorized(request: NextRequest) {
     );
   }
 
-  if (!cronSecret && !legacySecret) {
-    return false;
-  }
   return false;
 }
 

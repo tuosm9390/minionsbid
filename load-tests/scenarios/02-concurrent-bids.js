@@ -68,7 +68,7 @@ export function setup() {
   }
 }
 
-export default function (data) {
+export default function concurrentBidsScenario(data) {
   const { roomId, teamIds } = data
   const teamId = teamIds[(__VU - 1) % teamIds.length]
 
