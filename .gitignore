@@ -62,3 +62,13 @@ gha-creds-*.json
 .claude/
 .omc/
 .omo/
+
+# load test artifacts
+load-tests/*.log
+
+# python bytecode
+__pycache__/
+*.pyc
+
+# session continuation state
+.sisyphus/
