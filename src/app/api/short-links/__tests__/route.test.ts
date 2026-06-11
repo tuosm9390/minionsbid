@@ -14,10 +14,10 @@ const { POST } = await import('../route')
 
 const ORIGIN = 'https://example.com'
 
-function makeRequest(body: unknown) {
+function makeRequest(body: unknown, extraHeaders: Record<string, string> = {}) {
   return new NextRequest(`${ORIGIN}/api/short-links`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...extraHeaders },
     body: JSON.stringify(body),
   })
 }
@@ -99,5 +99,34 @@ describe('POST /api/short-links', () => {
   it('links가 빈 배열이면 400을 반환한다', async () => {
     const res = await POST(makeRequest({ links: [] }))
     expect(res.status).toBe(400)
+  })
+
+  it('links가 20개를 초과하면 400을 반환한다', async () => {
+    const links = Array.from({ length: 21 }, (_, i) => ({
+      key: `team-${i}`,
+      orgUrl: `${ORIGIN}/room/r1?role=LEADER&teamId=team-${i}`,
+    }))
+    const res = await POST(
+      makeRequest({ links }, { 'x-forwarded-for': '10.0.0.1' }),
+    )
+    expect(res.status).toBe(400)
+    expect(createBulyShortUrl).not.toHaveBeenCalled()
+  })
+
+  it('같은 IP가 1분 내 30회를 초과하면 429를 반환한다', async () => {
+    createBulyShortUrl.mockResolvedValue('https://buly.kr/r')
+    const body = {
+      links: [{ key: 'team-a', orgUrl: `${ORIGIN}/room/r1?role=LEADER&teamId=t1` }],
+    }
+    for (let i = 0; i < 30; i++) {
+      const res = await POST(
+        makeRequest(body, { 'x-forwarded-for': '10.0.0.2' }),
+      )
+      expect(res.status).toBe(200)
+    }
+    const limited = await POST(
+      makeRequest(body, { 'x-forwarded-for': '10.0.0.2' }),
+    )
+    expect(limited.status).toBe(429)
   })
 })

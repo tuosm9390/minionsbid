@@ -65,7 +65,11 @@
    - 검증: critical/high 건수 감소 확인, `npm test` green
    - **실행 결과 (2026-06-11)**: 28건 → 18건 (high 9→2, critical 3→2). 잔여는 next/xlsx/vitest 체인으로 전부 breaking 업그레이드 필요.
 
-### Phase 2 — 의존성·CI 강화 (1~2일)
+### Phase 2 — 의존성·CI 강화 (1~2일) ✅ 완료 (2026-06-11)
+
+> **실행 결과**: next 16.2.9 업그레이드, quality-ci 워크플로 추가, firebase-admin 모듈러 API 전환 + v14, xlsx → SheetJS 공식 CDN 0.20.3, short-links 상한(20)/IP 스로틀(30/min) 적용.
+> 취약점 28건 → 14건. 잔여는 전부 upstream 대기(next 내장 postcss, google-cloud 체인) 또는 dev 전용(vitest/esbuild 체인).
+> 검증: tsc / lint 0건 / 단위테스트 212개 / 프로덕션 빌드 통과.
 
 > **추가 발견 (2026-06-11 Phase 1 중)**: 고정된 `next@16.1.6` 자체에 high/critical CVE 다수 — 미들웨어 우회(GHSA-492v, GHSA-267c), 캐시 포이즈닝(GHSA-wfc6), HTTP request smuggling(GHSA-ggv3) 등. **next 16.2.9 업그레이드가 Phase 2 최우선.**
 
