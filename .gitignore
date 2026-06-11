@@ -59,6 +59,7 @@ gha-creds-*.json
 !.github/workflows/
 .github/workflows/*
 !.github/workflows/auction-realtime-ci.yml
+!.github/workflows/quality-ci.yml
 .claude/
 .omc/
 .omo/
