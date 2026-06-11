@@ -1,7 +1,7 @@
 'use server'
 
 import { adminDb } from '@/lib/firebaseAdmin'
-import * as admin from 'firebase-admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import type {
   HallOfFameEntry,
   HallOfFameRegistrationPayload,
@@ -212,7 +212,7 @@ export async function registerHallOfFameEntry(
         winning_team_leader: normalizeText(winningTeamData.leader_name),
         winning_team_players: normalizeHofPlayers(winningTeamData.players),
         won_at: toIsoString(archiveData.closed_at),
-        registered_at: admin.firestore.FieldValue.serverTimestamp(),
+        registered_at: FieldValue.serverTimestamp(),
       })
     })
     return {}

@@ -1,6 +1,6 @@
 "use server";
 
-import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import type { CaptainMode } from "@/features/auction/utils/roster";
 import {
   getAuctionSlotsPerTeam,
@@ -146,13 +146,13 @@ export async function createRoom(
       sealed_bid_reveal_result: null,
       current_player_id: null,
       timer_ends_at: null,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      created_at: FieldValue.serverTimestamp(),
     });
 
     batch.set(roomAuthRef, {
       organizer_token: organizerToken,
       viewer_token: viewerToken,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      created_at: FieldValue.serverTimestamp(),
     });
 
     // teams 서브컬렉션 생성
@@ -179,7 +179,7 @@ export async function createRoom(
         {
           leader_token: leaderToken,
           team_name: captain.teamName,
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          created_at: FieldValue.serverTimestamp(),
         },
       );
       teamsResult.push({
@@ -278,7 +278,7 @@ export async function saveAuctionArchive(
         linked_auction_id: roomData.linked_auction_id ?? null,
         linked_league_name: roomData.linked_league_name ?? null,
         room_created_at: payload.roomCreatedAt,
-        closed_at: admin.firestore.FieldValue.serverTimestamp(),
+        closed_at: FieldValue.serverTimestamp(),
         result_snapshot: payload.teams,
       });
     return {};

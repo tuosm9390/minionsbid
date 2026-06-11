@@ -1,6 +1,11 @@
 "use server";
 
-import * as admin from "firebase-admin";
+import {
+  Timestamp,
+  FieldValue,
+  type DocumentData,
+  type DocumentReference,
+} from "firebase-admin/firestore";
 import {
   getAuctionSlotsPerTeam,
   normalizeCaptainMode,
@@ -59,7 +64,7 @@ function getAuctionFirestore() {
 type AuctionRoomState = {
   auction_mode?: string | null;
   current_player_id?: string | null;
-  timer_ends_at?: admin.firestore.Timestamp | null;
+  timer_ends_at?: Timestamp | null;
   next_auction_duration_ms?: number | null;
   active_bid?: {
     event_id?: string;
@@ -94,7 +99,7 @@ type PresenceRecord = {
   role?: string | null;
 };
 
-function getNextRosterSlotsUsed(teamData: admin.firestore.DocumentData): number {
+function getNextRosterSlotsUsed(teamData: DocumentData): number {
   return Math.max(0, Number(teamData.roster_slots_used ?? 0)) + 1;
 }
 
@@ -126,7 +131,7 @@ async function sysMsg(
         sender_name: "시스템",
         sender_role: "SYSTEM",
         content,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: FieldValue.serverTimestamp(),
       },
       { merge: true },
     ),
@@ -173,7 +178,7 @@ function createAuctionEvent(
 }
 
 function createAuctionEventPatch(
-  roomRef: admin.firestore.DocumentReference,
+  roomRef: DocumentReference,
   roomData: AuctionRoomState,
   type: AuctionEventEnvelope["type"],
   overrides: Partial<AuctionEventEnvelope> = {},
@@ -203,7 +208,7 @@ function getPresenceRole(sessionId: string, record: PresenceRecord): string | nu
     : null;
 }
 
-function toTimestamp(value: admin.firestore.Timestamp | null | undefined) {
+function toTimestamp(value: Timestamp | null | undefined) {
   return value ? value.toDate().toISOString() : null;
 }
 
@@ -309,10 +314,10 @@ async function startSealedBidRound(
       round_number: nextRoundNumber,
       min_amount: minAmount,
       eligible_team_ids: eligibleTeamIds,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      created_at: FieldValue.serverTimestamp(),
     });
     tx.update(roomRef, {
-      timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
+      timer_ends_at: Timestamp.fromDate(timerEndsAt),
       active_bid: null,
       sealed_bid_phase: "ACTIVE",
       sealed_bid_round_id: roundId,
@@ -590,7 +595,7 @@ export async function startAuction(
         },
       );
       tx.update(roomRef, {
-        timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
+        timer_ends_at: Timestamp.fromDate(timerEndsAt),
         ...roomPatch,
       });
       startEvent = event;
@@ -699,7 +704,7 @@ export async function resumeAuction(
         },
       );
       tx.update(roomRef, {
-        timer_ends_at: admin.firestore.Timestamp.fromDate(timerEndsAt),
+        timer_ends_at: Timestamp.fromDate(timerEndsAt),
         paused_remaining_ms: null,
         ...roomPatch,
       });
@@ -897,7 +902,7 @@ export async function placeBid(
       const timerRemaining = timerField.toMillis() - now;
       const shouldExtendTimer = timerRemaining <= EXTEND_THRESHOLD_MS;
       const nextTimerTimestamp = shouldExtendTimer
-        ? admin.firestore.Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
+        ? Timestamp.fromDate(new Date(now + EXTEND_DURATION_MS))
         : timerField;
       newTimerEndsAt = nextTimerTimestamp.toDate().toISOString();
       if (shouldExtendTimer) timerExtendedAt = nowMs();
@@ -1082,7 +1087,7 @@ export async function submitSealedBid(
           player_id: playerId,
           team_id: teamId,
           amount,
-          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
@@ -1477,8 +1482,8 @@ async function awardPlayerInternal(
       if (status === "SOLD" || status === "UNSOLD") return;
       if (roomData.current_player_id !== playerId) return;
 
-      let teamRef: admin.firestore.DocumentReference | null = null;
-      let teamData: admin.firestore.DocumentData | null = null;
+      let teamRef: DocumentReference | null = null;
+      let teamData: DocumentData | null = null;
       const topBid = roomData.active_bid ?? null;
 
       if (topBid?.team_id) {
@@ -1594,7 +1599,7 @@ export async function recoverExpiredAuction(
     const roomData = roomSnap.data() as AuctionRoomState;
     const playerId = roomData.current_player_id as string | null | undefined;
     const timerEndsAt = roomData.timer_ends_at as
-      | admin.firestore.Timestamp
+      | Timestamp
       | null
       | undefined;
 

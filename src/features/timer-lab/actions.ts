@@ -1,7 +1,7 @@
 "use server";
 
 // 타이머 랩 전용 Firestore 정본과 RTDB 팬아웃 서버 액션
-import * as admin from "firebase-admin";
+import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { getAuctionServerServices } from "@/features/auction/realtime/serverAdapter";
 
 export type TimerLabStatus = "auction_waiting" | "auction_active" | "auction_closed";
@@ -113,7 +113,7 @@ async function publishTimerLabEvent(event: TimerLabEvent): Promise<void> {
   ]);
 }
 
-function toTimerLabState(data: admin.firestore.DocumentData | undefined): TimerLabState | null {
+function toTimerLabState(data: DocumentData | undefined): TimerLabState | null {
   if (!data || data.kind !== "timer_lab") return null;
 
   return {
@@ -163,8 +163,8 @@ export async function createTimerLab(): Promise<TimerLabActionResult> {
   await labRef.set({
     ...state,
     lastEvent: event,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
   await publishTimerLabEvent(event);
 
@@ -203,7 +203,7 @@ export async function startTimerLab(labId: string): Promise<TimerLabActionResult
       {
         ...nextState,
         lastEvent: event,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
@@ -258,7 +258,7 @@ export async function placeTimerLabBid(args: {
         {
           ...closedState,
           lastEvent: event,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
@@ -312,7 +312,7 @@ export async function placeTimerLabBid(args: {
       {
         ...nextState,
         lastEvent: event,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
@@ -353,7 +353,7 @@ export async function closeExpiredTimerLab(labId: string): Promise<TimerLabActio
       {
         ...nextState,
         lastEvent: event,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );

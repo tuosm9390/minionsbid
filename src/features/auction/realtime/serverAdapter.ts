@@ -1,9 +1,9 @@
-import * as admin from 'firebase-admin'
+import { getDatabase, type Database } from 'firebase-admin/database'
 import { adminDb } from '@/lib/firebaseAdmin'
 
 export interface AuctionServerServices {
   firestore: typeof adminDb
-  rtdb: admin.database.Database
+  rtdb: Database
 }
 
 declare global {
@@ -20,6 +20,6 @@ export function getAuctionServerServices(): AuctionServerServices {
 
   return {
     firestore: adminDb,
-    rtdb: admin.database(),
+    rtdb: getDatabase(),
   }
 }

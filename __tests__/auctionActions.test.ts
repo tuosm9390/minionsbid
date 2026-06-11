@@ -112,19 +112,19 @@ vi.mock('@/lib/firebaseAdmin', () => ({
   },
 }))
 
-vi.mock('firebase-admin', () => ({
-  firestore: {
-    Timestamp: {
-      fromDate: (d: Date) => ({ toMillis: () => d.getTime(), toDate: () => d }),
-    },
-    FieldValue: {
-      serverTimestamp: () => ({ _methodName: 'serverTimestamp' }),
-    },
+vi.mock('firebase-admin/firestore', () => ({
+  Timestamp: {
+    fromDate: (d: Date) => ({ toMillis: () => d.getTime(), toDate: () => d }),
   },
-  database: vi.fn().mockReturnValue({
+  FieldValue: {
+    serverTimestamp: () => ({ _methodName: 'serverTimestamp' }),
+  },
+}))
+
+vi.mock('firebase-admin/database', () => ({
+  getDatabase: vi.fn().mockReturnValue({
     ref: vi.fn().mockReturnValue({ set: vi.fn().mockResolvedValue(undefined) }),
   }),
-  apps: [true],
 }))
 
 vi.mock('@/features/auction/api/organizerAuth', () => ({

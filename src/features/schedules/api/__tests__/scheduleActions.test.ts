@@ -247,15 +247,13 @@ vi.mock('@/lib/firebaseAdmin', () => ({
   },
 }))
 
-vi.mock('firebase-admin', () => ({
-  firestore: {
-    Timestamp: {
-      now: () => createTimestamp(new Date('2026-04-27T12:00:00.000Z')),
-      fromDate: (date: Date) => createTimestamp(date),
-    },
-    FieldValue: {
-      serverTimestamp: () => serverTimestampValue,
-    },
+vi.mock('firebase-admin/firestore', () => ({
+  Timestamp: {
+    now: () => createTimestamp(new Date('2026-04-27T12:00:00.000Z')),
+    fromDate: (date: Date) => createTimestamp(date),
+  },
+  FieldValue: {
+    serverTimestamp: () => serverTimestampValue,
   },
 }))
 

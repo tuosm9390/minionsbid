@@ -1,8 +1,8 @@
-import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getApps, getApp, initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 function initializeFirebaseAdmin() {
-  if (admin.apps.length) return;
+  if (getApps().length) return;
   if (process.env.E2E_SCHEDULE_FIXTURE === '1') return;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -17,8 +17,8 @@ function initializeFirebaseAdmin() {
     }
 
     if (clientEmail && privateKey) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      initializeApp({
+        credential: cert({
           projectId,
           clientEmail,
           privateKey: privateKey.replace(/\\n/g, '\n'),
@@ -28,7 +28,7 @@ function initializeFirebaseAdmin() {
       return;
     }
 
-    admin.initializeApp({
+    initializeApp({
       projectId,
       databaseURL,
     });
@@ -44,8 +44,8 @@ function initializeFirebaseAdmin() {
     return;
   }
 
-  admin.initializeApp({
-    credential: admin.credential.cert({
+  initializeApp({
+    credential: cert({
       projectId,
       clientEmail,
       privateKey: privateKey.replace(/\\n/g, '\n'),
@@ -57,19 +57,19 @@ function initializeFirebaseAdmin() {
 initializeFirebaseAdmin();
 
 /** Firestore Admin 인스턴스. FIRESTORE_DATABASE_ID 환경 변수로 named database 지정 가능 */
-export function getAdminDb(): admin.firestore.Firestore {
-  if (!admin.apps.length) {
+export function getAdminDb(): Firestore {
+  if (!getApps().length) {
     throw new Error('Firebase Admin이 초기화되지 않았습니다. 환경 변수를 확인하세요.');
   }
   const databaseId = process.env.FIRESTORE_DATABASE_ID;
-  return databaseId ? getFirestore(admin.app(), databaseId) : getFirestore(admin.app());
+  return databaseId ? getFirestore(getApp(), databaseId) : getFirestore(getApp());
 }
 
 // 기존 호환성을 위한 lazy proxy
-export const adminDb = new Proxy({} as admin.firestore.Firestore, {
+export const adminDb = new Proxy({} as Firestore, {
   get(_target, prop) {
     const db = getAdminDb();
-    const value = db[prop as keyof admin.firestore.Firestore];
+    const value = db[prop as keyof Firestore];
     if (typeof value === 'function') {
       return (value as (...args: unknown[]) => unknown).bind(db);
     }

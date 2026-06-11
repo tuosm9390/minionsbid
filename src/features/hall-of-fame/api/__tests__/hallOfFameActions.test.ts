@@ -146,11 +146,9 @@ vi.mock('@/lib/firebaseAdmin', () => ({
   },
 }))
 
-vi.mock('firebase-admin', () => ({
-  firestore: {
-    FieldValue: {
-      serverTimestamp: () => serverTimestampValue,
-    },
+vi.mock('firebase-admin/firestore', () => ({
+  FieldValue: {
+    serverTimestamp: () => serverTimestampValue,
   },
 }))
 

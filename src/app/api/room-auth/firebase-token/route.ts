@@ -1,5 +1,5 @@
 // role/teamId 기반으로 Firebase custom token을 발급한다.
-import * as admin from 'firebase-admin'
+import { getAuth } from 'firebase-admin/auth'
 import '@/lib/firebaseAdmin'
 import { NextRequest, NextResponse } from 'next/server'
 import {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   }
 
   const uid = `room:${roomId}:${role}:${role === 'LEADER' ? teamId : 'none'}`
-  const customToken = await admin.auth().createCustomToken(uid, {
+  const customToken = await getAuth().createCustomToken(uid, {
     roomId,
     role,
     teamId: role === 'LEADER' ? teamId : null,

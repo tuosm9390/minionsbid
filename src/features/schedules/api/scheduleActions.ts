@@ -1,6 +1,6 @@
 'use server'
 
-import * as admin from 'firebase-admin'
+import { Timestamp, FieldValue } from 'firebase-admin/firestore'
 import { adminDb } from '@/lib/firebaseAdmin'
 import type {
   CreateLeagueSchedulePayload,
@@ -586,13 +586,13 @@ export async function createLeagueSchedule(
       linked_league_name: linkedLeagueName,
       roster_source_type: rosterSourceType,
       roster_source_id: rosterSourceId,
-      starts_at: admin.firestore.Timestamp.fromDate(startDate),
-      ends_at: endDate ? admin.firestore.Timestamp.fromDate(endDate) : null,
+      starts_at: Timestamp.fromDate(startDate),
+      ends_at: endDate ? Timestamp.fromDate(endDate) : null,
       notes,
       status: 'ACTIVE',
       completed_at: null,
       champion_team_name: null,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      created_at: FieldValue.serverTimestamp(),
     })
 
     return {
@@ -727,7 +727,7 @@ export async function saveLeagueScheduleDay(
     const { error: teamError } = validateScheduleMatchTeams(sanitizedMatches, rosterTeams)
     if (teamError) return { error: teamError }
 
-    const now = admin.firestore.Timestamp.now()
+    const now = Timestamp.now()
     const scheduleRef = adminDb.collection('league_schedules').doc(scheduleId)
     const dayRef = adminDb
       .collection('league_schedules')
@@ -817,7 +817,7 @@ export async function saveLeagueScheduleDay(
           revision: (typeof existingSnap.data()?.revision === 'number'
             ? existingSnap.data()?.revision
             : 0) + 1,
-          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: FieldValue.serverTimestamp(),
         },
         { merge: true }
       )
@@ -854,7 +854,7 @@ export async function registerLeagueMatchResult(args: {
   if (!args.matchId.trim()) return { error: '경기를 선택해주세요.' }
 
   try {
-    const now = admin.firestore.Timestamp.now()
+    const now = Timestamp.now()
     const scheduleRef = adminDb.collection('league_schedules').doc(args.scheduleId)
     const dayRef = adminDb
       .collection('league_schedules')
@@ -942,7 +942,7 @@ export async function registerLeagueMatchResult(args: {
       transaction.update(dayRef, {
         matches: rawMatches,
         revision: (typeof daySnap.data()?.revision === 'number' ? daySnap.data()?.revision : 0) + 1,
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        updated_at: FieldValue.serverTimestamp(),
       })
     })
 
@@ -1038,14 +1038,14 @@ export async function completeLeagueSchedule(args: {
           sold_price: player.soldPrice,
         })),
         won_at: wonAt,
-        registered_at: admin.firestore.FieldValue.serverTimestamp(),
+        registered_at: FieldValue.serverTimestamp(),
       })
 
       transaction.update(scheduleRef, {
         status: 'COMPLETED',
         champion_team_name: championTeam.name,
-        completed_at: admin.firestore.FieldValue.serverTimestamp(),
-        archived_at: admin.firestore.FieldValue.serverTimestamp(),
+        completed_at: FieldValue.serverTimestamp(),
+        archived_at: FieldValue.serverTimestamp(),
       })
     })
 

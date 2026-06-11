@@ -1,6 +1,6 @@
 'use server'
 
-import * as admin from 'firebase-admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
 import {
   isE2EAuctionFixtureEnabled,
@@ -70,7 +70,7 @@ export async function sendChatMessage(
           sender_name: senderName,
           sender_role: safeSenderRole,
           content: trimmedContent,
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          created_at: FieldValue.serverTimestamp(),
         }),
       publishLiveMessage(roomId, {
         event_id: eventId,
@@ -113,7 +113,7 @@ export async function sendNotice(
           sender_name: '주최자',
           sender_role: 'NOTICE',
           content: trimmedContent,
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          created_at: FieldValue.serverTimestamp(),
         }),
       publishLiveMessage(roomId, {
         event_id: eventId,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as admin from "firebase-admin";
+import { Timestamp } from "firebase-admin/firestore";
 import { recoverExpiredAuction } from "@/features/auction/api/auctionActions";
 import { adminDb } from "@/lib/firebaseAdmin";
 
@@ -25,7 +25,7 @@ function isAuthorized(request: NextRequest) {
 }
 
 async function runWatchdogSweep() {
-  const now = admin.firestore.Timestamp.now();
+  const now = Timestamp.now();
   const snapshot = await adminDb
     .collection("rooms")
     .where("timer_ends_at", "<=", now)
