@@ -89,7 +89,10 @@
 7. **short-links 남용 방지** (S4) — 요청당 links 개수 상한(예: 20) + 간단한 IP 기반 rate limit 또는 room-auth 토큰 요구
    - 검증: 상한 초과 요청 400 반환 테스트 추가
 
-### Phase 3 — 코드 구조 정리 (1주, 기능 변화 없음)
+### Phase 3 — 코드 구조 정리 (1주, 기능 변화 없음) — 8번 완료 (2026-06-11)
+
+> **8번 실행 결과**: auctionFlowActions.ts(1,883줄)를 5개 모듈로 분할 — Shared(공유 헬퍼)/Draw/Lifecycle/Bid/SealedBid. 기존 파일은 배럴로 전환해 import 경로 무수정 호환. 코드 구간 그대로 이동(로직 변경 없음). tsc/lint/테스트 212개/빌드 통과.
+> 9번(입찰 폴백 경로 정리)은 운영 로그에서 `placeBid` 폴백 발동 빈도 확인이 선행 — 미착수. 10번(스케줄 컴포넌트 분할)은 아키텍처 결정 대기로 보류 유지.
 
 8. **`auctionFlowActions.ts` 분할** (M1) — 도메인별 4파일로:
    - `auctionEventPublish.ts` (publishAuctionEvent, sysMsg, createEventId 등 공용 헬퍼)
