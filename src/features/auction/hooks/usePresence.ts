@@ -96,37 +96,42 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
 
         // 3. 전체 presence 구독 (모든 역할 수행, FR-001)
         const allPresenceRef = ref(rtdb, `presence/${roomId}`)
+        let presenceDebounceTimer: ReturnType<typeof setTimeout> | null = null
         const unsubPresence = onValue(allPresenceRef, (snapshot) => {
           const data = snapshot.val()
 
-          setPresenceLoaded(true)
-
-          if (!data) {
+          const nextPresences: PresenceUser[] = (() => {
+            if (!data) {
+              const localPresence = localPresenceRef.current
+              return localPresence ? [localPresence] : []
+            }
+            const presences: PresenceUser[] = Object.values(
+              data as Record<string, { teamId: string | null; role: string | null }>,
+            ).map((p) => ({
+              teamId: p.teamId ?? null,
+              role: (p.role as PresenceUser['role']) ?? null,
+            }))
             const localPresence = localPresenceRef.current
-            setRealtimeData({ presences: localPresence ? [localPresence] : [] })
-            return
-          }
-          const presences: PresenceUser[] = Object.values(
-            data as Record<string, { teamId: string | null; role: string | null }>,
-          ).map((p) => ({
-            teamId: p.teamId ?? null,
-            role: (p.role as PresenceUser['role']) ?? null,
-          }))
-          const localPresence = localPresenceRef.current
-          const hasLocalPresence =
-            !localPresence ||
-            presences.some(
-              (presence) =>
-                presence.role === localPresence.role &&
-                presence.teamId === localPresence.teamId,
-            )
-          setRealtimeData({
-            presences: hasLocalPresence || !localPresence
+            const hasLocalPresence =
+              !localPresence ||
+              presences.some(
+                (presence) =>
+                  presence.role === localPresence.role &&
+                  presence.teamId === localPresence.teamId,
+              )
+            return hasLocalPresence || !localPresence
               ? presences
-              : [...presences, localPresence],
-          })
+              : [...presences, localPresence]
+          })()
+
+          if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer)
+          presenceDebounceTimer = setTimeout(() => {
+            setPresenceLoaded(true)
+            setRealtimeData({ presences: nextPresences })
+          }, 50)
         })
         unsubs.push(unsubPresence)
+        unsubs.push(() => { if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer) })
       } catch (error) {
         console.error('[presence] anonymous auth failed', error)
         setPresenceLoaded(true)

@@ -22,7 +22,7 @@ function isAuthorized(request: NextRequest) {
   }
 
   if (!cronSecret && !legacySecret) {
-    return process.env.NODE_ENV !== "production";
+    return false;
   }
   return false;
 }
@@ -34,24 +34,24 @@ async function runWatchdogSweep() {
     .where("timer_ends_at", "<=", now)
     .get();
 
-  const results: Array<{ roomId: string; recovered: boolean; error?: string }> = [];
-
-  for (const roomDoc of snapshot.docs) {
+  const eligible = snapshot.docs.filter((roomDoc) => {
     const data = roomDoc.data() as {
       current_player_id?: string | null;
       roomDeleted?: boolean;
     };
-    if (data.roomDeleted || !data.current_player_id) {
-      continue;
-    }
+    return !data.roomDeleted && !!data.current_player_id;
+  });
 
-    const result = await recoverExpiredAuction(roomDoc.id);
-    results.push({
-      roomId: roomDoc.id,
-      recovered: result.recovered === true,
-      error: result.error,
-    });
-  }
+  const results = await Promise.all(
+    eligible.map(async (roomDoc) => {
+      const result = await recoverExpiredAuction(roomDoc.id);
+      return {
+        roomId: roomDoc.id,
+        recovered: result.recovered === true,
+        error: result.error,
+      };
+    })
+  );
 
   return results;
 }

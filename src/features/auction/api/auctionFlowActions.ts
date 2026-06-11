@@ -145,12 +145,9 @@ async function sysMsg(
 
 async function publishAuctionEvent(event: AuctionEventEnvelope): Promise<void> {
   const { rtdb } = getAuctionServerServices();
-  await Promise.all([
-    rtdb.ref(`signals/${event.roomId}/auctionEvent`).set(event),
-    rtdb
-      .ref(`signals/${event.roomId}/auctionEvents/${event.eventId}`)
-      .set(event),
-  ]);
+  await rtdb.ref(`signals/${event.roomId}/auctionEvent`).set(event);
+  // 히스토리는 타이머 갱신 경로 밖에서 처리 — 응답 지연에 영향 없음
+  rtdb.ref(`signals/${event.roomId}/auctionEvents/${event.eventId}`).set(event).catch(() => {});
 }
 
 function createEventId(type: AuctionEventEnvelope["type"]): string {
@@ -475,7 +472,7 @@ export async function drawNextPlayer(
 
       leaderCount = presenceRoles.filter((role) => role === "LEADER").length;
       if (leaderCount >= 2) break;
-      if (attempt < 2) await sleep(350);
+      if (attempt < 2) await sleep(150);
     }
 
     if (leaderCount < 2) {
