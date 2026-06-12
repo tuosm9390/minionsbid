@@ -1,6 +1,7 @@
 # 실전 경매 운영 체크리스트 (2026-06-12 작성, 경매 예정일 D-10 기준)
 
 > 대상: 2026-06-22경 예정된 실전 경매.
+> 운영 도메인: https://minionsbid.vercel.app
 > 원칙: **D-5부터 코드 프리즈** — 버그 수정 외 코드 변경 금지. 이 문서의 항목은 전부 코드가 아닌 운영 확인 작업이다.
 > 관련 문서: `doc/results/260611_CodebaseImprovementPlan.md`(개선 이력), `load-tests/LOAD_TEST_PLAN.md` 9장(리허설 결과).
 
@@ -40,7 +41,7 @@ watchdog(`/api/auction-watchdog`)은 핵심 경로가 아닌 선택적 백업이
 - **설정 위치**: Vercel Production 환경 변수 `CRON_SECRET` + 로컬 `.env.local`(같은 값) → Vercel 재배포.
 - **동작 확인**: 설정·배포 후 아래 호출이 200을 반환하는지 확인 (미설정 헤더로는 401이어야 정상).
   ```powershell
-  curl -H "Authorization: Bearer <생성한 값>" https://<운영 도메인>/api/auction-watchdog
+  curl -H "Authorization: Bearer <생성한 값>" https://minionsbid.vercel.app/api/auction-watchdog
   ```
 
 ### 1-4. [ ] latency 관측 동작 확인 (배포 후 1회)
@@ -122,7 +123,7 @@ watchdog(`/api/auction-watchdog`)은 핵심 경로가 아닌 선택적 백업이
 - **이상 징후 시 확인 순서**: ① 해당 참가자 새로고침 → ② 주최자 화면 기준으로 상태 판단(주최자 화면이 canonical) → ③ Vercel 대시보드 → Logs에서 에러 확인.
 - **타이머/경매 상태가 꼬인 것 같을 때** (CRON_SECRET 설정한 경우):
   ```powershell
-  curl -H "Authorization: Bearer <CRON_SECRET>" https://<운영 도메인>/api/auction-watchdog
+  curl -H "Authorization: Bearer <CRON_SECRET>" https://minionsbid.vercel.app/api/auction-watchdog
   ```
   만료된 경매를 일괄 정리(sweep)한다. 핵심 복구는 클라이언트 recover 경로가 자동으로 하므로, 이건 그래도 안 풀릴 때의 마지막 수단.
 - **하지 말 것**: 경매 진행 중 배포(재배포 시 서버리스 인스턴스 교체로 순단 가능). 문제가 있어도 경매 종료 후 수정.
@@ -157,6 +158,6 @@ watchdog(`/api/auction-watchdog`)은 핵심 경로가 아닌 선택적 백업이
 |------|--------|
 | latency 리포트 | Firebase Console → Firestore → named DB → `latency_reports` |
 | 서버 로그 | Vercel 대시보드 → 프로젝트 → Logs |
-| 수동 sweep | `curl -H "Authorization: Bearer <CRON_SECRET>" https://<운영 도메인>/api/auction-watchdog` |
+| 수동 sweep | `curl -H "Authorization: Bearer <CRON_SECRET>" https://minionsbid.vercel.app/api/auction-watchdog` |
 | 부하 리허설 결과 | `load-tests/LOAD_TEST_PLAN.md` 9장 |
 | 개선 이력 전체 | `doc/results/260611_CodebaseImprovementPlan.md` |
