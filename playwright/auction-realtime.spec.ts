@@ -87,6 +87,13 @@ test('extends timer and syncs min bid across organizer and leaders', async ({
   expect(response.ok()).toBeTruthy()
   const fixture = (await response.json()) as AuctionFixtureResetResponse
 
+  // 첫 페이지 로드(dev 콜드 컴파일 포함)가 8초 타이머와 경쟁하지 않도록 보류 시간으로 재무장
+  await sendFixtureCommand(request, {
+    roomId: fixture.roomId,
+    action: 'startAuction',
+    durationMs: 60_000,
+  })
+
   const organizerContext = await browser.newContext({ reducedMotion: 'reduce' })
   const blueContext = await browser.newContext({ reducedMotion: 'reduce' })
   const redContext = await browser.newContext({ reducedMotion: 'reduce' })
@@ -116,10 +123,16 @@ test('extends timer and syncs min bid across organizer and leaders', async ({
   await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(redBidInput).toHaveValue('10')
   await expect(bluePage.locator('[role="timer"]')).toBeVisible()
+  // 모든 클라이언트 준비 후 타이머를 2초로 재무장 — runner 속도와 무관하게 연장 임계 구간을 보장
+  await sendFixtureCommand(request, {
+    roomId: fixture.roomId,
+    action: 'startAuction',
+    durationMs: 2000,
+  })
   await expect
     .poll(
       async () => parseTimerSeconds(await organizerTimer.textContent()),
-      { timeout: 12000 },
+      { timeout: 5000 },
     )
     .toBeLessThanOrEqual(2.5)
   const timerBeforeBid = parseTimerSeconds(await organizerTimer.textContent())
@@ -630,15 +643,20 @@ test('keeps the auction alive when a bid lands in the final second', async ({
   await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(blueTimer).toBeVisible({ timeout: 10000 })
+
+  // 모든 클라이언트 준비 후 타이머를 1.5초로 재무장 — runner 속도와 무관하게 final-second 상황을 보장
+  await blueBidInput.fill('10')
+  await sendFixtureCommand(request, {
+    roomId: fixture.roomId,
+    action: 'startAuction',
+    durationMs: 1500,
+  })
   await expect
     .poll(
       async () => parseTimerSeconds(await blueTimer.textContent()),
-      { timeout: 15000 },
+      { timeout: 5000 },
     )
     .toBeLessThanOrEqual(1.6)
-  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 3000 })
-
-  await blueBidInput.fill('10')
   await bluePage.getByRole('button', { name: '입찰하기' }).click()
 
   await expect(bluePage.getByRole('button', { name: '최고 입찰 유지 중' })).toBeVisible({
@@ -697,14 +715,20 @@ test('keeps every client timer extended when a non-first leader bids after chat 
 
   await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(redPage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
+
+  // 모든 클라이언트 준비 후 타이머를 1.5초로 재무장 — runner 속도와 무관하게 final-second 상황을 보장
+  await blueBidInput.fill('10')
+  await sendFixtureCommand(request, {
+    roomId: fixture.roomId,
+    action: 'startAuction',
+    durationMs: 1500,
+  })
   await expect
     .poll(
       async () => parseTimerSeconds(await blueTimer.textContent()),
-      { timeout: 15000 },
+      { timeout: 5000 },
     )
     .toBeLessThanOrEqual(1.6)
-
-  await blueBidInput.fill('10')
   await bluePage.getByRole('button', { name: '입찰하기' }).click()
   await expect(redBidInput).toHaveValue('20', { timeout: 3000 })
 
@@ -776,15 +800,20 @@ test('awards the winning bid and syncs roster plus point balance across clients'
 
   await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 10000 })
   await expect(blueTimer).toBeVisible({ timeout: 10000 })
+
+  // 클라이언트 준비 후 타이머를 1.5초로 재무장 — runner 속도와 무관하게 final-second 상황을 보장
+  await blueBidInput.fill('10')
+  await sendFixtureCommand(request, {
+    roomId: fixture.roomId,
+    action: 'startAuction',
+    durationMs: 1500,
+  })
   await expect
     .poll(
       async () => parseTimerSeconds(await blueTimer.textContent()),
-      { timeout: 15000 },
+      { timeout: 5000 },
     )
     .toBeLessThanOrEqual(1.6)
-  await expect(bluePage.getByRole('button', { name: '입찰하기' })).toBeEnabled({ timeout: 3000 })
-
-  await blueBidInput.fill('10')
   await bluePage.getByRole('button', { name: '입찰하기' }).click()
 
   await expect(organizerPage.getByText(/Blue이 Alpha 선수를 10P에 낙찰!/)).toBeVisible({

@@ -314,7 +314,9 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
   } else if (options.stage === 'active-auction-final-second') {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
-    room.timerEndsAt = new Date(Date.now() + AUCTION_DURATION_MS).toISOString()
+    // 페이지 로드가 타이머 만료와 경쟁하지 않도록 길게 잡는다.
+    // 테스트는 클라이언트 준비 후 startAuction command(durationMs)로 타이머를 재무장해 final-second 상황을 만든다.
+    room.timerEndsAt = new Date(Date.now() + 60_000).toISOString()
     room.lotteryPlayer = null
   } else if (options.stage === 'draft-last-slot') {
     room.membersPerTeam = 2
