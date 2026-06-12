@@ -112,9 +112,14 @@
 12. **Firestore read 범위 identity 기반 제한** — TODOS "Firebase client identity 모델 고도화"와 동일 트랙. messages/teams/players의 `list: true`를 room 참여자 클레임 기반으로 전환.
    - 주의: 링크 입장(roomId 공유) UX와 충돌하므로 토큰 발급 흐름 설계가 선행. 단독 진행 금지.
 
-### Phase 5 — 운영 품질 (지속)
+### Phase 5 — 운영 품질 (지속) — 13번 완료 (2026-06-12)
 
 13. **latency 관측 체계** (L5) — 이미 존재하는 `recordAuctionLatencyMarker`(eventId 기반 marker)를 운영 수집으로 확장. Vercel Analytics custom event 또는 Firestore 별도 컬렉션 집계 중 택일.
+   - **실행 결과 (2026-06-12)**: Firestore 집계 채택 (Vercel Analytics 커스텀 이벤트는 percentile 집계 불가). 구성 요소는 다음과 같다.
+     - `latencyDebug.ts`: `drainAuctionLatencyReport()`(미보고 완료 샘플 p50/p95/max/소스별 카운트 집계, drain 후 재보고 방지), `recordBidFallback()`(placeBidDirect→placeBid 서버 액션 폴백 발동 기록 — Phase 3-9 판단 데이터).
+     - `useLatencyReporter` 훅: 30초 주기 POST + pagehide 시 sendBeacon flush. 샘플 없으면 미전송. E2E fixture 모드에서는 비활성. `RoomClient`에 마운트.
+     - `POST /api/latency-report`: per-IP 스로틀(30/min), payload 검증, `latency_reports` 컬렉션 적재. `expires_at`(+30일) 포함 — Firebase 콘솔에서 TTL 정책을 `expires_at` 필드로 설정하면 자동 정리됨.
+     - 단위 테스트 13개 추가 (drain 의미론 7, 라우트 검증 6). tsc/lint/테스트 225개/빌드 통과.
 14. **final-second E2E 안정화** (L4) — fixture에 timer freeze 훅 추가 검토 (TODOS 기존 항목).
 15. **부하테스트 정례화** — `load-tests/` 시나리오를 릴리스 전 체크리스트에 포함. Vercel Preview 대상 실행으로 Cold Start 실측 보완.
 
