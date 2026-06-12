@@ -13,7 +13,10 @@ import {
 } from '@/features/auction/api/auctionActions'
 import { placeBidDirect } from '@/features/auction/api/placeBidClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
-import { recordAuctionLatencyMarker } from '@/features/auction/utils/latencyDebug'
+import {
+  recordAuctionLatencyMarker,
+  recordBidFallback,
+} from '@/features/auction/utils/latencyDebug'
 import { bucketAuctionPlayers } from '@/features/auction/store/auctionSelectors'
 import {
   EXTEND_THRESHOLD_MS,
@@ -237,6 +240,12 @@ export function useBiddingControl({
         return
       }
 
+      // RTDB 직접 쓰기 실패 → 서버 액션 폴백. 발동 빈도를 운영 리포트로 수집 (Phase 3-9 판단 데이터)
+      recordBidFallback({
+        roomId,
+        reason: directResult.error ?? 'unknown',
+        roundTripMs: Date.now() - localNow,
+      })
       const res = await placeBid(roomId, currentPlayer.id, teamId, finalAmount, leaderToken)
       if (res.error) {
         setLiveBid(previousLiveBid ?? null)

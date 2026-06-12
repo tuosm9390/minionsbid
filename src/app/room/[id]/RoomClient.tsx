@@ -9,6 +9,7 @@ import {
 } from "@/features/auction/store/useAuctionStore";
 import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
 import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
+import { useLatencyReporter } from "@/features/auction/hooks/useLatencyReporter";
 import { useAuctionPresenceGuard } from "@/features/auction/hooks/useAuctionPresenceGuard";
 import { useRoomAuth } from "@/features/auction/hooks/useRoomAuth";
 import { useAuctionControl } from "@/features/auction/hooks/useAuctionControl";
@@ -99,6 +100,8 @@ export function RoomClient({
     setRoomContext,
   });
   useFirebaseRealtime(roomId, effectiveRole);
+  // 입찰 latency·폴백 발동 운영 리포트 (30초 주기 + 이탈 시 flush)
+  useLatencyReporter(roomId);
 
   // Firebase RTDB Presence (팀장/주최자 접속 현황)
   const myTeamForPresence = teams.find((t) => t.id === storeTeamId);
