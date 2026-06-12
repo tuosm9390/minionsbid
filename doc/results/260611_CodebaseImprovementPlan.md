@@ -123,6 +123,7 @@
 14. **final-second E2E 안정화** (L4) — fixture에 timer freeze 훅 추가 검토 (TODOS 기존 항목).
    - **실행 결과 (2026-06-12)**: 별도 freeze 훅 없이 기존 `startAuction` command(durationMs)를 타이머 재무장 수단으로 활용. final-second 스테이지는 60초 보류로 시작하고, 테스트가 클라이언트 준비 확인 후 1.5초로 재무장 → 페이지 로드/콜드 컴파일이 타이머와 경쟁하던 구조적 원인 제거. 재무장은 첫 입찰 전에만 사용(AUCTION_STARTED가 클라이언트 liveBid를 초기화하므로). `--repeat-each=2 --workers=1` 28/28 통과. 주의: fixture 룸이 전역 단일이라 병렬 워커 실행은 불가 — repeat 검증 시 `--workers=1` 필수.
 15. **부하테스트 정례화** — `load-tests/` 시나리오를 릴리스 전 체크리스트에 포함. Vercel Preview 대상 실행으로 Cold Start 실측 보완.
+   - **실행 결과 (2026-06-12)**: 실전(D-10) 리허설을 로컬 프로덕션 빌드(`next start`) 대상으로 시나리오 01~03 실행. 6-11 dev 베이스라인의 서버 크래시는 dev 한정 문제로 확정(prod 빌드 11분 연속 생존), p95 응답 -72~-97% 개선, 경합 직렬화 회귀 없음. 상세는 `load-tests/LOAD_TEST_PLAN.md` 9장. Cold Start/실 Firebase 팬아웃은 미측정 — 실전 당일 latency_reports 관측으로 보완.
 
 ---
 

@@ -457,3 +457,31 @@ k6 run --out json=load-tests/results/report-$(date +%Y%m%d).json \
 3. **Vercel 배포 환경 재현**: 로컬 `npm run dev`는 Vercel Serverless 환경과 다르다. Cold Start, 리전별 레이턴시를 측정하려면 Vercel Preview 배포 대상으로 테스트해야 한다.
 
 4. **Firebase 과금 주의**: 실 Firebase 프로젝트 대상 부하테스트 시 Blaze 플랜의 과금이 발생할 수 있다. Firestore 쓰기 $0.18/100K, RTDB 연결 $5/GB 기준으로 예산을 미리 설정한다.
+
+---
+
+## 9. 리허설 실측 결과 (2026-06-12, 로컬 프로덕션 빌드)
+
+> 환경: Windows 11 / Next.js 16.2.9 / `next start --port 3010` + `E2E_AUCTION_FIXTURE=1`  
+> 목적: 실전 경매(D-10) 전 리허설. 6-11 dev 서버 베이스라인 대비 성능 수정(presence debounce, watchdog 병렬화 등) 적용 후 비교.  
+> 원본 요약: `load-tests/results/rehearsal-260612-*.json`
+
+### 베이스라인 대비 비교 (p95 기준)
+
+| 지표 | 6-11 dev 서버 | 6-12 prod 빌드 | 변화 |
+|------|--------------|---------------|------|
+| 01 서버 생존 | ❌ 3분 후 크래시 | ✅ 4m03s 전체 생존 | **dev 한정 문제로 확정** |
+| 01 http_req_duration p95 | 27.17ms | 2.01ms | -92% |
+| 02 concurrent_bid_latency p95 | 380.79ms | 105ms | -72% |
+| 02 bid_conflict_rate | 99.12% | 99.15% | 동일 (직렬화 정상) |
+| 03 http_req_duration p95 | 149.39ms | 4.31ms | -97% |
+| 03 room_page_load p95 | 140.74ms | 7ms | -95% |
+| 03 입찰 시도 횟수 | 4회 | 990회 | 시나리오 정상 작동 |
+| checks 성공률 (전 시나리오) | 100% | 100% | 동일 |
+
+### 판정
+
+- **6-11 핵심 발견 1번(서버 크래시)은 dev 서버(Turbopack) 한정 문제.** 프로덕션 빌드는 10~15 VU 지속 부하에서 11분간(3개 시나리오 연속) 안정적으로 생존했다.
+- `http_req_failed` threshold는 3개 시나리오 모두 초과했으나, 이는 입찰 경합 거절 응답(4xx)이 실패로 집계되는 알려진 아티팩트다. checks 100%가 실제 가용성을 반영한다.
+- 경합 직렬화(1라운드 1명 낙찰)와 재시도 횟수(1,874회, 베이스라인 1,822회)는 베이스라인과 동일한 패턴 — 회귀 없음.
+- **실전 전 잔여 확인 사항**: 실 Firebase RTDB 팬아웃과 Vercel Cold Start는 이 리허설로 측정되지 않음(8장 한계 1·3번). 실전 당일 latency 관측(`latency_reports` 컬렉션, p95 ≤ 500ms 목표)으로 보완한다.

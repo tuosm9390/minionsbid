@@ -1,0 +1,241 @@
+{
+    "metrics": {
+        "http_req_duration": {
+            "avg": 0.9728220748209074,
+            "min": 0,
+            "med": 0.9773,
+            "max": 4.426,
+            "p(90)": 1.47838,
+            "p(95)": 1.5472,
+            "thresholds": {
+                "p(95)<3000": false
+            }
+        },
+        "concurrent_bid_latency_ms": {
+            "avg": 102.90687830687831,
+            "min": 1,
+            "med": 104,
+            "max": 107,
+            "p(90)": 105,
+            "p(95)": 105
+        },
+        "http_reqs": {
+            "count": 3769,
+            "rate": 26.783868916433956
+        },
+        "http_req_sending": {
+            "avg": 0.00486033430618201,
+            "min": 0,
+            "med": 0,
+            "max": 0.8237,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "concurrent_bid_fail": {
+            "count": 937,
+            "rate": 6.658658841787906
+        },
+        "http_req_failed": {
+            "passes": 2811,
+            "fails": 958,
+            "thresholds": {
+                "rate<0.60": true
+            },
+            "value": 0.7458211727248607
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0
+        },
+        "http_req_waiting": {
+            "med": 0.641,
+            "max": 3.6975,
+            "p(90)": 1.03574,
+            "p(95)": 1.2039799999999998,
+            "avg": 0.6921821968691949,
+            "min": 0
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.0009511276200583709,
+            "min": 0,
+            "med": 0,
+            "max": 1.0059
+        },
+        "checks": {
+            "passes": 3770,
+            "fails": 0,
+            "value": 1
+        },
+        "bid_conflict_rate": {
+            "passes": 937,
+            "fails": 8,
+            "value": 0.9915343915343915
+        },
+        "iterations": {
+            "rate": 6.715509717704985,
+            "count": 945
+        },
+        "bid_retry_count": {
+            "count": 1874,
+            "rate": 13.317317683575812
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 1.2162451983298546,
+            "min": 0,
+            "med": 1.2850000000000001,
+            "max": 3.3103,
+            "p(90)": 1.5724000000000002,
+            "p(95)": 1.6549
+        },
+        "http_req_receiving": {
+            "avg": 0.27577954364552937,
+            "min": 0,
+            "med": 0,
+            "max": 1.5127,
+            "p(90)": 0.78474,
+            "p(95)": 0.87792
+        },
+        "data_received": {
+            "count": 13145921,
+            "rate": 93419.64044834078
+        },
+        "iteration_duration": {
+            "avg": 1390.2684717460297,
+            "min": 606.9208,
+            "med": 1419.0038,
+            "max": 2104.9856,
+            "p(90)": 1964.69146,
+            "p(95)": 2028.2038400000001
+        },
+        "http_req_blocked": {
+            "avg": 0.005421225789334041,
+            "min": 0,
+            "med": 0,
+            "max": 13.5537,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "vus": {
+            "value": 2,
+            "min": 1,
+            "max": 10
+        },
+        "data_sent": {
+            "count": 999635,
+            "rate": 7103.765668421189
+        },
+        "concurrent_bid_success": {
+            "count": 8,
+            "rate": 0.05685087591707924,
+            "thresholds": {
+                "count>0": false
+            }
+        }
+    },
+    "setup_data": {
+        "firstPlayerName": "선수1",
+        "roomId": "fixture-room-qcrh0fgl",
+        "teamIds": [
+            "team-1-extgi3lb",
+            "team-2-p9ivpwi0",
+            "team-3-xks55jd3",
+            "team-4-7d6wiqfw",
+            "team-5-z184eakn",
+            "team-6-wbei7l6r",
+            "team-7-brixcalu",
+            "team-8-xizaqvfn"
+        ]
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "setup": {
+                "name": "setup",
+                "path": "::setup",
+                "id": "5c0f8025f7e0b6654089e5b00e950f1a",
+                "groups": {},
+                "checks": {
+                        "fixture 룸 생성 성공 (200)": {
+                            "path": "::setup::fixture 룸 생성 성공 (200)",
+                            "id": "01c86cc330e368476ef50925e8e7bfac",
+                            "passes": 1,
+                            "fails": 0,
+                            "name": "fixture 룸 생성 성공 (200)"
+                        },
+                        "roomId 포함": {
+                            "name": "roomId 포함",
+                            "path": "::setup::roomId 포함",
+                            "id": "777101273e3adeaa6b1fe59bb28ee39b",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "fixture 커맨드 draw 응답 수신": {
+                            "name": "fixture 커맨드 draw 응답 수신",
+                            "path": "::setup::fixture 커맨드 draw 응답 수신",
+                            "id": "eb18c8680ee6064ee4b7505a25e5a2fb",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "fixture 커맨드 closeLottery 응답 수신": {
+                            "name": "fixture 커맨드 closeLottery 응답 수신",
+                            "path": "::setup::fixture 커맨드 closeLottery 응답 수신",
+                            "id": "5305b9da6d831ef526267a46e5e59512",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "fixture 커맨드 startAuction 응답 수신": {
+                            "name": "fixture 커맨드 startAuction 응답 수신",
+                            "path": "::setup::fixture 커맨드 startAuction 응답 수신",
+                            "id": "81f5c24f5ed611813ddfb240c82ce1e8",
+                            "passes": 1,
+                            "fails": 0
+                        }
+                    }
+            },
+            "teardown": {
+                "name": "teardown",
+                "path": "::teardown",
+                "id": "a8a9942382e8ffe2e56ef29e664b8229",
+                "groups": {},
+                "checks": {
+                        "fixture 상태 조회 성공 (200)": {
+                            "id": "e4e4d8d1c70658cad62067b5be6e3921",
+                            "passes": 1,
+                            "fails": 0,
+                            "name": "fixture 상태 조회 성공 (200)",
+                            "path": "::teardown::fixture 상태 조회 성공 (200)"
+                        }
+                    }
+            }
+        },
+        "checks": {
+            "fixture 상태 조회 성공 (200)": {
+                "id": "eb16b4cb21fd30bdff6aefa5d7c2aa45",
+                "passes": 945,
+                "fails": 0,
+                "name": "fixture 상태 조회 성공 (200)",
+                "path": "::fixture 상태 조회 성공 (200)"
+            },
+            "fixture 커맨드 placeBid 응답 수신": {
+                "path": "::fixture 커맨드 placeBid 응답 수신",
+                "id": "c20bbd4840b0e9a0a71303abd2c0be19",
+                "passes": 2819,
+                "fails": 0,
+                "name": "fixture 커맨드 placeBid 응답 수신"
+            }
+        }
+    }
+}

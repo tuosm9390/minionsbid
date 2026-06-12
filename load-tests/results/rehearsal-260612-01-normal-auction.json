@@ -1,0 +1,346 @@
+{
+    "setup_data": {
+        "roomId": "fixture-room-2gdn49ja",
+        "teamIds": [
+            "team-1-klt3ljay",
+            "team-2-1jwqp0vq",
+            "team-3-34fvvcn1",
+            "team-4-un501k32",
+            "team-5-diczv51h",
+            "team-6-xu78xq2d",
+            "team-7-63uxbjzl",
+            "team-8-5slu46an"
+        ],
+        "playerIndex": 0,
+        "players": [
+            {
+                "description": "테스트 선수 1",
+                "mainPosition": "MID",
+                "name": "선수1",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "description": "테스트 선수 2",
+                "mainPosition": "MID",
+                "name": "선수2",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "tier": "GOLD",
+                "description": "테스트 선수 3",
+                "mainPosition": "MID",
+                "name": "선수3",
+                "subPosition": "ADC"
+            },
+            {
+                "description": "테스트 선수 4",
+                "mainPosition": "MID",
+                "name": "선수4",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "tier": "GOLD",
+                "description": "테스트 선수 5",
+                "mainPosition": "MID",
+                "name": "선수5",
+                "subPosition": "ADC"
+            },
+            {
+                "description": "테스트 선수 6",
+                "mainPosition": "MID",
+                "name": "선수6",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "mainPosition": "MID",
+                "name": "선수7",
+                "subPosition": "ADC",
+                "tier": "GOLD",
+                "description": "테스트 선수 7"
+            },
+            {
+                "description": "테스트 선수 8",
+                "mainPosition": "MID",
+                "name": "선수8",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "tier": "GOLD",
+                "description": "테스트 선수 9",
+                "mainPosition": "MID",
+                "name": "선수9",
+                "subPosition": "ADC"
+            },
+            {
+                "description": "테스트 선수 10",
+                "mainPosition": "MID",
+                "name": "선수10",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "mainPosition": "MID",
+                "name": "선수11",
+                "subPosition": "ADC",
+                "tier": "GOLD",
+                "description": "테스트 선수 11"
+            },
+            {
+                "description": "테스트 선수 12",
+                "mainPosition": "MID",
+                "name": "선수12",
+                "subPosition": "ADC",
+                "tier": "GOLD"
+            },
+            {
+                "name": "선수13",
+                "subPosition": "ADC",
+                "tier": "GOLD",
+                "description": "테스트 선수 13",
+                "mainPosition": "MID"
+            },
+            {
+                "subPosition": "ADC",
+                "tier": "GOLD",
+                "description": "테스트 선수 14",
+                "mainPosition": "MID",
+                "name": "선수14"
+            },
+            {
+                "mainPosition": "MID",
+                "name": "선수15",
+                "subPosition": "ADC",
+                "tier": "GOLD",
+                "description": "테스트 선수 15"
+            },
+            {
+                "subPosition": "ADC",
+                "tier": "GOLD",
+                "description": "테스트 선수 16",
+                "mainPosition": "MID",
+                "name": "선수16"
+            }
+        ]
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "setup": {
+                "name": "setup",
+                "path": "::setup",
+                "id": "5c0f8025f7e0b6654089e5b00e950f1a",
+                "groups": {},
+                "checks": {
+                        "fixture 룸 생성 성공 (200)": {
+                            "name": "fixture 룸 생성 성공 (200)",
+                            "path": "::setup::fixture 룸 생성 성공 (200)",
+                            "id": "01c86cc330e368476ef50925e8e7bfac",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "roomId 포함": {
+                            "name": "roomId 포함",
+                            "path": "::setup::roomId 포함",
+                            "id": "777101273e3adeaa6b1fe59bb28ee39b",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "fixture 커맨드 draw 응답 수신": {
+                            "path": "::setup::fixture 커맨드 draw 응답 수신",
+                            "id": "eb18c8680ee6064ee4b7505a25e5a2fb",
+                            "passes": 1,
+                            "fails": 0,
+                            "name": "fixture 커맨드 draw 응답 수신"
+                        },
+                        "fixture 커맨드 closeLottery 응답 수신": {
+                            "name": "fixture 커맨드 closeLottery 응답 수신",
+                            "path": "::setup::fixture 커맨드 closeLottery 응답 수신",
+                            "id": "5305b9da6d831ef526267a46e5e59512",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "fixture 커맨드 startAuction 응답 수신": {
+                            "path": "::setup::fixture 커맨드 startAuction 응답 수신",
+                            "id": "81f5c24f5ed611813ddfb240c82ce1e8",
+                            "passes": 1,
+                            "fails": 0,
+                            "name": "fixture 커맨드 startAuction 응답 수신"
+                        }
+                    }
+            },
+            "teardown": {
+                "name": "teardown",
+                "path": "::teardown",
+                "id": "a8a9942382e8ffe2e56ef29e664b8229",
+                "groups": {},
+                "checks": {
+                        "fixture 상태 조회 성공 (200)": {
+                            "name": "fixture 상태 조회 성공 (200)",
+                            "path": "::teardown::fixture 상태 조회 성공 (200)",
+                            "id": "e4e4d8d1c70658cad62067b5be6e3921",
+                            "passes": 1,
+                            "fails": 0
+                        }
+                    }
+            }
+        },
+        "checks": {
+            "fixture 상태 조회 성공 (200)": {
+                "name": "fixture 상태 조회 성공 (200)",
+                "path": "::fixture 상태 조회 성공 (200)",
+                "id": "eb16b4cb21fd30bdff6aefa5d7c2aa45",
+                "passes": 754,
+                "fails": 0
+            },
+            "fixture 커맨드 placeBid 응답 수신": {
+                "name": "fixture 커맨드 placeBid 응답 수신",
+                "path": "::fixture 커맨드 placeBid 응답 수신",
+                "id": "c20bbd4840b0e9a0a71303abd2c0be19",
+                "passes": 754,
+                "fails": 0
+            }
+        }
+    },
+    "metrics": {
+        "http_req_receiving": {
+            "max": 1.5132,
+            "p(90)": 0.94428,
+            "p(95)": 1.0025999999999997,
+            "avg": 0.40403476536682026,
+            "min": 0,
+            "med": 0.4349
+        },
+        "http_req_failed": {
+            "passes": 746,
+            "fails": 767,
+            "thresholds": {
+                "rate<0.05": true
+            },
+            "value": 0.4930601454064772
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 1.5551674054758795,
+            "min": 0.504,
+            "med": 1.5717,
+            "max": 7.9363,
+            "p(90)": 1.84242,
+            "p(95)": 2.1003899999999973
+        },
+        "http_req_blocked": {
+            "avg": 0.015263317911434234,
+            "min": 0,
+            "med": 0,
+            "max": 19.7614,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iteration_duration": {
+            "p(95)": 2912.71729,
+            "avg": 2002.4994623342184,
+            "min": 1008.8118,
+            "med": 1986.46645,
+            "max": 3002.3128,
+            "p(90)": 2822.77987
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0
+        },
+        "vus_max": {
+            "min": 10,
+            "max": 10,
+            "value": 10
+        },
+        "bid_success_count": {
+            "count": 8,
+            "rate": 0.032918289201254725,
+            "thresholds": {
+                "count>0": false
+            }
+        },
+        "http_req_connecting": {
+            "p(95)": 0,
+            "avg": 0.0015097818902842035,
+            "min": 0,
+            "med": 0,
+            "max": 0.735,
+            "p(90)": 0
+        },
+        "http_req_waiting": {
+            "avg": 0.8711977528089881,
+            "min": 0,
+            "med": 0.664,
+            "max": 7.0473,
+            "p(90)": 1.58246,
+            "p(95)": 1.73674
+        },
+        "iterations": {
+            "count": 754,
+            "rate": 3.1025487572182575
+        },
+        "http_req_sending": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.00625181758096497,
+            "min": 0,
+            "med": 0,
+            "max": 0.9762
+        },
+        "auction_round_duration_ms": {
+            "avg": 1.2612732095490715,
+            "min": 0,
+            "med": 1,
+            "max": 4,
+            "p(90)": 2,
+            "p(95)": 2
+        },
+        "http_req_duration": {
+            "p(90)": 1.7577999999999998,
+            "p(95)": 2.019239999999999,
+            "avg": 1.2814843357567745,
+            "min": 0,
+            "med": 1.3603,
+            "max": 7.9363,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "checks": {
+            "passes": 1514,
+            "fails": 0,
+            "value": 1
+        },
+        "vus": {
+            "max": 10,
+            "value": 0,
+            "min": 0
+        },
+        "data_sent": {
+            "count": 349015,
+            "rate": 1436.1220881969896
+        },
+        "bid_fail_count": {
+            "count": 746,
+            "rate": 3.069630468017003
+        },
+        "data_received": {
+            "count": 9606261,
+            "rate": 39527.7097175918
+        },
+        "http_reqs": {
+            "count": 1513,
+            "rate": 6.2256714451873
+        }
+    }
+}
