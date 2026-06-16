@@ -411,3 +411,10 @@
 - [x] 재빌드 후 GET 405 / POST 400 / POST 403 정상 응답 재확인
 - [x] 전체 `npm test` 231개 통과 확인
 - [x] 변경 커밋 및 배포, 운영 재검증
+
+## Presence와 custom token 설계 점검 문서화
+
+- [x] 현재 프로젝트의 presence/custom token 의존성 정리
+- [x] Firebase, Supabase, Ably, Pusher 공식 문서 기반 사례 조사
+- [x] 대안별 장단점과 권고안 문서 작성
+- [x] 작업 기록 갱신

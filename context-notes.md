@@ -344,3 +344,10 @@
 - 2026-06-16: 해법을 `package.json`의 `"overrides": { "jose": "5.10.0" }`로 교체했다. v4까지 내리지 않고 v6에 가장 가까운 마지막 CJS 지원 버전(v5.10.0)을 선택해 API 차이 위험을 최소화했다. `npm install` 후 `node_modules/jwks-rsa/node_modules/jose`가 실제로 5.10.0(CJS `main`)으로 바뀐 것을 확인했다. `serverExternalPackages` 설정은 firebase-admin 계열 SDK 번들링 회피라는 별개의 정당한 이유로 유지했다.
 - 2026-06-16: `npm run build` + `next start -p 3098`로 재검증했다. GET은 이제 500이 아니라 405(Method Not Allowed), 빈 payload는 400, 존재하지 않는 roomId+token은 403으로 정상 응답했다. `npx vitest run`(관련 3개 파일 6개 테스트)과 `npm test`(전체 38개 파일 231개 테스트) 모두 통과했다.
 
+## Presence와 custom token 설계 점검 문서화
+
+- 2026-06-16: 사용자는 이 프로젝트가 presence와 custom token을 필수적으로 사용해야 하는 환경인지 재점검하고, 유사 시스템의 운영 또는 설계 사례까지 조사해 문서로 저장해 달라고 요청했다.
+- 2026-06-16: 결론은 direct bid에는 Firebase custom token 또는 동등한 Firebase Auth claim 전달 수단이 필요하다는 것이다. 현재 Firestore rules가 `request.auth.token.role`, `roomId`, `teamId`로 팀장 입찰 권한을 검증하기 때문이다.
+- 2026-06-16: presence는 개념적으로 custom token이 필수는 아니지만, 현재 RTDB rules가 `auth != null && auth.uid === $sessionId`를 요구하고 `usePresence.ts`가 `signInWithCustomToken()` 뒤 `onDisconnect()`를 쓰므로 현 구현에서는 실질적으로 custom token에 묶여 있다.
+- 2026-06-16: Firebase, Supabase Realtime, Ably, Pusher 공식 문서를 비교했다. 공통 패턴은 신뢰 가능한 presence에 서버가 검증한 identity와 채널 권한이 필요하다는 점이다. 인증 endpoint는 형태만 다를 뿐 대부분 존재한다.
+- 2026-06-16: 문서는 `doc/PRESENCE_CUSTOM_TOKEN_REVIEW.md`로 저장했다. 단기 권고는 custom token 구조 유지와 smoke test, 장애 UI 분리, 운영 로그 강화다. 장기적으로는 “팀장 미접속”과 “presence 인증 장애”를 경매 차단 사유에서 분리해 보여주는 방향을 권고했다.
