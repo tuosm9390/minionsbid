@@ -62,7 +62,9 @@ export async function ensureRoomFirebaseAuth(args: {
     })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error(`Firebase auth token request failed: ${response.status}`)
+          const body = (await response.json().catch(() => null)) as { error?: unknown } | null
+          const detail = typeof body?.error === 'string' ? `: ${body.error}` : ''
+          throw new Error(`Firebase auth token request failed: ${response.status}${detail}`)
         }
         return (await response.json()) as { token?: string }
       })

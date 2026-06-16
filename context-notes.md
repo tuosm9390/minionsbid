@@ -312,3 +312,13 @@
 - 2026-06-01: 경매는 organizer와 모든 팀장이 연결된 상태에서만 진행한다. watchdog는 핵심 경매 상태를 자동 진행하지 않으며, 참가자 부재 상태에서는 입찰이나 타이머를 대신 밀어주지 않는다.
 - 2026-06-01: 운영 latency 관측의 우선순위는 direct bid `eventId` marker 연쇄다. p95 관점에서 direct bid의 응답과 marker를 연결해 추적할 수 있게 문서를 맞췄다.
 
+## 방 생성 후 Firebase presence auth 500 점검
+
+- 2026-06-16: 사용자는 방 생성 뒤 브라우저 콘솔에 `[presence] anonymous auth failed Error: Firebase auth token request failed: 500`가 표시된다고 보고했다.
+- 2026-06-16: 클라이언트 오류는 `usePresence.ts`가 `ensureRoomFirebaseAuth()`를 호출하고, `src/lib/firebase.ts`가 `POST /api/room-auth/firebase-token`의 비정상 응답을 `Firebase auth token request failed: 500`으로 throw하는 경로다.
+- 2026-06-16: 서버 route handler는 입력 검증과 room token 검증 뒤 `getAuth().createCustomToken()`을 직접 호출한다. 현재 예외 처리 경계가 없어 Firebase Admin 미초기화, credential 오류, custom token 생성 실패가 모두 500으로만 드러난다.
+- 2026-06-16: 수정 방향은 권한 계약이나 RTDB rules를 바꾸지 않고, route handler 안에서 예상 가능한 서버 설정 실패를 비밀값 없이 기록하고 클라이언트에는 일반화된 `firebase auth unavailable` 응답을 주는 것이다.
+- 2026-06-16: 로컬 `.env.local` 기준 `FIREBASE_PRIVATE_KEY`로 `createCustomToken()` 단독 실행은 성공했다. 따라서 현재 로컬 private key 형식은 직접 원인으로 재현되지 않았고, 실제 500은 route의 Firestore 검증 경로, 배포 환경변수, 또는 Admin SDK 런타임 예외를 서버 로그로 확인해야 한다.
+- 2026-06-16: 서버 route는 예외 발생 시 `[room-auth] firebase token request failed` 로그에 roomId, role, leader teamId, 일반 오류 메시지만 남기고 `{ error: 'firebase auth unavailable' }`을 반환하도록 보강했다. 클라이언트 `ensureRoomFirebaseAuth()`는 이 일반화된 error 필드를 기존 `Firebase auth token request failed: 500` 메시지 뒤에 붙인다.
+- 2026-06-16: 검증 결과 `npx vitest run src/app/api/room-auth/firebase-token/__tests__/route.test.ts src/lib/firebase.test.ts`는 2개 파일 4개 테스트가 통과했고, `npm run build`도 통과했다. `next start -p 3016`으로 실제 API route에 잘못된 payload를 POST했을 때 `{ "error": "invalid request" }` 400 응답도 확인했다.
+

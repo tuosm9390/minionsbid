@@ -379,3 +379,11 @@
 - [x] room read rule 현상 유지와 token 분리, write 보호 중심 결정을 문서에 반영
 - [x] organizer와 모든 팀장 동시 연결 시에만 경매를 진행하고 watchdog는 자동 진행하지 않는 결정을 문서에 반영
 - [x] direct bid `eventId` marker 연쇄를 p95 관측 우선순위로 문서에 반영
+
+## 방 생성 후 Firebase presence auth 500 점검
+
+- [x] `/api/room-auth/firebase-token` 500 발생 경로 확인
+- [x] Firebase Admin token 발급 실패 시 비밀값 없는 진단 로그와 안정적인 응답 추가
+- [x] 관련 route handler 테스트 추가 또는 기존 테스트 보강
+- [x] 관련 검증 명령 실행
+- [x] 변경 커밋
