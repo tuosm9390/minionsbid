@@ -396,3 +396,13 @@
 - [x] Admin 초기화 실패 회귀 테스트 추가
 - [x] 관련 검증 명령 실행
 - [x] 변경 커밋
+
+## 운영 firebase-token 라우트 import 크래시(ERR_REQUIRE_ESM) 수정
+
+- [x] `vercel logs`로 운영 실제 크래시 스택트레이스 확보
+- [x] 다른 API 라우트는 정상 응답하는지 대조 확인
+- [x] 원인을 `firebase-admin -> jwks-rsa -> jose(ESM)` 번들링 충돌로 특정
+- [x] `next.config.ts`에 `serverExternalPackages` 추가
+- [x] 로컬 `npm run build` + `next start`로 400/403 정상 응답 재현 확인
+- [x] 관련 vitest 회귀 통과 확인
+- [x] 변경 커밋 및 배포, 운영 재검증

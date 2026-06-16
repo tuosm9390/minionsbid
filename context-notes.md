@@ -331,3 +331,13 @@
 - 2026-06-16: Vercel 환경변수에 private key가 따옴표로 감싸져 저장된 경우도 고려해 Admin credential 생성 전 key를 trim하고 외곽 따옴표, escaped newline, CRLF를 정규화한다.
 - 2026-06-16: 검증 결과 `npx vitest run src/lib/firebaseAdmin.test.ts src/app/api/room-auth/firebase-token/__tests__/route.test.ts src/lib/firebase.test.ts`는 3개 파일 6개 테스트가 통과했고, `npm run build`도 통과했다.
 
+## 운영 firebase-token 라우트 import 크래시(ERR_REQUIRE_ESM) 수정
+
+- 2026-06-16: 사용자가 방 생성 후 모든 팀장을 입장시켰는데도 연결된 팀장이 0명으로 보이고, organizer/leader 모두 콘솔에 presence 에러, network 탭에 `firebase-token` 500을 보고했다. `e7a4454`/`ca60e2b` 배포 이후에도 동일했다.
+- 2026-06-16: `vercel logs https://minionsbid.vercel.app`로 실시간 호출을 잡아 실제 원인을 확인했다. `roomId` 없는 빈 payload(`{}`)나 GET 요청도 무조건 500이었고, 응답은 우리 JSON이 아니라 Next 기본 500 HTML(`X-Matched-Path: /500`)이며 우리 쪽 로그가 전혀 없었다 — 이는 `POST()` 핸들러 진입 전 모듈 import 단계의 크래시라는 뜻이다. 같은 배포의 `/api/room-links`, `/api/auction-watchdog`는 정상 응답해 이 문제가 해당 라우트에 한정됨을 확인했다.
+- 2026-06-16: 잡힌 스택트레이스는 `Error [ERR_REQUIRE_ESM]: require() of ES Module .../node_modules/jose/dist/webapi/index.js from .../node_modules/jwks-rsa/src/utils.js not supported`였다. `npm ls`로 확인한 체인은 `firebase-admin@14.0.0 -> jwks-rsa@4.0.1 -> jose@6.2.3`. `jose` v6는 ESM-only인데 `jwks-rsa`가 CJS `require()`로 부르고, Turbopack이 `firebase-admin/auth`(route.ts의 `getAuth` import)를 서버리스 함수에 번들링하면서 이 require가 런타임에서 깨졌다. `e7a4454`/`ca60e2b`는 우리 코드 내부 예외 처리였을 뿐, 이 import-time 번들링 충돌은 잡지 못했다.
+- 2026-06-16: organizer/leader 구분 없이 라우트 자체가 100% 죽어 있었으므로 `ensureRoomFirebaseAuth()`가 전원 실패하고, 누구도 RTDB `presence/{roomId}`에 기록을 남기지 못해 모두의 화면에 "연결된 팀장 없음"으로 보인 것이다. presence 훅·게이트 로직 자체에는 결함이 없었다.
+- 2026-06-16: 해법은 `next.config.ts`에 `serverExternalPackages: ['firebase-admin']`을 추가해 Turbopack이 이 패키지를 번들링하지 않고 네이티브 `require`로 남기는 것이다(이 jose/ESM 충돌 클래스의 표준 해법).
+- 2026-06-16: 로컬 `npm run build` 통과 후 `next start -p 3099`로 재검증했다. 빈 payload는 500이 아니라 `{"error":"invalid request"}` 400으로, 존재하지 않는 roomId+token은 `{"error":"forbidden"}` 403으로 정상 응답했다 — import 크래시가 사라지고 정상 핸들러 로직까지 도달함을 확인했다.
+- 2026-06-16: 검증 결과 `npx vitest run src/app/api/room-auth/firebase-token/__tests__/route.test.ts src/lib/firebase.test.ts src/lib/firebaseAdmin.test.ts`는 3개 파일 6개 테스트가 통과했다.
+

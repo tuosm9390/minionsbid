@@ -12,6 +12,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // firebase-admin -> jwks-rsa -> jose(ESM-only) 체인이 번들링되면 서버리스 함수에서
+  // ERR_REQUIRE_ESM으로 크래시한다. 네이티브 require로 남겨 번들링을 우회한다.
+  serverExternalPackages: ['firebase-admin'],
   async headers() {
     return [
       {
