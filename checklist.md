@@ -405,4 +405,9 @@
 - [x] `next.config.ts`에 `serverExternalPackages` 추가
 - [x] 로컬 `npm run build` + `next start`로 400/403 정상 응답 재현 확인
 - [x] 관련 vitest 회귀 통과 확인
+- [x] 1차 배포(`serverExternalPackages`) 후 운영 재현 — 동일 에러로 미해결 확인
+- [x] 진짜 원인을 `jwks-rsa@4.0.1`의 `jose@6`(ESM-only) 의존성 선언 버그로 특정
+- [x] `package.json`에 `jose` 5.10.0 override 추가 후 `npm install`
+- [x] 재빌드 후 GET 405 / POST 400 / POST 403 정상 응답 재확인
+- [x] 전체 `npm test` 231개 통과 확인
 - [x] 변경 커밋 및 배포, 운영 재검증
