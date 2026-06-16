@@ -322,3 +322,12 @@
 - 2026-06-16: 서버 route는 예외 발생 시 `[room-auth] firebase token request failed` 로그에 roomId, role, leader teamId, 일반 오류 메시지만 남기고 `{ error: 'firebase auth unavailable' }`을 반환하도록 보강했다. 클라이언트 `ensureRoomFirebaseAuth()`는 이 일반화된 error 필드를 기존 `Firebase auth token request failed: 500` 메시지 뒤에 붙인다.
 - 2026-06-16: 검증 결과 `npx vitest run src/app/api/room-auth/firebase-token/__tests__/route.test.ts src/lib/firebase.test.ts`는 2개 파일 4개 테스트가 통과했고, `npm run build`도 통과했다. `next start -p 3016`으로 실제 API route에 잘못된 payload를 POST했을 때 `{ "error": "invalid request" }` 400 응답도 확인했다.
 
+## 운영 room auth import-stage 500 후속 점검
+
+- 2026-06-16: 운영 `https://minionsbid.vercel.app/api/room-auth/firebase-token`에 token 없는 invalid payload를 POST했을 때도 400 JSON이 아니라 Next 500 HTML이 반환됐다. 이는 `POST()` 본문 검증 전 route 모듈 import 단계에서 예외가 발생하는 증거다.
+- 2026-06-16: import 단계에서 실행되는 `src/lib/firebaseAdmin.ts`의 `initializeFirebaseAdmin()`이 잘못된 credential을 만나면 예외가 전파될 수 있었다. 이 경우 presence auth route뿐 아니라 Admin SDK를 import하는 다른 route도 handler 진입 전에 500 페이지로 떨어질 수 있다.
+- 2026-06-16: `initializeFirebaseAdmin()` 내부를 `try/catch`로 감싸 import 자체는 성공하게 하고, 실패 원인은 비밀값 없이 `[firebaseAdmin] 초기화 실패` 로그에 남기도록 변경했다. 실제 Admin 사용 시점의 `getAdminDb()`는 `Firebase Admin 초기화에 실패했습니다: ...`로 명확히 실패한다.
+- 2026-06-16: `FIREBASE_PRIVATE_KEY=invalid-private-key`를 주입한 `next start -p 3017`에서 `[firebaseAdmin] 초기화 실패` 로그가 찍히고, token 없는 `/api/room-auth/firebase-token` 요청은 500 HTML이 아니라 `{ "error": "invalid request" }` 400 JSON으로 내려오는 것을 확인했다.
+- 2026-06-16: Vercel 환경변수에 private key가 따옴표로 감싸져 저장된 경우도 고려해 Admin credential 생성 전 key를 trim하고 외곽 따옴표, escaped newline, CRLF를 정규화한다.
+- 2026-06-16: 검증 결과 `npx vitest run src/lib/firebaseAdmin.test.ts src/app/api/room-auth/firebase-token/__tests__/route.test.ts src/lib/firebase.test.ts`는 3개 파일 6개 테스트가 통과했고, `npm run build`도 통과했다.
+

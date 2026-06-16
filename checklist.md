@@ -387,3 +387,12 @@
 - [x] 관련 route handler 테스트 추가 또는 기존 테스트 보강
 - [x] 관련 검증 명령 실행
 - [x] 변경 커밋
+
+## 운영 room auth import-stage 500 후속 점검
+
+- [x] 운영 API가 invalid payload에도 500 HTML을 반환하는지 확인
+- [x] Firebase Admin top-level 초기화 실패가 route import를 깨는 경로 확인
+- [x] Admin 초기화 실패를 지연된 서비스 오류로 변경
+- [x] Admin 초기화 실패 회귀 테스트 추가
+- [x] 관련 검증 명령 실행
+- [x] 변경 커밋

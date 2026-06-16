@@ -1,6 +1,23 @@
 import { getApps, getApp, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
+let firebaseAdminInitError: Error | null = null;
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function normalizePrivateKey(privateKey: string) {
+  const trimmedKey = privateKey.trim();
+  const unquotedKey =
+    (trimmedKey.startsWith('"') && trimmedKey.endsWith('"')) ||
+    (trimmedKey.startsWith("'") && trimmedKey.endsWith("'"))
+      ? trimmedKey.slice(1, -1)
+      : trimmedKey;
+
+  return unquotedKey.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+}
+
 function initializeFirebaseAdmin() {
   if (getApps().length) return;
   if (process.env.E2E_SCHEDULE_FIXTURE === '1') return;
@@ -10,48 +27,58 @@ function initializeFirebaseAdmin() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  if (process.env.USE_FIREBASE_EMULATOR === '1') {
-    if (!projectId) {
-      console.warn('[firebaseAdmin] emulator project id missing');
-      return;
-    }
+  try {
+    if (process.env.USE_FIREBASE_EMULATOR === '1') {
+      if (!projectId) {
+        console.warn('[firebaseAdmin] emulator project id missing');
+        return;
+      }
 
-    if (clientEmail && privateKey) {
+      if (clientEmail && privateKey) {
+        initializeApp({
+          credential: cert({
+            projectId,
+            clientEmail,
+            privateKey: normalizePrivateKey(privateKey),
+          }),
+          databaseURL,
+        });
+        return;
+      }
+
       initializeApp({
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
-        }),
+        projectId,
         databaseURL,
       });
       return;
     }
 
+    if (!projectId || !clientEmail || !privateKey) {
+      console.warn('[firebaseAdmin] 누락된 환경변수:', {
+        FIREBASE_PROJECT_ID: projectId ? 'SET' : 'MISSING',
+        FIREBASE_CLIENT_EMAIL: clientEmail ? 'SET' : 'MISSING',
+        FIREBASE_PRIVATE_KEY: privateKey ? `SET (length: ${privateKey.length})` : 'MISSING',
+      });
+      return;
+    }
+
     initializeApp({
-      projectId,
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey: normalizePrivateKey(privateKey),
+      }),
       databaseURL,
     });
-    return;
-  }
-
-  if (!projectId || !clientEmail || !privateKey) {
-    console.warn('[firebaseAdmin] 누락된 환경변수:', {
+  } catch (error) {
+    firebaseAdminInitError = error instanceof Error ? error : new Error(String(error));
+    console.error('[firebaseAdmin] 초기화 실패:', {
       FIREBASE_PROJECT_ID: projectId ? 'SET' : 'MISSING',
       FIREBASE_CLIENT_EMAIL: clientEmail ? 'SET' : 'MISSING',
       FIREBASE_PRIVATE_KEY: privateKey ? `SET (length: ${privateKey.length})` : 'MISSING',
+      message: getErrorMessage(error),
     });
-    return;
   }
-
-  initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey: privateKey.replace(/\\n/g, '\n'),
-    }),
-    databaseURL,
-  });
 }
 
 initializeFirebaseAdmin();
@@ -59,6 +86,9 @@ initializeFirebaseAdmin();
 /** Firestore Admin 인스턴스. FIRESTORE_DATABASE_ID 환경 변수로 named database 지정 가능 */
 export function getAdminDb(): Firestore {
   if (!getApps().length) {
+    if (firebaseAdminInitError) {
+      throw new Error(`Firebase Admin 초기화에 실패했습니다: ${firebaseAdminInitError.message}`);
+    }
     throw new Error('Firebase Admin이 초기화되지 않았습니다. 환경 변수를 확인하세요.');
   }
   const databaseId = process.env.FIRESTORE_DATABASE_ID;
