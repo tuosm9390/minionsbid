@@ -365,3 +365,11 @@
 - 2026-06-17: VIEWER는 self presence write를 하지 않으므로 Firebase Auth custom token 요청이 필요 없다. RTDB `presence/{roomId}` read는 현재 rules상 공개 read다.
 - 2026-06-17: `usePresence`는 LEADER/ORGANIZER처럼 self presence write가 필요한 역할만 `ensureRoomFirebaseAuth()`를 호출하고, 해당 역할은 token이 준비되기 전에는 호출하지 않도록 변경했다.
 - 2026-06-17: RED 증거는 `npx vitest run src/features/auction/hooks/usePresence.test.ts -t "wait for organizer token|viewer without requesting"`가 2개 테스트 실패였고, GREEN 증거는 같은 명령 통과다. 추가로 `npx vitest run src/features/auction/hooks/usePresence.test.ts`, `npm run build`, 운영 malformed HTTP `POST /api/room-auth/firebase-token {}` 400 JSON 응답을 확인했다.
+
+## 추첨 후 경매 시작 전 접속 종료 알림 보강
+
+- 2026-06-17: 사용자는 추첨 이후 경매 시작 전 사이에 접속이 끊긴 팀장이 있을 때 접속종료 알림이 표시되지 않는다고 보고했다.
+- 2026-06-17: 원인은 `AuctionBoard`의 접속 이탈 오버레이 조건이 `isAuctionStarted`를 요구하는 점이다. 추첨 화면에서는 `useAuctionBoard`가 `currentPlayer`를 숨기므로 `soldPlayers.length > 0 || !!currentPlayer`가 거짓이 될 수 있고, `lotteryPlayer`가 있어도 오버레이가 뜨지 않는다.
+- 2026-06-17: `useAuctionPresenceGuard`의 자동 pause/resume은 실행 중 경매에만 적용해야 하므로 변경하지 않는다. 이번 범위는 시작 전 표시 알림만 보강한다.
+- 2026-06-17: `AuctionBoard`는 추첨 대상이 있고 아직 타이머가 없는 시작 전 구간에서도 팀장 이탈 오버레이를 표시한다. 이때 문구는 경매 일시정지가 아니라 경매 시작 대기로 분리한다.
+- 2026-06-17: 검증 결과 `npx vitest run __tests__/AuctionBoard.test.tsx`, `npx vitest run src/features/auction/hooks/usePresence.test.ts src/features/auction/hooks/useAuctionPresenceGuard.test.ts __tests__/useAuctionBoard.test.tsx`, `npm run build`가 통과했다.

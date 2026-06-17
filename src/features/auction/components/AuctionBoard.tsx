@@ -204,6 +204,13 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const activeSceneVariants = shouldReduceMotion
     ? reducedSceneVariants[currentScene]
     : sceneVariants[currentScene];
+  const isPreStartLotteryDisconnect =
+    !!props.lotteryPlayer && !timerEndsAt && !isAuctionStarted;
+  const shouldShowLeaderDisconnectWarning =
+    isPresenceLoaded &&
+    !props.allConnected &&
+    (isAuctionStarted || isPreStartLotteryDisconnect) &&
+    !isAuctionComplete;
 
   return (
     <div
@@ -249,10 +256,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
       )}
 
       {/* 3. 팀장 접속 이탈 경고 — 데이터 로딩 완료 후에만 표시 (FR-003 보완) — AnimatePresence 씬 시스템과 독립된 별도 레이어 */}
-      {isPresenceLoaded &&
-        !props.allConnected &&
-        isAuctionStarted &&
-        !isAuctionComplete && (
+      {shouldShowLeaderDisconnectWarning && (
           <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
             <div className="pixel-box bg-white p-10 border-minion-red flex flex-col items-center gap-6 text-center max-w-md">
               <div className="mb-4">
@@ -269,9 +273,13 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   연결 끊김
                 </h2>
                 <p className="text-fluid-xs font-bold text-gray-600">
-                  팀장의 연결이 끊겨 경매가 일시정지되었습니다.
+                  {isPreStartLotteryDisconnect
+                    ? "팀장의 연결이 끊겨 경매 시작을 대기 중입니다."
+                    : "팀장의 연결이 끊겨 경매가 일시정지되었습니다."}
                   <br />
-                  재연결을 기다리는 중입니다...
+                  {isPreStartLotteryDisconnect
+                    ? "재연결 후 경매를 시작할 수 있습니다..."
+                    : "재연결을 기다리는 중입니다..."}
                 </p>
               </div>
             </div>

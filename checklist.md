@@ -432,3 +432,10 @@
 - [x] VIEWER presence 구독이 token API 없이 동작하는 테스트 추가
 - [x] `usePresence`에서 self presence write 역할만 Firebase Auth 요청하도록 수정
 - [x] 관련 테스트와 build 검증
+
+## 추첨 후 경매 시작 전 접속 종료 알림 보강
+
+- [x] 추첨 화면과 경매 시작 전 presence 표시 조건 확인
+- [x] 경매 진행 중 pause 알림과 시작 전 대기 알림 문구 분리
+- [x] 관련 컴포넌트 회귀 테스트 추가 또는 보강
+- [x] 대상 테스트와 빌드 검증
