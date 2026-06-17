@@ -351,3 +351,9 @@
 - 2026-06-16: presence는 개념적으로 custom token이 필수는 아니지만, 현재 RTDB rules가 `auth != null && auth.uid === $sessionId`를 요구하고 `usePresence.ts`가 `signInWithCustomToken()` 뒤 `onDisconnect()`를 쓰므로 현 구현에서는 실질적으로 custom token에 묶여 있다.
 - 2026-06-16: Firebase, Supabase Realtime, Ably, Pusher 공식 문서를 비교했다. 공통 패턴은 신뢰 가능한 presence에 서버가 검증한 identity와 채널 권한이 필요하다는 점이다. 인증 endpoint는 형태만 다를 뿐 대부분 존재한다.
 - 2026-06-16: 문서는 `doc/PRESENCE_CUSTOM_TOKEN_REVIEW.md`로 저장했다. 단기 권고는 custom token 구조 유지와 smoke test, 장애 UI 분리, 운영 로그 강화다. 장기적으로는 “팀장 미접속”과 “presence 인증 장애”를 경매 차단 사유에서 분리해 보여주는 방향을 권고했다.
+
+## Presence와 custom token 확정 결정 반영
+
+- 2026-06-17: 사용자는 결정값을 `1-A, 2-A, 3-C, 4-A, 5-A`로 확정했다. 즉 Firestore client direct bid와 Firebase RTDB custom token 기반 presence는 유지한다.
+- 2026-06-17: `3-C`는 경매 시작 전에는 모든 팀장 연결을 필수로 하되, 진행 중 disconnect는 즉시 자동 중단하지 않고 grace time 뒤 주최자에게 일시정지/계속 진행/대기 선택지를 주는 정책이다.
+- 2026-06-17: `4-A`와 `5-A`에 따라 팀장 미접속과 presence 인증 장애를 UI에서 분리하고, `/api/room-auth/firebase-token` smoke test 및 Vercel log 확인을 배포 절차에 강제하는 방향으로 문서를 갱신했다.

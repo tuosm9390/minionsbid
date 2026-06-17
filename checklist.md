@@ -418,3 +418,9 @@
 - [x] Firebase, Supabase, Ably, Pusher 공식 문서 기반 사례 조사
 - [x] 대안별 장단점과 권고안 문서 작성
 - [x] 작업 기록 갱신
+
+## Presence와 custom token 확정 결정 반영
+
+- [x] 결정값 `1-A, 2-A, 3-C, 4-A, 5-A` 문서 반영
+- [x] 3-C의 시작 전 필수/진행 중 grace time 및 주최자 선택 정책 명시
+- [x] 작업 기록 갱신

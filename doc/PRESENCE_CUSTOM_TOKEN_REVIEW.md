@@ -140,6 +140,34 @@ Pusher의 패턴은 “presence channel subscribe 자체를 서버 서명 author
 
 공통점은 명확하다. 실시간 presence를 신뢰 가능한 경매 진행 조건으로 쓰려면, 대부분의 서비스가 서버가 검증한 identity와 권한을 요구한다.
 
+## 확정 결정
+
+2026-06-17 기준 결정은 아래와 같다.
+
+| 번호 | 결정 항목 | 확정안 | 의미 |
+|---|---|---|---|
+| 1 | 입찰 hot path | 1-A. Firestore client direct transaction 유지 | direct bid 보안 경계로 Firebase custom token claim을 계속 사용한다 |
+| 2 | Presence 구현 | 2-A. Firebase RTDB와 custom token 기반 presence 유지 | RTDB `onDisconnect()`와 현재 `database.rules.json` 인증 모델을 유지한다 |
+| 3 | 연결 상태와 경매 진행 조건 | 3-C. 시작 전에는 모든 팀장 연결 필수, 진행 중에는 grace time 뒤 주최자 선택 | 경매 시작 전 공정성은 강제하되, 진행 중 일시적 disconnect나 presence 장애가 즉시 전체 진행을 막지 않도록 한다 |
+| 4 | 장애 UI | 4-A. 팀장 미접속과 presence 인증 장애를 분리 표시 | 실제 미접속과 시스템 장애를 운영자가 구분할 수 있게 한다 |
+| 5 | 운영 검증 | 5-A. 배포 smoke test와 Vercel log 확인 강제 | `/api/room-auth/firebase-token` 장애가 경매 직전에 발견되도록 한다 |
+
+이 결정은 Firebase custom token과 RTDB presence를 제거하지 않는다. 대신 인증 경로 장애가 “팀장 미접속”으로 오인되지 않도록 UI와 운영 검증을 보강하는 방향이다.
+
+### 3-C 운영 의미
+
+경매 시작 전에는 organizer와 모든 팀장의 presence가 확인되어야 한다. 이 조건을 만족하지 않으면 주최자가 경매를 시작할 수 없다.
+
+경매 진행 중에는 연결이 끊겼다고 즉시 자동 중단하지 않는다. 먼저 짧은 grace time 동안 재연결을 기다리고, 이후에도 미연결이면 주최자에게 현재 상태와 선택지를 보여준다.
+
+진행 중 주최자 선택지는 구현 단계에서 다음 중 최소 두 가지를 제공해야 한다.
+
+- 경매 일시정지.
+- 현재 라운드만 계속 진행.
+- 팀장 재입장 대기.
+
+presence 인증 장애가 감지된 경우에는 “팀장 미접속”이 아니라 “presence 인증 장애”로 표시한다. 이 상태에서는 실제 사용자가 방에 들어와 있어도 RTDB presence가 비어 있을 수 있기 때문이다.
+
 ## 대안 검토
 
 ### A. 현 구조 유지와 안정화
@@ -234,9 +262,9 @@ custom token route 안정화보다 구현 리스크가 크다. presence가 매�
 
 Firebase 전체 이탈 또는 Supabase 전환 같은 큰 마이그레이션과 함께 검토할 선택지다. presence 문제 하나만으로 교체하기에는 비용이 크다.
 
-## 권고안
+## 확정안에 따른 구현 권고
 
-단기 권고는 A안이다. custom token 구조를 유지하고 운영 안정성을 강화한다.
+단기 구현은 custom token 구조를 유지하고 운영 안정성을 강화하는 방향이다.
 
 구체적인 조치.
 
@@ -246,10 +274,10 @@ Firebase 전체 이탈 또는 Supabase 전환 같은 큰 마이그레이션과 �
 4. presence 인증 실패 횟수와 마지막 실패 메시지를 client debug state나 latency report에 포함한다.
 5. Vercel logs에서 `[room-auth] firebase token request failed`, `[firebaseAdmin] 초기화 실패`, `ERR_REQUIRE_ESM` 계열 로그를 배포 직후 확인한다.
 6. `npm run smoke:room-rules`와 별도로 room auth token smoke script를 추가한다.
+7. 경매 시작 전과 진행 중 presence 정책을 분리한다.
+8. 진행 중 disconnect에는 grace time과 주최자 선택 UI를 둔다.
 
-중기 권고는 presence를 경매 차단 조건으로 계속 쓸지 재검토하는 것이다.
-
-현재 정책은 “organizer와 모든 팀장이 연결되어야 경매 진행”이다. 이 정책은 공정성에는 좋지만, presence 인증 장애 하나가 경매 전체를 멈추는 단점이 있다. 따라서 UI와 운영 로그는 “실제 미접속”과 “presence 시스템 장애”를 반드시 구분해야 한다.
+현재 정책은 “경매 시작 전에는 organizer와 모든 팀장이 연결되어야 한다”로 유지한다. 진행 중에는 presence 변화가 실시간 반영되더라도 즉시 자동 중단이 아니라 grace time과 주최자 판단을 거치도록 한다.
 
 ## 최종 판단
 
@@ -258,3 +286,5 @@ Minions Bid는 현재 direct bid 구조 때문에 Firebase custom token 또는 �
 presence는 개념적으로 custom token이 필수는 아니지만, 현재 RTDB rules와 `onDisconnect()` 기반 구현에서는 custom token이 실질적으로 필요하다.
 
 유사 서비스들도 신뢰 가능한 presence에는 서버가 검증한 identity와 channel 권한을 요구한다. 즉, 문제의 본질은 “토큰을 쓰느냐 마느냐”가 아니라 “서버 발급 권한 경로를 얼마나 안정적으로 운영하고, 장애를 사용자 상태와 구분해 보여주느냐”다.
+
+확정 정책은 1-A, 2-A, 3-C, 4-A, 5-A다. 이 정책은 현재 Firebase 기반 저지연 입찰 구조를 유지하면서 presence 장애가 경매 운영 판단을 왜곡하지 않도록 보강하는 선택이다.
