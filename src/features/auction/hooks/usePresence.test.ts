@@ -103,6 +103,34 @@ describe('useFirebasePresence', () => {
     expect(setPresenceLoaded).toHaveBeenCalledWith(true)
   })
 
+  it('should wait for organizer token before requesting Firebase auth', async () => {
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: null,
+      role: 'ORGANIZER',
+      authToken: null,
+    }))
+
+    await Promise.resolve()
+
+    expect(ensureRoomFirebaseAuth).not.toHaveBeenCalled()
+  })
+
+  it('should subscribe to presence for viewer without requesting Firebase auth', async () => {
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: null,
+      role: 'VIEWER',
+      authToken: null,
+    }))
+
+    await Promise.resolve()
+
+    expect(ensureRoomFirebaseAuth).not.toHaveBeenCalled()
+    const onValuePaths = (ref as unknown as Mock).mock.calls.map((call: unknown[]) => call[1])
+    expect(onValuePaths).toContain('presence/room1')
+  })
+
   it('should subscribe to all presence even if role is VIEWER (FR-001)', async () => {
     renderHook(() => useFirebasePresence({
       roomId: 'room1',

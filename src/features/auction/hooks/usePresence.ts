@@ -52,12 +52,20 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
           return
         }
 
-        const authUid = await ensureRoomFirebaseAuth({
-          roomId,
-          role,
-          teamId,
-          token: authToken ?? roomAuthToken,
-        })
+        const shouldRegisterSelf = role === 'LEADER' || role === 'ORGANIZER'
+        const effectiveAuthToken = authToken ?? roomAuthToken
+        if (shouldRegisterSelf && !effectiveAuthToken) {
+          return
+        }
+
+        const authUid = shouldRegisterSelf
+          ? await ensureRoomFirebaseAuth({
+              roomId,
+              role,
+              teamId,
+              token: effectiveAuthToken,
+            })
+          : null
         if (cancelled) return
         const { rtdb } = getAuctionClientServices()
 
@@ -76,7 +84,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
         unsubs.push(unsubOffset)
 
         // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
-        if (authUid && (role === 'LEADER' || role === 'ORGANIZER')) {
+        if (authUid && shouldRegisterSelf) {
           myPresenceRef = ref(rtdb, `presence/${roomId}/${authUid}`)
 
           const record: PresenceRecord = {

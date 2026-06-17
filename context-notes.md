@@ -357,3 +357,11 @@
 - 2026-06-17: 사용자는 결정값을 `1-A, 2-A, 3-C, 4-A, 5-A`로 확정했다. 즉 Firestore client direct bid와 Firebase RTDB custom token 기반 presence는 유지한다.
 - 2026-06-17: `3-C`는 경매 시작 전에는 모든 팀장 연결을 필수로 하되, 진행 중 disconnect는 즉시 자동 중단하지 않고 grace time 뒤 주최자에게 일시정지/계속 진행/대기 선택지를 주는 정책이다.
 - 2026-06-17: `4-A`와 `5-A`에 따라 팀장 미접속과 presence 인증 장애를 UI에서 분리하고, `/api/room-auth/firebase-token` smoke test 및 Vercel log 확인을 배포 절차에 강제하는 방향으로 문서를 갱신했다.
+
+## Presence token 없는 선행 요청 제거
+
+- 2026-06-17: 사용자는 `firebase-token` 요청이 400 이후 200으로 총 2번씩 반복된다고 보고했다.
+- 2026-06-17: 원인은 `RoomClient`에서 `useRoomAuth()`가 `setRoomContext()`를 effect로 수행하고, 같은 렌더의 `usePresence()`가 아직 store의 `roomAuthToken`이 null인 상태로 먼저 실행되는 순서다. ORGANIZER는 teamId가 필요 없기 때문에 token 없는 요청을 바로 보내 400을 만들고, 다음 렌더에서 token이 들어와 200을 만든다.
+- 2026-06-17: VIEWER는 self presence write를 하지 않으므로 Firebase Auth custom token 요청이 필요 없다. RTDB `presence/{roomId}` read는 현재 rules상 공개 read다.
+- 2026-06-17: `usePresence`는 LEADER/ORGANIZER처럼 self presence write가 필요한 역할만 `ensureRoomFirebaseAuth()`를 호출하고, 해당 역할은 token이 준비되기 전에는 호출하지 않도록 변경했다.
+- 2026-06-17: RED 증거는 `npx vitest run src/features/auction/hooks/usePresence.test.ts -t "wait for organizer token|viewer without requesting"`가 2개 테스트 실패였고, GREEN 증거는 같은 명령 통과다. 추가로 `npx vitest run src/features/auction/hooks/usePresence.test.ts`, `npm run build`, 운영 malformed HTTP `POST /api/room-auth/firebase-token {}` 400 JSON 응답을 확인했다.

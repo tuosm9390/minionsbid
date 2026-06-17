@@ -424,3 +424,11 @@
 - [x] 결정값 `1-A, 2-A, 3-C, 4-A, 5-A` 문서 반영
 - [x] 3-C의 시작 전 필수/진행 중 grace time 및 주최자 선택 정책 명시
 - [x] 작업 기록 갱신
+
+## Presence token 없는 선행 요청 제거
+
+- [x] `firebase-token` 400 후 200 반복 원인 확인
+- [x] token 준비 전 ORGANIZER presence auth 요청 차단 테스트 추가
+- [x] VIEWER presence 구독이 token API 없이 동작하는 테스트 추가
+- [x] `usePresence`에서 self presence write 역할만 Firebase Auth 요청하도록 수정
+- [x] 관련 테스트와 build 검증
