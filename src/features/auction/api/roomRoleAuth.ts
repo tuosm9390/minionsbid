@@ -24,21 +24,14 @@ export async function requireRoomLeader(
   if (!teamId || !token) return LEADER_AUTH_ERROR
 
   const { firestore } = getAuctionServerServices()
-  const [teamSecretSnap, legacyTeamSnap] = await Promise.all([
-    firestore
-      .collection(ROOM_AUTH_COLLECTION)
-      .doc(roomId)
-      .collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION)
-      .doc(teamId)
-      .get(),
-    firestore.collection('rooms').doc(roomId).collection('teams').doc(teamId).get(),
-  ])
+  const teamSecretSnap = await firestore
+    .collection(ROOM_AUTH_COLLECTION)
+    .doc(roomId)
+    .collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION)
+    .doc(teamId)
+    .get()
 
-  const privateToken = teamSecretSnap.data()?.leader_token
-  const legacyToken = legacyTeamSnap.data()?.leader_token
-  return isEqualToken(privateToken, token) || isEqualToken(legacyToken, token)
-    ? null
-    : LEADER_AUTH_ERROR
+  return isEqualToken(teamSecretSnap.data()?.leader_token, token) ? null : LEADER_AUTH_ERROR
 }
 
 export async function requireRoomViewer(
@@ -48,14 +41,7 @@ export async function requireRoomViewer(
   if (!token) return VIEWER_AUTH_ERROR
 
   const { firestore } = getAuctionServerServices()
-  const [secretSnap, legacyRoomSnap] = await Promise.all([
-    firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId).get(),
-    firestore.collection('rooms').doc(roomId).get(),
-  ])
+  const secretSnap = await firestore.collection(ROOM_AUTH_COLLECTION).doc(roomId).get()
 
-  const privateToken = secretSnap.data()?.viewer_token
-  const legacyToken = legacyRoomSnap.data()?.viewer_token
-  return isEqualToken(privateToken, token) || isEqualToken(legacyToken, token)
-    ? null
-    : VIEWER_AUTH_ERROR
+  return isEqualToken(secretSnap.data()?.viewer_token, token) ? null : VIEWER_AUTH_ERROR
 }

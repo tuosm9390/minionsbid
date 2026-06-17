@@ -53,13 +53,7 @@ export async function GET(request: NextRequest) {
         const teamName = typeof teamData.name === 'string' ? teamData.name : ''
         const leaderName = typeof teamData.leader_name === 'string' ? teamData.leader_name : ''
         const privateToken = privateTokensByTeamId.get(teamDoc.id)
-        const legacyToken = teamData.leader_token
-        const leaderToken =
-          typeof privateToken === 'string'
-            ? privateToken
-            : typeof legacyToken === 'string'
-              ? legacyToken
-              : ''
+        const leaderToken = typeof privateToken === 'string' ? privateToken : ''
         if (!teamName || !leaderToken) return null
 
         return {

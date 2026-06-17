@@ -1,14 +1,14 @@
 require("dotenv").config({ path: ".env.local" });
 
-const admin = require("firebase-admin");
-const { getFirestore } = require("firebase-admin/firestore");
+const { initializeApp, getApps, getApp, cert } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
 const ROOM_AUTH_COLLECTION = "room_auth_secrets";
 const ROOM_AUTH_TEAM_TOKENS_COLLECTION = "team_tokens";
 const WRITE_MODE = process.argv.includes("--write");
 
 function initializeAdmin() {
-  if (admin.apps.length) return;
+  if (getApps().length) return;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -18,8 +18,8 @@ function initializeAdmin() {
     throw new Error("Firebase Admin 환경 변수가 누락되었습니다.");
   }
 
-  admin.initializeApp({
-    credential: admin.credential.cert({
+  initializeApp({
+    credential: cert({
       projectId,
       clientEmail,
       privateKey: privateKey.replace(/\\n/g, "\n"),
@@ -30,7 +30,7 @@ function initializeAdmin() {
 
 function getDb() {
   const databaseId = process.env.FIRESTORE_DATABASE_ID;
-  return databaseId ? getFirestore(admin.app(), databaseId) : getFirestore(admin.app());
+  return databaseId ? getFirestore(getApp(), databaseId) : getFirestore(getApp());
 }
 
 function isNonEmptyString(value) {
@@ -102,15 +102,15 @@ async function main() {
       }
 
       if (Object.keys(nextRoomAuth).length > 0) {
-        nextRoomAuth.migrated_at = admin.firestore.FieldValue.serverTimestamp();
+        nextRoomAuth.migrated_at = FieldValue.serverTimestamp();
         await roomAuthRef.set(nextRoomAuth, { merge: true });
         summary.roomAuthDocsCreatedOrUpdated += 1;
       }
 
       await roomDoc.ref.set(
         {
-          organizer_token: admin.firestore.FieldValue.delete(),
-          viewer_token: admin.firestore.FieldValue.delete(),
+          organizer_token: FieldValue.delete(),
+          viewer_token: FieldValue.delete(),
         },
         { merge: true }
       );
@@ -131,7 +131,7 @@ async function main() {
           {
             leader_token: leaderToken,
             team_name: typeof teamData.name === "string" ? teamData.name : "",
-            migrated_at: admin.firestore.FieldValue.serverTimestamp(),
+            migrated_at: FieldValue.serverTimestamp(),
           },
           { merge: true }
         );
@@ -140,7 +140,7 @@ async function main() {
 
       await teamDoc.ref.set(
         {
-          leader_token: admin.firestore.FieldValue.delete(),
+          leader_token: FieldValue.delete(),
         },
         { merge: true }
       );
