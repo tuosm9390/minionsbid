@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import type { Role } from '@/features/auction/store/useAuctionStore'
 
 export type RoomAuthRole = Exclude<Role, null>
@@ -6,9 +7,7 @@ export const ROOM_AUTH_COLLECTION = 'room_auth_secrets'
 export const ROOM_AUTH_TEAM_TOKENS_COLLECTION = 'team_tokens'
 
 export type TokenDocuments = {
-  roomData?: Record<string, unknown> | null
   roomAuthData?: Record<string, unknown> | null
-  teamData?: Record<string, unknown> | null
   teamTokenData?: Record<string, unknown> | null
 }
 
@@ -35,28 +34,22 @@ export function isValidRoomRole(role: string | null | undefined): role is RoomAu
   return role === 'ORGANIZER' || role === 'LEADER' || role === 'VIEWER'
 }
 
-function getOrganizerToken(roomData?: Record<string, unknown> | null, roomAuthData?: Record<string, unknown> | null) {
-  return typeof roomAuthData?.organizer_token === 'string'
-    ? roomAuthData.organizer_token
-    : typeof roomData?.organizer_token === 'string'
-      ? roomData.organizer_token
-      : null
+function getOrganizerToken(roomAuthData?: Record<string, unknown> | null) {
+  return typeof roomAuthData?.organizer_token === 'string' ? roomAuthData.organizer_token : null
 }
 
-function getViewerToken(roomData?: Record<string, unknown> | null, roomAuthData?: Record<string, unknown> | null) {
-  return typeof roomAuthData?.viewer_token === 'string'
-    ? roomAuthData.viewer_token
-    : typeof roomData?.viewer_token === 'string'
-      ? roomData.viewer_token
-      : null
+function getViewerToken(roomAuthData?: Record<string, unknown> | null) {
+  return typeof roomAuthData?.viewer_token === 'string' ? roomAuthData.viewer_token : null
 }
 
-function getLeaderToken(teamData?: Record<string, unknown> | null, teamTokenData?: Record<string, unknown> | null) {
-  return typeof teamTokenData?.leader_token === 'string'
-    ? teamTokenData.leader_token
-    : typeof teamData?.leader_token === 'string'
-      ? teamData.leader_token
-      : null
+function getLeaderToken(teamTokenData?: Record<string, unknown> | null) {
+  return typeof teamTokenData?.leader_token === 'string' ? teamTokenData.leader_token : null
+}
+
+function timingSafeStringEqual(stored: string | null, submitted: string): boolean {
+  if (stored === null) return false
+  if (stored.length !== submitted.length) return false
+  return timingSafeEqual(Buffer.from(stored, 'utf8'), Buffer.from(submitted, 'utf8'))
 }
 
 export async function validateRoomAuthToken(args: ValidateRoomAuthTokenArgs) {
@@ -72,16 +65,16 @@ export async function validateRoomAuthToken(args: ValidateRoomAuthTokenArgs) {
   }
 
   if (role === 'ORGANIZER') {
-    return getOrganizerToken(documents.roomData, documents.roomAuthData) === token
+    return timingSafeStringEqual(getOrganizerToken(documents.roomAuthData), token)
   }
 
   if (role === 'VIEWER') {
-    return getViewerToken(documents.roomData, documents.roomAuthData) === token
+    return timingSafeStringEqual(getViewerToken(documents.roomAuthData), token)
   }
 
   if (!teamId) {
     return false
   }
 
-  return getLeaderToken(documents.teamData, documents.teamTokenData) === token
+  return timingSafeStringEqual(getLeaderToken(documents.teamTokenData), token)
 }

@@ -54,23 +54,16 @@ export async function POST(request: NextRequest) {
       isFixtureEnabled: isE2EAuctionFixtureEnabled(),
       verifyFixtureAccess: verifyE2EAuctionFixtureAccess,
       loadTokenDocuments: async ({ roomId: targetRoomId, role: targetRole, teamId: targetTeamId }) => {
-        const roomRef = firestore.collection('rooms').doc(targetRoomId)
         const roomAuthRef = firestore.collection(ROOM_AUTH_COLLECTION).doc(targetRoomId)
-        const [roomSnap, roomAuthSnap, teamSnap, teamTokenSnap] = await Promise.all([
-          roomRef.get(),
+        const [roomAuthSnap, teamTokenSnap] = await Promise.all([
           roomAuthRef.get(),
-          targetRole === 'LEADER' && targetTeamId
-            ? roomRef.collection('teams').doc(targetTeamId).get()
-            : Promise.resolve(null),
           targetRole === 'LEADER' && targetTeamId
             ? roomAuthRef.collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION).doc(targetTeamId).get()
             : Promise.resolve(null),
         ])
 
         return {
-          roomData: roomSnap.data() ?? null,
           roomAuthData: roomAuthSnap.data() ?? null,
-          teamData: teamSnap?.data() ?? null,
           teamTokenData: teamTokenSnap?.data() ?? null,
         }
       },

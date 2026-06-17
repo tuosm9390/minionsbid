@@ -41,12 +41,10 @@ describe('roomAuth utils', () => {
     const loadTokenDocuments = vi
       .fn()
       .mockResolvedValueOnce({
-        roomData: {},
         roomAuthData: { organizer_token: 'org-token' },
       })
       .mockResolvedValueOnce({
-        roomData: { viewer_token: 'viewer-token' },
-        roomAuthData: {},
+        roomAuthData: { viewer_token: 'viewer-token' },
       })
 
     await expect(
@@ -77,16 +75,7 @@ describe('roomAuth utils', () => {
     const loadTokenDocuments = vi
       .fn()
       .mockResolvedValueOnce({
-        roomData: {},
-        roomAuthData: {},
-        teamData: {},
         teamTokenData: { leader_token: 'leader-token' },
-      })
-      .mockResolvedValueOnce({
-        roomData: {},
-        roomAuthData: {},
-        teamData: { leader_token: 'team-fallback-token' },
-        teamTokenData: {},
       })
       .mockResolvedValueOnce(null)
 
@@ -96,18 +85,6 @@ describe('roomAuth utils', () => {
         role: 'LEADER',
         teamId: 'team-a',
         token: 'leader-token',
-        isFixtureEnabled: false,
-        verifyFixtureAccess,
-        loadTokenDocuments,
-      }),
-    ).resolves.toBe(true)
-
-    await expect(
-      validateRoomAuthToken({
-        roomId: 'room-1',
-        role: 'LEADER',
-        teamId: 'team-a',
-        token: 'team-fallback-token',
         isFixtureEnabled: false,
         verifyFixtureAccess,
         loadTokenDocuments,
