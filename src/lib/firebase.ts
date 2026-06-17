@@ -53,6 +53,25 @@ export async function ensureRoomFirebaseAuth(args: {
     return auth.currentUser.uid
   }
 
+  // 페이지 새로고침 시 roomAuthKey는 null로 리셋되지만 Firebase auth는
+  // IndexedDB에 살아있다. claims를 검증해 일치하면 API 호출을 생략한다.
+  if (auth.currentUser?.uid && roomAuthKey === null) {
+    try {
+      const result = await auth.currentUser.getIdTokenResult()
+      const c = result.claims
+      if (
+        c['roomId'] === args.roomId &&
+        c['role'] === args.role &&
+        (args.role !== 'LEADER' || c['teamId'] === args.teamId)
+      ) {
+        roomAuthKey = key
+        return auth.currentUser.uid
+      }
+    } catch {
+      // 토큰 만료 등 → fetch 경로로 진행
+    }
+  }
+
   if (!roomAuthPromise || roomAuthKey !== key) {
     roomAuthKey = key
     roomAuthPromise = fetch('/api/room-auth/firebase-token', {
