@@ -373,3 +373,10 @@
 - 2026-06-17: `useAuctionPresenceGuard`의 자동 pause/resume은 실행 중 경매에만 적용해야 하므로 변경하지 않는다. 이번 범위는 시작 전 표시 알림만 보강한다.
 - 2026-06-17: `AuctionBoard`는 추첨 대상이 있고 아직 타이머가 없는 시작 전 구간에서도 팀장 이탈 오버레이를 표시한다. 이때 문구는 경매 일시정지가 아니라 경매 시작 대기로 분리한다.
 - 2026-06-17: 검증 결과 `npx vitest run __tests__/AuctionBoard.test.tsx`, `npx vitest run src/features/auction/hooks/usePresence.test.ts src/features/auction/hooks/useAuctionPresenceGuard.test.ts __tests__/useAuctionBoard.test.tsx`, `npm run build`가 통과했다.
+
+## 비공개입찰 presence pause currentPlayerId 전달 보정
+
+- 2026-06-17: 사용자는 이미 생성된 비공개입찰 방에서 팀장 한 명이 접속 종료해도 경매가 일시정지되지 않는다고 보고했다.
+- 2026-06-17: 접속 상태 자체는 `presence/{roomId}` 구독 결과를 `presences`와 `allConnected`로 관리하고 있다. 문제는 `RoomClient`가 `useAuctionPresenceGuard`에 room 정본 `currentPlayerId`가 아니라 `currentPlayer?.id`를 넘겨, players snapshot이나 파생 currentPlayer가 아직 비어 있는 순간 guard에 `null`이 전달될 수 있는 경로였다.
+- 2026-06-17: `RoomClient`는 presence guard에 `currentPlayerId ?? currentPlayer?.id ?? null`을 전달한다. 따라서 room 정본에 현재 선수 id가 있으면 비공개입찰 ACTIVE 라운드에서도 null로 빠지지 않는다.
+- 2026-06-17: 검증 결과 `npx vitest run __tests__/RoomClientPresenceGuard.test.tsx`, `npx vitest run __tests__/RoomClientPresenceGuard.test.tsx src/features/auction/hooks/useAuctionPresenceGuard.test.ts src/features/auction/hooks/usePresence.test.ts`, `npm run build`가 통과했다.

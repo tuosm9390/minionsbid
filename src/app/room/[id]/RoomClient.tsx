@@ -165,13 +165,14 @@ export function RoomClient({
     ? (soldCountByTeam.get(myTeam.id) ?? 0) >= auctionSlotsPerTeam
     : false;
 
+  const guardCurrentPlayerId = currentPlayerId ?? currentPlayer?.id ?? null;
 
   useAuctionPresenceGuard({
     roomId,
     effectiveRole,
     isPresenceLoaded,
     allConnected,
-    currentPlayerId: currentPlayer?.id ?? null,
+    currentPlayerId: guardCurrentPlayerId,
     timerEndsAt,
     lotteryPlayerId: lotteryPlayer?.id ?? null,
   });

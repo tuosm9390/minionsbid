@@ -439,3 +439,10 @@
 - [x] 경매 진행 중 pause 알림과 시작 전 대기 알림 문구 분리
 - [x] 관련 컴포넌트 회귀 테스트 추가 또는 보강
 - [x] 대상 테스트와 빌드 검증
+
+## 비공개입찰 presence pause currentPlayerId 전달 보정
+
+- [x] RoomClient가 presence guard에 전달하는 currentPlayerId 경로 확인
+- [x] room 정본 currentPlayerId를 우선 전달하도록 수정
+- [x] 비공개입찰 상태에서 null 전달 회귀 테스트 추가
+- [x] 대상 테스트와 빌드 검증
