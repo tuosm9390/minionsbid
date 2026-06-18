@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -226,6 +227,7 @@ export function LeagueScheduleManager() {
   );
   const [selectedChampionName, setSelectedChampionName] = useState("");
   const schedule = timeline?.schedule;
+  const previousScheduleIdRef = useRef<string | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setIsLoading(true);
@@ -262,11 +264,15 @@ export function LeagueScheduleManager() {
   }, [loadTimeline, selectedScheduleId]);
 
   useEffect(() => {
-    if (!schedule) return;
-    setSelectedDateKey(
-      timeline.days[0]?.dateKey ?? formatDateKey(new Date(schedule.startsAt)),
-    );
-  }, [schedule, timeline?.days]);
+    if (!schedule) {
+      previousScheduleIdRef.current = null;
+      return;
+    }
+    if (previousScheduleIdRef.current === schedule.id) return;
+
+    previousScheduleIdRef.current = schedule.id;
+    setSelectedDateKey(formatDateKey(new Date()));
+  }, [schedule]);
 
   const selectedDay = useMemo(
     () => timeline?.days.find((day) => day.dateKey === selectedDateKey) ?? null,

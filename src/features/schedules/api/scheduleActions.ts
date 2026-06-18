@@ -74,6 +74,10 @@ function toDateKey(value: string) {
   return value
 }
 
+function startOfSelectedDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
+}
+
 function dateKeyFromIso(value: string | null): string | null {
   if (!value) return null
   const date = new Date(value)
@@ -563,17 +567,19 @@ export async function createLeagueSchedule(
 
   if (!name) return { error: '일정 이름을 입력해주세요.' }
 
-  const startDate = new Date(payload.startsAt)
-  if (Number.isNaN(startDate.getTime())) {
+  const rawStartDate = new Date(payload.startsAt)
+  if (Number.isNaN(rawStartDate.getTime())) {
     return { error: '시작 일정을 확인해주세요.' }
   }
+  const startDate = startOfSelectedDay(rawStartDate)
 
   let endDate: Date | null = null
   if (payload.endsAt) {
-    endDate = new Date(payload.endsAt)
-    if (Number.isNaN(endDate.getTime())) {
+    const rawEndDate = new Date(payload.endsAt)
+    if (Number.isNaN(rawEndDate.getTime())) {
       return { error: '종료 일정을 확인해주세요.' }
     }
+    endDate = startOfSelectedDay(rawEndDate)
     if (endDate.getTime() < startDate.getTime()) {
       return { error: '종료 일정은 시작 일정 이후여야 합니다.' }
     }

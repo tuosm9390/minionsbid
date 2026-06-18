@@ -380,3 +380,10 @@
 - 2026-06-17: 접속 상태 자체는 `presence/{roomId}` 구독 결과를 `presences`와 `allConnected`로 관리하고 있다. 문제는 `RoomClient`가 `useAuctionPresenceGuard`에 room 정본 `currentPlayerId`가 아니라 `currentPlayer?.id`를 넘겨, players snapshot이나 파생 currentPlayer가 아직 비어 있는 순간 guard에 `null`이 전달될 수 있는 경로였다.
 - 2026-06-17: `RoomClient`는 presence guard에 `currentPlayerId ?? currentPlayer?.id ?? null`을 전달한다. 따라서 room 정본에 현재 선수 id가 있으면 비공개입찰 ACTIVE 라운드에서도 null로 빠지지 않는다.
 - 2026-06-17: 검증 결과 `npx vitest run __tests__/RoomClientPresenceGuard.test.tsx`, `npx vitest run __tests__/RoomClientPresenceGuard.test.tsx src/features/auction/hooks/useAuctionPresenceGuard.test.ts src/features/auction/hooks/usePresence.test.ts`, `npm run build`가 통과했다.
+## 2026-06-18 리그일정관리 날짜 고정
+
+- 요구사항은 리그일정관리의 선택 날짜 초기값을 오늘 날짜로 통일하고, 경기 입력/수정 후 타임라인을 다시 불러와도 사용자가 선택한 날짜를 바꾸지 않는 것이다.
+- 원인 후보를 확인한 결과 `LeagueScheduleManager`의 timeline effect가 일정 데이터 로드마다 `timeline.days[0]` 또는 `schedule.startsAt`으로 `selectedDateKey`를 덮어쓰고 있었다. 이 effect가 저장 후 날짜 이동을 유발한다.
+- 일정 생성 payload는 클라이언트에서 이미 `startOfSelectedDay`를 적용하지만, 서버 액션도 외부 호출 경계이므로 `createLeagueSchedule`에서 시작일과 종료일을 자정으로 정규화하는 편이 요구사항 3에 직접 맞다.
+- 구현은 일정 id가 바뀔 때만 `selectedDateKey`를 오늘 날짜로 초기화하고, 같은 일정의 timeline 재로드에서는 기존 선택 날짜를 보존하도록 제한했다.
+- 검증 결과 `npx vitest run __tests__/LeagueScheduleManager.test.tsx`, `npx vitest run src/features/schedules/api/__tests__/scheduleActions.test.ts`, `npx playwright test playwright/league-schedule.spec.ts --project=chromium --workers=1`, 변경 파일 대상 `npx eslint ...`가 통과했다. `npx tsc --noEmit`은 이번 변경과 무관한 `__tests__/AuctionBoard.test.tsx`의 기존 타입 오류에서 실패했다.

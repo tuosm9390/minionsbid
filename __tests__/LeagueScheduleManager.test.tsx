@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LeagueScheduleManager } from '@/components/LeagueScheduleManager'
 
 const mockGetLeagueScheduleCatalog = vi.fn()
@@ -30,7 +30,28 @@ vi.mock('@/components/ScheduleCalendar', () => ({
     const day = `${date.getDate()}`.padStart(2, '0')
     return `${year}-${month}-${day}`
   },
-  ScheduleCalendar: ({ label }: { label: string }) => <div>{label}</div>,
+  ScheduleCalendar: ({
+    label,
+    selectedDate,
+    onChange,
+  }: {
+    label: string
+    selectedDate: Date
+    onChange: (date: Date) => void
+  }) => {
+    const year = selectedDate.getFullYear()
+    const month = `${selectedDate.getMonth() + 1}`.padStart(2, '0')
+    const day = `${selectedDate.getDate()}`.padStart(2, '0')
+    return (
+      <div>
+        <p>{label}</p>
+        <p data-testid={`calendar-${label}`}>{`${year}-${month}-${day}`}</p>
+        <button type="button" onClick={() => onChange(new Date('2026-06-19T00:00:00'))}>
+          change {label}
+        </button>
+      </div>
+    )
+  },
 }))
 
 vi.mock('@/components/ScheduleMatchDayEditor', () => ({
@@ -127,6 +148,8 @@ const secondTimeline = {
 
 describe('LeagueScheduleManager', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-06-18T09:00:00.000Z'))
     vi.clearAllMocks()
     mockGetLeagueScheduleCatalog.mockResolvedValue({
       leagueOptions: [
@@ -146,6 +169,10 @@ describe('LeagueScheduleManager', () => {
     mockCompleteLeagueSchedule.mockResolvedValue({})
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('loads catalog first and then timeline for the selected schedule', async () => {
     render(<LeagueScheduleManager />)
 
@@ -160,7 +187,7 @@ describe('LeagueScheduleManager', () => {
   })
 
   it('verifies admin code and reloads catalog plus timeline after completion', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<LeagueScheduleManager />)
 
     await waitFor(() => {
@@ -192,7 +219,7 @@ describe('LeagueScheduleManager', () => {
   })
 
   it('restores save-day button state and surfaces an error when save fails', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     mockSaveLeagueScheduleDay.mockRejectedValueOnce(new Error('save exploded'))
 
     render(<LeagueScheduleManager />)
@@ -209,8 +236,8 @@ describe('LeagueScheduleManager', () => {
     expect(screen.getByRole('button', { name: 'save-day' })).toBeInTheDocument()
   })
 
-  it('resets selected date to the newly selected schedule before saving', async () => {
-    const user = userEvent.setup()
+  it('defaults each selected schedule to today before saving', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<LeagueScheduleManager />)
 
     await waitFor(() => {
@@ -221,15 +248,40 @@ describe('LeagueScheduleManager', () => {
     await waitFor(() => {
       expect(mockGetLeagueScheduleTimeline).toHaveBeenCalledWith('schedule-2')
     })
+    expect(screen.getByTestId('calendar-Match Days')).toHaveTextContent('2026-06-18')
 
     await user.click(screen.getByRole('button', { name: 'save-day' }))
 
     await waitFor(() => {
       expect(mockSaveLeagueScheduleDay).toHaveBeenCalledWith(
         'schedule-2',
-        expect.objectContaining({ dateKey: '2026-05-05' }),
+        expect.objectContaining({ dateKey: '2026-06-18' }),
         undefined,
       )
     })
+  })
+
+  it('keeps the selected date after saving a match day', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<LeagueScheduleManager />)
+
+    await waitFor(() => {
+      expect(mockGetLeagueScheduleTimeline).toHaveBeenCalledWith('schedule-1')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'change Match Days' }))
+    await user.click(screen.getByRole('button', { name: 'save-day' }))
+
+    await waitFor(() => {
+      expect(mockSaveLeagueScheduleDay).toHaveBeenCalledWith(
+        'schedule-1',
+        expect.objectContaining({ dateKey: '2026-06-19' }),
+        undefined,
+      )
+    })
+    await waitFor(() => {
+      expect(mockGetLeagueScheduleTimeline).toHaveBeenCalledTimes(2)
+    })
+    expect(screen.getByTestId('calendar-Match Days')).toHaveTextContent('2026-06-19')
   })
 })

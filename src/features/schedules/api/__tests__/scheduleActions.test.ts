@@ -288,6 +288,8 @@ describe('scheduleActions', () => {
 
   it('createLeagueSchedule stores roster source metadata when admin code is valid', async () => {
     const { createLeagueSchedule } = await import('../scheduleActions')
+    const expectedStart = new Date(2026, 3, 1, 0, 0, 0, 0).toISOString()
+    const expectedEnd = new Date(2026, 3, 10, 0, 0, 0, 0).toISOString()
 
     const result = await createLeagueSchedule(
       {
@@ -296,8 +298,8 @@ describe('scheduleActions', () => {
         linkedLeagueName: '2026 스프링',
         rosterSourceType: 'archive',
         rosterSourceId: 'archive-1',
-        startsAt: '2026-04-01T00:00:00.000Z',
-        endsAt: '2026-04-10T00:00:00.000Z',
+        startsAt: new Date(2026, 3, 1, 13, 30, 0, 0).toISOString(),
+        endsAt: new Date(2026, 3, 10, 22, 15, 0, 0).toISOString(),
       },
       'secret-code',
     )
@@ -305,7 +307,23 @@ describe('scheduleActions', () => {
     expect(result.error).toBeUndefined()
     expect(result.schedule?.rosterSourceType).toBe('archive')
     expect(result.schedule?.rosterSourceId).toBe('archive-1')
+    expect(result.schedule?.startsAt).toBe(expectedStart)
+    expect(result.schedule?.endsAt).toBe(expectedEnd)
     expect(dbState.leagueSchedules.get('schedule-created')?.roster_source_id).toBe('archive-1')
+    expect(
+      (
+        dbState.leagueSchedules.get('schedule-created')?.starts_at as {
+          toDate: () => Date
+        }
+      ).toDate().toISOString(),
+    ).toBe(expectedStart)
+    expect(
+      (
+        dbState.leagueSchedules.get('schedule-created')?.ends_at as {
+          toDate: () => Date
+        }
+      ).toDate().toISOString(),
+    ).toBe(expectedEnd)
   })
 
   it('saveLeagueScheduleDay requires admin code and persists through a transaction', async () => {

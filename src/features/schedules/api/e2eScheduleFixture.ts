@@ -192,6 +192,10 @@ function dateKeyFromIso(value: string | null) {
   return `${year}-${month}-${day}`
 }
 
+function startOfSelectedDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
+}
+
 function isDateKeyInFixtureScheduleRange(dateKey: string, schedule: LeagueScheduleItem) {
   const startKey = dateKeyFromIso(schedule.startsAt)
   const endKey = dateKeyFromIso(schedule.endsAt)
@@ -265,6 +269,8 @@ export async function createFixtureLeagueSchedule(
 
   const state = getFixtureState()
   const id = `fixture-created-${state.schedules.length + 1}`
+  const startDate = startOfSelectedDay(new Date(payload.startsAt))
+  const endDate = payload.endsAt ? startOfSelectedDay(new Date(payload.endsAt)) : null
   const schedule: LeagueScheduleItem = {
     id,
     name: payload.name.trim(),
@@ -272,8 +278,8 @@ export async function createFixtureLeagueSchedule(
     linkedLeagueName: payload.linkedLeagueName?.trim() || null,
     rosterSourceType: payload.rosterSourceType ?? null,
     rosterSourceId: payload.rosterSourceId?.trim() || null,
-    startsAt: new Date(payload.startsAt).toISOString(),
-    endsAt: payload.endsAt ? new Date(payload.endsAt).toISOString() : null,
+    startsAt: startDate.toISOString(),
+    endsAt: endDate ? endDate.toISOString() : null,
     notes: payload.notes?.trim() || '',
     createdAt: new Date('2026-04-27T12:00:00.000Z').toISOString(),
     status: 'ACTIVE',
