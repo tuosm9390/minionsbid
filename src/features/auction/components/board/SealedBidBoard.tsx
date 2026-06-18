@@ -27,14 +27,6 @@ interface SealedBidBoardProps {
   onTimerExpire?: () => void;
 }
 
-type PlayerInfoItem = {
-  label: string;
-  value?: string;
-  imageSrc: string | null;
-  allowWrap?: boolean;
-  valueClassName?: string;
-};
-
 function SealedCard({
   card,
   revealed,
@@ -89,11 +81,7 @@ function SealedCard({
         </p>
         <p
           className={`font-black leading-none tabular-nums ${
-            card.is_pass
-              ? "text-fluid-sm"
-              : isHighest
-                ? "text-fluid-md"
-                : "text-fluid-md"
+            card.is_pass ? "text-fluid-sm" : "text-fluid-md"
           } ${pointTextClass}`}
         >
           {card.is_pass ? "입찰 포기" : `${card.amount.toLocaleString()}P`}
@@ -106,53 +94,6 @@ function SealedCard({
       </div>
     </motion.div>
   );
-}
-
-function PlayerInfoRow({
-  label,
-  value,
-  imageSrc,
-  allowWrap = false,
-  valueClassName = "text-fluid-sm",
-}: {
-  label: string;
-  value: string;
-  imageSrc?: string | null;
-  allowWrap?: boolean;
-  valueClassName?: string;
-}) {
-  return (
-    <div className="flex min-h-20 flex-col justify-between gap-3 border-2 border-black bg-white px-4 py-3 text-left shadow-pixel-sm">
-      <p className="text-xs font-black uppercase text-gray-500">{label}</p>
-      <div className="flex min-w-0 items-end justify-start gap-2">
-        {imageSrc && (
-          <Image
-            src={imageSrc}
-            alt={value}
-            width={34}
-            height={34}
-            className="shrink-0 pixelated drop-shadow-sm"
-          />
-        )}
-        <p
-          className={`min-w-0 text-left font-black leading-tight text-black ${valueClassName} ${
-            allowWrap
-              ? "whitespace-normal break-words [overflow-wrap:anywhere]"
-              : "truncate"
-          }`}
-        >
-          {value}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function getFlexibleTextSize(value: string) {
-  const length = [...value].length;
-  if (length > 28) return "text-[11px] sm:text-xs";
-  if (length > 18) return "text-xs sm:text-[13px]";
-  return "text-fluid-sm";
 }
 
 export function SealedBidBoard({
@@ -208,34 +149,9 @@ export function SealedBidBoard({
     sealedBid.phase === "REVEALING" &&
     visibleCards.length > 0 &&
     revealComplete;
-  const tierRowItems: PlayerInfoItem[] = [
-    {
-      label: "소환사의 협곡",
-      value: currentPlayer.tier,
-      imageSrc: currentPlayer.tier
-        ? getExactTierImage(currentPlayer.tier)
-        : null,
-    },
-    {
-      label: "무작위 총력전 : 아수라장",
-      value: currentPlayer.aram_tier,
-      imageSrc: null,
-      allowWrap: true,
-      valueClassName: currentPlayer.aram_tier
-        ? getFlexibleTextSize(currentPlayer.aram_tier)
-        : "text-fluid-sm",
-    },
-    {
-      label: "전략적 팀 전투",
-      value: currentPlayer.tft_tier,
-      imageSrc: currentPlayer.tft_tier
-        ? getExactTierImage(currentPlayer.tft_tier)
-        : null,
-    },
-  ];
-  const tierRows = tierRowItems.filter(
-    (row): row is PlayerInfoItem & { value: string } => Boolean(row.value),
-  );
+
+  const srTier = currentPlayer.tier ?? null;
+  const srTierImageSrc = srTier ? getExactTierImage(srTier) : null;
   const playerComment = currentPlayer.description.trim();
 
   const handleCompleteReveal = async () => {
@@ -261,34 +177,44 @@ export function SealedBidBoard({
         )}
       </div>
 
-      <div className="pixel-box bg-yellow-50 border-black p-5 text-center">
-        <p className="text-fluid-sm font-heading text-gray-500 uppercase">
+      <div className="pixel-box bg-yellow-50 border-black p-5">
+        <p className="text-fluid-sm font-heading text-gray-500 uppercase text-center">
           입찰 대상
         </p>
-        <h2 className="mt-1 text-fluid-lg font-black text-black">
-          {currentPlayer.name}
-        </h2>
-        {tierRows.length > 0 && (
-          <div className="mx-auto mt-4 grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-3">
-            {tierRows.map((row) => (
-              <PlayerInfoRow
-                key={row.label}
-                label={row.label}
-                value={row.value}
-                imageSrc={row.imageSrc}
-                allowWrap={row.allowWrap}
-                valueClassName={row.valueClassName}
+        <div className="mx-auto mt-4 max-w-2xl space-y-2">
+          <div className="flex items-center gap-4 border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
+            {srTierImageSrc && (
+              <Image
+                src={srTierImageSrc}
+                alt={srTier ?? ""}
+                width={64}
+                height={64}
+                className="shrink-0 pixelated drop-shadow-md"
               />
-            ))}
+            )}
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-xs font-black uppercase text-gray-500">닉네임</p>
+              <h2 className="mt-1 text-fluid-lg font-black leading-tight text-black break-all">
+                {currentPlayer.name}
+              </h2>
+              {srTier && (
+                <p className="mt-1 text-fluid-sm font-bold text-gray-500">
+                  {srTier}
+                </p>
+              )}
+            </div>
           </div>
-        )}
-        {playerComment && (
-          <div className="mx-auto mt-3 max-w-2xl">
-            <PlayerInfoRow label="한마디" value={`"${playerComment}"`} />
-          </div>
-        )}
+          {playerComment && (
+            <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
+              <p className="text-xs font-black uppercase text-gray-500">한마디</p>
+              <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                &ldquo;{playerComment}&rdquo;
+              </p>
+            </div>
+          )}
+        </div>
         {sealedBid.minAmount > 0 && (
-          <p className="mt-2 text-fluid-xs font-bold text-minion-red">
+          <p className="mt-3 text-center text-fluid-xs font-bold text-minion-red">
             재입찰 최소 금액 {sealedBid.minAmount.toLocaleString()}P
           </p>
         )}

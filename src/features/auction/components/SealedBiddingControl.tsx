@@ -100,7 +100,7 @@ export function SealedBiddingControl({
       <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
         <div className="bg-black text-white px-4 py-2 mb-0 flex justify-between items-center border-b-4 border-black -mx-5 -mt-5">
           <span className="text-fluid-xs font-heading uppercase tracking-tighter">
-            SEALED BID PANEL
+            CONTROL PANEL
           </span>
           <span className="text-fluid-xs font-bold text-minion-yellow">
             보유 {pointBalance.toLocaleString()}P
@@ -119,7 +119,7 @@ export function SealedBiddingControl({
     <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
       <div className="bg-black text-white px-4 py-2 mb-4 flex justify-between items-center border-b-4 border-black -mx-5 -mt-5">
         <span className="text-fluid-xs font-heading uppercase tracking-tighter">
-          SEALED BID PANEL
+          CONTROL PANEL
         </span>
         <span className="text-fluid-xs font-bold text-minion-yellow">
           보유 {pointBalance.toLocaleString()}P
