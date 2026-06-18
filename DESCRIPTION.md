@@ -229,6 +229,15 @@ doc/                             아키텍처, 보안, DB, 실시간 계약 문�
 
 경매 핵심 변경은 단위 테스트만으로 완료하지 않습니다. Vitest로 helper와 store/hook 회귀를 잡고, Playwright로 실제 브라우저에서 organizer, leader, viewer 역할 분리와 realtime 수렴을 확인합니다.
 
+### CI 워크플로우
+
+`.github/workflows/quality-ci.yml`은 `master` 브랜치 push, 모든 PR, 수동 실행 시 자동으로 실행되는 품질 게이트입니다. Ubuntu 환경에서 다음 4단계를 순서대로 실행하며, 하나라도 실패하면 PR 병합을 차단합니다.
+
+1. `npm ci` — 의존성 클린 설치
+2. `npx tsc --noEmit` — TypeScript 타입 검사
+3. `npm run lint` — ESLint 검사
+4. `npm test` — Vitest 단위 테스트 (전체 통과 필요)
+
 주요 명령은 다음과 같습니다.
 
 ```bash

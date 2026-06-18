@@ -190,29 +190,29 @@ export function SealedBidBoard({
               {currentPlayer.name}
             </h2>
             {(srTier || mainPosition) && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
                 {srTier && srTierImageSrc && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <Image
                       src={srTierImageSrc}
                       alt={srTier}
-                      width={28}
-                      height={28}
+                      width={44}
+                      height={44}
                       className="shrink-0 pixelated"
                     />
-                    <span className="text-fluid-sm font-bold text-gray-600">{srTier}</span>
+                    <span className="text-fluid-base font-bold text-gray-600">{srTier}</span>
                   </div>
                 )}
                 {mainPosition && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <Image
                       src={getPositionImage(mainPosition)}
                       alt={mainPosition}
-                      width={24}
-                      height={24}
+                      width={36}
+                      height={36}
                       className="shrink-0"
                     />
-                    <span className="text-fluid-sm font-bold text-gray-600">
+                    <span className="text-fluid-base font-bold text-gray-600">
                       {mainPosition}
                       {subPosition ? ` / ${subPosition}` : ""}
                     </span>
