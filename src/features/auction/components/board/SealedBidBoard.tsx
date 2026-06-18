@@ -184,15 +184,11 @@ export function SealedBidBoard({
           입찰 대상
         </p>
         <div className="mx-auto mt-4 max-w-2xl space-y-2">
-          <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
-            <p className="text-xs font-black uppercase text-gray-500">닉네임</p>
-            <h2 className="mt-1 text-fluid-lg font-black leading-tight text-black break-all">
-              {currentPlayer.name}
-            </h2>
+          <div className="border-2 border-black bg-white px-5 py-5 shadow-pixel-sm text-center">
             {(srTier || mainPosition) && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="flex justify-center gap-8 mb-4">
                 {srTier && srTierImageSrc && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center gap-1.5">
                     <Image
                       src={srTierImageSrc}
                       alt={srTier}
@@ -204,7 +200,7 @@ export function SealedBidBoard({
                   </div>
                 )}
                 {mainPosition && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center gap-1.5">
                     <Image
                       src={getPositionImage(mainPosition)}
                       alt={mainPosition}
@@ -220,6 +216,9 @@ export function SealedBidBoard({
                 )}
               </div>
             )}
+            <h2 className="text-fluid-lg font-black leading-tight text-black break-all">
+              {currentPlayer.name}
+            </h2>
           </div>
           {playerComment && (
             <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
