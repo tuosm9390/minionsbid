@@ -15,7 +15,7 @@ import {
 import { completeSealedBidReveal } from "@/features/auction/api/auctionActions";
 import { CenterTimer } from "@/features/auction/components/board/CenterTimer";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
-import { getExactTierImage } from "@/features/auction/utils/display";
+import { getExactTierImage, getPositionImage } from "@/features/auction/utils/display";
 
 interface SealedBidBoardProps {
   roomId: string;
@@ -152,6 +152,8 @@ export function SealedBidBoard({
 
   const srTier = currentPlayer.tier ?? null;
   const srTierImageSrc = srTier ? getExactTierImage(srTier) : null;
+  const mainPosition = currentPlayer.main_position?.trim() || null;
+  const subPosition = currentPlayer.sub_position?.trim() || null;
   const playerComment = currentPlayer.description.trim();
 
   const handleCompleteReveal = async () => {
@@ -182,27 +184,42 @@ export function SealedBidBoard({
           입찰 대상
         </p>
         <div className="mx-auto mt-4 max-w-2xl space-y-2">
-          <div className="flex items-center gap-4 border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
-            {srTierImageSrc && (
-              <Image
-                src={srTierImageSrc}
-                alt={srTier ?? ""}
-                width={64}
-                height={64}
-                className="shrink-0 pixelated drop-shadow-md"
-              />
+          <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
+            <p className="text-xs font-black uppercase text-gray-500">닉네임</p>
+            <h2 className="mt-1 text-fluid-lg font-black leading-tight text-black break-all">
+              {currentPlayer.name}
+            </h2>
+            {(srTier || mainPosition) && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                {srTier && srTierImageSrc && (
+                  <div className="flex items-center gap-1.5">
+                    <Image
+                      src={srTierImageSrc}
+                      alt={srTier}
+                      width={28}
+                      height={28}
+                      className="shrink-0 pixelated"
+                    />
+                    <span className="text-fluid-sm font-bold text-gray-600">{srTier}</span>
+                  </div>
+                )}
+                {mainPosition && (
+                  <div className="flex items-center gap-1.5">
+                    <Image
+                      src={getPositionImage(mainPosition)}
+                      alt={mainPosition}
+                      width={24}
+                      height={24}
+                      className="shrink-0"
+                    />
+                    <span className="text-fluid-sm font-bold text-gray-600">
+                      {mainPosition}
+                      {subPosition ? ` / ${subPosition}` : ""}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-xs font-black uppercase text-gray-500">닉네임</p>
-              <h2 className="mt-1 text-fluid-lg font-black leading-tight text-black break-all">
-                {currentPlayer.name}
-              </h2>
-              {srTier && (
-                <p className="mt-1 text-fluid-sm font-bold text-gray-500">
-                  {srTier}
-                </p>
-              )}
-            </div>
           </div>
           {playerComment && (
             <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">

@@ -155,6 +155,18 @@ export function RoomClient({
     return () => clearInterval(t);
   }, [timerEndsAt]);
 
+  useEffect(() => {
+    const inProgress = (!!timerEndsAt && !isExpired) || sealedBid?.phase === "ACTIVE";
+    if (!inProgress) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [timerEndsAt, isExpired, sealedBid?.phase]);
+
   const isAuctionActive = !!timerEndsAt && !isExpired;
   const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
     membersPerTeam,
