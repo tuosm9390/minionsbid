@@ -186,27 +186,27 @@ export function SealedBidBoard({
         <div className="mx-auto mt-4 max-w-2xl space-y-2">
           <div className="border-2 border-black bg-white px-5 py-5 shadow-pixel-sm text-center">
             {(srTier || mainPosition) && (
-              <div className="flex justify-center gap-8 mb-4">
+              <div className="flex justify-center gap-6 mb-4">
                 {srTier && srTierImageSrc && (
-                  <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex w-[30%] flex-col items-center gap-2">
                     <Image
                       src={srTierImageSrc}
                       alt={srTier}
-                      width={44}
-                      height={44}
-                      className="shrink-0 pixelated"
+                      width={200}
+                      height={200}
+                      className="w-full h-auto pixelated"
                     />
                     <span className="text-fluid-base font-bold text-gray-600">{srTier}</span>
                   </div>
                 )}
                 {mainPosition && (
-                  <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex w-[30%] flex-col items-center gap-2">
                     <Image
                       src={getPositionImage(mainPosition)}
                       alt={mainPosition}
-                      width={36}
-                      height={36}
-                      className="shrink-0"
+                      width={200}
+                      height={200}
+                      className="w-full h-auto"
                     />
                     <span className="text-fluid-base font-bold text-gray-600">
                       {mainPosition}
