@@ -12,6 +12,7 @@ interface UseAuctionPresenceGuardProps {
   currentPlayerId: string | null
   timerEndsAt: string | null
   lotteryPlayerId: string | null
+  isAuctionStarted: boolean
 }
 
 type GuardPhase = 'idle' | 'pausing' | 'paused' | 'resuming'
@@ -25,6 +26,7 @@ export function useAuctionPresenceGuard({
   currentPlayerId,
   timerEndsAt,
   lotteryPlayerId,
+  isAuctionStarted,
 }: UseAuctionPresenceGuardProps) {
   const organizerToken = useAuctionStore((s) => s.organizerToken)
   const phaseRef = useRef<GuardPhase>('idle')
@@ -58,24 +60,15 @@ export function useAuctionPresenceGuard({
       return
     }
 
-    if (!currentPlayerId) {
-      clearPendingPause()
-      phaseRef.current = 'idle'
-      return
-    }
-
-    const isAuctionRunning = !!timerEndsAt
     const isLotteryPhase = !!lotteryPlayerId
 
-    if (!allConnected && isAuctionRunning && phaseRef.current === 'idle') {
+    if (!allConnected && isAuctionStarted && phaseRef.current === 'idle') {
       if (pauseTimeoutRef.current === null) {
         pauseTimeoutRef.current = window.setTimeout(() => {
           pauseTimeoutRef.current = null
           const latest = latestStateRef.current
           if (
             latest.allConnected ||
-            !latest.currentPlayerId ||
-            !latest.timerEndsAt ||
             latest.lotteryPlayerId ||
             phaseRef.current !== 'idle'
           ) {
@@ -97,7 +90,7 @@ export function useAuctionPresenceGuard({
       }
     }
 
-    if (allConnected || !isAuctionRunning || isLotteryPhase) {
+    if (allConnected || !isAuctionStarted || isLotteryPhase) {
       clearPendingPause()
     }
 
@@ -125,6 +118,7 @@ export function useAuctionPresenceGuard({
     allConnected,
     currentPlayerId,
     effectiveRole,
+    isAuctionStarted,
     isPresenceLoaded,
     lotteryPlayerId,
     organizerToken,

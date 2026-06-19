@@ -179,6 +179,9 @@ export function RoomClient({
 
   const guardCurrentPlayerId = currentPlayerId ?? currentPlayer?.id ?? null;
 
+  const isAuctionStarted =
+    soldPlayers.length > 0 || !!currentPlayerId || !!lotteryPlayer;
+
   useAuctionPresenceGuard({
     roomId,
     effectiveRole,
@@ -187,6 +190,7 @@ export function RoomClient({
     currentPlayerId: guardCurrentPlayerId,
     timerEndsAt,
     lotteryPlayerId: lotteryPlayer?.id ?? null,
+    isAuctionStarted,
   });
 
   const { handleCloseLottery, triggerAward } = useAuctionControl({

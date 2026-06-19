@@ -32,6 +32,7 @@ describe('useAuctionPresenceGuard', () => {
         currentPlayerId: 'player-1',
         timerEndsAt: new Date(Date.now() + 5000).toISOString(),
         lotteryPlayerId: null,
+        isAuctionStarted: true,
       }),
     )
 
@@ -66,6 +67,7 @@ describe('useAuctionPresenceGuard', () => {
           currentPlayerId: 'player-1',
           timerEndsAt: props.timerEndsAt,
           lotteryPlayerId: null,
+          isAuctionStarted: true,
         }),
       {
         initialProps,
@@ -100,6 +102,7 @@ describe('useAuctionPresenceGuard', () => {
         currentPlayerId: 'player-1',
         timerEndsAt: new Date(Date.now() + 5000).toISOString(),
         lotteryPlayerId: 'player-1',
+        isAuctionStarted: true,
       }),
     )
 
@@ -119,6 +122,7 @@ describe('useAuctionPresenceGuard', () => {
           currentPlayerId: 'player-1',
           timerEndsAt: new Date(Date.now() + 10000).toISOString(),
           lotteryPlayerId: null,
+          isAuctionStarted: true,
         }),
       {
         initialProps: { allConnected: false },
@@ -137,5 +141,49 @@ describe('useAuctionPresenceGuard', () => {
 
     expect(pauseAuction).not.toHaveBeenCalled()
     expect(resumeAuction).not.toHaveBeenCalled()
+  })
+
+  it('라운드 사이(currentPlayerId=null, timerEndsAt=null)에서 이탈해도 pauseAuction을 호출한다', async () => {
+    renderHook(() =>
+      useAuctionPresenceGuard({
+        roomId: 'room-1',
+        effectiveRole: 'ORGANIZER',
+        isPresenceLoaded: true,
+        allConnected: false,
+        currentPlayerId: null,
+        timerEndsAt: null,
+        lotteryPlayerId: null,
+        isAuctionStarted: true,
+      }),
+    )
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+      await Promise.resolve()
+    })
+
+    expect(pauseAuction).toHaveBeenCalledWith('room-1', '')
+  })
+
+  it('첫 추첨 전(isAuctionStarted=false)에는 이탈해도 pauseAuction을 호출하지 않는다', async () => {
+    renderHook(() =>
+      useAuctionPresenceGuard({
+        roomId: 'room-1',
+        effectiveRole: 'ORGANIZER',
+        isPresenceLoaded: true,
+        allConnected: false,
+        currentPlayerId: null,
+        timerEndsAt: null,
+        lotteryPlayerId: null,
+        isAuctionStarted: false,
+      }),
+    )
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+      await Promise.resolve()
+    })
+
+    expect(pauseAuction).not.toHaveBeenCalled()
   })
 })
