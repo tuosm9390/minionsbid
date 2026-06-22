@@ -62,7 +62,7 @@ export function CreateRoomModal() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="pixel-button w-full sm:w-auto bg-minion-yellow text-black py-5 px-12 text-fluid-sm font-heading shadow-[8px_8px_0px_rgba(0,0,0,1)] hover:scale-105 active:scale-95 transition-all"
+        className="pixel-button w-full sm:w-auto bg-minion-yellow text-black py-5 px-12 text-fluid-sm font-heading shadow-[8px_8px_0px_rgba(0,0,0,1)] hover:scale-105 active:scale-[0.96] transition-[transform,box-shadow]"
       >
         MAKE ROOM
       </button>

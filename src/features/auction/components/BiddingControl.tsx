@@ -82,7 +82,7 @@ export function BiddingControl(props: BiddingControlProps) {
             {/* Point Gauge */}
             <div className="w-full h-2 bg-gray-100 border-2 border-black mt-1 overflow-hidden">
               <div
-                className="h-full  bg-minion-blue transition-all duration-[2000ms] ease-out"
+                className="h-full bg-minion-blue transition-[width] duration-[2000ms] ease-out"
                 style={{ width: `${pointRatio}%` }}
               />
             </div>
@@ -124,7 +124,7 @@ export function BiddingControl(props: BiddingControlProps) {
         ) : (
           <>
             {!isAuctionActive && (
-              <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none transition-all duration-300">
+              <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none">
                 <div className="flex items-center gap-3">
                   <PixelIcon
                     icon={PIXEL_ICONS.WAITING}
@@ -145,7 +145,7 @@ export function BiddingControl(props: BiddingControlProps) {
               <button
                 onClick={decrementBid}
                 disabled={!canBid || numericBidAmount <= minBid}
-                className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
+                className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-colors"
               >
                 -
               </button>
@@ -169,7 +169,7 @@ export function BiddingControl(props: BiddingControlProps) {
               <button
                 onClick={incrementBid}
                 disabled={!canBid}
-                className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-all"
+                className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-colors"
               >
                 +
               </button>
@@ -178,7 +178,7 @@ export function BiddingControl(props: BiddingControlProps) {
             <button
               onClick={handleBid}
               disabled={!canBid}
-              className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group/btn ${
+              className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-colors relative overflow-hidden group/btn ${
                 isLeading
                   ? "bg-black text-minion-yellow border-minion-yellow shadow-[0_0_15px_rgba(251,224,66,0.4)]"
                   : "bg-minion-blue text-white border-black hover:bg-minion-blue-hover shadow-pixel-sm"

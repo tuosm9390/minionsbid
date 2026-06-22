@@ -81,7 +81,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link
               href="/hall-of-fame"
-              className="group bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+              className="group bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-[transform,box-shadow]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-4">
@@ -105,7 +105,7 @@ export default function Home() {
 
             <Link
               href="/league-schedule"
-              className="group bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+              className="group bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-[transform,box-shadow]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-4">
@@ -143,7 +143,7 @@ export default function Home() {
             {HOW_TO_USE_STEPS.map((item, index) => (
               <div
                 key={item.step}
-                className={`bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all animate-slide-up`}
+                className={`bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-[transform,box-shadow] animate-slide-up`}
                 style={{ animationDelay: `${(index + 2) * 100}ms` }}
               >
                 <div className="flex justify-between items-start mb-4">

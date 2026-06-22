@@ -158,7 +158,7 @@ export function TeamList() {
         return (
           <div
             key={team.id}
-            className={`p-4 border-4 border-black relative overflow-hidden transition-all duration-300 ${
+            className={`p-4 border-4 border-black relative overflow-hidden transition-[transform,box-shadow,filter] duration-300 ${
               useWideRosterGrid ? "xl:p-2" : ""
             } ${
               isTeamComplete
@@ -287,7 +287,7 @@ export function TeamList() {
               >
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(black_1px,transparent_1px)] bg-[size:4px_4px] z-10 pointer-events-none" />
                 <div
-                  className={`h-full transition-all duration-[2000ms] ease-out ${gaugeColor}`}
+                  className={`h-full transition-[width] duration-[2000ms] ease-out ${gaugeColor}`}
                   style={{ width: `${pointRatio}%` }}
                 />
               </div>

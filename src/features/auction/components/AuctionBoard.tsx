@@ -416,7 +416,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {soldOverlayData && (
           <SoldOverlay
             playerName={soldOverlayData.playerName}
@@ -429,7 +429,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {unsoldPlayerName && (
           <UnsoldNotice
             playerName={unsoldPlayerName}

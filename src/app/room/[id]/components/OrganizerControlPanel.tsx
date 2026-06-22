@@ -75,7 +75,7 @@ export function OrganizerControlPanel({
       </div>
 
       {/* 시스템 부하 경고 (FR-007) */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {showLoadWarning && (
           <motion.div
             initial={{ height: 0, opacity: 0, marginBottom: 0 }}
@@ -121,7 +121,7 @@ export function OrganizerControlPanel({
 
       {/* Main Action Buttons */}
       <div className="h-14 relative">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false} mode="wait">
           {allDone ? (
             <motion.div
               key="result"
