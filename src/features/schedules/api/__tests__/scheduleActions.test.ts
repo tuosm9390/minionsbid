@@ -10,6 +10,7 @@ const dbState = vi.hoisted(() => ({
   auctionArchives: new Map<string, DocData>(),
   hallOfFame: new Map<string, DocData>(),
   recursiveDeleteCalls: [] as string[],
+  orderByCalls: [] as Array<{ collectionName: string; field: string; direction?: string }>,
 }))
 
 const resetState = () => {
@@ -18,6 +19,7 @@ const resetState = () => {
   dbState.auctionArchives.clear()
   dbState.hallOfFame.clear()
   dbState.recursiveDeleteCalls.length = 0
+  dbState.orderByCalls.length = 0
 }
 
 const createTimestamp = (value: Date | number | string) => {
@@ -161,7 +163,8 @@ function buildCollectionRef(collectionName: string, parentId?: string) {
       await ref.set(data)
       return { id, ...ref }
     },
-    orderBy() {
+    orderBy(field: string, direction?: string) {
+      dbState.orderByCalls.push({ collectionName, field, direction })
       return this
     },
     where() {
@@ -271,6 +274,32 @@ describe('scheduleActions', () => {
 
     await expect(verifyScheduleAdminCode('wrong')).resolves.toEqual({ valid: false })
     await expect(verifyScheduleAdminCode('secret-code')).resolves.toEqual({ valid: true })
+  })
+
+  it('getLeagueScheduleCatalog requests recent schedules first', async () => {
+    dbState.leagueSchedules.set('schedule-old', {
+      name: 'Spring Split',
+      starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      ends_at: createTimestamp('2026-04-10T00:00:00.000Z'),
+      status: 'ACTIVE',
+    })
+    dbState.leagueSchedules.set('schedule-new', {
+      name: 'Summer Split',
+      starts_at: createTimestamp('2026-05-01T00:00:00.000Z'),
+      ends_at: createTimestamp('2026-05-10T00:00:00.000Z'),
+      status: 'ACTIVE',
+    })
+
+    const { getLeagueScheduleCatalog } = await import('../scheduleActions')
+
+    const result = await getLeagueScheduleCatalog()
+
+    expect(result.schedules).toHaveLength(2)
+    expect(dbState.orderByCalls).toContainEqual({
+      collectionName: 'league_schedules',
+      field: 'starts_at',
+      direction: 'desc',
+    })
   })
 
   it('createLeagueSchedule rejects requests without admin code', async () => {

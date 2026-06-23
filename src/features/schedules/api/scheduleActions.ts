@@ -509,7 +509,7 @@ export async function getLeagueScheduleCatalog(): Promise<LeagueScheduleCatalog>
   }
   try {
     const [scheduleSnapshot, excludedArchiveIds, archiveSnapshot] = await Promise.all([
-      adminDb.collection('league_schedules').orderBy('starts_at', 'asc').limit(50).get(),
+      adminDb.collection('league_schedules').orderBy('starts_at', 'desc').limit(50).get(),
       getHallOfFameArchiveIdSet(),
       adminDb.collection('auction_archives').orderBy('closed_at', 'desc').get(),
     ])

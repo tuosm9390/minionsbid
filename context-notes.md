@@ -404,3 +404,9 @@
 - 실패 증거는 `.omo/ulw-loop/evidence/G002-npm-test-rerun.txt`이고, 단독 통과 증거는 `.omo/ulw-loop/evidence/G002-league-manager-file-before.txt`다.
 - 테스트는 초기 timeline 렌더가 끝나 캘린더가 `2026-06-18`을 표시한 뒤 mock 캘린더 날짜 변경을 직접 발생시키고, `2026-06-19` 표시를 확인한 다음 저장하도록 안정화한다.
 - 검증 결과 `npx vitest run __tests__/LeagueScheduleManager.test.tsx`, `npm test`, `npx eslint __tests__/LeagueScheduleManager.test.tsx`, `npx tsc --noEmit --pretty false`가 통과했다. 증거 파일은 `.omo/ulw-loop/evidence/G002-league-manager-green.txt`, `.omo/ulw-loop/evidence/G002-npm-test-green.txt`, `.omo/ulw-loop/evidence/G002-tsc-green.txt`다.
+
+## 2026-06-23 리그전 일정 최신순 정렬
+
+- 요청 문구에는 오름차순과 최근 경기 상단이 함께 있었지만, 표시 의도는 "최근 경기가 위"로 해석한다. 따라서 catalog 조회는 `starts_at` 내림차순, 즉 최신순으로 유지한다.
+- 일정관리 좌측 목록은 `getLeagueScheduleCatalog()`가 반환한 `schedules` 순서를 그대로 렌더링하므로 서버 액션 query 정렬을 테스트로 고정하면 UI 정렬 계약도 함께 고정된다.
+- 검증 결과 `npx vitest run src/features/schedules/api/__tests__/scheduleActions.test.ts`와 `npx eslint src/features/schedules/api/scheduleActions.ts src/features/schedules/api/__tests__/scheduleActions.test.ts`가 통과했다.
