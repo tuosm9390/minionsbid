@@ -450,3 +450,18 @@
 - [x] 날짜별 경기 저장과 결과 등록 후 선택 날짜가 유지되는지 테스트로 확인한다.
 - [x] 전체 일정 생성 시 시작일과 종료일이 서버 경계에서도 자정 0시로 저장되도록 고정한다.
 - [x] 관련 Vitest를 실행하고 결과를 기록한다.
+
+## 동시 입장 presence/custom token 검증
+
+- [x] ulw-loop 목표 생성 및 기존 관련 테스트 표면 확인.
+- [x] 동시 입장 success criteria를 실제 증거 경로로 구체화.
+- [x] 기존 8팀장 Emulator E2E를 동시 입장 권한 검증 기준으로 보강.
+- [x] 관련 TypeScript 확인과 Emulator E2E 실행.
+- [x] ulw-loop evidence와 최종 품질 결과 기록.
+
+## 전체 npm test 회귀 실패 확인
+
+- [x] `LeagueScheduleManager` 전체 테스트 실패 재현 증거 확인.
+- [x] 병렬 전체 실행에서 날짜 변경 상태 반영 전 저장으로 넘어가는 테스트 race 안정화.
+- [x] 대상 테스트와 전체 테스트 재실행.
+- [x] ulw-loop G002 evidence 기록.

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LeagueScheduleManager } from '@/components/LeagueScheduleManager'
@@ -268,8 +268,14 @@ describe('LeagueScheduleManager', () => {
     await waitFor(() => {
       expect(mockGetLeagueScheduleTimeline).toHaveBeenCalledWith('schedule-1')
     })
+    await waitFor(() => {
+      expect(screen.getByTestId('calendar-Match Days')).toHaveTextContent('2026-06-18')
+    })
 
-    await user.click(screen.getByRole('button', { name: 'change Match Days' }))
+    fireEvent.click(screen.getByRole('button', { name: 'change Match Days' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('calendar-Match Days')).toHaveTextContent('2026-06-19')
+    })
     await user.click(screen.getByRole('button', { name: 'save-day' }))
 
     await waitFor(() => {

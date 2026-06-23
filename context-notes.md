@@ -387,3 +387,20 @@
 - 일정 생성 payload는 클라이언트에서 이미 `startOfSelectedDay`를 적용하지만, 서버 액션도 외부 호출 경계이므로 `createLeagueSchedule`에서 시작일과 종료일을 자정으로 정규화하는 편이 요구사항 3에 직접 맞다.
 - 구현은 일정 id가 바뀔 때만 `selectedDateKey`를 오늘 날짜로 초기화하고, 같은 일정의 timeline 재로드에서는 기존 선택 날짜를 보존하도록 제한했다.
 - 검증 결과 `npx vitest run __tests__/LeagueScheduleManager.test.tsx`, `npx vitest run src/features/schedules/api/__tests__/scheduleActions.test.ts`, `npx playwright test playwright/league-schedule.spec.ts --project=chromium --workers=1`, 변경 파일 대상 `npx eslint ...`가 통과했다. `npx tsc --noEmit`은 이번 변경과 무관한 `__tests__/AuctionBoard.test.tsx`의 기존 타입 오류에서 실패했다.
+
+## 2026-06-23 동시 입장 presence/custom token 검증
+
+- 요청은 첫 방 생성 직후 주최자와 팀장들이 동시에 입장할 때 Firebase custom token, RTDB presence, 권한 부여가 각 사용자별로 맞는지 검증하는 것이다.
+- 관련 E2E 표면은 `playwright/auction-eight-leaders-emulator.spec.ts`이며, 이미 organizer + 8 leaders, Firebase Auth, RTDB presence, Firestore bid 흐름을 Emulator로 검증한다.
+- 관련 클라이언트 인증 표면은 `src/lib/firebase.ts`의 `ensureRoomFirebaseAuth`이고, presence 등록 표면은 `src/features/auction/hooks/usePresence.ts`다.
+- 관련 서버 토큰 발급 표면은 `src/app/api/room-auth/firebase-token/route.ts`이며, role/teamId/token 검증 후 Firebase custom token claims를 발급한다.
+- 현재 작업트리에는 `src/features/schedules/api/scheduleActions.ts`에 기존 변경이 있어 이번 검증 작업에서는 건드리지 않는다.
+- E2E 보강은 `playwright/auction-eight-leaders-emulator.spec.ts`에 한정한다. 동시 입장은 이미 `Promise.all`로 organizer와 8 leader page를 동시에 `goto`하는 구조라 이 흐름 위에 claims/presence/권한 거부 assertions를 추가했다.
+- 검증 결과 `npx tsc --noEmit --pretty false`와 `npm run test:e2e:auction:8leaders:emulator`가 통과했다. 증거 파일은 `.omo/ulw-loop/evidence/G001-C001-browser-e2e.txt`, `.omo/ulw-loop/evidence/G001-C002-http-forbidden.json`, `.omo/ulw-loop/evidence/G001-C003-browser-bids.txt`, `.omo/ulw-loop/evidence/G001-emulator-run-output.txt`다.
+
+## 2026-06-23 전체 npm test 회귀 실패 확인
+
+- `npm test` 전체 실행에서 `__tests__/LeagueScheduleManager.test.tsx`의 `keeps the selected date after saving a match day`가 실패했다. 단일 테스트와 파일 단독 실행은 통과해 컴포넌트 동작 자체보다 병렬 전체 실행의 fake timer/user-event race로 판단했다.
+- 실패 증거는 `.omo/ulw-loop/evidence/G002-npm-test-rerun.txt`이고, 단독 통과 증거는 `.omo/ulw-loop/evidence/G002-league-manager-file-before.txt`다.
+- 테스트는 초기 timeline 렌더가 끝나 캘린더가 `2026-06-18`을 표시한 뒤 mock 캘린더 날짜 변경을 직접 발생시키고, `2026-06-19` 표시를 확인한 다음 저장하도록 안정화한다.
+- 검증 결과 `npx vitest run __tests__/LeagueScheduleManager.test.tsx`, `npm test`, `npx eslint __tests__/LeagueScheduleManager.test.tsx`, `npx tsc --noEmit --pretty false`가 통과했다. 증거 파일은 `.omo/ulw-loop/evidence/G002-league-manager-green.txt`, `.omo/ulw-loop/evidence/G002-npm-test-green.txt`, `.omo/ulw-loop/evidence/G002-tsc-green.txt`다.

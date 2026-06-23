@@ -31,6 +31,11 @@ type FirebaseStateResponse = {
   presence: Array<{ sessionId: string; role: string | null; teamId: string | null }>
 }
 
+type AuthDebug = {
+  uid?: string
+  claims?: Record<string, unknown>
+} | null
+
 type LeaderClient = {
   teamName: string
   teamId: string
@@ -44,10 +49,7 @@ type LeaderDiagnostic = {
   teamName: string
   teamId: string
   url: string
-  authDebug: {
-    uid?: string
-    claims?: Record<string, unknown>
-  } | null
+  authDebug: AuthDebug
   bidButtonCount: number
   bidButtonEnabled: boolean
   bidButtonText: string | null
@@ -107,6 +109,23 @@ async function getAuthDebug(page: Page) {
   })
 }
 
+async function waitForOrganizerAuth(page: Page, roomId: string) {
+  await expect
+    .poll(async () => {
+      const authDebug = await getAuthDebug(page)
+      return {
+        role: authDebug?.claims?.role ?? null,
+        roomId: authDebug?.claims?.roomId ?? null,
+        teamId: authDebug?.claims?.teamId ?? undefined,
+      }
+    }, { timeout: 20_000 })
+    .toEqual({
+      role: 'ORGANIZER',
+      roomId,
+      teamId: undefined,
+    })
+}
+
 async function waitForLeaderAuth(leader: LeaderClient, roomId: string) {
   await expect
     .poll(async () => {
@@ -151,6 +170,14 @@ async function attachDiagnostics(
     body: JSON.stringify(diagnostics, null, 2),
     contentType: 'application/json',
   })
+}
+
+function writeEvidence(name: string, payload: unknown) {
+  mkdirSync(join('.omo', 'ulw-loop', 'evidence'), { recursive: true })
+  writeFileSync(
+    join('.omo', 'ulw-loop', 'evidence', name),
+    typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2),
+  )
 }
 
 function collectPageLogs(page: Page, source: string, logs: PageLog[]) {
@@ -276,13 +303,68 @@ test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore
       await attachDiagnostics(testInfo, 'firebase-page-load-diagnostics.json', diagnostics)
       throw error
     }
-    await Promise.all(leaders.map((leader) => waitForLeaderAuth(leader, fixture.roomId)))
+    await Promise.all([
+      waitForOrganizerAuth(organizerPage, fixture.roomId),
+      ...leaders.map((leader) => waitForLeaderAuth(leader, fixture.roomId)),
+    ])
 
     await expect
-      .poll(async () => (await getFirebaseState(request, fixture.roomId)).counts.leaderPresences, {
+      .poll(async () => {
+        const state = await getFirebaseState(request, fixture.roomId)
+        return {
+          presences: state.counts.presences,
+          leaderPresences: state.counts.leaderPresences,
+        }
+      }, {
         timeout: 20_000,
       })
-      .toBe(8)
+      .toEqual({
+        presences: 9,
+        leaderPresences: 8,
+      })
+
+    const organizerAuthDebug = await getAuthDebug(organizerPage)
+    const leaderAuthDebug = await Promise.all(leaders.map((leader) => getAuthDebug(leader.page)))
+    const authUids = [organizerAuthDebug?.uid, ...leaderAuthDebug.map((debug) => debug?.uid)]
+    expect(new Set(authUids).size).toBe(9)
+    expect(authUids.every((uid) => typeof uid === 'string' && uid.length > 0)).toBe(true)
+
+    const entryState = await getFirebaseState(request, fixture.roomId)
+    const organizerPresence = entryState.presence.filter((presence) => presence.role === 'ORGANIZER')
+    const leaderPresenceTeamIds = entryState.presence
+      .filter((presence) => presence.role === 'LEADER')
+      .map((presence) => presence.teamId)
+      .sort()
+    const expectedLeaderTeamIds = fixture.captainLinks.map((leader) => leader.teamId).sort()
+    expect(organizerPresence).toHaveLength(1)
+    expect(leaderPresenceTeamIds).toEqual(expectedLeaderTeamIds)
+    writeEvidence('G001-C001-browser-e2e.txt', {
+      roomId: fixture.roomId,
+      organizerClaims: organizerAuthDebug?.claims,
+      leaderClaims: leaderAuthDebug.map((debug, index) => ({
+        teamId: leaders[index].teamId,
+        claims: debug?.claims,
+      })),
+      authUids,
+      presence: entryState.presence,
+      counts: entryState.counts,
+    })
+
+    const crossLeaderTokenResponse = await request.post('/api/room-auth/firebase-token', {
+      data: {
+        roomId: fixture.roomId,
+        role: 'LEADER',
+        teamId: fixture.captainLinks[0].teamId,
+        token: fixture.captainLinks[1].token,
+      },
+    })
+    const crossLeaderTokenBody = await crossLeaderTokenResponse.json().catch(() => null)
+    writeEvidence('G001-C002-http-forbidden.json', {
+      status: crossLeaderTokenResponse.status(),
+      body: crossLeaderTokenBody,
+    })
+    expect(crossLeaderTokenResponse.status()).toBe(403)
+    expect(crossLeaderTokenBody).toEqual({ error: 'forbidden' })
 
     await startFirstRound(request, fixture)
     await expect(organizerPage.getByText('경매 진행 중')).toBeVisible({ timeout: 10_000 })
@@ -319,6 +401,12 @@ test('verifies eight leaders through Firebase Auth, RTDB presence, and Firestore
 
     const finalState = await getFirebaseState(request, fixture.roomId)
     await attachDiagnostics(testInfo, 'firebase-eight-leader-room-state.json', finalState)
+    writeEvidence('G001-C003-browser-bids.txt', {
+      roomId: fixture.roomId,
+      bids: finalState.counts.bids,
+      activeBid: finalState.room.activeBid,
+      auctionRevision: finalState.room.auctionRevision,
+    })
     expect(finalState.counts.teams).toBe(8)
     expect(finalState.counts.teamTokens).toBe(8)
     expect(finalState.counts.bids).toBe(8)
