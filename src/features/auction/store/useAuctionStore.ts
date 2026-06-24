@@ -43,6 +43,7 @@ export interface Player {
   description: string
   aram_tier?: string
   tft_tier?: string
+  desired_team?: string
   order?: number
 }
 

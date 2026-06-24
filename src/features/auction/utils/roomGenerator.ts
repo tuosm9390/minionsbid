@@ -25,6 +25,7 @@ export interface PlayerInfo {
   description: string;
   aramTier?: string;
   tftTier?: string;
+  desiredTeam?: string;
 }
 
 export function generateKoreanName(usedNames: Set<string>): string {

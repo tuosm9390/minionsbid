@@ -103,6 +103,7 @@ export type FixtureCreateRoomPayload = {
     description: string
     aramTier?: string
     tftTier?: string
+    desiredTeam?: string
   }>
 }
 
@@ -520,6 +521,7 @@ export function createE2EAuctionFixtureRoom(
     description: player.description || '',
     aram_tier: player.aramTier || '',
     tft_tier: player.tftTier || '',
+    desired_team: player.desiredTeam || '',
     order: index + 1,
   }))
 

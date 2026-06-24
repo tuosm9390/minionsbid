@@ -1,22 +1,84 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { CreateRoomModal } from "@/components/CreateRoomModal";
+import { createRoom } from "@/features/auction/api/auctionActions";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
+
+type MockSheet = { sheetName?: string };
+type MockSheetToJsonOptions = { header: number; raw: boolean };
 
 // 1. xlsx 모킹 (hoisted 처리를 위해 최상위에서 mock으로 시작하는 변수명 사용)
 const mockXLSXInternal = {
   read: vi.fn().mockReturnValue({
-    SheetNames: ["DB"],
+    SheetNames: ["DB", "참가자", "빈시트"],
     Sheets: {
-      DB: {},
+      DB: { sheetName: "DB" },
+      참가자: { sheetName: "참가자" },
+      빈시트: { sheetName: "빈시트" },
     },
   }),
   utils: {
-    sheet_to_json: vi.fn().mockReturnValue([
-      ["#", "선수 이름", "닉네임", "티어", "라인", "코멘트", "", "", "", ""], // Header
-      [1, "선수1", "Player1", "C", "●", "Description", "", "", "", "●"], // Row 1
-      [2, "팀장1", "Captain팀장", "G", "●", "팀장", "", "", "", ""],
-    ]),
+    sheet_to_json: vi.fn((sheet: MockSheet) => {
+      if (sheet.sheetName === "참가자") {
+        return [
+          [
+            "#",
+            "선수 이름",
+            "닉네임",
+            "티어",
+            "라인",
+            "코멘트",
+            "",
+            "",
+            "",
+            "",
+          ],
+          [
+            1,
+            "선수1",
+            "SelectedPlayer",
+            "C",
+            "●",
+            "Description",
+            "",
+            "",
+            "",
+            "●",
+          ],
+          [
+            2,
+            "팀장1",
+            "SelectedCaptain팀장",
+            "G",
+            "●",
+            "팀장",
+            "",
+            "",
+            "",
+            "",
+          ],
+        ];
+      }
+      if (sheet.sheetName === "빈시트") {
+        return [["#", "선수 이름", "닉네임", "티어"]];
+      }
+      return [
+        [
+          "#",
+          "선수 이름",
+          "닉네임",
+          "티어",
+          "라인",
+          "코멘트",
+          "",
+          "",
+          "",
+          "",
+        ],
+        [1, "선수1", "Player1", "C", "●", "Description", "", "", "", "●"],
+        [2, "팀장1", "Captain팀장", "G", "●", "팀장", "", "", "", ""],
+      ];
+    }),
   },
 };
 
@@ -24,8 +86,11 @@ const mockXLSXInternal = {
 vi.mock("xlsx", () => ({
   read: vi.fn((...args) => mockXLSXInternal.read(...args)),
   utils: {
-    sheet_to_json: vi.fn((...args) =>
-      mockXLSXInternal.utils.sheet_to_json(...args),
+    sheet_to_json: vi.fn(
+      (sheet: MockSheet, options: MockSheetToJsonOptions) => {
+        void options;
+        return mockXLSXInternal.utils.sheet_to_json(sheet);
+      },
     ),
   },
 }));
@@ -74,6 +139,14 @@ vi.mock("firebase/firestore", () => ({
 describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockXLSXInternal.read.mockReturnValue({
+      SheetNames: ["DB", "참가자", "빈시트"],
+      Sheets: {
+        DB: { sheetName: "DB" },
+        참가자: { sheetName: "참가자" },
+        빈시트: { sheetName: "빈시트" },
+      },
+    });
   });
 
   it("should render create room button and open modal", async () => {
@@ -87,7 +160,7 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     });
   });
 
-  it("should load xlsx library dynamically and parse players on excel upload", async () => {
+  it("should show workbook sheets and parse the selected sheet on excel upload", async () => {
     const user = userEvent.setup();
     render(<CreateRoomModal />);
 
@@ -129,11 +202,118 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
       { timeout: 3000 },
     );
 
-    // UI에 파싱된 데이터가 반영되었는지 확인
+    expect(screen.getByText("사용할 시트를 선택해주세요")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "DB" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "참가자" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "참가자" }));
+
+    expect(mockXLSXInternal.utils.sheet_to_json).toHaveBeenCalledWith({
+      sheetName: "참가자",
+    });
+
     await waitFor(() => {
-      // Player1 닉네임이 입력값으로 들어갔는지 확인
-      const playerInput = screen.getByDisplayValue("Player1");
+      const playerInput = screen.getByDisplayValue("SelectedPlayer");
       expect(playerInput).toBeInTheDocument();
+    });
+  });
+
+  it("should warn when the selected sheet has no player rows", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+
+    const titleInput = screen.getByTestId("room-title-input");
+    await user.type(titleInput, "Test Auction");
+    const numberInputs = screen.getAllByRole("spinbutton");
+    await user.clear(numberInputs[1]);
+    await user.type(numberInputs[1], "2");
+    await user.click(screen.getByTestId("next-button"));
+
+    const captainInputs = screen.getAllByPlaceholderText("이름");
+    for (const input of captainInputs) {
+      await user.type(input, "Leader");
+    }
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+    await screen.findByText("사용할 시트를 선택해주세요");
+    await user.click(screen.getByRole("button", { name: "빈시트" }));
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      "파싱된 선수가 없습니다. 파일 형식을 확인해주세요.",
+    );
+    alertSpy.mockRestore();
+  });
+
+  it("should keep LoL tier and desired team from excel rows in create payload", async () => {
+    mockXLSXInternal.utils.sheet_to_json.mockReturnValueOnce([
+      [
+        "#",
+        "닉네임",
+        "소환사의 협곡 티어",
+        "전략적 팀 전투 티어",
+        "주라인",
+        "부라인",
+        "희망 팀",
+        "코멘트",
+      ],
+      [1, "Alpha", "골드", "다이아", "미드", "탑", "Blue", "첫 번째"],
+      [2, "Beta", "실버", "골드", "정글", "무관", "Red", "두 번째"],
+    ]);
+    const mockedCreateRoom = vi.mocked(createRoom);
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+
+    const titleInput = screen.getByTestId("room-title-input");
+    await user.type(titleInput, "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const captainInputs = screen.getAllByPlaceholderText("이름");
+    for (const input of captainInputs) {
+      await user.type(input, "Leader");
+    }
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+    await user.click(await screen.findByRole("button", { name: "DB" }));
+    await screen.findByDisplayValue("Alpha");
+    const playerNameInputs = screen.getAllByPlaceholderText("선수 이름");
+    for (const [index, input] of playerNameInputs.entries()) {
+      if ((input as HTMLInputElement).value.trim()) continue;
+      await user.type(input, `Filler${index}`);
+    }
+
+    await user.click(screen.getByTestId("next-button"));
+
+    await waitFor(() => {
+      expect(mockedCreateRoom).toHaveBeenCalled();
+    });
+    expect(mockedCreateRoom.mock.calls[0][0].players[0]).toMatchObject({
+      name: "Alpha",
+      tier: "골드",
+      mainPosition: "미드",
+      subPosition: "탑",
+      desiredTeam: "Blue",
+      tftTier: "다이아",
     });
   });
 
@@ -169,6 +349,8 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
 
     await user.upload(fileInput, file);
 
+    await user.click(await screen.findByRole("button", { name: "DB" }));
+
     await waitFor(() => {
       expect(screen.getByDisplayValue("Captain")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Captain팀")).toBeInTheDocument();
@@ -199,6 +381,8 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     ) as HTMLInputElement;
 
     await user.upload(fileInput, file);
+
+    await user.click(await screen.findByRole("button", { name: "DB" }));
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("테스트")).toBeInTheDocument();
@@ -231,6 +415,8 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     ) as HTMLInputElement;
 
     await user.upload(fileInput, file);
+
+    await user.click(await screen.findByRole("button", { name: "DB" }));
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("승준닉")).toBeInTheDocument();

@@ -15,6 +15,7 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
     { label: "무작위 총력전 : 아수라장", value: player.aram_tier },
     { label: "전략적 팀 전투", value: player.tft_tier },
   ].filter((row) => row.value);
+  const desiredTeam = player.desired_team?.trim();
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-white border-[6px] border-black p-4 relative overflow-hidden shadow-pixel">
@@ -41,7 +42,7 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
             <div className="pixel-box p-2 bg-white border-4 shadow-pixel-sm">
               <Image
                 src={getTierImage(player.tier)}
-                alt="티어"
+                alt={player.tier || "티어"}
                 width={60}
                 height={60}
                 className="pixelated drop-shadow-md"
@@ -91,6 +92,17 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
                 </p>
               </div>
             ))}
+          </div>
+        )}
+
+        {desiredTeam && (
+          <div className="w-full max-w-lg border-4 border-black bg-minion-yellow/20 px-4 py-3 text-center shadow-pixel-sm">
+            <p className="text-[10px] font-black uppercase text-gray-600">
+              희망 팀
+            </p>
+            <p className="mt-1 text-fluid-xs font-black text-black break-words">
+              {desiredTeam}
+            </p>
           </div>
         )}
 

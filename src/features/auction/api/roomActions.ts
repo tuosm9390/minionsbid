@@ -35,6 +35,7 @@ export interface CreateRoomPlayer {
   description: string;
   aramTier?: string;
   tftTier?: string;
+  desiredTeam?: string;
 }
 
 export interface CreateRoomPayload {
@@ -201,6 +202,7 @@ export async function createRoom(
         description: player.description || "",
         aram_tier: player.aramTier || "",
         tft_tier: player.tftTier || "",
+        desired_team: player.desiredTeam || "",
         status: "WAITING",
         team_id: null,
         sold_price: null,

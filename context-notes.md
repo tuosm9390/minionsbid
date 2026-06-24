@@ -410,3 +410,32 @@
 - 요청 문구에는 오름차순과 최근 경기 상단이 함께 있었지만, 표시 의도는 "최근 경기가 위"로 해석한다. 따라서 catalog 조회는 `starts_at` 내림차순, 즉 최신순으로 유지한다.
 - 일정관리 좌측 목록은 `getLeagueScheduleCatalog()`가 반환한 `schedules` 순서를 그대로 렌더링하므로 서버 액션 query 정렬을 테스트로 고정하면 UI 정렬 계약도 함께 고정된다.
 - 검증 결과 `npx vitest run src/features/schedules/api/__tests__/scheduleActions.test.ts`와 `npx eslint src/features/schedules/api/scheduleActions.ts src/features/schedules/api/__tests__/scheduleActions.test.ts`가 통과했다.
+
+## 2026-06-24 엑셀 업로드 시트 선택
+
+- 요청은 엑셀 파일 선택 직후 파일 안의 시트 이름을 먼저 보여주고, 사용자가 선택한 시트의 데이터만 기존 방 생성 목록에 반영하는 것이다.
+- 현재 구현은 `src/features/auction/hooks/useCreateRoom.ts`의 `handleExcelUpload`에서 파일을 읽자마자 `DB` 시트 우선, 없으면 첫 시트를 자동 선택해 즉시 파싱한다.
+- `CaptainRegistrationStep`과 `PlayerRegistrationStep`은 같은 `fileInputRef`와 `handleExcelUpload`를 공유하므로 시트 선택 UI는 부모 `CreateRoomModal`에 한 번만 두고 현재 단계 위에 표시하는 방식이 가장 작은 변경이다.
+- 적용 스킬은 `omo:ulw-loop`다. `spawn_agent` 도구는 현재 세션에 제공되지 않아 위임 요구는 실행할 수 없고, 직접 RED/GREEN 테스트와 브라우저 QA evidence를 기록한다.
+- RED 증거는 `npx vitest run __tests__/CreateRoomModal.test.tsx -t "show workbook sheets|warn when the selected sheet"`가 `사용할 시트를 선택해주세요`를 찾지 못해 실패한 것이다.
+- GREEN 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx`, `npx eslint src/features/auction/hooks/useCreateRoom.ts src/components/CreateRoomModal.tsx __tests__/CreateRoomModal.test.tsx`, `npx tsc --noEmit --pretty false` 통과다.
+- 브라우저 QA는 기존 dev 서버 `http://localhost:3001`에서 Playwright로 `sheet-select-manual.xlsx`를 업로드하고 `참가자` 시트를 클릭해 `SelectedPlayer` 입력값을 확인했다. 증거는 `.omo/ulw-loop/evidence/sheet-select-browser-actions.txt`와 `.omo/ulw-loop/evidence/sheet-select-browser-pass.png`다.
+
+## 2026-06-24 추첨 후 티어와 희망 팀 표시
+
+- 요청은 선수 추첨 후 입찰 대상 정보에서 포지션만 보이고 티어 정보와 티어 이미지가 보이지 않는 문제를 고치고, 엑셀에 `희망 팀` 정보가 있으면 입찰 대상 정보에도 보여주는 것이다.
+- 관련 표시 표면은 추첨 중 `LotteryAnimation`과 경매 시작 후 `board/PlayerInAuction`이다. `PlayerInAuction`은 기본 티어 UI가 있으므로 데이터가 빈 값으로 들어오는 경로와 희망 팀 필드 부재를 함께 확인한다.
+- 관련 데이터 경로는 `useCreateRoom` 엑셀 파싱, `roomActions.createRoom` Firestore 저장, `useAuctionRealtime` players snapshot 매핑, `auctionDrawActions.drawNextPlayer`의 `lotteryPlayer` 이벤트 payload다.
+- 구현은 `desired_team` 필드를 선수 타입, 방 생성 payload, Firestore 저장, realtime snapshot, 추첨 이벤트 payload에 추가했다.
+- 엑셀 헤더 파싱은 `무작위 총력전`, `전략적 팀 전투`을 일반 `티어`보다 먼저 판정해 소환사의 협곡 티어가 다른 게임 티어로 덮이지 않게 했다.
+- 입찰 대상 카드의 티어 이미지는 alt를 실제 티어명으로 바꾸고, `desired_team`이 있으면 `희망 팀` 박스를 표시한다.
+- 검증 결과 `npx vitest run __tests__/PlayerInAuction.test.tsx __tests__/CreateRoomModal.test.tsx __tests__/LotteryAnimation.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`가 통과했다.
+- 브라우저 fixture API는 현재 실행 중인 `http://localhost:3001`에서 `fixture disabled` 404를 반환해 실제 경매 카드 브라우저 QA는 수행하지 못했다.
+
+## 2026-06-24 비공개 입찰 대상 카드 보정
+
+- 사용자 이미지의 `입찰 대상` 카드는 일반 공개 입찰 카드가 아니라 `src/features/auction/components/board/SealedBidBoard.tsx`의 비공개 입찰 대상 카드다.
+- 기존 비공개 카드는 `getExactTierImage()`를 사용해 `골드 4`, `골드 IV`처럼 세부 티어 문자열이 들어오면 이미지 경로가 null이 되고, 그 조건 안에 티어 텍스트도 묶여 있어 티어 정보 전체가 빠질 수 있었다.
+- 이번 보정은 비공개 카드의 티어 이미지 선택을 `getTierImage()`로 바꿔 공개 입찰 카드와 같은 부분 매칭을 쓰고, `desired_team` 표시를 같은 카드에 추가하는 최소 변경으로 제한한다.
+- RED 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx -t "세부 티어 이미지"`가 `Unable to find an element with the alt text: 골드 IV`로 실패했다.
+- GREEN 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx __tests__/PlayerInAuction.test.tsx __tests__/CreateRoomModal.test.tsx __tests__/LotteryAnimation.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`가 모두 통과했다.

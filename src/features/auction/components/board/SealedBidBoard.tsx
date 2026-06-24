@@ -15,7 +15,7 @@ import {
 import { completeSealedBidReveal } from "@/features/auction/api/auctionActions";
 import { CenterTimer } from "@/features/auction/components/board/CenterTimer";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
-import { getExactTierImage, getPositionImage } from "@/features/auction/utils/display";
+import { getPositionImage, getTierImage } from "@/features/auction/utils/display";
 
 interface SealedBidBoardProps {
   roomId: string;
@@ -150,11 +150,12 @@ export function SealedBidBoard({
     visibleCards.length > 0 &&
     revealComplete;
 
-  const srTier = currentPlayer.tier ?? null;
-  const srTierImageSrc = srTier ? getExactTierImage(srTier) : null;
+  const srTier = currentPlayer.tier?.trim() || null;
+  const srTierImageSrc = srTier ? getTierImage(srTier) : null;
   const mainPosition = currentPlayer.main_position?.trim() || null;
   const subPosition = currentPlayer.sub_position?.trim() || null;
   const playerComment = currentPlayer.description.trim();
+  const desiredTeam = currentPlayer.desired_team?.trim() || null;
 
   const handleCompleteReveal = async () => {
     if (!canCompleteReveal || isCompleting) return;
@@ -220,6 +221,14 @@ export function SealedBidBoard({
               {currentPlayer.name}
             </h2>
           </div>
+          {desiredTeam && (
+            <div className="border-2 border-black bg-[#fff7cc] px-5 py-4 shadow-pixel-sm">
+              <p className="text-xs font-black uppercase text-gray-500">희망 팀</p>
+              <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                {desiredTeam}
+              </p>
+            </div>
+          )}
           {playerComment && (
             <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
               <p className="text-xs font-black uppercase text-gray-500">한마디</p>

@@ -15,6 +15,7 @@ import { type CaptainMode, getAuctionSlotsPerTeam } from "../utils/roster";
 import type { AuctionMode } from "../utils/auctionMode";
 import { getAuctionClientServices } from "../realtime/clientAdapter";
 import { getNicknameWithoutTag } from "../utils/display";
+import type { WorkBook, WorkSheet } from "xlsx";
 
 const LS_KEY = "league_auction_rooms";
 const LATENCY_DEBUG =
@@ -70,6 +71,14 @@ export interface StoredRoom {
   createdAt: string;
 }
 
+type ExcelModule = typeof import("xlsx");
+
+interface PendingExcelSelection {
+  fileName: string;
+  workbook: WorkBook;
+  xlsx: ExcelModule;
+}
+
 export function useCreateRoom() {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -99,6 +108,9 @@ export function useCreateRoom() {
   const [captains, setCaptains] = useState<CaptainInfo[]>([]);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [links, setLinks] = useState<GeneratedLinks | null>(null);
+  const [pendingExcel, setPendingExcel] = useState<PendingExcelSelection | null>(
+    null,
+  );
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [templateData, setTemplateData] = useState<{
     captains: CaptainInfo[];
@@ -257,6 +269,194 @@ export function useCreateRoom() {
     }
   };
 
+  const applyExcelSheet = (
+    XLSX: ExcelModule,
+    sheet: WorkSheet,
+    sheetName: string,
+  ) => {
+    try {
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+      }) as (string | undefined)[][];
+
+      if (rows.length < 2) {
+        alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
+        return;
+      }
+      const headerRow = Array.from(rows[0], (h) => String(h ?? "").trim());
+
+      let nameCol = 2,
+        tierCol = 3,
+        commentCol = 6;
+      let aramTierCol = -1,
+        tftTierCol = -1;
+      let mainPositionCol = -1,
+        subPositionCol = -1;
+      let desiredTeamCol = -1;
+      const captainMarkerCols = new Set<number>();
+      let hasNicknameCol = false;
+      let firstNameLikeCol = -1;
+      for (let ci = 0; ci < headerRow.length; ci++) {
+        const h = headerRow[ci];
+        if (h.includes("닉네임")) {
+          nameCol = ci;
+          hasNicknameCol = true;
+        } else if (h.includes("무작위 총력전")) aramTierCol = ci;
+        else if (h.includes("전략적 팀 전투")) tftTierCol = ci;
+        else if (h.includes("소환사의 협곡") || h === "티어") tierCol = ci;
+        else if (
+          h.includes("코멘트") ||
+          h.includes("설명") ||
+          h.includes("하고 싶은 말")
+        )
+          commentCol = ci;
+        else if (h.includes("주라인")) mainPositionCol = ci;
+        else if (h.includes("부라인")) subPositionCol = ci;
+        else if (h.includes("희망 팀") || h.includes("희망팀"))
+          desiredTeamCol = ci;
+        if (h.includes("이름")) {
+          captainMarkerCols.add(ci);
+          if (!h.includes("닉네임") && firstNameLikeCol < 0) {
+            firstNameLikeCol = ci;
+          }
+        }
+      }
+      if (!hasNicknameCol && firstNameLikeCol >= 0) {
+        nameCol = firstNameLikeCol;
+      }
+
+      const positionColMap = new Map<number, string>();
+      for (let ci = 0; ci < headerRow.length; ci++) {
+        const h = headerRow[ci];
+        for (const { keywords, position } of POSITION_HEADER_KEYWORDS) {
+          if (keywords.includes(h)) {
+            positionColMap.set(ci, position);
+            break;
+          }
+        }
+      }
+      if (positionColMap.size < 5) {
+        positionColMap.clear();
+        [
+          ["탑", 9],
+          ["정글", 10],
+          ["미드", 11],
+          ["원딜", 12],
+          ["서포터", 13],
+        ].forEach(([pos, idx]) =>
+          positionColMap.set(idx as number, pos as string),
+        );
+      }
+
+      const parsed: PlayerInfo[] = [];
+      const parsedCaptains: CaptainInfo[] = [];
+      for (let ri = 1; ri < rows.length; ri++) {
+        const row = rows[ri];
+        const captainMarkerValue =
+          Array.from(captainMarkerCols, (col) =>
+            String(row[col] ?? "").trim(),
+          ).find(hasCaptainMarker) ?? "";
+        const name = String(row[nameCol] ?? "").trim() || captainMarkerValue;
+        if (!name) continue;
+        const tierRaw = String(row[tierCol] ?? "").trim();
+        const tier = normalizeTier(tierRaw);
+        const description = String(row[commentCol] ?? "").trim();
+        const aramTier =
+          aramTierCol >= 0 ? String(row[aramTierCol] ?? "").trim() : "";
+        const tftTier =
+          tftTierCol >= 0 ? String(row[tftTierCol] ?? "").trim() : "";
+        const desiredTeam =
+          desiredTeamCol >= 0 ? String(row[desiredTeamCol] ?? "").trim() : "";
+        let mainPosition = "",
+          subPosition = "";
+        if (mainPositionCol >= 0 || subPositionCol >= 0) {
+          mainPosition = normalizePosition(String(row[mainPositionCol] ?? ""));
+          subPosition = normalizePosition(String(row[subPositionCol] ?? ""));
+        } else {
+          positionColMap.forEach((posName, colIdx) => {
+            const val = String(row[colIdx] ?? "").trim();
+            if (val === "●" && !mainPosition) mainPosition = posName;
+            else if (val === "○" && !subPosition) subPosition = posName;
+          });
+        }
+        const player = {
+          name,
+          tier,
+          mainPosition: mainPosition || "무관",
+          subPosition: subPosition || "무관",
+          description,
+          aramTier,
+          tftTier,
+          desiredTeam,
+        };
+        const isCaptainRow = !!captainMarkerValue;
+
+        if (isCaptainRow) {
+          const captainName = getNicknameWithoutTag(
+            removeCaptainMarker(name || captainMarkerValue),
+          );
+          parsedCaptains.push({
+            teamName: `${captainName}팀`,
+            name: captainName,
+            tier,
+            position: player.mainPosition,
+            description: player.description,
+            captainPoints: 0,
+          });
+          continue;
+        }
+
+        parsed.push(player);
+      }
+
+      if (parsed.length === 0 && parsedCaptains.length === 0) {
+        alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
+        return;
+      }
+      if (parsedCaptains.length > 0) {
+        setCaptains((prev) => {
+          const next = [...prev];
+          for (
+            let i = 0;
+            i < Math.min(parsedCaptains.length, basic.teamCount);
+            i++
+          ) {
+            next[i] = parsedCaptains[i];
+          }
+          return next;
+        });
+      }
+      const fixed =
+        basic.teamCount *
+        getAuctionSlotsPerTeam(basic.membersPerTeam, basic.captainMode);
+      const trimmed = parsed.slice(0, fixed);
+      const padded: PlayerInfo[] =
+        trimmed.length < fixed
+          ? [
+              ...trimmed,
+              ...Array.from({ length: fixed - trimmed.length }, () => ({
+                name: "",
+                tier: "골드",
+                mainPosition: "탑",
+                subPosition: "무관",
+                description: "",
+              })),
+            ]
+          : trimmed;
+      setPlayers(padded);
+      setPendingExcel(null);
+      alert(
+        `${sheetName} 시트에서 ${trimmed.length}명의 선수 정보와 ${Math.min(parsedCaptains.length, basic.teamCount)}명의 팀장 정보로 목록을 덮어썼습니다.`,
+      );
+    } catch (err) {
+      console.error("Excel parse error:", err);
+      alert("엑셀 파일 파싱에 실패했습니다.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -273,180 +473,15 @@ export function useCreateRoom() {
           const workbook = XLSX.read(new Uint8Array(data as ArrayBuffer), {
             type: "array",
           });
-          const sheetName = workbook.SheetNames.includes("DB")
-            ? "DB"
-            : workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          const rows = XLSX.utils.sheet_to_json(sheet, {
-            header: 1,
-            raw: false,
-          }) as (string | undefined)[][];
-
-          if (rows.length < 2) return;
-          const headerRow = Array.from(rows[0], (h) => String(h ?? "").trim());
-
-          let nameCol = 2,
-            tierCol = 3,
-            commentCol = 6;
-          let aramTierCol = -1,
-            tftTierCol = -1;
-          let mainPositionCol = -1,
-            subPositionCol = -1;
-          const captainMarkerCols = new Set<number>();
-          let hasNicknameCol = false;
-          let firstNameLikeCol = -1;
-          for (let ci = 0; ci < headerRow.length; ci++) {
-            const h = headerRow[ci];
-            if (h.includes("닉네임")) {
-              nameCol = ci;
-              hasNicknameCol = true;
-            } else if (h.includes("티어") || h.includes("소환사의 협곡"))
-              tierCol = ci;
-            else if (h.includes("무작위 총력전")) aramTierCol = ci;
-            else if (h.includes("전략적 팀 전투")) tftTierCol = ci;
-            else if (
-              h.includes("코멘트") ||
-              h.includes("설명") ||
-              h.includes("하고 싶은 말")
-            )
-              commentCol = ci;
-            else if (h.includes("주라인")) mainPositionCol = ci;
-            else if (h.includes("부라인")) subPositionCol = ci;
-            if (h.includes("이름")) {
-              captainMarkerCols.add(ci);
-              if (!h.includes("닉네임") && firstNameLikeCol < 0) {
-                firstNameLikeCol = ci;
-              }
-            }
-          }
-          if (!hasNicknameCol && firstNameLikeCol >= 0) {
-            nameCol = firstNameLikeCol;
-          }
-
-          const positionColMap = new Map<number, string>();
-          for (let ci = 0; ci < headerRow.length; ci++) {
-            const h = headerRow[ci];
-            for (const { keywords, position } of POSITION_HEADER_KEYWORDS) {
-              if (keywords.includes(h)) {
-                positionColMap.set(ci, position);
-                break;
-              }
-            }
-          }
-          if (positionColMap.size < 5) {
-            positionColMap.clear();
-            [
-              ["탑", 9],
-              ["정글", 10],
-              ["미드", 11],
-              ["원딜", 12],
-              ["서포터", 13],
-            ].forEach(([pos, idx]) =>
-              positionColMap.set(idx as number, pos as string),
-            );
-          }
-
-          const parsed: PlayerInfo[] = [];
-          const parsedCaptains: CaptainInfo[] = [];
-          for (let ri = 1; ri < rows.length; ri++) {
-            const row = rows[ri];
-            const captainMarkerValue =
-              Array.from(captainMarkerCols, (col) =>
-                String(row[col] ?? "").trim(),
-              ).find(hasCaptainMarker) ?? "";
-            const name =
-              String(row[nameCol] ?? "").trim() || captainMarkerValue;
-            if (!name) continue;
-            const tierRaw = String(row[tierCol] ?? "").trim();
-            const tier = normalizeTier(tierRaw);
-            const description = String(row[commentCol] ?? "").trim();
-            const aramTier =
-              aramTierCol >= 0 ? String(row[aramTierCol] ?? "").trim() : "";
-            const tftTier =
-              tftTierCol >= 0 ? String(row[tftTierCol] ?? "").trim() : "";
-            let mainPosition = "",
-              subPosition = "";
-            if (mainPositionCol >= 0 || subPositionCol >= 0) {
-              mainPosition = normalizePosition(
-                String(row[mainPositionCol] ?? ""),
-              );
-              subPosition = normalizePosition(
-                String(row[subPositionCol] ?? ""),
-              );
-            } else {
-              positionColMap.forEach((posName, colIdx) => {
-                const val = String(row[colIdx] ?? "").trim();
-                if (val === "●" && !mainPosition) mainPosition = posName;
-                else if (val === "○" && !subPosition) subPosition = posName;
-              });
-            }
-            const player = {
-              name,
-              tier,
-              mainPosition: mainPosition || "무관",
-              subPosition: subPosition || "무관",
-              description,
-              aramTier,
-              tftTier,
-            };
-            const isCaptainRow = !!captainMarkerValue;
-
-            if (isCaptainRow) {
-              const captainName = getNicknameWithoutTag(
-                removeCaptainMarker(name || captainMarkerValue),
-              );
-              parsedCaptains.push({
-                teamName: `${captainName}팀`,
-                name: captainName,
-                tier,
-                position: player.mainPosition,
-                description: player.description,
-                captainPoints: 0,
-              });
-              continue;
-            }
-
-            parsed.push(player);
-          }
-
-          if (parsed.length === 0 && parsedCaptains.length === 0) {
-            alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
+          if (workbook.SheetNames.length === 0) {
+            alert("엑셀 파일에 시트가 없습니다.");
             return;
           }
-          if (parsedCaptains.length > 0) {
-            setCaptains((prev) => {
-              const next = [...prev];
-              for (
-                let i = 0;
-                i < Math.min(parsedCaptains.length, basic.teamCount);
-                i++
-              ) {
-                next[i] = parsedCaptains[i];
-              }
-              return next;
-            });
-          }
-          const fixed =
-            basic.teamCount *
-            getAuctionSlotsPerTeam(basic.membersPerTeam, basic.captainMode);
-          const trimmed = parsed.slice(0, fixed);
-          const padded: PlayerInfo[] =
-            trimmed.length < fixed
-              ? [
-                  ...trimmed,
-                  ...Array.from({ length: fixed - trimmed.length }, () => ({
-                    name: "",
-                    tier: "골드",
-                    mainPosition: "탑",
-                    subPosition: "무관",
-                    description: "",
-                  })),
-                ]
-              : trimmed;
-          setPlayers(padded);
-          alert(
-            `${trimmed.length}명의 선수 정보와 ${Math.min(parsedCaptains.length, basic.teamCount)}명의 팀장 정보로 목록을 덮어썼습니다.`,
-          );
+          setPendingExcel({
+            fileName: file.name,
+            workbook,
+            xlsx: XLSX,
+          });
         } catch (err) {
           console.error("Excel parse error:", err);
           alert("엑셀 파일 파싱에 실패했습니다.");
@@ -460,6 +495,21 @@ export function useCreateRoom() {
       alert("라이브러리 로드에 실패했습니다.");
       setIsUploading(false);
     }
+  };
+
+  const selectExcelSheet = (sheetName: string) => {
+    if (!pendingExcel) return;
+    const sheet = pendingExcel.workbook.Sheets[sheetName];
+    if (!sheet) {
+      alert("선택한 시트를 찾을 수 없습니다.");
+      return;
+    }
+    setIsUploading(true);
+    applyExcelSheet(pendingExcel.xlsx, sheet, sheetName);
+  };
+
+  const cancelExcelSheetSelection = () => {
+    setPendingExcel(null);
   };
 
   const copyToClipboard = async (text: string, key: string) => {
@@ -534,6 +584,7 @@ export function useCreateRoom() {
     setCaptains([]);
     setPlayers([]);
     setLinks(null);
+    setPendingExcel(null);
     setCopied(null);
     setActiveRooms([]);
     setScheduleOptions([]);
@@ -588,12 +639,16 @@ export function useCreateRoom() {
     players,
     setPlayers,
     links,
+    pendingExcelFileName: pendingExcel?.fileName ?? null,
+    pendingExcelSheetNames: pendingExcel?.workbook.SheetNames ?? [],
     isTemplateModalOpen,
     setIsTemplateModalOpen,
     templateData,
     setTemplateData,
     handleNext,
     handleExcelUpload,
+    selectExcelSheet,
+    cancelExcelSheetSelection,
     copyToClipboard,
     reset,
     close,

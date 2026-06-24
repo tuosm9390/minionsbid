@@ -37,12 +37,16 @@ export function CreateRoomModal() {
     players,
     setPlayers,
     links,
+    pendingExcelFileName,
+    pendingExcelSheetNames,
     isTemplateModalOpen,
     setIsTemplateModalOpen,
     templateData,
     setTemplateData,
     handleNext,
     handleExcelUpload,
+    selectExcelSheet,
+    cancelExcelSheetSelection,
     copyToClipboard,
     close,
     goToRoom,
@@ -161,6 +165,42 @@ export function CreateRoomModal() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar font-body">
+                {pendingExcelSheetNames.length > 0 && step < 3 && (
+                  <div className="mb-5 border-4 border-black bg-minion-yellow/20 p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-black">
+                          사용할 시트를 선택해주세요
+                        </p>
+                        {pendingExcelFileName && (
+                          <p className="mt-1 text-xs font-bold text-gray-600">
+                            {pendingExcelFileName}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={cancelExcelSheetSelection}
+                        className="pixel-button bg-white px-3 py-1 text-xs font-bold text-black"
+                      >
+                        취소
+                      </button>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {pendingExcelSheetNames.map((sheetName) => (
+                        <button
+                          key={sheetName}
+                          type="button"
+                          onClick={() => selectExcelSheet(sheetName)}
+                          disabled={isUploading}
+                          className="pixel-button bg-white px-4 py-2 text-xs font-black text-black hover:bg-minion-yellow disabled:opacity-50"
+                        >
+                          {sheetName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {step === 0 && (
                   <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                     <BasicInfoStep

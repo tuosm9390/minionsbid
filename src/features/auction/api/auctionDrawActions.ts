@@ -107,6 +107,9 @@ export async function drawNextPlayer(
             team_id: null,
             sold_price: null,
             description: String(pickedData.description ?? ""),
+            aram_tier: String(pickedData.aram_tier ?? ""),
+            tft_tier: String(pickedData.tft_tier ?? ""),
+            desired_team: String(pickedData.desired_team ?? ""),
           },
           timerEndsAt: null,
           liveBid: null,
@@ -182,4 +185,3 @@ export async function closeLotteryAction(
     return { error: message };
   }
 }
-
