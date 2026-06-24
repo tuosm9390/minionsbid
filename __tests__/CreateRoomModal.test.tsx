@@ -264,7 +264,7 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
         "전략적 팀 전투 티어",
         "주라인",
         "부라인",
-        "희망 팀",
+        "희망\n팀",
         "코멘트",
       ],
       [1, "Alpha", "골드", "다이아", "미드", "탑", "Blue", "첫 번째"],

@@ -34,6 +34,8 @@ const normalizePosition = (value: string) => {
   return trimmed;
 };
 
+const normalizeHeaderKey = (value: string) => value.replace(/\s+/g, "");
+
 const removeCaptainMarker = (value: string) => {
   const cleaned = value
     .replace(/\(?\s*팀장\s*\)?/g, "")
@@ -299,12 +301,13 @@ export function useCreateRoom() {
       let firstNameLikeCol = -1;
       for (let ci = 0; ci < headerRow.length; ci++) {
         const h = headerRow[ci];
+        const headerKey = normalizeHeaderKey(h);
         if (h.includes("닉네임")) {
           nameCol = ci;
           hasNicknameCol = true;
-        } else if (h.includes("무작위 총력전")) aramTierCol = ci;
-        else if (h.includes("전략적 팀 전투")) tftTierCol = ci;
-        else if (h.includes("소환사의 협곡") || h === "티어") tierCol = ci;
+        } else if (headerKey.includes("무작위총력전")) aramTierCol = ci;
+        else if (headerKey.includes("전략적팀전투")) tftTierCol = ci;
+        else if (headerKey.includes("소환사의협곡") || h === "티어") tierCol = ci;
         else if (
           h.includes("코멘트") ||
           h.includes("설명") ||
@@ -313,7 +316,7 @@ export function useCreateRoom() {
           commentCol = ci;
         else if (h.includes("주라인")) mainPositionCol = ci;
         else if (h.includes("부라인")) subPositionCol = ci;
-        else if (h.includes("희망 팀") || h.includes("희망팀"))
+        else if (headerKey.includes("희망팀"))
           desiredTeamCol = ci;
         if (h.includes("이름")) {
           captainMarkerCols.add(ci);

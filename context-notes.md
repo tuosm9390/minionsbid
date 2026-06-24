@@ -439,3 +439,10 @@
 - 이번 보정은 비공개 카드의 티어 이미지 선택을 `getTierImage()`로 바꿔 공개 입찰 카드와 같은 부분 매칭을 쓰고, `desired_team` 표시를 같은 카드에 추가하는 최소 변경으로 제한한다.
 - RED 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx -t "세부 티어 이미지"`가 `Unable to find an element with the alt text: 골드 IV`로 실패했다.
 - GREEN 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx __tests__/PlayerInAuction.test.tsx __tests__/CreateRoomModal.test.tsx __tests__/LotteryAnimation.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`가 모두 통과했다.
+
+## 2026-06-24 희망 팀 엑셀 헤더 변형 보정
+
+- 사용자가 희망 팀 정보가 여전히 표시되지 않는다고 보고했다. UI는 `desired_team`이 있으면 표시하도록 되어 있어, 엑셀 헤더가 `희망 팀`과 정확히 일치하지 않아 파싱되지 않는 경로를 우선 의심한다.
+- 엑셀 헤더는 셀 안 줄바꿈이나 여러 공백을 포함할 수 있으므로, `희망\n팀`, `희망  팀` 같은 값을 `희망팀`으로 정규화한 뒤 컬럼을 탐지한다.
+- RED 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx -t "desired team"`가 `desiredTeam: ""`로 실패했다.
+- GREEN 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx __tests__/SealedBidBoard.test.tsx __tests__/PlayerInAuction.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`가 모두 통과했다.
