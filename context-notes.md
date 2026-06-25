@@ -490,3 +490,5 @@
 - 점수 카드 영역은 `pixel-box` 기반의 별도 섹션으로 감싸고, `입찰가격공개`는 그 섹션 제목으로 이동한다. 이렇게 하면 공개 카드와 상태 문구가 한 덩어리로 읽히고, 입찰 대상 compact 박스와 시각 구조가 맞는다.
 - 구현 후 브라우저 계산값에서 `입찰가격공개` 제목이 점수 카드 박스 내부에 있고, `.sealed-bid-card-back`도 같은 박스 내부에 있음을 확인했다. `sealed-bid-card-bounce` transform은 1.5초 뒤 `translateY` 약 `-2.99px`로 변해 요청한 2~3px 바운스 범위에 맞는다.
 - 검증 결과 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright 대표 마크업 브라우저 렌더, `npm run test:e2e:auction`이 통과했다.
+- 후속 요청에 따라 `입찰가격공개` 제목은 박스 내부 일반 첫 줄이 아니라 박스 상단 중앙에 걸친 제목 배지로 조정한다. 제목은 minion blue 테두리, 흰 배경, pixel shadow를 사용해 하단 카드 박스의 헤더로 읽히게 한다.
+- 브라우저 계산값에서 제목은 `position: absolute`, 흰 배경, minion blue 테두리로 확인됐고, 제목 rect가 박스 상단 경계와 겹쳐 박스 제목 배지처럼 렌더링됨을 확인했다.

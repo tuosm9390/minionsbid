@@ -134,6 +134,8 @@ describe("SealedBidBoard", () => {
     expect(hiddenCard).toHaveClass("text-minion-blue");
     expect(screen.getByText("입찰가격공개")).toBeInTheDocument();
     expect(screen.getByText("입찰가격공개")).toHaveClass("text-fluid-sm");
+    expect(screen.getByText("입찰가격공개")).toHaveClass("absolute");
+    expect(screen.getByText("입찰가격공개")).toHaveClass("border-minion-blue");
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
       "bg-white",
     );
