@@ -1,5 +1,13 @@
 # 비공개 입찰 구현 체크리스트
 
+## Firebase 실시간 설계 보고서 코드베이스 대조 분석
+
+- [x] 외부 deep research 보고서 핵심 주장 확인
+- [x] 현재 Firestore/RTDB 경계와 presence/custom token 구현 확인
+- [x] 보완점, 설계 리스크, 우수 구현 항목 분류
+- [x] 코드베이스 기준 분석 보고서 작성
+- [x] 문서 검토와 변경 상태 확인
+
 ## lint 문제 해결과 evidence 정책 정리
 
 - [x] 초기 lint RED와 `.omo` 추적 정책 RED evidence 캡처

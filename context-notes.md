@@ -1,5 +1,12 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## 2026-06-25 Firebase 실시간 설계 보고서 코드베이스 대조 분석
+
+- 사용자는 `C:\Users\tuosm\Downloads\deep-research-report.md` 내용을 현재 코드베이스 기준으로 분석해 보완점, 설계 문제, 현재 코드베이스가 더 잘 작업된 부분을 보고서로 작성해 달라고 요청했다.
+- 외부 보고서의 핵심 주장은 Firestore를 영속 정본 상태와 권한 기반 데이터에 두고, RTDB를 presence, heartbeat, ephemeral room state, 저지연 fanout에 쓰는 하이브리드 구조다.
+- 이번 작업은 코드 변경이 아니라 문서 분석 산출물 작성이다. 구현 수정이나 rules 변경은 하지 않고, 근거 파일과 테스트 표면을 확인해 개선 권고를 정리한다.
+- 산출물은 `doc/results/260625_FirebaseRealtimeResearchCodebaseReview.md`로 작성했다. 결론은 현재 경매 아키텍처가 리서치 보고서의 하이브리드 권고와 잘 맞지만, RTDB/Firestore read 범위, custom token route 단일 장애점, 단일 room 문서 hot state, 실 Firebase latency gate, 백업·복구 drill을 보완해야 한다는 것이다.
+
 ## lint 문제 해결과 evidence 정책 정리
 
 - 2026-06-03: 사용자는 `$omo:ulw-loop`로 lint 문제 해결과 이전 리뷰 권장조치 실행을 요청했다. 범위는 `npm run lint` 실패 해소, `.omo` evidence 추적 정책 정리, full test/build 회귀, tmux 기반 CLI QA evidence 수집이다.
