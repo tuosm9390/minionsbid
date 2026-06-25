@@ -469,3 +469,6 @@
 - PowerShell에서 Bash식 `E2E_AUCTION_FIXTURE=1 ...` 명령은 실행 문법 오류로 실패했고, 직접 Playwright 실행은 기존 3000번 Next dev 서버 때문에 webServer 시작이 막혔다. 최종 검증은 프로젝트 runner인 `npm run test:e2e:auction`으로 실행했으며 production build 후 chromium 14개 경매 회귀 테스트가 통과했다.
 - 후속 요청으로 공개 전 카드의 대각선 줄무늬를 제거하고 배경을 흰색으로 변경했다. 점멸 대상은 기존처럼 minion blue 테두리와 `?` 텍스트만 유지한다.
 - 후속 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright `setContent` 계산 스타일 확인으로 진행했다. 브라우저에서 공개 전 카드의 `backgroundColor`는 `rgb(255, 255, 255)`, `backgroundImage`는 `none`, 내부 자식은 `?` 하나로 확인됐다.
+- 사용자가 실제 화면에서 테두리 색상과 점멸 효과가 반영되지 않는 것 같다고 보고했다. 카드에 `border-minion-blue`와 `text-minion-blue`를 직접 추가하고, 기존 색상 hover 계열 전환보다 더 눈에 띄도록 테두리 alpha와 `?` opacity가 함께 변하는 별도 keyframes로 보강한다.
+- 브라우저 계산값으로 확인하니 `?`는 점멸했지만 `.sealed-bid-card-back`의 base `border-color: ... !important`가 animated border color를 막고 있었다. `!important`를 제거해 테두리 keyframes가 실제 계산값에 반영되도록 수정한다.
+- 재검증에서 공개 전 카드의 `animationName`은 `sealed-bid-card-pulse`, `?`는 `sealed-bid-mark-pulse`로 확인됐다. 1.5초 뒤 테두리는 `oklab(... / 0.28)`로, `?`는 opacity 약 `0.45`와 alpha 색상으로 변해 둘 다 점멸이 실제 계산값에 반영됐다.

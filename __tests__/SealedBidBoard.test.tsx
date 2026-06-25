@@ -130,5 +130,7 @@ describe("SealedBidBoard", () => {
     const hiddenCard = screen.getByText("?").closest(".sealed-bid-card-back");
     expect(hiddenCard).toBeInTheDocument();
     expect(hiddenCard).toHaveClass("sealed-bid-card-back");
+    expect(hiddenCard).toHaveClass("border-minion-blue");
+    expect(hiddenCard).toHaveClass("text-minion-blue");
   });
 });
