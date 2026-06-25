@@ -492,3 +492,4 @@
 - 검증 결과 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright 대표 마크업 브라우저 렌더, `npm run test:e2e:auction`이 통과했다.
 - 후속 요청에 따라 `입찰가격공개` 제목은 박스 내부 일반 첫 줄이 아니라 박스 상단 중앙에 걸친 제목 배지로 조정한다. 제목은 minion blue 테두리, 흰 배경, pixel shadow를 사용해 하단 카드 박스의 헤더로 읽히게 한다.
 - 브라우저 계산값에서 제목은 `position: absolute`, 흰 배경, minion blue 테두리로 확인됐고, 제목 rect가 박스 상단 경계와 겹쳐 박스 제목 배지처럼 렌더링됨을 확인했다.
+- 후속 요청에 따라 입찰 대상 정보 박스와 점수공개 박스 사이 간격을 `mt-2`에서 `mt-8`로 늘리고, 제목 배지와 카드 grid가 겹쳐 보이지 않도록 내부 상단 padding을 `pt-6`에서 `pt-14`로 늘린다. 1차 `pt-10` 확인에서 제목과 카드 간격이 약 1.5px에 그쳐 추가 확대했다.

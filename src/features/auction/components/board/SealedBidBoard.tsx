@@ -303,7 +303,7 @@ export function SealedBidBoard({
       )}
 
       {showCards && (
-        <div className="pixel-box relative mt-2 bg-white p-4 pt-6 [border-color:var(--color-minion-blue)]">
+        <div className="pixel-box relative mt-8 bg-white p-4 pt-14 [border-color:var(--color-minion-blue)]">
           <p className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-minion-blue bg-white px-4 py-2 text-center text-fluid-sm font-heading text-minion-blue shadow-pixel-sm">
             입찰가격공개
           </p>

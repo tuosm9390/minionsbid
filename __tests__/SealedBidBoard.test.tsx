@@ -139,6 +139,12 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
       "bg-white",
     );
+    expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
+      "mt-8",
+    );
+    expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
+      "pt-14",
+    );
     expect(hiddenCard?.closest(".sealed-bid-card-bounce")).toBeInTheDocument();
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
       "p-3",
