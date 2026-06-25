@@ -481,3 +481,4 @@
 - 구현은 `isScoreRevealPhase` 조건으로 기존 ACTIVE 레이아웃은 유지하고, `LOCKED`/`REVEALING`에서 대상 정보 박스 padding, title size, image width/gap, player name size, desired/comment padding만 줄였다. 공개 카드 그리드와 공개 완료 강조 스타일은 변경하지 않았다.
 - `입찰가격공개` 문구는 compact 대상 정보 박스 하단에 minion blue 상단 구분선과 함께 표시한다. 사용자가 붙여 쓴 문구를 요청했으므로 UI 텍스트도 그대로 유지한다.
 - 검증 결과 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright 대표 마크업 브라우저 렌더, `npm run test:e2e:auction`이 통과했다. 브라우저 계산값은 compact box padding 12px, label text `입찰가격공개`, label/border color minion blue로 확인됐다.
+- 후속 요청에 따라 `입찰가격공개` 문구는 입찰 대상 `pixel-box` 내부가 아니라 박스 외부 하단에 독립 상태 라벨로 표시한다. 박스 내부 구분선은 제거해 compact 대상 정보와 공개 상태 안내가 분리되도록 한다.

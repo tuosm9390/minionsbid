@@ -290,12 +290,13 @@ export function SealedBidBoard({
             재입찰 최소 금액 {sealedBid.minAmount.toLocaleString()}P
           </p>
         )}
-        {isScoreRevealPhase && (
-          <p className="mt-3 border-t-2 border-minion-blue pt-2 text-center text-fluid-xs font-heading text-minion-blue">
-            입찰가격공개
-          </p>
-        )}
       </div>
+
+      {isScoreRevealPhase && (
+        <p className="-mt-1 text-center text-fluid-xs font-heading text-minion-blue">
+          입찰가격공개
+        </p>
+      )}
 
       {sealedBid.phase === "ACTIVE" && (
         <div className="flex-1 flex items-center justify-center text-center">
