@@ -136,6 +136,7 @@ export function SealedBidBoard({
 
   const showCards =
     sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING";
+  const isScoreRevealPhase = showCards;
   const revealComplete =
     sealedBid.phase === "REVEALING" &&
     visibleCards.length > 0 &&
@@ -176,16 +177,40 @@ export function SealedBidBoard({
         )}
       </div>
 
-      <div className="pixel-box bg-yellow-50 border-black p-5">
-        <p className="text-fluid-sm font-heading text-gray-500 uppercase text-center">
+      <div
+        className={`pixel-box bg-yellow-50 border-black ${
+          isScoreRevealPhase ? "p-3" : "p-5"
+        }`}
+      >
+        <p
+          className={`font-heading text-gray-500 uppercase text-center ${
+            isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-sm"
+          }`}
+        >
           입찰 대상
         </p>
-        <div className="mx-auto mt-4 max-w-2xl space-y-2">
-          <div className="border-2 border-black bg-white px-5 py-5 shadow-pixel-sm text-center">
+        <div
+          className={`mx-auto max-w-2xl space-y-2 ${
+            isScoreRevealPhase ? "mt-2" : "mt-4"
+          }`}
+        >
+          <div
+            className={`border-2 border-black bg-white shadow-pixel-sm text-center ${
+              isScoreRevealPhase ? "px-4 py-3" : "px-5 py-5"
+            }`}
+          >
             {(srTier || mainPosition) && (
-              <div className="flex justify-center gap-6 mb-4">
+              <div
+                className={`flex justify-center ${
+                  isScoreRevealPhase ? "gap-3 mb-2" : "gap-6 mb-4"
+                }`}
+              >
                 {srTier && srTierImageSrc && (
-                  <div className="flex w-[30%] flex-col items-center gap-2">
+                  <div
+                    className={`flex flex-col items-center ${
+                      isScoreRevealPhase ? "w-[22%] max-w-16 gap-1" : "w-[30%] gap-2"
+                    }`}
+                  >
                     <Image
                       src={srTierImageSrc}
                       alt={srTier}
@@ -193,11 +218,21 @@ export function SealedBidBoard({
                       height={200}
                       className="w-full h-auto pixelated"
                     />
-                    <span className="text-fluid-base font-bold text-gray-600">{srTier}</span>
+                    <span
+                      className={`font-bold text-gray-600 ${
+                        isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-base"
+                      }`}
+                    >
+                      {srTier}
+                    </span>
                   </div>
                 )}
                 {mainPosition && (
-                  <div className="flex w-[30%] flex-col items-center gap-2">
+                  <div
+                    className={`flex flex-col items-center ${
+                      isScoreRevealPhase ? "w-[22%] max-w-16 gap-1" : "w-[30%] gap-2"
+                    }`}
+                  >
                     <Image
                       src={getPositionImage(mainPosition)}
                       alt={mainPosition}
@@ -205,7 +240,11 @@ export function SealedBidBoard({
                       height={200}
                       className="w-full h-auto"
                     />
-                    <span className="text-fluid-base font-bold text-gray-600">
+                    <span
+                      className={`font-bold text-gray-600 ${
+                        isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-base"
+                      }`}
+                    >
                       {mainPosition}
                       {subPosition ? ` / ${subPosition}` : ""}
                     </span>
@@ -213,12 +252,20 @@ export function SealedBidBoard({
                 )}
               </div>
             )}
-            <h2 className="text-fluid-lg font-black leading-tight text-black break-all">
+            <h2
+              className={`font-black leading-tight text-black break-all ${
+                isScoreRevealPhase ? "text-fluid-base" : "text-fluid-lg"
+              }`}
+            >
               {currentPlayer.name}
             </h2>
           </div>
           {desiredTeam && (
-            <div className="border-2 border-black bg-[#fff7cc] px-5 py-4 shadow-pixel-sm">
+            <div
+              className={`border-2 border-black bg-[#fff7cc] shadow-pixel-sm ${
+                isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
+              }`}
+            >
               <p className="text-xs font-black uppercase text-gray-500">희망 팀</p>
               <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
                 {desiredTeam}
@@ -226,7 +273,11 @@ export function SealedBidBoard({
             </div>
           )}
           {playerComment && (
-            <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
+            <div
+              className={`border-2 border-black bg-white shadow-pixel-sm ${
+                isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
+              }`}
+            >
               <p className="text-xs font-black uppercase text-gray-500">한마디</p>
               <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
                 &ldquo;{playerComment}&rdquo;
@@ -237,6 +288,11 @@ export function SealedBidBoard({
         {sealedBid.minAmount > 0 && (
           <p className="mt-3 text-center text-fluid-xs font-bold text-minion-red">
             재입찰 최소 금액 {sealedBid.minAmount.toLocaleString()}P
+          </p>
+        )}
+        {isScoreRevealPhase && (
+          <p className="mt-3 border-t-2 border-minion-blue pt-2 text-center text-fluid-xs font-heading text-minion-blue">
+            입찰가격공개
           </p>
         )}
       </div>

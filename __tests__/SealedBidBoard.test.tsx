@@ -132,5 +132,9 @@ describe("SealedBidBoard", () => {
     expect(hiddenCard).toHaveClass("sealed-bid-card-back");
     expect(hiddenCard).toHaveClass("border-minion-blue");
     expect(hiddenCard).toHaveClass("text-minion-blue");
+    expect(screen.getByText("입찰가격공개")).toBeInTheDocument();
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "p-3",
+    );
   });
 });

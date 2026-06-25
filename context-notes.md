@@ -472,3 +472,12 @@
 - 사용자가 실제 화면에서 테두리 색상과 점멸 효과가 반영되지 않는 것 같다고 보고했다. 카드에 `border-minion-blue`와 `text-minion-blue`를 직접 추가하고, 기존 색상 hover 계열 전환보다 더 눈에 띄도록 테두리 alpha와 `?` opacity가 함께 변하는 별도 keyframes로 보강한다.
 - 브라우저 계산값으로 확인하니 `?`는 점멸했지만 `.sealed-bid-card-back`의 base `border-color: ... !important`가 animated border color를 막고 있었다. `!important`를 제거해 테두리 keyframes가 실제 계산값에 반영되도록 수정한다.
 - 재검증에서 공개 전 카드의 `animationName`은 `sealed-bid-card-pulse`, `?`는 `sealed-bid-mark-pulse`로 확인됐다. 1.5초 뒤 테두리는 `oklab(... / 0.28)`로, `?`는 opacity 약 `0.45`와 alpha 색상으로 변해 둘 다 점멸이 실제 계산값에 반영됐다.
+
+## 2026-06-25 비공개 입찰 점수공개 페이즈 대상 정보 compact 조정
+
+- 요청은 입찰 이후 점수공개 페이즈에서 입찰 대상 정보 박스가 공개 카드보다 크게 보이는 문제를 줄이고, 하단에 `입찰가격공개` 문구를 표시하는 것이다.
+- 적용 상태는 `sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING"`로 본다. 이 구간은 비공개 입찰 제출 이후 공개 카드가 화면의 주 콘텐츠가 되는 구간이기 때문이다.
+- 스타일 점검 결과, 현재 대상 정보 박스는 점수공개 중에도 `p-5`, 큰 티어 이미지, `text-fluid-lg` 선수명을 유지해 공개 카드 그리드와 시각적 우선순위가 충돌한다. compact 상태에서는 이미지와 padding, gap, 폰트를 줄이고 상태 문구를 박스 내부 하단에 배치하는 것이 적절하다.
+- 구현은 `isScoreRevealPhase` 조건으로 기존 ACTIVE 레이아웃은 유지하고, `LOCKED`/`REVEALING`에서 대상 정보 박스 padding, title size, image width/gap, player name size, desired/comment padding만 줄였다. 공개 카드 그리드와 공개 완료 강조 스타일은 변경하지 않았다.
+- `입찰가격공개` 문구는 compact 대상 정보 박스 하단에 minion blue 상단 구분선과 함께 표시한다. 사용자가 붙여 쓴 문구를 요청했으므로 UI 텍스트도 그대로 유지한다.
+- 검증 결과 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright 대표 마크업 브라우저 렌더, `npm run test:e2e:auction`이 통과했다. 브라우저 계산값은 compact box padding 12px, label text `입찰가격공개`, label/border color minion blue로 확인됐다.
