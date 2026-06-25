@@ -469,6 +469,21 @@
     }
   }
 
+  @keyframes sealed-bid-card-bounce {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  .sealed-bid-card-bounce {
+    animation: sealed-bid-card-bounce 2.8s ease-in-out infinite;
+  }
+
   .sealed-bid-card-back {
     animation: sealed-bid-card-pulse 2.8s ease-in-out infinite;
     border-color: var(--color-minion-blue);
@@ -1061,6 +1076,10 @@
     }
 
     .sealed-bid-card-mark {
+      animation: none !important;
+    }
+
+    .sealed-bid-card-bounce {
       animation: none !important;
     }
 

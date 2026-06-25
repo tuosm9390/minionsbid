@@ -482,3 +482,11 @@
 - `입찰가격공개` 문구는 compact 대상 정보 박스 하단에 minion blue 상단 구분선과 함께 표시한다. 사용자가 붙여 쓴 문구를 요청했으므로 UI 텍스트도 그대로 유지한다.
 - 검증 결과 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright 대표 마크업 브라우저 렌더, `npm run test:e2e:auction`이 통과했다. 브라우저 계산값은 compact box padding 12px, label text `입찰가격공개`, label/border color minion blue로 확인됐다.
 - 후속 요청에 따라 `입찰가격공개` 문구는 입찰 대상 `pixel-box` 내부가 아니라 박스 외부 하단에 독립 상태 라벨로 표시한다. 박스 내부 구분선은 제거해 compact 대상 정보와 공개 상태 안내가 분리되도록 한다.
+
+## 2026-06-25 비공개 입찰 점수 카드 박스와 바운스 효과
+
+- 요청은 `입찰가격공개` 텍스트를 더 크게 만들고, 아래 점수 카드들을 입찰 대상 박스처럼 별도 박스 내부에 표시하며, 현재 점멸 효과를 유지한 채 2~3px 정도 상하 바운스 느낌을 추가하는 것이다.
+- 현재 카드 flip은 `motion.div`가 `rotateY` transform을 제어한다. 같은 DOM에 CSS `transform` bounce를 주면 Framer Motion transform과 충돌하므로, 회전 wrapper 안쪽에 별도 `sealed-bid-card-bounce` 래퍼를 두고 그 래퍼에 `translateY` 애니메이션을 적용한다.
+- 점수 카드 영역은 `pixel-box` 기반의 별도 섹션으로 감싸고, `입찰가격공개`는 그 섹션 제목으로 이동한다. 이렇게 하면 공개 카드와 상태 문구가 한 덩어리로 읽히고, 입찰 대상 compact 박스와 시각 구조가 맞는다.
+- 구현 후 브라우저 계산값에서 `입찰가격공개` 제목이 점수 카드 박스 내부에 있고, `.sealed-bid-card-back`도 같은 박스 내부에 있음을 확인했다. `sealed-bid-card-bounce` transform은 1.5초 뒤 `translateY` 약 `-2.99px`로 변해 요청한 2~3px 바운스 범위에 맞는다.
+- 검증 결과 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright 대표 마크업 브라우저 렌더, `npm run test:e2e:auction`이 통과했다.

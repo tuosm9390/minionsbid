@@ -64,29 +64,31 @@ function SealedCard({
       transition={{ duration: 0.45 }}
       className="relative h-20 [transform-style:preserve-3d]"
     >
-      <div className="sealed-bid-card-back absolute inset-0 flex items-center justify-center overflow-hidden border-4 border-minion-blue bg-white text-minion-blue [backface-visibility:hidden]">
-        <span className="sealed-bid-card-mark relative font-heading text-[2.6rem] leading-none md:text-[3rem]">
-          ?
-        </span>
-      </div>
-      <div
-        className={`absolute inset-0 flex flex-col items-center justify-center border-4 p-4 text-center [backface-visibility:hidden] [transform:rotateY(180deg)] transition-colors duration-300 ${frontTone}`}
-      >
-        <p className="mb-2 max-w-full truncate text-fluid-xs font-black text-gray-500">
-          {card.team_name}
-        </p>
-        <p
-          className={`font-black leading-none tabular-nums ${
-            card.is_pass ? "text-fluid-sm" : "text-fluid-md"
-          } ${pointTextClass}`}
+      <div className="sealed-bid-card-bounce absolute inset-0 [transform-style:preserve-3d]">
+        <div className="sealed-bid-card-back absolute inset-0 flex items-center justify-center overflow-hidden border-4 border-minion-blue bg-white text-minion-blue [backface-visibility:hidden]">
+          <span className="sealed-bid-card-mark relative font-heading text-[2.6rem] leading-none md:text-[3rem]">
+            ?
+          </span>
+        </div>
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center border-4 p-4 text-center [backface-visibility:hidden] [transform:rotateY(180deg)] transition-colors duration-300 ${frontTone}`}
         >
-          {card.is_pass ? "입찰 포기" : `${card.amount.toLocaleString()}P`}
-        </p>
-        {isTied && (
-          <p className="mt-1 text-fluid-md font-black text-minion-blue">
-            재입찰 대상
+          <p className="mb-2 max-w-full truncate text-fluid-xs font-black text-gray-500">
+            {card.team_name}
           </p>
-        )}
+          <p
+            className={`font-black leading-none tabular-nums ${
+              card.is_pass ? "text-fluid-sm" : "text-fluid-md"
+            } ${pointTextClass}`}
+          >
+            {card.is_pass ? "입찰 포기" : `${card.amount.toLocaleString()}P`}
+          </p>
+          {isTied && (
+            <p className="mt-1 text-fluid-md font-black text-minion-blue">
+              재입찰 대상
+            </p>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -292,12 +294,6 @@ export function SealedBidBoard({
         )}
       </div>
 
-      {isScoreRevealPhase && (
-        <p className="-mt-1 text-center text-fluid-xs font-heading text-minion-blue">
-          입찰가격공개
-        </p>
-      )}
-
       {sealedBid.phase === "ACTIVE" && (
         <div className="flex-1 flex items-center justify-center text-center">
           <p className="text-fluid-sm font-heading text-gray-500 uppercase">
@@ -307,28 +303,33 @@ export function SealedBidBoard({
       )}
 
       {showCards && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {(visibleCards.length > 0
-            ? visibleCards
-            : visiblePlaceholderTeams.map((team) => ({
-                team_id: team.id,
-                team_name: team.name,
-                amount: 0,
-                is_pass: true,
-                is_highest: false,
-                is_tied: false,
-                eligible: true,
-              }))
-          ).map((card, index) => (
-            <SealedCard
-              key={card.team_id}
-              card={card}
-              revealed={
-                sealedBid.phase === "REVEALING" && index < revealedCount
-              }
-              revealComplete={revealComplete}
-            />
-          ))}
+        <div className="pixel-box bg-white p-4 [border-color:var(--color-minion-blue)]">
+          <p className="mb-4 text-center text-fluid-sm font-heading text-minion-blue">
+            입찰가격공개
+          </p>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {(visibleCards.length > 0
+              ? visibleCards
+              : visiblePlaceholderTeams.map((team) => ({
+                  team_id: team.id,
+                  team_name: team.name,
+                  amount: 0,
+                  is_pass: true,
+                  is_highest: false,
+                  is_tied: false,
+                  eligible: true,
+                }))
+            ).map((card, index) => (
+              <SealedCard
+                key={card.team_id}
+                card={card}
+                revealed={
+                  sealedBid.phase === "REVEALING" && index < revealedCount
+                }
+                revealComplete={revealComplete}
+              />
+            ))}
+          </div>
         </div>
       )}
 
