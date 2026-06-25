@@ -146,8 +146,13 @@ describe("SealedBidBoard", () => {
       "pt-14",
     );
     expect(hiddenCard?.closest(".sealed-bid-card-bounce")).toBeInTheDocument();
+    expect(screen.getByText("입찰 대상")).toHaveClass("absolute");
+    expect(screen.getByText("입찰 대상")).toHaveClass("border-black");
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
       "p-3",
+    );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "pt-8",
     );
   });
 });

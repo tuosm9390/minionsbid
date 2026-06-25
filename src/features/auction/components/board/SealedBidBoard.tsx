@@ -180,12 +180,12 @@ export function SealedBidBoard({
       </div>
 
       <div
-        className={`pixel-box bg-yellow-50 border-black ${
-          isScoreRevealPhase ? "p-3" : "p-5"
+        className={`pixel-box relative mt-2 bg-yellow-50 border-black ${
+          isScoreRevealPhase ? "p-3 pt-8" : "p-5 pt-10"
         }`}
       >
         <p
-          className={`font-heading text-gray-500 uppercase text-center ${
+          className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-black bg-yellow-50 px-4 py-2 text-center font-heading text-black shadow-pixel-sm ${
             isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-sm"
           }`}
         >
