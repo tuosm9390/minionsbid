@@ -458,3 +458,12 @@
 - GREEN 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx -t "preview sheet data|omit player name|workbook sheets"`, `npx vitest run __tests__/CreateRoomModal.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`, `npm test`가 모두 통과했다.
 - 브라우저 QA는 `http://localhost:3016` dev 서버에서 실제 xlsx를 업로드하고 `DB` 시트를 선택한 뒤 미리보기, 분리 열 선택, 필드 매핑, 적용 후 선수명 반영까지 확인했다. 증거는 `.omo/ulw-loop/evidence/excel-mapping-browser-qa.txt`와 `.omo/ulw-loop/evidence/excel-mapping-browser-pass.png`다.
 - Playwright QA 후 포트 `3016` 리스너가 남지 않았음을 확인했다.
+
+## 2026-06-25 비공개 입찰 공개 전 점수 카드 스타일
+
+- 요청은 비공개 입찰 제출 후 점수 공개 전 카드가 성의 없어 보이는 문제를 개선하는 것이다.
+- 관련 표면은 `src/features/auction/components/board/SealedBidBoard.tsx`의 `SealedCard` 뒷면이다. `LOCKED` 상태와 `REVEALING`에서 아직 공개되지 않은 카드는 같은 뒷면을 보여준다.
+- 범위는 공개 전 뒷면 카드로 제한한다. 공개 완료 후 앞면의 최고점, 재입찰, 포기 상태 색상은 기존 공개 결과 계약이므로 유지한다.
+- 디자인은 기존 Cyber-Pixel 토큰을 따라 minion blue 테두리, 중앙 `?` 텍스트, 느린 pulse 애니메이션으로 처리한다. `SEALED BID` 문구와 작은 내부 박스는 제거한다.
+- 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 테스트 파일 대상 ESLint, `npm run build`, Playwright 브라우저 `setContent` 렌더에서 `?` 텍스트와 `sealed-bid-card-pulse` animationName 및 테두리 색 변화 확인으로 진행했다.
+- PowerShell에서 Bash식 `E2E_AUCTION_FIXTURE=1 ...` 명령은 실행 문법 오류로 실패했고, 직접 Playwright 실행은 기존 3000번 Next dev 서버 때문에 webServer 시작이 막혔다. 최종 검증은 프로젝트 runner인 `npm run test:e2e:auction`으로 실행했으며 production build 후 chromium 14개 경매 회귀 테스트가 통과했다.

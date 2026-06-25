@@ -78,4 +78,57 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("희망 팀")).toBeInTheDocument();
     expect(screen.getByText("Blue")).toBeInTheDocument();
   });
+
+  it("공개 전 점수 카드는 문구 없이 물음표 뒷면만 표시한다", () => {
+    const currentPlayer: Player = {
+      id: "player-1",
+      room_id: "room-1",
+      name: "Alpha",
+      tier: "",
+      main_position: "",
+      sub_position: "",
+      status: "IN_AUCTION",
+      team_id: null,
+      sold_price: null,
+      description: "",
+      desired_team: "",
+    };
+    const sealedBid: SealedBidState = {
+      phase: "LOCKED",
+      roundId: "round-1",
+      roundNumber: 1,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [
+        {
+          team_id: "team-1",
+          team_name: "Blue",
+          amount: 100,
+          is_pass: false,
+          is_highest: false,
+          is_tied: false,
+          eligible: true,
+        },
+      ],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    };
+
+    render(
+      <SealedBidBoard
+        roomId="room-1"
+        role="VIEWER"
+        currentPlayer={currentPlayer}
+        teams={[]}
+        timerEndsAt={null}
+        sealedBid={sealedBid}
+      />,
+    );
+
+    expect(screen.queryByText("SEALED BID")).not.toBeInTheDocument();
+    const hiddenCard = screen.getByText("?").closest(".sealed-bid-card-back");
+    expect(hiddenCard).toBeInTheDocument();
+    expect(hiddenCard).toHaveClass("sealed-bid-card-back");
+  });
 });
