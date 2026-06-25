@@ -10,6 +10,7 @@ import { CaptainRegistrationStep } from "./create-room/CaptainRegistrationStep";
 import { PlayerRegistrationStep } from "./create-room/PlayerRegistrationStep";
 import { LinksStep } from "./create-room/LinksStep";
 import { TemplatePreviewModal } from "./create-room/TemplatePreviewModal";
+import { ExcelSheetMappingPanel } from "./create-room/ExcelSheetMappingPanel";
 import { getAuctionSlotsPerTeam } from "@/features/auction/utils/roster";
 import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 
@@ -39,6 +40,7 @@ export function CreateRoomModal() {
     links,
     pendingExcelFileName,
     pendingExcelSheetNames,
+    excelPreview,
     isTemplateModalOpen,
     setIsTemplateModalOpen,
     templateData,
@@ -47,6 +49,11 @@ export function CreateRoomModal() {
     handleExcelUpload,
     selectExcelSheet,
     cancelExcelSheetSelection,
+    updateExcelHeaderRow,
+    toggleExcelColumn,
+    selectExcelColumnRange,
+    updateExcelFieldMapping,
+    applyExcelPreview,
     copyToClipboard,
     close,
     goToRoom,
@@ -200,6 +207,18 @@ export function CreateRoomModal() {
                       ))}
                     </div>
                   </div>
+                )}
+                {excelPreview && step < 3 && (
+                  <ExcelSheetMappingPanel
+                    preview={excelPreview}
+                    isUploading={isUploading}
+                    onHeaderRowChange={updateExcelHeaderRow}
+                    onToggleColumn={toggleExcelColumn}
+                    onSelectRange={selectExcelColumnRange}
+                    onFieldMappingChange={updateExcelFieldMapping}
+                    onApply={applyExcelPreview}
+                    onCancel={cancelExcelSheetSelection}
+                  />
                 )}
                 {step === 0 && (
                   <div className="animate-in fade-in slide-in-from-left-4 duration-300">

@@ -446,3 +446,15 @@
 - 엑셀 헤더는 셀 안 줄바꿈이나 여러 공백을 포함할 수 있으므로, `희망\n팀`, `희망  팀` 같은 값을 `희망팀`으로 정규화한 뒤 컬럼을 탐지한다.
 - RED 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx -t "desired team"`가 `desiredTeam: ""`로 실패했다.
 - GREEN 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx __tests__/SealedBidBoard.test.tsx __tests__/PlayerInAuction.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`가 모두 통과했다.
+
+## 2026-06-25 엑셀 시트 미리보기와 사용자 지정 열 매핑
+
+- 요청은 시트 선택 시 어떤 데이터가 포함되어 있는지 먼저 표시하고, 사용자가 직접 사용할 헤더 열 범위나 분리된 열을 선택한 뒤 매핑해서 시트를 적용하는 것이다.
+- 현재 구현은 `useCreateRoom.selectExcelSheet()`가 선택 즉시 `applyExcelSheet()`를 호출해 자동 파싱한다. 이번 변경은 `selectExcelSheet()`가 sheet rows를 preview state로 보관하고, 별도 `applyExcelPreview()`가 선택된 헤더 행과 컬럼 매핑으로 기존 파서 흐름을 실행하는 구조가 가장 작다.
+- 사용 컬럼 선택은 연속 범위와 분리 선택을 모두 만족시키기 위해 각 열의 체크박스를 둔다. 연속 범위 입력은 빠른 선택 도구로 제공하고, 최종 source of truth는 `selectedColumnIndexes` 배열로 둔다.
+- 자동 헤더 탐지는 기본값으로 유지한다. 사용자가 헤더 행을 바꾸거나 열 선택을 바꾸면 자동 매핑을 다시 계산하되, 필드별 select에서 직접 override할 수 있게 한다.
+- UI는 기존 Cyber-Pixel 모달 내부에 데이터 밀도가 높은 설정 패널로 추가한다. 별도 랜딩형 설명이나 새로운 디자인 시스템 파일은 만들지 않는다.
+- RED 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx -t "preview sheet data|omit player name|workbook sheets"`가 `시트 데이터 미리보기`를 찾지 못해 실패한 것이다.
+- GREEN 검증은 `npx vitest run __tests__/CreateRoomModal.test.tsx -t "preview sheet data|omit player name|workbook sheets"`, `npx vitest run __tests__/CreateRoomModal.test.tsx`, 대상 파일 `npx eslint ...`, `npx tsc --noEmit --pretty false`, `npm test`가 모두 통과했다.
+- 브라우저 QA는 `http://localhost:3016` dev 서버에서 실제 xlsx를 업로드하고 `DB` 시트를 선택한 뒤 미리보기, 분리 열 선택, 필드 매핑, 적용 후 선수명 반영까지 확인했다. 증거는 `.omo/ulw-loop/evidence/excel-mapping-browser-qa.txt`와 `.omo/ulw-loop/evidence/excel-mapping-browser-pass.png`다.
+- Playwright QA 후 포트 `3016` 리스너가 남지 않았음을 확인했다.

@@ -207,6 +207,8 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     expect(screen.getByRole("button", { name: "참가자" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "참가자" }));
+    await screen.findByText("시트 데이터 미리보기");
+    await user.click(screen.getByRole("button", { name: "이 데이터 사용" }));
 
     expect(mockXLSXInternal.utils.sheet_to_json).toHaveBeenCalledWith({
       sheetName: "참가자",
@@ -216,6 +218,153 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
       const playerInput = screen.getByDisplayValue("SelectedPlayer");
       expect(playerInput).toBeInTheDocument();
     });
+  });
+
+  it("should preview sheet data and apply user-selected separated columns", async () => {
+    mockXLSXInternal.utils.sheet_to_json.mockReturnValueOnce([
+      [
+        "#",
+        "닉네임",
+        "소환사의 협곡 티어",
+        "전략적 팀 전투 티어",
+        "주라인",
+        "부라인",
+        "희망 팀",
+        "코멘트",
+      ],
+      [1, "Alpha", "골드", "다이아", "미드", "탑", "Blue", "첫 번째"],
+      [2, "Beta", "실버", "골드", "정글", "무관", "Red", "두 번째"],
+    ]);
+    const mockedCreateRoom = vi.mocked(createRoom);
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+    await user.type(screen.getByTestId("room-title-input"), "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const captainInputs = screen.getAllByPlaceholderText("이름");
+    for (const input of captainInputs) {
+      await user.type(input, "Leader");
+    }
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+    await user.click(await screen.findByRole("button", { name: "DB" }));
+
+    expect(await screen.findByText("시트 데이터 미리보기")).toBeInTheDocument();
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+    expect(screen.getByLabelText("사용 열: 닉네임")).toBeChecked();
+    expect(screen.getByLabelText("사용 열: 희망 팀")).toBeChecked();
+
+    await user.click(screen.getByLabelText("사용 열: 전략적 팀 전투 티어"));
+    await user.click(screen.getByRole("button", { name: "이 데이터 사용" }));
+
+    await screen.findByDisplayValue("Alpha");
+    const playerNameInputs = screen.getAllByPlaceholderText("선수 이름");
+    for (const [index, input] of playerNameInputs.entries()) {
+      if ((input as HTMLInputElement).value.trim()) continue;
+      await user.type(input, `Filler${index}`);
+    }
+
+    await user.click(screen.getByTestId("next-button"));
+
+    await waitFor(() => {
+      expect(mockedCreateRoom).toHaveBeenCalled();
+    });
+    expect(mockedCreateRoom.mock.calls[0][0].players[0]).toMatchObject({
+      name: "Alpha",
+      tier: "골드",
+      mainPosition: "미드",
+      subPosition: "탑",
+      desiredTeam: "Blue",
+      tftTier: "",
+    });
+  }, 10000);
+
+  it("should warn when selected columns omit player name mapping", async () => {
+    mockXLSXInternal.utils.sheet_to_json.mockReturnValueOnce([
+      ["#", "닉네임", "티어"],
+      [1, "Alpha", "골드"],
+    ]);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+    await user.type(screen.getByTestId("room-title-input"), "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const captainInputs = screen.getAllByPlaceholderText("이름");
+    for (const input of captainInputs) {
+      await user.type(input, "Leader");
+    }
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+    await user.click(await screen.findByRole("button", { name: "DB" }));
+
+    await screen.findByText("시트 데이터 미리보기");
+    await user.selectOptions(screen.getByLabelText("선수 이름 열"), "__none__");
+    await user.click(screen.getByRole("button", { name: "이 데이터 사용" }));
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      "선수 이름으로 사용할 열을 선택해주세요.",
+    );
+    alertSpy.mockRestore();
+  });
+
+  it("should warn when every preview column is disabled", async () => {
+    mockXLSXInternal.utils.sheet_to_json.mockReturnValueOnce([
+      ["#", "닉네임", "티어"],
+      [1, "Alpha", "골드"],
+    ]);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    render(<CreateRoomModal />);
+
+    await user.click(screen.getByRole("button", { name: /MAKE ROOM/i }));
+    await user.type(screen.getByTestId("room-title-input"), "Test Auction");
+    await user.click(screen.getByTestId("next-button"));
+
+    const captainInputs = screen.getAllByPlaceholderText("이름");
+    for (const input of captainInputs) {
+      await user.type(input, "Leader");
+    }
+    await user.click(screen.getByTestId("next-button"));
+
+    const file = new File(["dummy content"], "test.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    await user.upload(fileInput, file);
+    await user.click(await screen.findByRole("button", { name: "DB" }));
+
+    await screen.findByText("시트 데이터 미리보기");
+    await user.click(screen.getByLabelText("사용 열: #"));
+    await user.click(screen.getByLabelText("사용 열: 닉네임"));
+    await user.click(screen.getByLabelText("사용 열: 티어"));
+    await user.click(screen.getByRole("button", { name: "이 데이터 사용" }));
+
+    expect(alertSpy).toHaveBeenCalledWith("사용할 열을 하나 이상 선택해주세요.");
+    alertSpy.mockRestore();
   });
 
   it("should warn when the selected sheet has no player rows", async () => {
@@ -295,6 +444,9 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
 
     await user.upload(fileInput, file);
     await user.click(await screen.findByRole("button", { name: "DB" }));
+    await user.click(
+      await screen.findByRole("button", { name: "이 데이터 사용" }),
+    );
     await screen.findByDisplayValue("Alpha");
     const playerNameInputs = screen.getAllByPlaceholderText("선수 이름");
     for (const [index, input] of playerNameInputs.entries()) {
@@ -350,6 +502,9 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     await user.upload(fileInput, file);
 
     await user.click(await screen.findByRole("button", { name: "DB" }));
+    await user.click(
+      await screen.findByRole("button", { name: "이 데이터 사용" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Captain")).toBeInTheDocument();
@@ -383,6 +538,9 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     await user.upload(fileInput, file);
 
     await user.click(await screen.findByRole("button", { name: "DB" }));
+    await user.click(
+      await screen.findByRole("button", { name: "이 데이터 사용" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("테스트")).toBeInTheDocument();
@@ -417,6 +575,9 @@ describe("CreateRoomModal - Phase 3 Optimization Integration", () => {
     await user.upload(fileInput, file);
 
     await user.click(await screen.findByRole("button", { name: "DB" }));
+    await user.click(
+      await screen.findByRole("button", { name: "이 데이터 사용" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("승준닉")).toBeInTheDocument();

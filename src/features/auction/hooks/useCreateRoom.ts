@@ -15,7 +15,7 @@ import { type CaptainMode, getAuctionSlotsPerTeam } from "../utils/roster";
 import type { AuctionMode } from "../utils/auctionMode";
 import { getAuctionClientServices } from "../realtime/clientAdapter";
 import { getNicknameWithoutTag } from "../utils/display";
-import type { WorkBook, WorkSheet } from "xlsx";
+import type { WorkBook } from "xlsx";
 
 const LS_KEY = "league_auction_rooms";
 const LATENCY_DEBUG =
@@ -75,11 +75,113 @@ export interface StoredRoom {
 
 type ExcelModule = typeof import("xlsx");
 
+export type ExcelFieldKey =
+  | "name"
+  | "tier"
+  | "mainPosition"
+  | "subPosition"
+  | "description"
+  | "aramTier"
+  | "tftTier"
+  | "desiredTeam";
+
+export type ExcelColumnMapping = Record<ExcelFieldKey, number | null>;
+
+export interface ExcelPreviewState {
+  fileName: string;
+  sheetName: string;
+  rows: string[][];
+  headerRowIndex: number;
+  selectedColumnIndexes: number[];
+  fieldMapping: ExcelColumnMapping;
+}
+
 interface PendingExcelSelection {
   fileName: string;
   workbook: WorkBook;
   xlsx: ExcelModule;
 }
+
+export const EXCEL_FIELD_LABELS: Record<ExcelFieldKey, string> = {
+  name: "선수 이름",
+  tier: "티어",
+  mainPosition: "주 포지션",
+  subPosition: "부 포지션",
+  description: "한마디",
+  aramTier: "무작위 총력전",
+  tftTier: "전략적 팀 전투",
+  desiredTeam: "희망 팀",
+};
+
+const EMPTY_EXCEL_MAPPING: ExcelColumnMapping = {
+  name: null,
+  tier: null,
+  mainPosition: null,
+  subPosition: null,
+  description: null,
+  aramTier: null,
+  tftTier: null,
+  desiredTeam: null,
+};
+
+const getDefaultSelectedColumnIndexes = (rows: string[][]) => {
+  const maxColumns = Math.max(...rows.map((row) => row.length), 0);
+  return Array.from({ length: maxColumns }, (_, index) => index).filter((index) =>
+    rows.some((row) => String(row[index] ?? "").trim()),
+  );
+};
+
+const inferExcelColumnMapping = (
+  headerRow: string[],
+  selectedColumnIndexes: number[],
+): ExcelColumnMapping => {
+  const selected = new Set(selectedColumnIndexes);
+  const mapping: ExcelColumnMapping = { ...EMPTY_EXCEL_MAPPING };
+
+  for (const index of selectedColumnIndexes) {
+    const header = String(headerRow[index] ?? "").trim();
+    const headerKey = normalizeHeaderKey(header);
+    if (!mapping.name && header.includes("닉네임")) mapping.name = index;
+    else if (!mapping.aramTier && headerKey.includes("무작위총력전"))
+      mapping.aramTier = index;
+    else if (!mapping.tftTier && headerKey.includes("전략적팀전투"))
+      mapping.tftTier = index;
+    else if (
+      !mapping.tier &&
+      (headerKey.includes("소환사의협곡") || header === "티어")
+    )
+      mapping.tier = index;
+    else if (
+      !mapping.description &&
+      (header.includes("코멘트") ||
+        header.includes("설명") ||
+        header.includes("하고 싶은 말"))
+    )
+      mapping.description = index;
+    else if (!mapping.mainPosition && header.includes("주라인"))
+      mapping.mainPosition = index;
+    else if (!mapping.subPosition && header.includes("부라인"))
+      mapping.subPosition = index;
+    else if (!mapping.desiredTeam && headerKey.includes("희망팀"))
+      mapping.desiredTeam = index;
+  }
+
+  if (mapping.name == null) {
+    const nameLikeIndex = selectedColumnIndexes.find((index) => {
+      const header = String(headerRow[index] ?? "").trim();
+      return header.includes("이름") && !header.includes("닉네임");
+    });
+    mapping.name = nameLikeIndex ?? null;
+  }
+
+  for (const key of Object.keys(mapping) as ExcelFieldKey[]) {
+    if (mapping[key] != null && !selected.has(mapping[key])) {
+      mapping[key] = null;
+    }
+  }
+
+  return mapping;
+};
 
 export function useCreateRoom() {
   const [isOpen, setIsOpen] = useState(false);
@@ -111,6 +213,9 @@ export function useCreateRoom() {
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [links, setLinks] = useState<GeneratedLinks | null>(null);
   const [pendingExcel, setPendingExcel] = useState<PendingExcelSelection | null>(
+    null,
+  );
+  const [excelPreview, setExcelPreview] = useState<ExcelPreviewState | null>(
     null,
   );
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -271,66 +376,38 @@ export function useCreateRoom() {
     }
   };
 
-  const applyExcelSheet = (
-    XLSX: ExcelModule,
-    sheet: WorkSheet,
-    sheetName: string,
-  ) => {
+  const applyExcelRows = (preview: ExcelPreviewState) => {
     try {
-      const rows = XLSX.utils.sheet_to_json(sheet, {
-        header: 1,
-        raw: false,
-      }) as (string | undefined)[][];
-
+      const rows = preview.rows;
       if (rows.length < 2) {
         alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
         return;
       }
-      const headerRow = Array.from(rows[0], (h) => String(h ?? "").trim());
+      const selectedColumnSet = new Set(preview.selectedColumnIndexes);
+      const mapping = preview.fieldMapping;
+      if (preview.selectedColumnIndexes.length === 0) {
+        alert("사용할 열을 하나 이상 선택해주세요.");
+        return;
+      }
+      const nameCol = mapping.name;
+      if (nameCol == null || !selectedColumnSet.has(nameCol)) {
+        alert("선수 이름으로 사용할 열을 선택해주세요.");
+        return;
+      }
+      const headerRow = Array.from(rows[preview.headerRowIndex] ?? [], (h) =>
+        String(h ?? "").trim(),
+      );
 
-      let nameCol = 2,
-        tierCol = 3,
-        commentCol = 6;
-      let aramTierCol = -1,
-        tftTierCol = -1;
-      let mainPositionCol = -1,
-        subPositionCol = -1;
-      let desiredTeamCol = -1;
       const captainMarkerCols = new Set<number>();
-      let hasNicknameCol = false;
-      let firstNameLikeCol = -1;
-      for (let ci = 0; ci < headerRow.length; ci++) {
+      for (const ci of preview.selectedColumnIndexes) {
         const h = headerRow[ci];
-        const headerKey = normalizeHeaderKey(h);
-        if (h.includes("닉네임")) {
-          nameCol = ci;
-          hasNicknameCol = true;
-        } else if (headerKey.includes("무작위총력전")) aramTierCol = ci;
-        else if (headerKey.includes("전략적팀전투")) tftTierCol = ci;
-        else if (headerKey.includes("소환사의협곡") || h === "티어") tierCol = ci;
-        else if (
-          h.includes("코멘트") ||
-          h.includes("설명") ||
-          h.includes("하고 싶은 말")
-        )
-          commentCol = ci;
-        else if (h.includes("주라인")) mainPositionCol = ci;
-        else if (h.includes("부라인")) subPositionCol = ci;
-        else if (headerKey.includes("희망팀"))
-          desiredTeamCol = ci;
         if (h.includes("이름")) {
           captainMarkerCols.add(ci);
-          if (!h.includes("닉네임") && firstNameLikeCol < 0) {
-            firstNameLikeCol = ci;
-          }
         }
-      }
-      if (!hasNicknameCol && firstNameLikeCol >= 0) {
-        nameCol = firstNameLikeCol;
       }
 
       const positionColMap = new Map<number, string>();
-      for (let ci = 0; ci < headerRow.length; ci++) {
+      for (const ci of preview.selectedColumnIndexes) {
         const h = headerRow[ci];
         for (const { keywords, position } of POSITION_HEADER_KEYWORDS) {
           if (keywords.includes(h)) {
@@ -347,14 +424,16 @@ export function useCreateRoom() {
           ["미드", 11],
           ["원딜", 12],
           ["서포터", 13],
-        ].forEach(([pos, idx]) =>
-          positionColMap.set(idx as number, pos as string),
-        );
+        ].forEach(([pos, idx]) => {
+          if (selectedColumnSet.has(idx as number)) {
+            positionColMap.set(idx as number, pos as string);
+          }
+        });
       }
 
       const parsed: PlayerInfo[] = [];
       const parsedCaptains: CaptainInfo[] = [];
-      for (let ri = 1; ri < rows.length; ri++) {
+      for (let ri = preview.headerRowIndex + 1; ri < rows.length; ri++) {
         const row = rows[ri];
         const captainMarkerValue =
           Array.from(captainMarkerCols, (col) =>
@@ -362,20 +441,38 @@ export function useCreateRoom() {
           ).find(hasCaptainMarker) ?? "";
         const name = String(row[nameCol] ?? "").trim() || captainMarkerValue;
         if (!name) continue;
-        const tierRaw = String(row[tierCol] ?? "").trim();
+        const tierRaw =
+          mapping.tier != null && selectedColumnSet.has(mapping.tier)
+            ? String(row[mapping.tier] ?? "").trim()
+            : "";
         const tier = normalizeTier(tierRaw);
-        const description = String(row[commentCol] ?? "").trim();
+        const description =
+          mapping.description != null && selectedColumnSet.has(mapping.description)
+            ? String(row[mapping.description] ?? "").trim()
+            : "";
         const aramTier =
-          aramTierCol >= 0 ? String(row[aramTierCol] ?? "").trim() : "";
+          mapping.aramTier != null && selectedColumnSet.has(mapping.aramTier)
+            ? String(row[mapping.aramTier] ?? "").trim()
+            : "";
         const tftTier =
-          tftTierCol >= 0 ? String(row[tftTierCol] ?? "").trim() : "";
+          mapping.tftTier != null && selectedColumnSet.has(mapping.tftTier)
+            ? String(row[mapping.tftTier] ?? "").trim()
+            : "";
         const desiredTeam =
-          desiredTeamCol >= 0 ? String(row[desiredTeamCol] ?? "").trim() : "";
+          mapping.desiredTeam != null && selectedColumnSet.has(mapping.desiredTeam)
+            ? String(row[mapping.desiredTeam] ?? "").trim()
+            : "";
         let mainPosition = "",
           subPosition = "";
-        if (mainPositionCol >= 0 || subPositionCol >= 0) {
-          mainPosition = normalizePosition(String(row[mainPositionCol] ?? ""));
-          subPosition = normalizePosition(String(row[subPositionCol] ?? ""));
+        if (mapping.mainPosition != null || mapping.subPosition != null) {
+          mainPosition =
+            mapping.mainPosition != null && selectedColumnSet.has(mapping.mainPosition)
+              ? normalizePosition(String(row[mapping.mainPosition] ?? ""))
+              : "";
+          subPosition =
+            mapping.subPosition != null && selectedColumnSet.has(mapping.subPosition)
+              ? normalizePosition(String(row[mapping.subPosition] ?? ""))
+              : "";
         } else {
           positionColMap.forEach((posName, colIdx) => {
             const val = String(row[colIdx] ?? "").trim();
@@ -449,8 +546,9 @@ export function useCreateRoom() {
           : trimmed;
       setPlayers(padded);
       setPendingExcel(null);
+      setExcelPreview(null);
       alert(
-        `${sheetName} 시트에서 ${trimmed.length}명의 선수 정보와 ${Math.min(parsedCaptains.length, basic.teamCount)}명의 팀장 정보로 목록을 덮어썼습니다.`,
+        `${preview.sheetName} 시트에서 ${trimmed.length}명의 선수 정보와 ${Math.min(parsedCaptains.length, basic.teamCount)}명의 팀장 정보로 목록을 덮어썼습니다.`,
       );
     } catch (err) {
       console.error("Excel parse error:", err);
@@ -507,12 +605,139 @@ export function useCreateRoom() {
       alert("선택한 시트를 찾을 수 없습니다.");
       return;
     }
-    setIsUploading(true);
-    applyExcelSheet(pendingExcel.xlsx, sheet, sheetName);
+    try {
+      const rows = pendingExcel.xlsx.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+      }) as (string | undefined)[][];
+      const normalizedRows = rows.map((row) =>
+        Array.from(row, (cell) => String(cell ?? "").trim()),
+      );
+      if (normalizedRows.length < 2) {
+        alert("파싱된 선수가 없습니다. 파일 형식을 확인해주세요.");
+        return;
+      }
+      const headerRowIndex = 0;
+      const selectedColumnIndexes = getDefaultSelectedColumnIndexes(
+        normalizedRows,
+      );
+      const fieldMapping = inferExcelColumnMapping(
+        normalizedRows[headerRowIndex] ?? [],
+        selectedColumnIndexes,
+      );
+      setExcelPreview({
+        fileName: pendingExcel.fileName,
+        sheetName,
+        rows: normalizedRows,
+        headerRowIndex,
+        selectedColumnIndexes,
+        fieldMapping,
+      });
+    } catch (err) {
+      console.error("Excel parse error:", err);
+      alert("엑셀 파일 파싱에 실패했습니다.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const cancelExcelSheetSelection = () => {
     setPendingExcel(null);
+    setExcelPreview(null);
+  };
+
+  const updateExcelHeaderRow = (headerRowIndex: number) => {
+    setExcelPreview((prev) => {
+      if (!prev) return prev;
+      const safeHeaderRowIndex = Math.max(
+        0,
+        Math.min(headerRowIndex, prev.rows.length - 1),
+      );
+      const selectedColumnIndexes = getDefaultSelectedColumnIndexes(
+        prev.rows,
+      );
+      return {
+        ...prev,
+        headerRowIndex: safeHeaderRowIndex,
+        selectedColumnIndexes,
+        fieldMapping: inferExcelColumnMapping(
+          prev.rows[safeHeaderRowIndex] ?? [],
+          selectedColumnIndexes,
+        ),
+      };
+    });
+  };
+
+  const toggleExcelColumn = (columnIndex: number) => {
+    setExcelPreview((prev) => {
+      if (!prev) return prev;
+      const selected = new Set(prev.selectedColumnIndexes);
+      if (selected.has(columnIndex)) selected.delete(columnIndex);
+      else selected.add(columnIndex);
+      const selectedColumnIndexes = Array.from(selected).sort((a, b) => a - b);
+      const selectedColumnSet = new Set(selectedColumnIndexes);
+      const fieldMapping = { ...prev.fieldMapping };
+      for (const key of Object.keys(fieldMapping) as ExcelFieldKey[]) {
+        if (
+          fieldMapping[key] != null &&
+          !selectedColumnSet.has(fieldMapping[key])
+        ) {
+          fieldMapping[key] = null;
+        }
+      }
+      return {
+        ...prev,
+        selectedColumnIndexes,
+        fieldMapping,
+      };
+    });
+  };
+
+  const selectExcelColumnRange = (startIndex: number, endIndex: number) => {
+    setExcelPreview((prev) => {
+      if (!prev) return prev;
+      const from = Math.min(startIndex, endIndex);
+      const to = Math.max(startIndex, endIndex);
+      const selectedColumnIndexes = Array.from(
+        { length: to - from + 1 },
+        (_, offset) => from + offset,
+      );
+      return {
+        ...prev,
+        selectedColumnIndexes,
+        fieldMapping: inferExcelColumnMapping(
+          prev.rows[prev.headerRowIndex] ?? [],
+          selectedColumnIndexes,
+        ),
+      };
+    });
+  };
+
+  const updateExcelFieldMapping = (
+    field: ExcelFieldKey,
+    columnIndex: number | null,
+  ) => {
+    setExcelPreview((prev) =>
+      prev
+        ? {
+            ...prev,
+            fieldMapping: {
+              ...prev.fieldMapping,
+              [field]: columnIndex,
+            },
+          }
+        : prev,
+    );
+  };
+
+  const applyExcelPreview = () => {
+    if (!excelPreview) return;
+    setIsUploading(true);
+    try {
+      applyExcelRows(excelPreview);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const copyToClipboard = async (text: string, key: string) => {
@@ -588,6 +813,7 @@ export function useCreateRoom() {
     setPlayers([]);
     setLinks(null);
     setPendingExcel(null);
+    setExcelPreview(null);
     setCopied(null);
     setActiveRooms([]);
     setScheduleOptions([]);
@@ -644,6 +870,7 @@ export function useCreateRoom() {
     links,
     pendingExcelFileName: pendingExcel?.fileName ?? null,
     pendingExcelSheetNames: pendingExcel?.workbook.SheetNames ?? [],
+    excelPreview,
     isTemplateModalOpen,
     setIsTemplateModalOpen,
     templateData,
@@ -652,6 +879,11 @@ export function useCreateRoom() {
     handleExcelUpload,
     selectExcelSheet,
     cancelExcelSheetSelection,
+    updateExcelHeaderRow,
+    toggleExcelColumn,
+    selectExcelColumnRange,
+    updateExcelFieldMapping,
+    applyExcelPreview,
     copyToClipboard,
     reset,
     close,
