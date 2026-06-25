@@ -467,3 +467,5 @@
 - 디자인은 기존 Cyber-Pixel 토큰을 따라 minion blue 테두리, 중앙 `?` 텍스트, 느린 pulse 애니메이션으로 처리한다. `SEALED BID` 문구와 작은 내부 박스는 제거한다.
 - 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 테스트 파일 대상 ESLint, `npm run build`, Playwright 브라우저 `setContent` 렌더에서 `?` 텍스트와 `sealed-bid-card-pulse` animationName 및 테두리 색 변화 확인으로 진행했다.
 - PowerShell에서 Bash식 `E2E_AUCTION_FIXTURE=1 ...` 명령은 실행 문법 오류로 실패했고, 직접 Playwright 실행은 기존 3000번 Next dev 서버 때문에 webServer 시작이 막혔다. 최종 검증은 프로젝트 runner인 `npm run test:e2e:auction`으로 실행했으며 production build 후 chromium 14개 경매 회귀 테스트가 통과했다.
+- 후속 요청으로 공개 전 카드의 대각선 줄무늬를 제거하고 배경을 흰색으로 변경했다. 점멸 대상은 기존처럼 minion blue 테두리와 `?` 텍스트만 유지한다.
+- 후속 검증은 `npx vitest run __tests__/SealedBidBoard.test.tsx`, 변경 TS 파일 ESLint, `npm run build`, Playwright `setContent` 계산 스타일 확인으로 진행했다. 브라우저에서 공개 전 카드의 `backgroundColor`는 `rgb(255, 255, 255)`, `backgroundImage`는 `none`, 내부 자식은 `?` 하나로 확인됐다.

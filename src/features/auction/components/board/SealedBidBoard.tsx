@@ -64,8 +64,7 @@ function SealedCard({
       transition={{ duration: 0.45 }}
       className="relative h-20 [transform-style:preserve-3d]"
     >
-      <div className="sealed-bid-card-back absolute inset-0 flex items-center justify-center overflow-hidden border-4 bg-black [backface-visibility:hidden]">
-        <div className="absolute inset-0 opacity-15 bg-[repeating-linear-gradient(135deg,transparent,transparent_8px,var(--color-minion-blue)_8px,var(--color-minion-blue)_10px)]" />
+      <div className="sealed-bid-card-back absolute inset-0 flex items-center justify-center overflow-hidden border-4 bg-white [backface-visibility:hidden]">
         <span className="sealed-bid-card-mark relative font-heading text-[2.6rem] leading-none md:text-[3rem]">
           ?
         </span>
