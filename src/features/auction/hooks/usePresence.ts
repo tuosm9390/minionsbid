@@ -30,6 +30,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setPresenceLoaded = useAuctionStore(s => s.setPresenceLoaded)
   const setLocalConnected = useAuctionStore(s => s.setLocalConnected)
+  const setPresenceAuthError = useAuctionStore(s => s.setPresenceAuthError)
   const roomAuthToken = useAuctionStore(s => s.roomAuthToken)
   const localPresenceRef = useRef<PresenceUser | null>(null)
 
@@ -85,6 +86,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
 
         // 2. 존재 기록 (LEADER 또는 ORGANIZER만 수행, FR-004)
         if (authUid && shouldRegisterSelf) {
+          setPresenceAuthError(false)
           myPresenceRef = ref(rtdb, `presence/${roomId}/${authUid}`)
 
           const record: PresenceRecord = {
@@ -142,6 +144,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
         unsubs.push(() => { if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer) })
       } catch (error) {
         console.error('[presence] anonymous auth failed', error)
+        setPresenceAuthError(true)
         setPresenceLoaded(true)
       }
     }
@@ -156,5 +159,5 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
       localPresenceRef.current = null
       unsubs.forEach((unsub) => unsub())
     }
-  }, [roomId, teamId, role, teamName, authToken, roomAuthToken, setRealtimeData, setPresenceLoaded, setLocalConnected])
+  }, [roomId, teamId, role, teamName, authToken, roomAuthToken, setRealtimeData, setPresenceLoaded, setLocalConnected, setPresenceAuthError])
 }

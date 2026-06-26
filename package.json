@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "audit:room-auth-secrets": "node scripts/audit_room_auth_secrets.js",
+    "smoke:room-auth-firebase-token": "node scripts/smoke_room_auth_firebase_token.js",
     "smoke:room-rules": "node scripts/smoke_room_rules.js",
     "backfill:team-roster-slots:dry-run": "node scripts/backfill_team_roster_slots.js",
     "backfill:team-roster-slots": "node scripts/backfill_team_roster_slots.js --write",

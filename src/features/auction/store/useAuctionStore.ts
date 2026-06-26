@@ -138,6 +138,7 @@ interface AuctionState {
   presences: PresenceUser[]
   isPresenceLoaded: boolean
   isLocalConnected: boolean
+  hasPresenceAuthError: boolean
   serverTimeOffset: number
 
   // 추첨 모달 상태 (Broadcast CLOSE_LOTTERY로 동기화)
@@ -151,6 +152,7 @@ interface AuctionState {
   setAuctionEventRevision: (revision: number) => void
   setPresenceLoaded: (loaded: boolean) => void
   setLocalConnected: (connected: boolean) => void
+  setPresenceAuthError: (hasError: boolean) => void
   setLiveBid: (bid: LiveBidState | null) => void
   setMessages: (messages: Message[]) => void
   appendMessage: (message: Message) => void
@@ -197,6 +199,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   presences: [],
   isPresenceLoaded: false,
   isLocalConnected: true,
+  hasPresenceAuthError: false,
   serverTimeOffset: 0,
   lotteryPlayer: null,
 
@@ -218,6 +221,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   setAuctionEventRevision: (revision) => set({ auctionEventRevision: revision }),
   setPresenceLoaded: (loaded) => set({ isPresenceLoaded: loaded }),
   setLocalConnected: (connected) => set({ isLocalConnected: connected }),
+  setPresenceAuthError: (hasError) => set({ hasPresenceAuthError: hasError }),
   setLiveBid: (bid) => set({ liveBid: bid }),
   setMessages: (messages) => set(buildOrderedMessageState(messages)),
   appendMessage: (message) =>

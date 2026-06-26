@@ -143,6 +143,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const shouldReduceMotion = useReducedMotion();
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
   const isLocalConnected = useAuctionStore((s) => s.isLocalConnected);
+  const hasPresenceAuthError = useAuctionStore((s) => s.hasPresenceAuthError);
   const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
   const auctionMode = useAuctionStore((s) => s.auctionMode);
   const sealedBid = useAuctionStore((s) => s.sealedBid);
@@ -263,23 +264,36 @@ export function AuctionBoard(props: AuctionBoardProps) {
                 <PixelIcon
                   icon={PIXEL_ICONS.WARNING}
                   size={64}
-                  color="text-minion-red"
+                  color={hasPresenceAuthError ? "text-minion-blue" : "text-minion-red"}
                   animation="urgent"
-                  label="연결 끊김"
+                  label={hasPresenceAuthError ? "PRESENCE 인증 오류" : "연결 끊김"}
                 />
               </div>
               <div className="space-y-2">
-                <h2 className="text-fluid-lg font-heading text-minion-red tracking-tighter">
-                  연결 끊김
+                <h2 className={cn(
+                  "text-fluid-lg font-heading tracking-tighter",
+                  hasPresenceAuthError ? "text-minion-blue" : "text-minion-red",
+                )}>
+                  {hasPresenceAuthError ? "PRESENCE 인증 오류" : "연결 끊김"}
                 </h2>
                 <p className="text-fluid-xs font-bold text-gray-600">
-                  {isPreStartLotteryDisconnect
-                    ? "팀장의 연결이 끊겨 경매 시작을 대기 중입니다."
-                    : "팀장의 연결이 끊겨 경매가 일시정지되었습니다."}
-                  <br />
-                  {isPreStartLotteryDisconnect
-                    ? "재연결 후 경매를 시작할 수 있습니다..."
-                    : "재연결을 기다리는 중입니다..."}
+                  {hasPresenceAuthError ? (
+                    <>
+                      팀장 접속을 증명하는 인증 경로가 실패했습니다.
+                      <br />
+                      Firebase custom token smoke와 배포 로그를 확인하세요.
+                    </>
+                  ) : (
+                    <>
+                      {isPreStartLotteryDisconnect
+                        ? "팀장의 연결이 끊겨 경매 시작을 대기 중입니다."
+                        : "팀장의 연결이 끊겨 경매가 일시정지되었습니다."}
+                      <br />
+                      {isPreStartLotteryDisconnect
+                        ? "재연결 후 경매를 시작할 수 있습니다..."
+                        : "재연결을 기다리는 중입니다..."}
+                    </>
+                  )}
                 </p>
               </div>
             </div>

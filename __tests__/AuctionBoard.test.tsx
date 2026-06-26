@@ -88,6 +88,7 @@ describe("AuctionBoard", () => {
     useAuctionStore.setState({
       isPresenceLoaded: true,
       isLocalConnected: true,
+      hasPresenceAuthError: false,
       nextAuctionDurationMs: null,
       auctionMode: "OPEN_ASCENDING",
       sealedBid: {
@@ -159,5 +160,26 @@ describe("AuctionBoard", () => {
     expect(
       screen.getByText(/경매 시작을 대기 중입니다/),
     ).toBeInTheDocument();
+  });
+
+  it("presence 인증 실패는 팀장 미접속과 다른 알림으로 표시한다", () => {
+    useAuctionStore.setState({ hasPresenceAuthError: true });
+
+    render(
+      <AuctionBoard
+        isLotteryActive
+        lotteryPlayer={lotteryPlayer}
+        waitingPlayers={[lotteryPlayer]}
+        role="ORGANIZER"
+        allConnected={false}
+        onCloseLottery={vi.fn()}
+        onShowResult={vi.fn()}
+        roomId="room-1"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "PRESENCE 인증 오류" })).toBeInTheDocument();
+    expect(screen.getByText(/팀장 접속을 증명하는 인증 경로가 실패했습니다/)).toBeInTheDocument();
+    expect(screen.queryByText(/경매 시작을 대기 중입니다/)).not.toBeInTheDocument();
   });
 });

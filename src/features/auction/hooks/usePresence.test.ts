@@ -12,6 +12,7 @@ type PresenceStoreShape = {
   setRealtimeData: (data: unknown) => void
   setPresenceLoaded: (loaded: boolean) => void
   setLocalConnected: (connected: boolean) => void
+  setPresenceAuthError: (hasError: boolean) => void
 }
 
 // Mock Firebase Database
@@ -42,6 +43,7 @@ describe('useFirebasePresence', () => {
   const setRealtimeData = vi.fn()
   const setPresenceLoaded = vi.fn()
   const setLocalConnected = vi.fn()
+  const setPresenceAuthError = vi.fn()
   
   beforeEach(() => {
     vi.clearAllMocks()
@@ -52,6 +54,7 @@ describe('useFirebasePresence', () => {
           setRealtimeData,
           setPresenceLoaded,
           setLocalConnected,
+          setPresenceAuthError,
         }),
     )
   })
@@ -144,5 +147,42 @@ it('should subscribe to all presence even if role is VIEWER (FR-001)', async () 
 
     const onValuePaths = (ref as unknown as Mock).mock.calls.map((call: unknown[]) => call[1])
     expect(onValuePaths).toContain('.info/connected')
+  })
+
+  it('should mark presence auth error when Firebase auth fails for a leader', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    ensureRoomFirebaseAuth.mockRejectedValueOnce(new Error('token route unavailable'))
+
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: 'team1',
+      role: 'LEADER',
+      authToken: 'leader-token',
+    }))
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(setPresenceAuthError).toHaveBeenCalledWith(true)
+    expect(setPresenceLoaded).toHaveBeenCalledWith(true)
+    expect(consoleError).toHaveBeenCalledWith(
+      '[presence] anonymous auth failed',
+      expect.any(Error),
+    )
+    consoleError.mockRestore()
+  })
+
+  it('should clear presence auth error after Firebase auth succeeds', async () => {
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: 'team1',
+      role: 'LEADER',
+      authToken: 'leader-token',
+    }))
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(setPresenceAuthError).toHaveBeenCalledWith(false)
   })
 })

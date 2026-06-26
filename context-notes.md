@@ -1,5 +1,14 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## 2026-06-26 Firebase 운영 검증 강화
+
+- 요청은 Firebase 선택 시 보완해야 할 운영 검증 항목을 보고서 형식으로 `doc/results`에 저장하고, 해당 보완 작업을 진행하는 것이다.
+- 사용 스킬은 `omo:ulw-loop`다. 현재 세션에는 `spawn_agent` 도구가 제공되지 않아 스킬의 위임 지시는 직접 TDD와 증거 기록으로 대체한다.
+- 결론은 Firebase 유지와 운영 검증 강화다. Supabase 전환은 권한 누락 문제를 제거하지 않고 JWT/RLS/Realtime authorization으로 같은 문제를 재구현하게 된다.
+- 즉시 구현 범위는 `/api/room-auth/firebase-token` 운영 smoke와 presence 인증 실패 UI 분리다. RTDB `presence/signals` read 제한은 VIEWER 인증과 RTDB 구독 순서가 선행되어야 하므로 이번에는 rules를 직접 좁히지 않고 보고서에 단계적 선행 조건으로 기록한다.
+- `scripts/smoke_room_auth_firebase_token.js`는 누락 입력 400, 잘못된 leader token 403, 정상 leader token 200을 확인한다. 정상 응답의 Firebase custom token은 출력에서 `[redacted]`로 치환한다.
+- `usePresence()`는 Firebase custom token 인증 실패 시 `hasPresenceAuthError`를 true로 기록하고, 성공 시 false로 되돌린다. `AuctionBoard`는 이 상태에서 일반 `연결 끊김` 대신 `PRESENCE 인증 오류`를 표시한다.
+
 ## 2026-06-25 Firebase 실시간 설계 보고서 코드베이스 대조 분석
 
 - 사용자는 `C:\Users\tuosm\Downloads\deep-research-report.md` 내용을 현재 코드베이스 기준으로 분석해 보완점, 설계 문제, 현재 코드베이스가 더 잘 작업된 부분을 보고서로 작성해 달라고 요청했다.

@@ -1,5 +1,15 @@
 # 비공개 입찰 구현 체크리스트
 
+## Firebase 운영 검증 강화
+
+- [x] Firebase 선택 보완 항목을 보고서 형식으로 `doc/results`에 저장
+- [x] `/api/room-auth/firebase-token` 운영 smoke 스크립트 테스트를 RED로 추가
+- [x] custom token smoke 스크립트와 npm script 추가
+- [x] smoke 출력에서 custom token 값을 redaction 처리
+- [x] presence 인증 실패 상태와 주최자 UI 분리 테스트를 RED로 추가
+- [x] presence 인증 실패 상태 기록과 `PRESENCE 인증 오류` 표시 구현
+- [x] 관련 lint, 타입 검사, 수동 QA evidence 수집
+
 ## Firebase 실시간 설계 보고서 코드베이스 대조 분석
 
 - [x] 외부 deep research 보고서 핵심 주장 확인
