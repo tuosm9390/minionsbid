@@ -325,21 +325,6 @@ export function SealedBidBoard({
         )}
       </div>
 
-      {sealedBid.phase === "ACTIVE" && (
-        <div
-          className={cn(
-            "flex items-center justify-center text-center",
-            shouldCenterAuctionTarget
-              ? "absolute inset-x-0 bottom-0 z-10"
-              : "flex-1",
-          )}
-        >
-          <p className="text-fluid-sm font-heading text-gray-500 uppercase">
-            팀장들이 입찰을 제출 중입니다
-          </p>
-        </div>
-      )}
-
       {showCards && (
         <div
           className={cn(

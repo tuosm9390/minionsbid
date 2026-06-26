@@ -88,6 +88,9 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
       "-translate-y-1/2",
     );
+    expect(
+      screen.queryByText("팀장들이 입찰을 제출 중입니다"),
+    ).not.toBeInTheDocument();
   });
 
   it("공개 전 점수 카드는 문구 없이 물음표 뒷면만 표시한다", () => {
