@@ -139,7 +139,12 @@ export function OrganizerControlPanel({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onClick={onDraw}
-              disabled={isDrawing || !!lotteryPlayer || waitingPlayersCount === 0 || !allConnected}
+              disabled={
+                isDrawing ||
+                !!lotteryPlayer ||
+                waitingPlayersCount === 0 ||
+                !allConnected
+              }
               className={cn(
                 "w-full h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-all relative overflow-hidden group",
                 isDrawing || lotteryPlayer
@@ -154,8 +159,8 @@ export function OrganizerControlPanel({
                 {isDrawing
                   ? "추첨 중..."
                   : lotteryPlayer
-                  ? "선수 추첨중"
-                  : `다음 선수 추첨 (${waitingPlayersCount} 명)`}
+                    ? "선수 추첨중"
+                    : `다음 선수 추첨 (${waitingPlayersCount} 명)`}
               </span>
             </motion.button>
           ) : !timerEndsAt && lotteryPlayer ? (
@@ -188,6 +193,18 @@ export function OrganizerControlPanel({
               className="w-full h-full pixel-button bg-minion-yellow text-black font-heading text-fluid-xs px-6 uppercase tracking-tighter hover:bg-minion-yellow-hover"
             >
               점수공개
+            </motion.button>
+          ) : auctionMode === "SEALED_BID" &&
+            currentPlayer &&
+            sealedBid.phase === "REVEALING" ? (
+            <motion.button
+              key="sealed-revealing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              disabled
+              className="w-full h-full pixel-button bg-gray-400 text-black font-heading text-fluid-xs px-6 uppercase tracking-tighter cursor-not-allowed"
+            >
+              입찰 가격 공개 진행중...
             </motion.button>
           ) : !timerEndsAt && currentPlayer ? (
             <motion.button
