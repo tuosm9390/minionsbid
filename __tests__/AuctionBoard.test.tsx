@@ -247,7 +247,11 @@ describe("AuctionBoard", () => {
         />,
       );
 
-      expect(screen.getByTestId("player-in-auction")).toHaveClass("flex-none");
+      const playerCard = screen.getByTestId("player-in-auction");
+
+      expect(playerCard).toHaveClass("flex-none");
+      expect(playerCard.parentElement).toHaveClass("top-1/2");
+      expect(playerCard.parentElement).toHaveClass("-translate-y-1/2");
     },
   );
 });

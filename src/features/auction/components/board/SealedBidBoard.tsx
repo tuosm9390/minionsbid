@@ -180,10 +180,15 @@ export function SealedBidBoard({
     <div
       className={cn(
         "flex-1 flex flex-col gap-4",
-        shouldCenterAuctionTarget && "justify-center",
+        shouldCenterAuctionTarget && "relative",
       )}
     >
-      <div className="flex justify-center">
+      <div
+        className={cn(
+          "flex justify-center",
+          shouldCenterAuctionTarget && "absolute inset-x-0 top-0 z-10",
+        )}
+      >
         {sealedBid.phase === "ACTIVE" && timerEndsAt && (
           <CenterTimer
             timerEndsAt={timerEndsAt}
@@ -196,6 +201,8 @@ export function SealedBidBoard({
       <div
         className={cn(
           "pixel-box relative bg-yellow-50 border-black",
+          shouldCenterAuctionTarget &&
+            "absolute inset-x-0 top-1/2 -translate-y-1/2",
           !shouldCenterAuctionTarget && "mt-2",
           isScoreRevealPhase ? "p-3 pt-8" : "p-5 pt-10",
         )}
@@ -322,7 +329,9 @@ export function SealedBidBoard({
         <div
           className={cn(
             "flex items-center justify-center text-center",
-            shouldCenterAuctionTarget ? "flex-none" : "flex-1",
+            shouldCenterAuctionTarget
+              ? "absolute inset-x-0 bottom-0 z-10"
+              : "flex-1",
           )}
         >
           <p className="text-fluid-sm font-heading text-gray-500 uppercase">
@@ -332,7 +341,14 @@ export function SealedBidBoard({
       )}
 
       {showCards && (
-        <div className="pixel-box relative mt-8 bg-white p-4 pt-14 [border-color:var(--color-minion-blue)]">
+        <div
+          className={cn(
+            "pixel-box relative bg-white p-4 pt-14 [border-color:var(--color-minion-blue)]",
+            shouldCenterAuctionTarget
+              ? "absolute inset-x-0 bottom-0 z-10"
+              : "mt-8",
+          )}
+        >
           <p className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-minion-blue bg-white px-4 py-2 text-center text-fluid-sm font-heading text-minion-blue shadow-pixel-sm">
             입찰가격공개
           </p>

@@ -353,11 +353,17 @@ export function AuctionBoard(props: AuctionBoardProps) {
               <div
                 className={cn(
                   "flex-1 flex flex-col gap-3",
-                  isBiddingBeforeResultReveal && "justify-center",
+                  isBiddingBeforeResultReveal && "relative",
                 )}
               >
                 {timerEndsAt && currentPlayer && (
-                  <div className="flex justify-center">
+                  <div
+                    className={cn(
+                      "flex justify-center",
+                      isBiddingBeforeResultReveal &&
+                        "absolute inset-x-0 top-0 z-10",
+                    )}
+                  >
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
                       auctionDurationMs={
@@ -367,17 +373,33 @@ export function AuctionBoard(props: AuctionBoardProps) {
                     />
                   </div>
                 )}
-                <PlayerInAuction
-                  player={currentPlayer!}
+                <div
                   className={
-                    isBiddingBeforeResultReveal ? "flex-none" : undefined
+                    isBiddingBeforeResultReveal
+                      ? "absolute inset-x-0 top-1/2 -translate-y-1/2"
+                      : undefined
                   }
-                />
-                <BidStatus
-                  highestBid={highestBid}
-                  leadingTeam={leadingTeam}
-                  teamId={teamId}
-                />
+                >
+                  <PlayerInAuction
+                    player={currentPlayer!}
+                    className={
+                      isBiddingBeforeResultReveal ? "flex-none" : undefined
+                    }
+                  />
+                </div>
+                <div
+                  className={
+                    isBiddingBeforeResultReveal
+                      ? "absolute inset-x-0 bottom-0 z-10"
+                      : undefined
+                  }
+                >
+                  <BidStatus
+                    highestBid={highestBid}
+                    leadingTeam={leadingTeam}
+                    teamId={teamId}
+                  />
+                </div>
               </div>
             )}
 

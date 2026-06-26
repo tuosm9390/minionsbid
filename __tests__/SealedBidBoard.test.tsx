@@ -82,6 +82,12 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
       "mt-2",
     );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "top-1/2",
+    );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "-translate-y-1/2",
+    );
   });
 
   it("공개 전 점수 카드는 문구 없이 물음표 뒷면만 표시한다", () => {
@@ -144,8 +150,11 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
       "bg-white",
     );
+    expect(
+      screen.getByText("입찰가격공개").closest(".pixel-box"),
+    ).not.toHaveClass("mt-8");
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
-      "mt-8",
+      "bottom-0",
     );
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
       "pt-14",
@@ -161,6 +170,12 @@ describe("SealedBidBoard", () => {
     );
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
       "mt-2",
+    );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "top-1/2",
+    );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "-translate-y-1/2",
     );
   });
 });
