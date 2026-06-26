@@ -15,7 +15,11 @@ import {
 import { completeSealedBidReveal } from "@/features/auction/api/auctionActions";
 import { CenterTimer } from "@/features/auction/components/board/CenterTimer";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
-import { getPositionImage, getTierImage } from "@/features/auction/utils/display";
+import {
+  getPositionImage,
+  getTierImage,
+} from "@/features/auction/utils/display";
+import { cn } from "@/lib/utils";
 
 interface SealedBidBoardProps {
   roomId: string;
@@ -127,9 +131,7 @@ export function SealedBidBoard({
     if (revealedCount >= visibleCards.length) return;
     const timeoutId = window.setTimeout(
       () => {
-        setRevealedCount((count) =>
-          Math.min(visibleCards.length, count + 1),
-        );
+        setRevealedCount((count) => Math.min(visibleCards.length, count + 1));
       },
       revealedCount === 0 ? 250 : 650,
     );
@@ -148,6 +150,10 @@ export function SealedBidBoard({
     sealedBid.phase === "REVEALING" &&
     visibleCards.length > 0 &&
     revealComplete;
+  const shouldCenterAuctionTarget =
+    sealedBid.phase === "ACTIVE" ||
+    sealedBid.phase === "LOCKED" ||
+    sealedBid.phase === "TIE_REBID";
 
   const srTier = currentPlayer.tier?.trim() || null;
   const srTierImageSrc = srTier ? getTierImage(srTier) : null;
@@ -160,7 +166,10 @@ export function SealedBidBoard({
     if (!canCompleteReveal || isCompleting) return;
     setIsCompleting(true);
     try {
-      const result = await completeSealedBidReveal(roomId, organizerToken ?? "");
+      const result = await completeSealedBidReveal(
+        roomId,
+        organizerToken ?? "",
+      );
       if (result.error) alert(result.error);
     } finally {
       setIsCompleting(false);
@@ -168,7 +177,12 @@ export function SealedBidBoard({
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-4">
+    <div
+      className={cn(
+        "flex-1 flex flex-col gap-4",
+        shouldCenterAuctionTarget && "justify-center",
+      )}
+    >
       <div className="flex justify-center">
         {sealedBid.phase === "ACTIVE" && timerEndsAt && (
           <CenterTimer
@@ -180,9 +194,11 @@ export function SealedBidBoard({
       </div>
 
       <div
-        className={`pixel-box relative mt-2 bg-yellow-50 border-black ${
-          isScoreRevealPhase ? "p-3 pt-8" : "p-5 pt-10"
-        }`}
+        className={cn(
+          "pixel-box relative bg-yellow-50 border-black",
+          !shouldCenterAuctionTarget && "mt-2",
+          isScoreRevealPhase ? "p-3 pt-8" : "p-5 pt-10",
+        )}
       >
         <p
           className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-black bg-yellow-50 px-4 py-2 text-center font-heading text-black shadow-pixel-sm ${
@@ -210,7 +226,9 @@ export function SealedBidBoard({
                 {srTier && srTierImageSrc && (
                   <div
                     className={`flex flex-col items-center ${
-                      isScoreRevealPhase ? "w-[22%] max-w-16 gap-1" : "w-[30%] gap-2"
+                      isScoreRevealPhase
+                        ? "w-[22%] max-w-16 gap-1"
+                        : "w-[30%] gap-2"
                     }`}
                   >
                     <Image
@@ -232,7 +250,9 @@ export function SealedBidBoard({
                 {mainPosition && (
                   <div
                     className={`flex flex-col items-center ${
-                      isScoreRevealPhase ? "w-[22%] max-w-16 gap-1" : "w-[30%] gap-2"
+                      isScoreRevealPhase
+                        ? "w-[22%] max-w-16 gap-1"
+                        : "w-[30%] gap-2"
                     }`}
                   >
                     <Image
@@ -268,7 +288,9 @@ export function SealedBidBoard({
                 isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
               }`}
             >
-              <p className="text-xs font-black uppercase text-gray-500">희망 팀</p>
+              <p className="text-xs font-black uppercase text-gray-500">
+                희망 팀
+              </p>
               <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
                 {desiredTeam}
               </p>
@@ -280,7 +302,9 @@ export function SealedBidBoard({
                 isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
               }`}
             >
-              <p className="text-xs font-black uppercase text-gray-500">한마디</p>
+              <p className="text-xs font-black uppercase text-gray-500">
+                한마디
+              </p>
               <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
                 &ldquo;{playerComment}&rdquo;
               </p>
@@ -295,7 +319,12 @@ export function SealedBidBoard({
       </div>
 
       {sealedBid.phase === "ACTIVE" && (
-        <div className="flex-1 flex items-center justify-center text-center">
+        <div
+          className={cn(
+            "flex items-center justify-center text-center",
+            shouldCenterAuctionTarget ? "flex-none" : "flex-1",
+          )}
+        >
           <p className="text-fluid-sm font-heading text-gray-500 uppercase">
             팀장들이 입찰을 제출 중입니다
           </p>

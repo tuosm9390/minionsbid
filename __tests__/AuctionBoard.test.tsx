@@ -48,7 +48,9 @@ vi.mock("@/features/auction/components/board/CenterTimer", () => ({
 }));
 
 vi.mock("@/features/auction/components/board/PlayerInAuction", () => ({
-  PlayerInAuction: () => null,
+  PlayerInAuction: ({ className }: { className?: string }) => (
+    <div className={className} data-testid="player-in-auction" />
+  ),
 }));
 
 vi.mock("@/features/auction/components/board/BidStatus", () => ({
@@ -156,10 +158,10 @@ describe("AuctionBoard", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "연결 끊김" })).toBeInTheDocument();
     expect(
-      screen.getByText(/경매 시작을 대기 중입니다/),
+      screen.getByRole("heading", { name: "연결 끊김" }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/경매 시작을 대기 중입니다/)).toBeInTheDocument();
   });
 
   it("presence 인증 실패는 팀장 미접속과 다른 알림으로 표시한다", () => {
@@ -178,8 +180,74 @@ describe("AuctionBoard", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "PRESENCE 인증 오류" })).toBeInTheDocument();
-    expect(screen.getByText(/팀장 접속을 증명하는 인증 경로가 실패했습니다/)).toBeInTheDocument();
-    expect(screen.queryByText(/경매 시작을 대기 중입니다/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "PRESENCE 인증 오류" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/팀장 접속을 증명하는 인증 경로가 실패했습니다/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/경매 시작을 대기 중입니다/),
+    ).not.toBeInTheDocument();
   });
+
+  it.each<[string, string | null]>([
+    ["경매 시작 전", null],
+    ["경매 진행 중", new Date(Date.now() + 10_000).toISOString()],
+  ])(
+    "%s 입찰 대상 정보를 auction box 중앙에 정렬한다",
+    (_label, timerEndsAt) => {
+      mockedUseAuctionBoard.mockReturnValue({
+        teams: [],
+        players: [],
+        teamId: null,
+        timerEndsAt,
+        connectedLeaderIds: new Set(),
+        currentPlayer: lotteryPlayer,
+        latestNotice: null,
+        highestBid: 0,
+        topBid: null,
+        leadingTeam: null,
+        unsoldPlayers: [],
+        soldPlayers: [],
+        waitingPlayersList: [],
+        teamPlayerCounts: [],
+        needyTeams: [],
+        isRoomComplete: false,
+        isAuctionFinished: false,
+        isAuctionStarted: true,
+        isAuctionComplete: false,
+        isAuctionTerminal: false,
+        isAutoDraftMode: false,
+        hasDraftablePlayers: false,
+        phase: "DRAFT",
+        currentTurnTeam: null,
+        lotteryDone: true,
+        setLotteryDone: vi.fn(),
+        handleDraft: vi.fn(),
+        handleRestartAuction: vi.fn(),
+        soldOverlayData: null,
+        setSoldOverlayData: vi.fn(),
+        unsoldPlayerName: null,
+        setUnsoldPlayerName: vi.fn(),
+        isProcessingAction: null,
+        isRestarting: false,
+      });
+
+      render(
+        <AuctionBoard
+          isLotteryActive={false}
+          lotteryPlayer={null}
+          waitingPlayers={[lotteryPlayer]}
+          role="ORGANIZER"
+          allConnected
+          onCloseLottery={vi.fn()}
+          onShowResult={vi.fn()}
+          roomId="room-1"
+        />,
+      );
+
+      expect(screen.getByTestId("player-in-auction")).toHaveClass("flex-none");
+    },
+  );
 });

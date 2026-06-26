@@ -212,6 +212,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
     !props.allConnected &&
     (isAuctionStarted || isPreStartLotteryDisconnect) &&
     !isAuctionComplete;
+  const isBiddingBeforeResultReveal = currentScene === "bidding";
 
   return (
     <div
@@ -258,47 +259,53 @@ export function AuctionBoard(props: AuctionBoardProps) {
 
       {/* 3. 팀장 접속 이탈 경고 — 데이터 로딩 완료 후에만 표시 (FR-003 보완) — AnimatePresence 씬 시스템과 독립된 별도 레이어 */}
       {shouldShowLeaderDisconnectWarning && (
-          <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
-            <div className="pixel-box bg-white p-10 border-minion-red flex flex-col items-center gap-6 text-center max-w-md">
-              <div className="mb-4">
-                <PixelIcon
-                  icon={PIXEL_ICONS.WARNING}
-                  size={64}
-                  color={hasPresenceAuthError ? "text-minion-blue" : "text-minion-red"}
-                  animation="urgent"
-                  label={hasPresenceAuthError ? "PRESENCE 인증 오류" : "연결 끊김"}
-                />
-              </div>
-              <div className="space-y-2">
-                <h2 className={cn(
+        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
+          <div className="pixel-box bg-white p-10 border-minion-red flex flex-col items-center gap-6 text-center max-w-md">
+            <div className="mb-4">
+              <PixelIcon
+                icon={PIXEL_ICONS.WARNING}
+                size={64}
+                color={
+                  hasPresenceAuthError ? "text-minion-blue" : "text-minion-red"
+                }
+                animation="urgent"
+                label={
+                  hasPresenceAuthError ? "PRESENCE 인증 오류" : "연결 끊김"
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <h2
+                className={cn(
                   "text-fluid-lg font-heading tracking-tighter",
                   hasPresenceAuthError ? "text-minion-blue" : "text-minion-red",
-                )}>
-                  {hasPresenceAuthError ? "PRESENCE 인증 오류" : "연결 끊김"}
-                </h2>
-                <p className="text-fluid-xs font-bold text-gray-600">
-                  {hasPresenceAuthError ? (
-                    <>
-                      팀장 접속을 증명하는 인증 경로가 실패했습니다.
-                      <br />
-                      Firebase custom token smoke와 배포 로그를 확인하세요.
-                    </>
-                  ) : (
-                    <>
-                      {isPreStartLotteryDisconnect
-                        ? "팀장의 연결이 끊겨 경매 시작을 대기 중입니다."
-                        : "팀장의 연결이 끊겨 경매가 일시정지되었습니다."}
-                      <br />
-                      {isPreStartLotteryDisconnect
-                        ? "재연결 후 경매를 시작할 수 있습니다..."
-                        : "재연결을 기다리는 중입니다..."}
-                    </>
-                  )}
-                </p>
-              </div>
+                )}
+              >
+                {hasPresenceAuthError ? "PRESENCE 인증 오류" : "연결 끊김"}
+              </h2>
+              <p className="text-fluid-xs font-bold text-gray-600">
+                {hasPresenceAuthError ? (
+                  <>
+                    팀장 접속을 증명하는 인증 경로가 실패했습니다.
+                    <br />
+                    Firebase custom token smoke와 배포 로그를 확인하세요.
+                  </>
+                ) : (
+                  <>
+                    {isPreStartLotteryDisconnect
+                      ? "팀장의 연결이 끊겨 경매 시작을 대기 중입니다."
+                      : "팀장의 연결이 끊겨 경매가 일시정지되었습니다."}
+                    <br />
+                    {isPreStartLotteryDisconnect
+                      ? "재연결 후 경매를 시작할 수 있습니다..."
+                      : "재연결을 기다리는 중입니다..."}
+                  </>
+                )}
+              </p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col p-4 lg:p-6 z-10">
         <AnimatePresence mode="wait">
@@ -343,9 +350,14 @@ export function AuctionBoard(props: AuctionBoardProps) {
             )}
 
             {currentScene === "bidding" && (
-              <div className="flex-1 flex flex-col gap-3">
-                <div className="flex justify-center">
-                  {timerEndsAt && currentPlayer && (
+              <div
+                className={cn(
+                  "flex-1 flex flex-col gap-3",
+                  isBiddingBeforeResultReveal && "justify-center",
+                )}
+              >
+                {timerEndsAt && currentPlayer && (
+                  <div className="flex justify-center">
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
                       auctionDurationMs={
@@ -353,9 +365,14 @@ export function AuctionBoard(props: AuctionBoardProps) {
                       }
                       onExpire={props.onTimerExpire}
                     />
-                  )}
-                </div>
-                <PlayerInAuction player={currentPlayer!} />
+                  </div>
+                )}
+                <PlayerInAuction
+                  player={currentPlayer!}
+                  className={
+                    isBiddingBeforeResultReveal ? "flex-none" : undefined
+                  }
+                />
                 <BidStatus
                   highestBid={highestBid}
                   leadingTeam={leadingTeam}

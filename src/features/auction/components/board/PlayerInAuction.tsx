@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 
 interface PlayerInAuctionProps {
   player: Player;
+  className?: string;
 }
 
-export function PlayerInAuction({ player }: PlayerInAuctionProps) {
+export function PlayerInAuction({ player, className }: PlayerInAuctionProps) {
   const eventGameRows = [
     { label: "무작위 총력전 : 아수라장", value: player.aram_tier },
     { label: "전략적 팀 전투", value: player.tft_tier },
@@ -18,7 +19,12 @@ export function PlayerInAuction({ player }: PlayerInAuctionProps) {
   const desiredTeam = player.desired_team?.trim();
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-white border-[6px] border-black p-4 relative overflow-hidden shadow-pixel">
+    <div
+      className={cn(
+        "flex-1 flex flex-col items-center justify-center bg-white border-[6px] border-black p-4 relative overflow-hidden shadow-pixel",
+        className,
+      )}
+    >
       {/* Background decoration */}
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none overflow-hidden select-none">
         <span className="text-9xl font-black italic block whitespace-nowrap">

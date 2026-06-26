@@ -15,10 +15,12 @@ vi.mock("next/image", () => ({
 
 vi.mock("framer-motion", () => ({
   motion: {
-    div: (props: React.HTMLAttributes<HTMLDivElement> & {
-      animate?: unknown;
-      transition?: unknown;
-    }) => {
+    div: (
+      props: React.HTMLAttributes<HTMLDivElement> & {
+        animate?: unknown;
+        transition?: unknown;
+      },
+    ) => {
       const divProps = { ...props };
       delete divProps.animate;
       delete divProps.transition;
@@ -77,6 +79,9 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("MID / SUP")).toBeInTheDocument();
     expect(screen.getByText("희망 팀")).toBeInTheDocument();
     expect(screen.getByText("Blue")).toBeInTheDocument();
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
+      "mt-2",
+    );
   });
 
   it("공개 전 점수 카드는 문구 없이 물음표 뒷면만 표시한다", () => {
@@ -153,6 +158,9 @@ describe("SealedBidBoard", () => {
     );
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
       "pt-8",
+    );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
+      "mt-2",
     );
   });
 });
