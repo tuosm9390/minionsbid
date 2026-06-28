@@ -38,72 +38,29 @@ interface AuctionBoardProps {
 }
 
 type SceneName =
-  | "lottery"
-  | "bidding"
-  | "sealed"
-  | "draft"
-  | "finished"
-  | "waiting";
+  "lottery" | "bidding" | "sealed" | "draft" | "finished" | "waiting";
+
+const phaseSceneVariant: Variants = {
+  initial: { x: -18, opacity: 0 },
+  animate: {
+    x: 0,
+    opacity: 1,
+    transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] as const },
+  },
+  exit: {
+    x: 18,
+    opacity: 0,
+    transition: { duration: 0.18, ease: "easeOut" },
+  },
+};
 
 const sceneVariants: Record<SceneName, Variants> = {
-  waiting: {
-    initial: { y: 20, opacity: 0 },
-    animate: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
-    },
-    exit: { y: -20, opacity: 0, transition: { duration: 0.25 } },
-  },
-  lottery: {
-    initial: { scale: 0.85, opacity: 0 },
-    animate: {
-      scale: 1,
-      opacity: 1,
-      transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] as const },
-    },
-    exit: { scale: 1.1, opacity: 0, transition: { duration: 0.3 } },
-  },
-  bidding: {
-    initial: { y: -30, opacity: 0 },
-    animate: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
-    },
-    exit: {
-      x: 100,
-      opacity: 0,
-      transition: { duration: 0.35, ease: "easeIn" },
-    },
-  },
-  sealed: {
-    initial: { y: -30, opacity: 0 },
-    animate: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
-    },
-    exit: {
-      x: 100,
-      opacity: 0,
-      transition: { duration: 0.35, ease: "easeIn" },
-    },
-  },
-  draft: {
-    initial: { x: -20, opacity: 0 },
-    animate: { x: 0, opacity: 1, transition: { duration: 0.4 } },
-    exit: { opacity: 0, transition: { duration: 0.2 } },
-  },
-  finished: {
-    initial: { scale: 0.9, opacity: 0 },
-    animate: {
-      scale: 1,
-      opacity: 1,
-      transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] as const },
-    },
-    exit: {},
-  },
+  waiting: phaseSceneVariant,
+  lottery: phaseSceneVariant,
+  bidding: phaseSceneVariant,
+  sealed: phaseSceneVariant,
+  draft: phaseSceneVariant,
+  finished: phaseSceneVariant,
 };
 
 const reducedSceneVariants: Record<SceneName, Variants> = {
@@ -205,6 +162,17 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const activeSceneVariants = shouldReduceMotion
     ? reducedSceneVariants[currentScene]
     : sceneVariants[currentScene];
+  const currentScenePhaseKey =
+    currentScene === "bidding"
+      ? timerEndsAt
+        ? "ACTIVE"
+        : "READY"
+      : currentScene === "draft"
+        ? phase
+        : currentScene === "lottery"
+          ? (props.lotteryPlayer?.id ?? "none")
+          : currentScene;
+  const currentSceneRenderKey = `${currentScene}:${currentPlayer?.id ?? "none"}:${currentScenePhaseKey}`;
   const isPreStartLotteryDisconnect =
     !!props.lotteryPlayer && !timerEndsAt && !isAuctionStarted;
   const shouldShowLeaderDisconnectWarning =
@@ -310,7 +278,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
       <div className="flex-1 flex flex-col p-4 lg:p-6 z-10">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentScene}
+            key={currentSceneRenderKey}
             variants={activeSceneVariants}
             initial="initial"
             animate="animate"

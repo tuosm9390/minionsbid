@@ -14,16 +14,26 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("framer-motion", () => ({
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  useReducedMotion: () => false,
   motion: {
     div: (
       props: React.HTMLAttributes<HTMLDivElement> & {
         animate?: unknown;
+        exit?: unknown;
+        initial?: unknown;
         transition?: unknown;
+        variants?: unknown;
       },
     ) => {
       const divProps = { ...props };
       delete divProps.animate;
+      delete divProps.exit;
+      delete divProps.initial;
       delete divProps.transition;
+      delete divProps.variants;
       return <div {...divProps}>{props.children}</div>;
     },
   },

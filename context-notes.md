@@ -1,5 +1,12 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## 2026-06-28 Auction Box 페이즈 전환 애니메이션
+
+- 요청은 모든 페이즈 변경 시 auction box 내부 표시 컴포넌트가 좌에서 우로 살짝 이동하며 나타나는 효과를 추가하는 것이다.
+- `AuctionBoard`는 이미 scene 단위 `AnimatePresence`가 있으므로 기존 scene variants를 x축 진입으로 통일한다.
+- 비공개 입찰은 같은 `sealed` scene 안에서 `sealedBid.phase`가 바뀌므로 `SealedBidBoard` 내부에 phase key 기반 motion wrapper를 추가한다.
+- reduced motion 환경에서는 기존처럼 opacity 전환만 유지한다.
+
 ## 2026-06-28 동점 재입찰 UI 제한
 
 - 요청은 점수 공개 결과에서 재입찰 대상이 관찰된 경우 주최자 확정 버튼을 `낙찰 결과 반영`이 아니라 `재입찰 준비`로 표시하고, 클릭 후 재입찰 진행 팀장만 입찰 상태 UI를 볼 수 있게 하는 것이다.

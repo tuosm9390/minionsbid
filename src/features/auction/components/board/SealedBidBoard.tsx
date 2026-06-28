@@ -3,7 +3,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
 import {
   useAuctionStore,
   type Player,
@@ -30,6 +35,26 @@ interface SealedBidBoardProps {
   sealedBid: SealedBidState;
   onTimerExpire?: () => void;
 }
+
+const sealedPhaseVariants: Variants = {
+  initial: { x: -18, opacity: 0 },
+  animate: {
+    x: 0,
+    opacity: 1,
+    transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] as const },
+  },
+  exit: {
+    x: 18,
+    opacity: 0,
+    transition: { duration: 0.18, ease: "easeOut" },
+  },
+};
+
+const reducedSealedPhaseVariants: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.15 } },
+};
 
 function SealedCard({
   card,
@@ -107,6 +132,7 @@ export function SealedBidBoard({
   sealedBid,
   onTimerExpire,
 }: SealedBidBoardProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [revealedCount, setRevealedCount] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const organizerToken = useAuctionStore((s) => s.organizerToken);
@@ -154,6 +180,10 @@ export function SealedBidBoard({
     sealedBid.highestAmount > 0 && sealedBid.tiedTeamIds.length > 1;
   const shouldCenterAuctionTarget =
     sealedBid.phase === null || sealedBid.phase === "ACTIVE";
+  const phaseRenderKey = `${sealedBid.roundId ?? "none"}:${sealedBid.phase ?? "READY"}`;
+  const activePhaseVariants = shouldReduceMotion
+    ? reducedSealedPhaseVariants
+    : sealedPhaseVariants;
 
   const srTier = currentPlayer.tier?.trim() || null;
   const srTierImageSrc = srTier ? getTierImage(srTier) : null;
@@ -177,210 +207,221 @@ export function SealedBidBoard({
   };
 
   return (
-    <div
-      className={cn(
-        "flex-1 flex flex-col gap-4",
-        shouldCenterAuctionTarget && "relative",
-      )}
-    >
-      <div
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={phaseRenderKey}
+        variants={activePhaseVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
         className={cn(
-          "flex justify-center",
-          shouldCenterAuctionTarget && "absolute inset-x-0 top-0 z-10",
+          "flex-1 flex flex-col gap-4",
+          shouldCenterAuctionTarget && "relative",
         )}
       >
-        {sealedBid.phase === "ACTIVE" && timerEndsAt && (
-          <CenterTimer
-            timerEndsAt={timerEndsAt}
-            auctionDurationMs={AUCTION_DURATION_MS}
-            onExpire={onTimerExpire}
-          />
-        )}
-      </div>
-
-      <div
-        className={cn(
-          "pixel-box relative bg-yellow-50 border-black",
-          shouldCenterAuctionTarget &&
-            "absolute inset-x-0 top-1/2 -translate-y-1/2",
-          !shouldCenterAuctionTarget && "mt-2",
-          isScoreRevealPhase ? "p-3 pt-8" : "p-5 pt-10",
-        )}
-      >
-        <p
-          className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-black bg-yellow-50 px-4 py-2 text-center font-heading text-black shadow-pixel-sm ${
-            isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-sm"
-          }`}
-        >
-          입찰 대상
-        </p>
-        <div
-          className={`mx-auto max-w-2xl space-y-2 ${
-            isScoreRevealPhase ? "mt-2" : "mt-4"
-          }`}
-        >
-          <div
-            className={`border-2 border-black bg-white shadow-pixel-sm text-center ${
-              isScoreRevealPhase ? "px-4 py-3" : "px-5 py-5"
-            }`}
-          >
-            {(srTier || mainPosition) && (
-              <div
-                className={`flex justify-center ${
-                  isScoreRevealPhase ? "gap-3 mb-2" : "gap-6 mb-4"
-                }`}
-              >
-                {srTier && srTierImageSrc && (
-                  <div
-                    className={`flex flex-col items-center ${
-                      isScoreRevealPhase
-                        ? "w-[22%] max-w-16 gap-1"
-                        : "w-[30%] gap-2"
-                    }`}
-                  >
-                    <Image
-                      src={srTierImageSrc}
-                      alt={srTier}
-                      width={200}
-                      height={200}
-                      className="w-full h-auto pixelated"
-                    />
-                    <span
-                      className={`font-bold text-gray-600 ${
-                        isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-base"
-                      }`}
-                    >
-                      {srTier}
-                    </span>
-                  </div>
-                )}
-                {mainPosition && (
-                  <div
-                    className={`flex flex-col items-center ${
-                      isScoreRevealPhase
-                        ? "w-[22%] max-w-16 gap-1"
-                        : "w-[30%] gap-2"
-                    }`}
-                  >
-                    <Image
-                      src={getPositionImage(mainPosition)}
-                      alt={mainPosition}
-                      width={200}
-                      height={200}
-                      className="w-full h-auto"
-                    />
-                    <span
-                      className={`font-bold text-gray-600 ${
-                        isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-base"
-                      }`}
-                    >
-                      {mainPosition}
-                      {subPosition ? ` / ${subPosition}` : ""}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            <h2
-              className={`font-black leading-tight text-black break-all ${
-                isScoreRevealPhase ? "text-fluid-base" : "text-fluid-lg"
-              }`}
-            >
-              {currentPlayer.name}
-            </h2>
-          </div>
-          {desiredTeam && (
-            <div
-              className={`border-2 border-black bg-[#fff7cc] shadow-pixel-sm ${
-                isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
-              }`}
-            >
-              <p className="text-xs font-black uppercase text-gray-500">
-                희망 팀
-              </p>
-              <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
-                {desiredTeam}
-              </p>
-            </div>
-          )}
-          {playerComment && (
-            <div
-              className={`border-2 border-black bg-white shadow-pixel-sm ${
-                isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
-              }`}
-            >
-              <p className="text-xs font-black uppercase text-gray-500">
-                한마디
-              </p>
-              <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
-                &ldquo;{playerComment}&rdquo;
-              </p>
-            </div>
-          )}
-        </div>
-        {sealedBid.minAmount > 0 && (
-          <p className="mt-3 text-center text-fluid-xs font-bold text-minion-red">
-            재입찰 최소 금액 {sealedBid.minAmount.toLocaleString()}P
-          </p>
-        )}
-      </div>
-
-      {showCards && (
         <div
           className={cn(
-            "pixel-box relative bg-white p-4 pt-14 [border-color:var(--color-minion-blue)]",
-            shouldCenterAuctionTarget
-              ? "absolute inset-x-0 bottom-0 z-10"
-              : "mt-8",
+            "flex justify-center",
+            shouldCenterAuctionTarget && "absolute inset-x-0 top-0 z-10",
           )}
         >
-          <p className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-minion-blue bg-white px-4 py-2 text-center text-fluid-sm font-heading text-minion-blue shadow-pixel-sm">
-            입찰가격공개
-          </p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {(visibleCards.length > 0
-              ? visibleCards
-              : visiblePlaceholderTeams.map((team) => ({
-                  team_id: team.id,
-                  team_name: team.name,
-                  amount: 0,
-                  is_pass: true,
-                  is_highest: false,
-                  is_tied: false,
-                  eligible: true,
-                }))
-            ).map((card, index) => (
-              <SealedCard
-                key={card.team_id}
-                card={card}
-                revealed={
-                  sealedBid.phase === "REVEALING" && index < revealedCount
-                }
-                revealComplete={revealComplete}
-              />
-            ))}
-          </div>
+          {sealedBid.phase === "ACTIVE" && timerEndsAt && (
+            <CenterTimer
+              timerEndsAt={timerEndsAt}
+              auctionDurationMs={AUCTION_DURATION_MS}
+              onExpire={onTimerExpire}
+            />
+          )}
         </div>
-      )}
 
-      {canCompleteReveal && (
-        <div className="flex justify-center pt-2">
-          <button
-            type="button"
-            onClick={() => void handleCompleteReveal()}
-            disabled={isCompleting}
-            className="pixel-button bg-minion-yellow text-black h-14 px-10 text-fluid-xs font-heading uppercase tracking-tighter hover:bg-minion-yellow-hover"
+        <div
+          className={cn(
+            "pixel-box relative bg-yellow-50 border-black",
+            shouldCenterAuctionTarget &&
+              "absolute inset-x-0 top-1/2 -translate-y-1/2",
+            !shouldCenterAuctionTarget && "mt-2",
+            isScoreRevealPhase ? "p-3 pt-8" : "p-5 pt-10",
+          )}
+        >
+          <p
+            className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-black bg-yellow-50 px-4 py-2 text-center font-heading text-black shadow-pixel-sm ${
+              isScoreRevealPhase ? "text-fluid-xs" : "text-fluid-sm"
+            }`}
           >
-            {isCompleting
-              ? isRebidReady
-                ? "재입찰 준비 중..."
-                : "반영 중..."
-              : isRebidReady
-                ? "재입찰 준비"
-                : "낙찰 결과 반영"}
-          </button>
+            입찰 대상
+          </p>
+          <div
+            className={`mx-auto max-w-2xl space-y-2 ${
+              isScoreRevealPhase ? "mt-2" : "mt-4"
+            }`}
+          >
+            <div
+              className={`border-2 border-black bg-white shadow-pixel-sm text-center ${
+                isScoreRevealPhase ? "px-4 py-3" : "px-5 py-5"
+              }`}
+            >
+              {(srTier || mainPosition) && (
+                <div
+                  className={`flex justify-center ${
+                    isScoreRevealPhase ? "gap-3 mb-2" : "gap-6 mb-4"
+                  }`}
+                >
+                  {srTier && srTierImageSrc && (
+                    <div
+                      className={`flex flex-col items-center ${
+                        isScoreRevealPhase
+                          ? "w-[22%] max-w-16 gap-1"
+                          : "w-[30%] gap-2"
+                      }`}
+                    >
+                      <Image
+                        src={srTierImageSrc}
+                        alt={srTier}
+                        width={200}
+                        height={200}
+                        className="w-full h-auto pixelated"
+                      />
+                      <span
+                        className={`font-bold text-gray-600 ${
+                          isScoreRevealPhase
+                            ? "text-fluid-xs"
+                            : "text-fluid-base"
+                        }`}
+                      >
+                        {srTier}
+                      </span>
+                    </div>
+                  )}
+                  {mainPosition && (
+                    <div
+                      className={`flex flex-col items-center ${
+                        isScoreRevealPhase
+                          ? "w-[22%] max-w-16 gap-1"
+                          : "w-[30%] gap-2"
+                      }`}
+                    >
+                      <Image
+                        src={getPositionImage(mainPosition)}
+                        alt={mainPosition}
+                        width={200}
+                        height={200}
+                        className="w-full h-auto"
+                      />
+                      <span
+                        className={`font-bold text-gray-600 ${
+                          isScoreRevealPhase
+                            ? "text-fluid-xs"
+                            : "text-fluid-base"
+                        }`}
+                      >
+                        {mainPosition}
+                        {subPosition ? ` / ${subPosition}` : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <h2
+                className={`font-black leading-tight text-black break-all ${
+                  isScoreRevealPhase ? "text-fluid-base" : "text-fluid-lg"
+                }`}
+              >
+                {currentPlayer.name}
+              </h2>
+            </div>
+            {desiredTeam && (
+              <div
+                className={`border-2 border-black bg-[#fff7cc] shadow-pixel-sm ${
+                  isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
+                }`}
+              >
+                <p className="text-xs font-black uppercase text-gray-500">
+                  희망 팀
+                </p>
+                <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                  {desiredTeam}
+                </p>
+              </div>
+            )}
+            {playerComment && (
+              <div
+                className={`border-2 border-black bg-white shadow-pixel-sm ${
+                  isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
+                }`}
+              >
+                <p className="text-xs font-black uppercase text-gray-500">
+                  한마디
+                </p>
+                <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                  &ldquo;{playerComment}&rdquo;
+                </p>
+              </div>
+            )}
+          </div>
+          {sealedBid.minAmount > 0 && (
+            <p className="mt-3 text-center text-fluid-xs font-bold text-minion-red">
+              재입찰 최소 금액 {sealedBid.minAmount.toLocaleString()}P
+            </p>
+          )}
         </div>
-      )}
-    </div>
+
+        {showCards && (
+          <div
+            className={cn(
+              "pixel-box relative bg-white p-4 pt-14 [border-color:var(--color-minion-blue)]",
+              shouldCenterAuctionTarget
+                ? "absolute inset-x-0 bottom-0 z-10"
+                : "mt-8",
+            )}
+          >
+            <p className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 border-4 border-minion-blue bg-white px-4 py-2 text-center text-fluid-sm font-heading text-minion-blue shadow-pixel-sm">
+              입찰가격공개
+            </p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {(visibleCards.length > 0
+                ? visibleCards
+                : visiblePlaceholderTeams.map((team) => ({
+                    team_id: team.id,
+                    team_name: team.name,
+                    amount: 0,
+                    is_pass: true,
+                    is_highest: false,
+                    is_tied: false,
+                    eligible: true,
+                  }))
+              ).map((card, index) => (
+                <SealedCard
+                  key={card.team_id}
+                  card={card}
+                  revealed={
+                    sealedBid.phase === "REVEALING" && index < revealedCount
+                  }
+                  revealComplete={revealComplete}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {canCompleteReveal && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => void handleCompleteReveal()}
+              disabled={isCompleting}
+              className="pixel-button bg-minion-yellow text-black h-14 px-10 text-fluid-xs font-heading uppercase tracking-tighter hover:bg-minion-yellow-hover"
+            >
+              {isCompleting
+                ? isRebidReady
+                  ? "재입찰 준비 중..."
+                  : "반영 중..."
+                : isRebidReady
+                  ? "재입찰 준비"
+                  : "낙찰 결과 반영"}
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </AnimatePresence>
   );
 }
