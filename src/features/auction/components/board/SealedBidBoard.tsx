@@ -329,7 +329,7 @@ export function SealedBidBoard({
                 {currentPlayer.name}
               </h2>
             </div>
-            {desiredTeam && (
+            {!isScoreRevealPhase && desiredTeam && (
               <div
                 className={`border-2 border-black bg-[#fff7cc] shadow-pixel-sm ${
                   isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
@@ -343,7 +343,7 @@ export function SealedBidBoard({
                 </p>
               </div>
             )}
-            {playerComment && (
+            {!isScoreRevealPhase && playerComment && (
               <div
                 className={`border-2 border-black bg-white shadow-pixel-sm ${
                   isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"

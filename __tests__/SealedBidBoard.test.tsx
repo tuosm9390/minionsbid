@@ -222,6 +222,46 @@ describe("SealedBidBoard", () => {
     );
   });
 
+  it("입찰가격 공개 단계에서는 희망 팀과 한마디를 표시하지 않는다", () => {
+    const sealedBid: SealedBidState = {
+      phase: "LOCKED",
+      roundId: "round-1",
+      roundNumber: 1,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [
+        {
+          team_id: "team-1",
+          team_name: "Blue",
+          amount: 100,
+          is_pass: false,
+          is_highest: false,
+          is_tied: false,
+          eligible: true,
+        },
+      ],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    };
+
+    render(
+      <SealedBidBoard
+        roomId="room-1"
+        role="VIEWER"
+        currentPlayer={currentPlayer}
+        teams={[]}
+        timerEndsAt={null}
+        sealedBid={sealedBid}
+      />,
+    );
+
+    expect(screen.getByText("입찰가격공개")).toBeInTheDocument();
+    expect(screen.queryByText("희망 팀")).not.toBeInTheDocument();
+    expect(screen.queryByText("한마디")).not.toBeInTheDocument();
+    expect(screen.queryByText(/라인전 자신 있습니다/)).not.toBeInTheDocument();
+  });
+
   it("같은 비공개 라운드의 가격 공개 전환에서는 컨테이너를 새로 렌더링하지 않는다", () => {
     const sealedBid: SealedBidState = {
       phase: "ACTIVE",
