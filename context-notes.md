@@ -6,6 +6,7 @@
 - `AuctionBoard`는 이미 scene 단위 `AnimatePresence`가 있으므로 기존 scene variants를 x축 진입으로 통일한다.
 - 비공개 입찰은 같은 `sealed` scene 안에서 `sealedBid.phase`가 바뀌므로 `SealedBidBoard` 내부에 phase key 기반 motion wrapper를 추가한다.
 - reduced motion 환경에서는 기존처럼 opacity 전환만 유지한다.
+- 후속 요청은 비공개 입찰 종료 후 입찰 가격 공개 페이즈로 넘어갈 때에는 새 화면처럼 렌더링되는 느낌이 없어야 한다는 것이다. 같은 sealed bid round 안의 `ACTIVE`, `LOCKED`, `REVEALING` 전환은 컨테이너 key를 유지하고 카드 상태만 바뀌게 한다.
 
 ## 2026-06-28 동점 재입찰 UI 제한
 

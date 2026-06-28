@@ -222,6 +222,88 @@ describe("SealedBidBoard", () => {
     );
   });
 
+  it("같은 비공개 라운드의 가격 공개 전환에서는 컨테이너를 새로 렌더링하지 않는다", () => {
+    const sealedBid: SealedBidState = {
+      phase: "ACTIVE",
+      roundId: "round-1",
+      roundNumber: 1,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    };
+    const { container, rerender } = render(
+      <SealedBidBoard
+        roomId="room-1"
+        role="VIEWER"
+        currentPlayer={currentPlayer}
+        teams={[]}
+        timerEndsAt="2026-06-28T00:00:10.000Z"
+        sealedBid={sealedBid}
+      />,
+    );
+    const phaseContainer = container.firstElementChild;
+
+    rerender(
+      <SealedBidBoard
+        roomId="room-1"
+        role="VIEWER"
+        currentPlayer={currentPlayer}
+        teams={[]}
+        timerEndsAt={null}
+        sealedBid={{
+          ...sealedBid,
+          phase: "LOCKED",
+          revealResult: [
+            {
+              team_id: "team-1",
+              team_name: "Blue",
+              amount: 100,
+              is_pass: false,
+              is_highest: false,
+              is_tied: false,
+              eligible: true,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(container.firstElementChild).toBe(phaseContainer);
+    expect(screen.getByText("입찰가격공개")).toBeInTheDocument();
+
+    rerender(
+      <SealedBidBoard
+        roomId="room-1"
+        role="VIEWER"
+        currentPlayer={currentPlayer}
+        teams={[]}
+        timerEndsAt={null}
+        sealedBid={{
+          ...sealedBid,
+          phase: "REVEALING",
+          revealOrder: ["team-1"],
+          revealResult: [
+            {
+              team_id: "team-1",
+              team_name: "Blue",
+              amount: 100,
+              is_pass: false,
+              is_highest: true,
+              is_tied: false,
+              eligible: true,
+            },
+          ],
+          highestAmount: 100,
+        }}
+      />,
+    );
+
+    expect(container.firstElementChild).toBe(phaseContainer);
+  });
+
   it("동점 재입찰 대상이 있으면 확정 버튼을 재입찰 준비로 표시한다", async () => {
     vi.useFakeTimers();
     const sealedBid: SealedBidState = {

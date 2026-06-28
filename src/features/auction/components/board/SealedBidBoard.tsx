@@ -180,7 +180,7 @@ export function SealedBidBoard({
     sealedBid.highestAmount > 0 && sealedBid.tiedTeamIds.length > 1;
   const shouldCenterAuctionTarget =
     sealedBid.phase === null || sealedBid.phase === "ACTIVE";
-  const phaseRenderKey = `${sealedBid.roundId ?? "none"}:${sealedBid.phase ?? "READY"}`;
+  const phaseRenderKey = sealedBid.roundId ?? "READY";
   const activePhaseVariants = shouldReduceMotion
     ? reducedSealedPhaseVariants
     : sealedPhaseVariants;
