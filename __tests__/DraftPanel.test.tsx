@@ -55,6 +55,6 @@ describe("DraftPanel", () => {
     );
     expect(restartButton).toHaveClass("min-h-14");
     expect(restartButton).toHaveClass("px-10");
-    expect(restartButton.querySelector(".animate-shine")).toBeInTheDocument();
+    expect(restartButton.querySelector(".animate-shimmer")).toBeInTheDocument();
   });
 });
