@@ -151,9 +151,7 @@ export function SealedBidBoard({
     visibleCards.length > 0 &&
     revealComplete;
   const shouldCenterAuctionTarget =
-    sealedBid.phase === "ACTIVE" ||
-    sealedBid.phase === "LOCKED" ||
-    sealedBid.phase === "TIE_REBID";
+    sealedBid.phase === null || sealedBid.phase === "ACTIVE";
 
   const srTier = currentPlayer.tier?.trim() || null;
   const srTierImageSrc = srTier ? getTierImage(srTier) : null;

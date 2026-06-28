@@ -34,20 +34,21 @@ vi.mock("@/features/auction/api/auctionActions", () => ({
 }));
 
 describe("SealedBidBoard", () => {
+  const currentPlayer: Player = {
+    id: "player-1",
+    room_id: "room-1",
+    name: "Alpha",
+    tier: "골드 IV",
+    main_position: "MID",
+    sub_position: "SUP",
+    status: "IN_AUCTION",
+    team_id: null,
+    sold_price: null,
+    description: "라인전 자신 있습니다",
+    desired_team: "Blue",
+  };
+
   it("세부 티어 이미지와 희망 팀을 입찰 대상 정보에 표시한다", () => {
-    const currentPlayer: Player = {
-      id: "player-1",
-      room_id: "room-1",
-      name: "Alpha",
-      tier: "골드 IV",
-      main_position: "MID",
-      sub_position: "SUP",
-      status: "IN_AUCTION",
-      team_id: null,
-      sold_price: null,
-      description: "라인전 자신 있습니다",
-      desired_team: "Blue",
-    };
     const sealedBid: SealedBidState = {
       phase: "ACTIVE",
       roundId: "round-1",
@@ -91,6 +92,38 @@ describe("SealedBidBoard", () => {
     expect(
       screen.queryByText("팀장들이 입찰을 제출 중입니다"),
     ).not.toBeInTheDocument();
+  });
+
+  it("비공개 라운드 시작 전에도 입찰 대상 박스를 중앙에 표시한다", () => {
+    const sealedBid: SealedBidState = {
+      phase: null,
+      roundId: null,
+      roundNumber: 0,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: [],
+      revealResult: [],
+      highestAmount: 0,
+      tiedTeamIds: [],
+    };
+
+    render(
+      <SealedBidBoard
+        roomId="room-1"
+        role="VIEWER"
+        currentPlayer={currentPlayer}
+        teams={[]}
+        timerEndsAt={null}
+        sealedBid={sealedBid}
+      />,
+    );
+
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "top-1/2",
+    );
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+      "-translate-y-1/2",
+    );
   });
 
   it("공개 전 점수 카드는 문구 없이 물음표 뒷면만 표시한다", () => {
@@ -153,11 +186,8 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
       "bg-white",
     );
-    expect(
-      screen.getByText("입찰가격공개").closest(".pixel-box"),
-    ).not.toHaveClass("mt-8");
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
-      "bottom-0",
+      "mt-8",
     );
     expect(screen.getByText("입찰가격공개").closest(".pixel-box")).toHaveClass(
       "pt-14",
@@ -171,13 +201,13 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
       "pt-8",
     );
-    expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
       "mt-2",
     );
-    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
       "top-1/2",
     );
-    expect(screen.getByText("입찰 대상").closest(".pixel-box")).toHaveClass(
+    expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
       "-translate-y-1/2",
     );
   });
