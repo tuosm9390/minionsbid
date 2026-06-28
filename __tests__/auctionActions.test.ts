@@ -124,7 +124,16 @@ vi.mock('firebase-admin/firestore', () => ({
 
 vi.mock('firebase-admin/database', () => ({
   getDatabase: vi.fn().mockReturnValue({
-    ref: vi.fn().mockReturnValue({ set: vi.fn().mockResolvedValue(undefined) }),
+    ref: vi.fn().mockReturnValue({
+      set: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      orderByChild: vi.fn().mockReturnThis(),
+      endBefore: vi.fn().mockReturnThis(),
+      get: vi.fn().mockResolvedValue({
+        exists: () => false,
+        forEach: vi.fn(),
+      }),
+    }),
   }),
 }))
 
@@ -615,6 +624,81 @@ describe('completeSealedBidReveal', () => {
       sealed_bid_tied_team_ids: null,
     })
     expect(mockRunTransaction).not.toHaveBeenCalled()
+  })
+
+  it('재입찰 낙찰 확정 후 최소 금액과 대상 팀을 초기화한다', async () => {
+    const txUpdate = vi.fn()
+    mockRunTransaction.mockImplementationOnce(async (fn: (tx: unknown) => Promise<void>) =>
+      fn({
+        get: vi.fn().mockImplementation((ref: { get: () => unknown }) => ref.get()),
+        update: txUpdate,
+        set: vi.fn(),
+      }),
+    )
+    mockDocGet
+      .mockResolvedValueOnce(
+        makeSnap({
+          auction_mode: 'SEALED_BID',
+          sealed_bid_phase: 'REVEALING',
+          current_player_id: 'player-1',
+          sealed_bid_highest_amount: 150,
+          sealed_bid_tied_team_ids: ['team-1'],
+          sealed_bid_min_amount: 100,
+          sealed_bid_eligible_team_ids: ['team-1', 'team-2'],
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          auction_mode: 'SEALED_BID',
+          sealed_bid_phase: 'REVEALING',
+          current_player_id: 'player-1',
+          sealed_bid_round_id: 'round-2',
+          sealed_bid_round_number: 2,
+          sealed_bid_highest_amount: 150,
+          sealed_bid_tied_team_ids: ['team-1'],
+          sealed_bid_min_amount: 100,
+          sealed_bid_eligible_team_ids: ['team-1', 'team-2'],
+          auction_revision: 10,
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          name: 'Alpha',
+          status: 'IN_AUCTION',
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          name: 'Blue',
+          point_balance: 500,
+          roster_slots_used: 0,
+        }),
+      )
+
+    const result = await completeSealedBidReveal(roomId, 'organizer-token')
+
+    expect(result.error).toBeUndefined()
+    expect(result.awarded).toBe(true)
+    expect(txUpdate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        sealed_bid_phase: 'AWARDED',
+        sealed_bid_min_amount: 0,
+        sealed_bid_eligible_team_ids: null,
+      }),
+    )
+    expect(txUpdate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        last_auction_event: expect.objectContaining({
+          sealedBid: expect.objectContaining({
+            phase: 'AWARDED',
+            minAmount: 0,
+            eligibleTeamIds: null,
+          }),
+        }),
+      }),
+    )
   })
 })
 

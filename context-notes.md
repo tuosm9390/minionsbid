@@ -1,5 +1,11 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## 2026-06-28 재입찰 낙찰 후 최소 금액 초기화
+
+- 요청은 재입찰 진행 후 해당 선수가 낙찰되면 다음 선수 추첨 시 재입찰 최소 금액이 남아 표시되는 문제를 고치는 것이다.
+- 원인은 `completeSealedBidReveal()`의 단독 낙찰 또는 유찰 확정 경로가 `sealed_bid_min_amount`와 `sealed_bid_eligible_team_ids`를 초기화하지 않는 점이다.
+- 해결은 `SEALED_BID_AWARDED` room update에서 재입찰 준비 상태 필드를 함께 초기화하는 것이다.
+
 ## 2026-06-28 Auction Box 페이즈 전환 애니메이션
 
 - 요청은 모든 페이즈 변경 시 auction box 내부 표시 컴포넌트가 좌에서 우로 살짝 이동하며 나타나는 효과를 추가하는 것이다.

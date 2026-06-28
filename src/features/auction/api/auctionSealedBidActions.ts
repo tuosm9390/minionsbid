@@ -328,6 +328,8 @@ export async function completeSealedBidReveal(
       const nextSealedBid: SealedBidState = {
         ...getSealedBidPatch(freshRoomData),
         phase: "AWARDED",
+        minAmount: 0,
+        eligibleTeamIds: null,
       };
       const { event, roomPatch } = createAuctionEventPatch(
         roomRef,
@@ -346,6 +348,8 @@ export async function completeSealedBidReveal(
         timer_ends_at: null,
         active_bid: null,
         sealed_bid_phase: "AWARDED",
+        sealed_bid_min_amount: 0,
+        sealed_bid_eligible_team_ids: null,
         ...roomPatch,
       });
 
