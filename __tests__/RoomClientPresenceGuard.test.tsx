@@ -4,7 +4,10 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RoomClient } from "@/app/room/[id]/RoomClient";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
-import type { SealedBidState, Team } from "@/features/auction/store/useAuctionStore";
+import type {
+  SealedBidState,
+  Team,
+} from "@/features/auction/store/useAuctionStore";
 import { useAuctionPresenceGuard } from "@/features/auction/hooks/useAuctionPresenceGuard";
 
 vi.mock("next/navigation", () => ({
@@ -28,7 +31,11 @@ vi.mock("@/features/auction/hooks/useAuctionPresenceGuard", () => ({
 }));
 
 vi.mock("@/features/auction/hooks/useRoomAuth", () => ({
-  useRoomAuth: ({ role }: { role: "ORGANIZER" | "LEADER" | "VIEWER" | null }) => ({
+  useRoomAuth: ({
+    role,
+  }: {
+    role: "ORGANIZER" | "LEADER" | "VIEWER" | null;
+  }) => ({
     effectiveRole: role,
   }),
 }));
@@ -170,7 +177,7 @@ describe("RoomClient presence guard", () => {
   });
 
   it("비공개입찰에서 players snapshot이 비어도 정본 currentPlayerId를 guard에 전달한다", () => {
-    render(
+    const { container } = render(
       <RoomClient
         roomId="room-1"
         roleParam="ORGANIZER"
@@ -186,6 +193,14 @@ describe("RoomClient presence guard", () => {
         effectiveRole: "ORGANIZER",
         timerEndsAt: expect.any(String) as string,
       }),
+    );
+    const scaleRoot = container.querySelector(".room-layout-scale");
+    expect(scaleRoot).toBeInTheDocument();
+    expect(scaleRoot).toContainElement(
+      container.querySelector("[data-testid='room-header']"),
+    );
+    expect(scaleRoot).toContainElement(
+      container.querySelector("[data-testid='auction-board']"),
     );
   });
 });

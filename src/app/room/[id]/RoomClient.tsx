@@ -353,193 +353,195 @@ export function RoomClient({
       {/* Texture Polishing: Noise & Grid */}
       <div className="absolute inset-0 pixel-noise z-0" />
 
-      <RoomHeader
-        effectiveRole={effectiveRole}
-        createdAt={createdAt}
-        onLeaveRoom={() => setIsLeaveRoomOpen(true)}
-      />
+      <div className="room-layout-scale flex flex-col">
+        <RoomHeader
+          effectiveRole={effectiveRole}
+          createdAt={createdAt}
+          onLeaveRoom={() => setIsLeaveRoomOpen(true)}
+        />
 
-      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden xl:overflow-visible w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
-        {/* Left Side: Team List (Mobile Accordion) */}
-        <aside
-          className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ease-in-out xl:relative xl:overflow-visible ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
-        >
-          <div
-            className={`pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] ${
-              shouldExpandTeamRoster
-                ? "xl:absolute xl:inset-y-0 xl:right-0 xl:w-[calc(200%+1rem)]"
-                : ""
-            }`}
+        <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden xl:overflow-visible w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
+          {/* Left Side: Team List (Mobile Accordion) */}
+          <aside
+            className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ease-in-out xl:relative xl:overflow-visible ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
           >
-            <button
-              onClick={() => {
-                if (window.innerWidth < 1024)
-                  setIsTeamsExpanded(!isTeamsExpanded);
-              }}
-              className="bg-black text-white px-4 h-14 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black w-full text-left lg:cursor-default group shrink-0"
-            >
-              <div className="flex items-center gap-3">
-                <span>Team Rosters</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-1.5 bg-minion-blue/20 px-2 py-1 border-2 border-minion-blue/30">
-                  <div className="w-1.5 h-1.5 bg-green-500" />
-                  <span className="text-minion-blue text-[10px] font-bold">
-                    LIVE FEED
-                  </span>
-                </div>
-                <span
-                  className={`lg:hidden text-minion-yellow font-heading transition-transform duration-300 ${isTeamsExpanded ? "rotate-180" : ""}`}
-                >
-                  ▼
-                </span>
-              </div>
-            </button>
             <div
-              className={`flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30 transition-all duration-300 ${
-                isTeamsExpanded
-                  ? "block opacity-100"
-                  : "hidden lg:block lg:opacity-100 opacity-0"
+              className={`pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] ${
+                shouldExpandTeamRoster
+                  ? "xl:absolute xl:inset-y-0 xl:right-0 xl:w-[calc(200%+1rem)]"
+                  : ""
               }`}
             >
-              <TeamList />
-            </div>
-          </div>
-        </aside>
-
-        {/* Center: Main Auction Board & Control */}
-        <section className="lg:col-span-6 flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:h-full shrink-0">
-          <div className="pixel-box bg-black p-4 flex items-center justify-between overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)] border-b-0">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
-                <ThreeDIcon name="trophy" alt="경매방" size={32} />
+              <button
+                onClick={() => {
+                  if (window.innerWidth < 1024)
+                    setIsTeamsExpanded(!isTeamsExpanded);
+                }}
+                className="bg-black text-white px-4 h-14 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black w-full text-left lg:cursor-default group shrink-0"
+              >
+                <div className="flex items-center gap-3">
+                  <span>Team Rosters</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex items-center gap-1.5 bg-minion-blue/20 px-2 py-1 border-2 border-minion-blue/30">
+                    <div className="w-1.5 h-1.5 bg-green-500" />
+                    <span className="text-minion-blue text-[10px] font-bold">
+                      LIVE FEED
+                    </span>
+                  </div>
+                  <span
+                    className={`lg:hidden text-minion-yellow font-heading transition-transform duration-300 ${isTeamsExpanded ? "rotate-180" : ""}`}
+                  >
+                    ▼
+                  </span>
+                </div>
+              </button>
+              <div
+                className={`flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0 bg-gray-50/30 transition-all duration-300 ${
+                  isTeamsExpanded
+                    ? "block opacity-100"
+                    : "hidden lg:block lg:opacity-100 opacity-0"
+                }`}
+              >
+                <TeamList />
               </div>
-              <h2 className="text-fluid-base lg:text-fluid-sm font-bold text-foreground truncate uppercase leading-none">
-                {roomName}
-              </h2>
             </div>
-            <div className="flex gap-3">
-              <HowToUseModal variant="header" />
-              {effectiveRole === "ORGANIZER" && (
-                <button
-                  onClick={() => setIsEndRoomOpen(true)}
-                  className="pixel-button bg-minion-red text-white h-10 px-5 py-2 text-fluid-xs font-heading hover:bg-minion-red-hover border-2 shadow-none"
-                >
-                  방 종료
-                </button>
-              )}
+          </aside>
+
+          {/* Center: Main Auction Board & Control */}
+          <section className="lg:col-span-6 flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:h-full shrink-0">
+            <div className="pixel-box bg-black p-4 flex items-center justify-between overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)] border-b-0">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-minion-yellow pixel-box border-2 shadow-none flex items-center justify-center">
+                  <ThreeDIcon name="trophy" alt="경매방" size={32} />
+                </div>
+                <h2 className="text-fluid-base lg:text-fluid-sm font-bold text-foreground truncate uppercase leading-none">
+                  {roomName}
+                </h2>
+              </div>
+              <div className="flex gap-3">
+                <HowToUseModal variant="header" />
+                {effectiveRole === "ORGANIZER" && (
+                  <button
+                    onClick={() => setIsEndRoomOpen(true)}
+                    className="pixel-button bg-minion-red text-white h-10 px-5 py-2 text-fluid-xs font-heading hover:bg-minion-red-hover border-2 shadow-none"
+                  >
+                    방 종료
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="flex-1 flex flex-col min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-            <AuctionBoard
-              isLotteryActive={!!lotteryPlayer}
-              lotteryPlayer={lotteryPlayer}
-              waitingPlayers={displayWaitingPlayers}
-              role={effectiveRole}
-              allConnected={allConnected}
-              onCloseLottery={handleStartFromLottery}
-              onShowResult={() => setShowResultModal(true)}
-              roomId={roomId}
-              onTimerExpire={
-                effectiveRole === "ORGANIZER" && currentPlayerId
-                  ? auctionMode === "SEALED_BID"
-                    ? handleSealedTimerExpire
-                    : () => triggerAward(currentPlayerId)
-                  : undefined
-              }
-            />
-          </div>
-
-          {effectiveRole === "ORGANIZER" && (
-            <div>
-              <OrganizerControlPanel
-                noticeText={noticeText}
-                setNoticeText={setNoticeText}
-                onSendNotice={handleNotice}
-                waitingPlayersCount={displayWaitingPlayers.length}
-                soldPlayersCount={soldPlayers.length}
-                allDone={allDone}
-                currentPlayer={currentPlayer || null}
-                timerEndsAt={timerEndsAt}
+            <div className="flex-1 flex flex-col min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+              <AuctionBoard
+                isLotteryActive={!!lotteryPlayer}
                 lotteryPlayer={lotteryPlayer}
-                isDrawing={isDrawing}
+                waitingPlayers={displayWaitingPlayers}
+                role={effectiveRole}
                 allConnected={allConnected}
-                auctionMode={auctionMode}
-                sealedBid={sealedBid}
-                onDraw={handleDraw}
-                onStart={handleStart}
-                onRevealSealedBid={handleRevealSealedBid}
+                onCloseLottery={handleStartFromLottery}
+                onShowResult={() => setShowResultModal(true)}
+                roomId={roomId}
+                onTimerExpire={
+                  effectiveRole === "ORGANIZER" && currentPlayerId
+                    ? auctionMode === "SEALED_BID"
+                      ? handleSealedTimerExpire
+                      : () => triggerAward(currentPlayerId)
+                    : undefined
+                }
               />
             </div>
-          )}
 
-          {effectiveRole === "LEADER" && roomId && storeTeamId && (
-            <div>
-              {auctionMode === "SEALED_BID" ? (
-                <SealedBiddingControl
-                  roomId={roomId}
-                  teamId={storeTeamId}
-                  leaderToken={roomAuthToken ?? ""}
-                  currentPlayer={currentPlayer || null}
-                  myTeam={myTeam || null}
-                  isAuctionActive={isAuctionActive}
-                  isTeamFull={isTeamFull}
+            {effectiveRole === "ORGANIZER" && (
+              <div>
+                <OrganizerControlPanel
+                  noticeText={noticeText}
+                  setNoticeText={setNoticeText}
+                  onSendNotice={handleNotice}
+                  waitingPlayersCount={displayWaitingPlayers.length}
+                  soldPlayersCount={soldPlayers.length}
                   allDone={allDone}
-                  sealedBid={sealedBid}
-                />
-              ) : (
-                <BiddingControl
-                  roomId={roomId}
-                  teamId={storeTeamId}
-                  leaderToken={roomAuthToken ?? ""}
                   currentPlayer={currentPlayer || null}
-                  myTeam={myTeam || null}
-                  isAuctionActive={isAuctionActive}
                   timerEndsAt={timerEndsAt}
-                  minBid={minBid}
-                  isTeamFull={isTeamFull}
-                  allDone={allDone}
+                  lotteryPlayer={lotteryPlayer}
+                  isDrawing={isDrawing}
+                  allConnected={allConnected}
+                  auctionMode={auctionMode}
+                  sealedBid={sealedBid}
+                  onDraw={handleDraw}
+                  onStart={handleStart}
+                  onRevealSealedBid={handleRevealSealedBid}
                 />
-              )}
-            </div>
-          )}
-        </section>
+              </div>
+            )}
 
-        {/* Right Side: Unsold & Chat */}
-        <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0">
-          <div className="pixel-box bg-white flex-none max-h-[160px] lg:max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-            <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
-              유찰 명단
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
-              <UnsoldPanel />
-            </div>
-          </div>
+            {effectiveRole === "LEADER" && roomId && storeTeamId && (
+              <div>
+                {auctionMode === "SEALED_BID" ? (
+                  <SealedBiddingControl
+                    roomId={roomId}
+                    teamId={storeTeamId}
+                    leaderToken={roomAuthToken ?? ""}
+                    currentPlayer={currentPlayer || null}
+                    myTeam={myTeam || null}
+                    isAuctionActive={isAuctionActive}
+                    isTeamFull={isTeamFull}
+                    allDone={allDone}
+                    sealedBid={sealedBid}
+                  />
+                ) : (
+                  <BiddingControl
+                    roomId={roomId}
+                    teamId={storeTeamId}
+                    leaderToken={roomAuthToken ?? ""}
+                    currentPlayer={currentPlayer || null}
+                    myTeam={myTeam || null}
+                    isAuctionActive={isAuctionActive}
+                    timerEndsAt={timerEndsAt}
+                    minBid={minBid}
+                    isTeamFull={isTeamFull}
+                    allDone={allDone}
+                  />
+                )}
+              </div>
+            )}
+          </section>
 
-          <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
-            <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
-              <span>로그</span>
-              <span className="text-fluid-xs text-blue-200">● LIVE</span>
+          {/* Right Side: Unsold & Chat */}
+          <aside className="lg:col-span-3 flex flex-col gap-4 min-h-0 order-2 lg:order-3 h-auto shrink-0">
+            <div className="pixel-box bg-white flex-none max-h-[160px] lg:max-h-[200px] flex flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+              <div className="bg-minion-red text-white px-4 py-2 font-heading text-fluid-xs uppercase border-b-4 border-black">
+                유찰 명단
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
+                <UnsoldPanel />
+              </div>
             </div>
-            <ChatPanel />
-          </div>
-        </aside>
 
-        <aside className="hidden xl:absolute xl:inset-y-4 xl:left-full xl:ml-4 xl:flex xl:w-[280px] 2xl:w-[340px] flex-col">
-          <div className="pixel-box bg-white flex h-full min-h-0 flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-            <div className="bg-minion-yellow text-black px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
-              <span>대기 명단</span>
-              <span className="text-fluid-xs font-black tabular-nums">
-                {displayWaitingPlayers.length} 명
-              </span>
+            <div className="pixel-box bg-white flex-1 flex flex-col overflow-hidden min-h-0 shadow-[8px_8px_0px_rgba(0,0,0,1)] max-h-[300px] lg:max-h-none">
+              <div className="bg-minion-blue text-white px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+                <span>로그</span>
+                <span className="text-fluid-xs text-blue-200">● LIVE</span>
+              </div>
+              <ChatPanel />
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
-              <WaitingPanel players={displayWaitingPlayers} />
+          </aside>
+
+          <aside className="hidden xl:absolute xl:inset-y-4 xl:left-full xl:ml-4 xl:flex xl:w-[280px] 2xl:w-[340px] flex-col">
+            <div className="pixel-box bg-white flex h-full min-h-0 flex-col overflow-hidden shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+              <div className="bg-minion-yellow text-black px-4 py-2 font-heading text-fluid-xs uppercase flex justify-between items-center border-b-4 border-black">
+                <span>대기 명단</span>
+                <span className="text-fluid-xs font-black tabular-nums">
+                  {displayWaitingPlayers.length} 명
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 min-h-0 bg-gray-50/30">
+                <WaitingPanel players={displayWaitingPlayers} />
+              </div>
             </div>
-          </div>
-        </aside>
-      </main>
+          </aside>
+        </main>
+      </div>
 
       <LeaveRoomModal
         isOpen={isLeaveRoomOpen}
