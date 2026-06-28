@@ -11,6 +11,7 @@ import {
   awardPlayer,
   recoverExpiredAuction,
   startAuction,
+  completeSealedBidReveal,
   pauseAuction,
   resumeAuction,
   draftPlayer,
@@ -535,6 +536,85 @@ describe('startAuction', () => {
     const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
     expect(remainingMs).toBeLessThanOrEqual(5_000)
     expect(remainingMs).toBeGreaterThan(3_500)
+  })
+
+  it('비공개 재입찰 시작은 준비된 최소 금액과 대상 팀을 유지한다', async () => {
+    const txUpdate = vi.fn()
+    mockRunTransaction.mockImplementationOnce(async (fn: (tx: unknown) => Promise<void>) =>
+      fn({
+        get: vi.fn().mockImplementation((ref: { get: () => unknown }) => ref.get()),
+        update: txUpdate,
+        set: vi.fn(),
+      }),
+    )
+    mockDocGet
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+          auction_mode: 'SEALED_BID',
+          sealed_bid_phase: null,
+          sealed_bid_min_amount: 100,
+          sealed_bid_eligible_team_ids: ['team-1', 'team-2'],
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+          auction_mode: 'SEALED_BID',
+          sealed_bid_phase: null,
+          sealed_bid_round_number: 1,
+          sealed_bid_min_amount: 100,
+          sealed_bid_eligible_team_ids: ['team-1', 'team-2'],
+          auction_revision: 1,
+        }),
+      )
+
+    const result = await startAuction(roomId, 'organizer-token')
+
+    expect(result.error).toBeUndefined()
+    expect(txUpdate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        sealed_bid_phase: 'ACTIVE',
+        sealed_bid_min_amount: 100,
+        sealed_bid_eligible_team_ids: ['team-1', 'team-2'],
+      }),
+    )
+  })
+})
+
+describe('completeSealedBidReveal', () => {
+  const roomId = 'room-1'
+
+  beforeEach(resetMocks)
+
+  it('동점이면 바로 재입찰을 시작하지 않고 최소 금액과 대상 팀을 준비 상태로 저장한다', async () => {
+    mockDocGet.mockResolvedValueOnce(
+      makeSnap({
+        auction_mode: 'SEALED_BID',
+        sealed_bid_phase: 'REVEALING',
+        current_player_id: 'player-1',
+        sealed_bid_highest_amount: 100,
+        sealed_bid_tied_team_ids: ['team-1', 'team-2'],
+      }),
+    )
+
+    const result = await completeSealedBidReveal(roomId, 'organizer-token')
+
+    expect(result.error).toBeUndefined()
+    expect(result.rebidStarted).toBe(true)
+    expect(mockDocUpdate).toHaveBeenCalledWith({
+      timer_ends_at: null,
+      active_bid: null,
+      sealed_bid_phase: null,
+      sealed_bid_min_amount: 100,
+      sealed_bid_eligible_team_ids: ['team-1', 'team-2'],
+      sealed_bid_reveal_order: null,
+      sealed_bid_reveal_result: null,
+      sealed_bid_highest_amount: 0,
+      sealed_bid_tied_team_ids: null,
+    })
+    expect(mockRunTransaction).not.toHaveBeenCalled()
   })
 })
 

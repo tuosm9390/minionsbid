@@ -12,7 +12,6 @@ import type {
   SealedBidRevealCard,
   SealedBidState,
 } from "@/features/auction/store/useAuctionStore";
-import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
 import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
 import { requireRoomLeader } from "@/features/auction/api/roomRoleAuth";
 import {
@@ -23,7 +22,6 @@ import {
   queueSystemMessage,
   pruneAuctionEventHistory,
   getSealedBidPatch,
-  startSealedBidRound,
   lockSealedBidRoundInternal,
   type AuctionRoomState,
 } from "./auctionFlowShared";
@@ -293,13 +291,18 @@ export async function completeSealedBidReveal(
     const tiedTeamIds = roomData.sealed_bid_tied_team_ids ?? [];
 
     if (highestAmount > 0 && tiedTeamIds.length > 1) {
-      return startSealedBidRound(roomId, {
-        minAmount: highestAmount,
-        eligibleTeamIds: tiedTeamIds,
-        durationMs: AUCTION_DURATION_MS,
-      }).then((result) =>
-        result.error ? { error: result.error } : { rebidStarted: true },
-      );
+      await roomRef.update({
+        timer_ends_at: null,
+        active_bid: null,
+        sealed_bid_phase: null,
+        sealed_bid_min_amount: highestAmount,
+        sealed_bid_eligible_team_ids: tiedTeamIds,
+        sealed_bid_reveal_order: null,
+        sealed_bid_reveal_result: null,
+        sealed_bid_highest_amount: 0,
+        sealed_bid_tied_team_ids: null,
+      });
+      return { rebidStarted: true };
     }
 
     const winnerTeamId = highestAmount > 0 ? (tiedTeamIds[0] ?? null) : null;
@@ -404,4 +407,3 @@ export async function completeSealedBidReveal(
     return { error: message };
   }
 }
-

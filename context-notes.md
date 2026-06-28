@@ -5,6 +5,7 @@
 - 요청은 점수 공개 결과에서 재입찰 대상이 관찰된 경우 주최자 확정 버튼을 `낙찰 결과 반영`이 아니라 `재입찰 준비`로 표시하고, 클릭 후 재입찰 진행 팀장만 입찰 상태 UI를 볼 수 있게 하는 것이다.
 - 재입찰 발생 조건은 `sealedBid.phase === "REVEALING"`, `sealedBid.highestAmount > 0`, `sealedBid.tiedTeamIds.length > 1`이다. 서버의 `completeSealedBidReveal()`도 같은 조건에서 `startSealedBidRound()`를 호출해 `eligibleTeamIds`가 동점 팀으로 제한된 새 `ACTIVE` 라운드를 시작한다.
 - 비대상 팀장은 `sealedBid.eligibleTeamIds`가 있고 본인 `teamId`가 포함되지 않는 경우다. 이 경우 입찰 금액, 포기, 제출 버튼을 렌더하지 않고 추첨 대기형 비활성 컨트롤만 표시한다.
+- 후속 요청은 `재입찰 준비` 클릭 시 바로 `ACTIVE` 재입찰을 시작하지 않고, 기존 입찰처럼 주최자가 다시 `경매 시작`을 눌러야 타이머와 제출이 시작되도록 하는 것이다. 준비 상태에서는 `sealed_bid_phase: null`, `timer_ends_at: null`, `sealed_bid_min_amount`, `sealed_bid_eligible_team_ids`를 유지한다.
 
 ## 2026-06-26 Firebase 운영 검증 강화
 

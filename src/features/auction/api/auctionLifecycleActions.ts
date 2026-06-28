@@ -52,7 +52,17 @@ export async function startAuction(
       return { error: "현재 경매 중인 선수가 없습니다." };
     }
     if (normalizeAuctionMode(roomData.auction_mode) === "SEALED_BID") {
-      return startSealedBidRound(roomId, { durationMs });
+      const rebidReadyTeamIds =
+        roomData.sealed_bid_phase === null
+          ? (roomData.sealed_bid_eligible_team_ids ?? null)
+          : null;
+      return startSealedBidRound(roomId, {
+        durationMs,
+        minAmount: rebidReadyTeamIds
+          ? (roomData.sealed_bid_min_amount ?? 0)
+          : 0,
+        eligibleTeamIds: rebidReadyTeamIds,
+      });
     }
     let startEvent: AuctionEventEnvelope | null = null;
     let resolvedTimerEndsAt: string | undefined;
