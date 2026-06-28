@@ -32,7 +32,7 @@ export function DraftPanel({
         <div className="pixel-box !bg-primary text-primary-foreground inline-block px-6 py-2 font-bold mb-4">
           {phase === "DRAFT" || isAutoDraftMode
             ? "유찰 선수 배정"
-            : "재경매 진행"}
+            : "재경매 목록"}
         </div>
         {phase === "DRAFT" && currentTurnTeam && (
           <div className="flex flex-col items-center gap-1">
