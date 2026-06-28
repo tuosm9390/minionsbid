@@ -45,7 +45,10 @@ import {
   bucketAuctionPlayers,
   isAuctionRoomComplete,
 } from "@/features/auction/store/auctionSelectors";
-import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
+import {
+  AUCTION_DURATION_MS,
+  SEALED_BID_DURATION_MS,
+} from "@/features/auction/constants/auctionTimings";
 
 export function RoomClient({
   roomId,
@@ -224,7 +227,11 @@ export function RoomClient({
   };
 
   const handleStart = async () => {
-    const optimisticDurationMs = nextAuctionDurationMs ?? AUCTION_DURATION_MS;
+    const optimisticDurationMs =
+      nextAuctionDurationMs ??
+      (auctionMode === "SEALED_BID"
+        ? SEALED_BID_DURATION_MS
+        : AUCTION_DURATION_MS);
     const optimisticTimerEndsAt = new Date(
       Date.now() + optimisticDurationMs,
     ).toISOString();

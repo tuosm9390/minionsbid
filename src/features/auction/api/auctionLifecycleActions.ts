@@ -15,6 +15,7 @@ import {
   AUCTION_DURATION_MS,
   EXTEND_DURATION_MS,
   RE_AUCTION_DURATION_MS,
+  SEALED_BID_DURATION_MS,
 } from "@/features/auction/constants/auctionTimings";
 import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
 import {
@@ -30,7 +31,7 @@ import {
 export async function startAuction(
   roomId: string,
   organizerToken: string,
-  durationMs: number = AUCTION_DURATION_MS,
+  durationMs?: number,
 ): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     if (isE2EAuctionFixtureEnabled()) {
@@ -57,7 +58,7 @@ export async function startAuction(
           ? (roomData.sealed_bid_eligible_team_ids ?? null)
           : null;
       return startSealedBidRound(roomId, {
-        durationMs,
+        durationMs: durationMs ?? SEALED_BID_DURATION_MS,
         minAmount: rebidReadyTeamIds
           ? (roomData.sealed_bid_min_amount ?? 0)
           : 0,
@@ -74,7 +75,9 @@ export async function startAuction(
         throw new Error("현재 경매 중인 선수가 없습니다.");
       }
       const nextDurationMs =
-        freshRoomData.next_auction_duration_ms ?? durationMs;
+        freshRoomData.next_auction_duration_ms ??
+        durationMs ??
+        AUCTION_DURATION_MS;
       // 타이머 시작 시간은 서버 시간 기준으로 정확히 10초(또는 지정된 시간) 뒤
       const timerEndsAt = new Date(Date.now() + nextDurationMs);
       resolvedTimerEndsAt = timerEndsAt.toISOString();

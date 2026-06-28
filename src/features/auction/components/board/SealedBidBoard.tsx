@@ -19,7 +19,7 @@ import {
 } from "@/features/auction/store/useAuctionStore";
 import { completeSealedBidReveal } from "@/features/auction/api/auctionActions";
 import { CenterTimer } from "@/features/auction/components/board/CenterTimer";
-import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
+import { SEALED_BID_DURATION_MS } from "@/features/auction/constants/auctionTimings";
 import {
   getPositionImage,
   getTierImage,
@@ -231,7 +231,7 @@ export function SealedBidBoard({
           {sealedBid.phase === "ACTIVE" && timerEndsAt && (
             <CenterTimer
               timerEndsAt={timerEndsAt}
-              auctionDurationMs={AUCTION_DURATION_MS}
+              auctionDurationMs={SEALED_BID_DURATION_MS}
               onExpire={onTimerExpire}
             />
           )}

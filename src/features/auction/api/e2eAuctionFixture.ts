@@ -129,6 +129,7 @@ import {
   AUCTION_DURATION_MS,
   EXTEND_DURATION_MS,
   EXTEND_THRESHOLD_MS,
+  SEALED_BID_DURATION_MS,
 } from '../constants/auctionTimings'
 
 function clone<T>(value: T): T {
@@ -631,10 +632,14 @@ export async function closeFixtureLottery(roomId: string, playerName: string): P
   }
 }
 
-export async function startFixtureAuction(roomId: string, durationMs: number = AUCTION_DURATION_MS): Promise<{ error?: string; timerEndsAt?: string }> {
+export async function startFixtureAuction(roomId: string, durationMs?: number): Promise<{ error?: string; timerEndsAt?: string }> {
   try {
     const room = getRoomOrThrow(roomId)
-    const nextDurationMs = room.nextAuctionDurationMs ?? durationMs ?? AUCTION_DURATION_MS
+    const defaultDurationMs =
+      room.auctionMode === 'SEALED_BID'
+        ? SEALED_BID_DURATION_MS
+        : AUCTION_DURATION_MS
+    const nextDurationMs = room.nextAuctionDurationMs ?? durationMs ?? defaultDurationMs
     room.timerEndsAt = new Date(Date.now() + nextDurationMs).toISOString()
     room.nextAuctionDurationMs = null
     appendMessage(room, '시스템', 'SYSTEM', '⏱️ 경매가 시작되었습니다!')

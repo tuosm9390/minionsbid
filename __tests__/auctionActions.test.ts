@@ -523,6 +523,31 @@ describe('startAuction', () => {
     expect(remainingMs).toBeGreaterThan(8_500)
   })
 
+  it('비공개 입찰 시작은 20초 타이머를 사용한다', async () => {
+    mockDocGet
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+          auction_mode: 'SEALED_BID',
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSnap({
+          current_player_id: 'player-1',
+          auction_mode: 'SEALED_BID',
+          sealed_bid_round_number: 0,
+          auction_revision: 1,
+        }),
+      )
+
+    const result = await startAuction(roomId, 'organizer-token')
+
+    expect(result.error).toBeUndefined()
+    expect(result.timerEndsAt).toBeDefined()
+    const remainingMs = new Date(result.timerEndsAt as string).getTime() - Date.now()
+    expect(remainingMs).toBeGreaterThan(18_500)
+  })
+
   it('재경매 직후에는 room 정본의 다음 시작 5초 규칙을 사용한다', async () => {
     mockDocGet
       .mockResolvedValueOnce(

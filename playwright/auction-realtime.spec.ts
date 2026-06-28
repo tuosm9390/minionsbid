@@ -582,9 +582,9 @@ test('starts re-auction from unsold draft state and syncs waiting state', async 
   await organizerPage.goto(fixture.organizerLink)
   await viewerPage.goto(fixture.viewerLink)
 
-  await expect(organizerPage.getByText('재경매 진행')).toBeVisible()
+  await expect(organizerPage.getByText('재경매 목록')).toBeVisible()
   await expect(organizerPage.getByRole('button', { name: '재경매 시작' })).toBeVisible()
-  await expect(viewerPage.getByText('재경매 진행')).toBeVisible()
+  await expect(viewerPage.getByText('재경매 목록')).toBeVisible()
   await expect(viewerPage.locator('aside').getByText('Alpha', { exact: true })).toBeVisible()
   await expect(viewerPage.locator('aside').getByText('Beta', { exact: true })).toBeVisible()
   await expect(viewerPage.locator('aside').getByText('Gamma', { exact: true })).toBeVisible()
