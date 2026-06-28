@@ -595,3 +595,4 @@
 - `useFirebasePresence()`는 이제 팀장 token이 누락되거나 custom token 발급이 실패해도 `setPresenceLoaded(true)`를 호출하고 presence read 구독을 계속 시도한다. 로컬 팀장 화면은 presence auth 실패 때문에 `접속 현황 확인 중...`에 갇히지 않는다.
 - `RoomClient`는 기본적으로 presence를 경매 진행 gate로 쓰지 않는다. `NEXT_PUBLIC_REQUIRE_ALL_LEADERS_CONNECTED=1`일 때만 기존처럼 모든 팀장 presence를 진행 조건으로 사용한다. 비공개 입찰 제출 권한은 계속 Server Action의 `requireRoomLeader()`가 leader token으로 검증한다.
 - 브라우저 콘솔 진단은 `debugAuth=1` 쿼리 또는 `localStorage.debugAuth = "1"`일 때만 출력한다. `[room-auth]`는 custom token 요청, HTTP status, sign-in, claim 요약을 보여주고, `[presence]`는 RTDB 연결, self registration, snapshot count를 보여준다. token 원문은 출력하지 않고 존재 여부와 길이만 기록한다.
+- 후속 요청에 따라 비공개 입찰(`auctionMode === "SEALED_BID"`)에서는 `RoomClient`가 `useFirebasePresence()`에 `disableRoomFirebaseAuth: true`를 전달한다. 이 모드에서는 leader token이 있어도 `ensureRoomFirebaseAuth()`와 RTDB self presence write를 건너뛰고 presence read 구독만 유지한다. 공개 입찰은 기존 custom token 경로를 유지한다.

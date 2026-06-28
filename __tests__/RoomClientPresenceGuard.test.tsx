@@ -9,6 +9,7 @@ import type {
   Team,
 } from "@/features/auction/store/useAuctionStore";
 import { useAuctionPresenceGuard } from "@/features/auction/hooks/useAuctionPresenceGuard";
+import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -115,6 +116,7 @@ vi.mock("@/components/ui/ThreeDIcon", () => ({
 }));
 
 const mockedUseAuctionPresenceGuard = vi.mocked(useAuctionPresenceGuard);
+const mockedUseFirebasePresence = vi.mocked(useFirebasePresence);
 
 describe("RoomClient presence guard", () => {
   const sealedBid: SealedBidState = {
@@ -224,5 +226,56 @@ describe("RoomClient presence guard", () => {
     );
 
     expect(getByTestId("sealed-bidding-control")).toBeInTheDocument();
+  });
+
+  it("비공개 입찰 방에서는 presence custom token 인증을 요청하지 않는다", () => {
+    useAuctionStore.setState({
+      role: "LEADER",
+      teamId: "team-1",
+      roomAuthToken: "leader-token",
+    });
+
+    render(
+      <RoomClient
+        roomId="room-1"
+        roleParam="LEADER"
+        teamIdParam="team-1"
+        roomAuthTokenParam="leader-token"
+      />,
+    );
+
+    expect(mockedUseFirebasePresence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: "LEADER",
+        teamId: "team-1",
+        disableRoomFirebaseAuth: true,
+      }),
+    );
+  });
+
+  it("공개 입찰 방에서는 기존 presence custom token 인증 경로를 유지한다", () => {
+    useAuctionStore.setState({
+      auctionMode: "OPEN_ASCENDING",
+      role: "LEADER",
+      teamId: "team-1",
+      roomAuthToken: "leader-token",
+    });
+
+    render(
+      <RoomClient
+        roomId="room-1"
+        roleParam="LEADER"
+        teamIdParam="team-1"
+        roomAuthTokenParam="leader-token"
+      />,
+    );
+
+    expect(mockedUseFirebasePresence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: "LEADER",
+        teamId: "team-1",
+        disableRoomFirebaseAuth: false,
+      }),
+    );
   });
 });

@@ -135,6 +135,28 @@ describe('useFirebasePresence', () => {
     expect(onValue).toHaveBeenCalled()
   })
 
+  it('should skip Firebase auth and self presence write when room auth is disabled', async () => {
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: 'team1',
+      role: 'LEADER',
+      authToken: 'leader-token',
+      disableRoomFirebaseAuth: true,
+    }))
+
+    await Promise.resolve()
+
+    const setCalls = (set as unknown as Mock).mock.calls
+    const isRegisteringSelf = setCalls.some((call: unknown[]) => {
+      const path = call[0]?.toString() || ''
+      return path.includes('presence/room1/')
+    })
+    expect(ensureRoomFirebaseAuth).not.toHaveBeenCalled()
+    expect(isRegisteringSelf).toBe(false)
+    expect(setPresenceLoaded).toHaveBeenCalledWith(true)
+    expect(onValue).toHaveBeenCalled()
+  })
+
 it('should subscribe to all presence even if role is VIEWER (FR-001)', async () => {
     renderHook(() => useFirebasePresence({
       roomId: 'room1',

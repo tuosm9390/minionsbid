@@ -116,6 +116,7 @@ export function RoomClient({
     teamId: storeTeamId,
     role: effectiveRole,
     teamName: myTeamForPresence?.name,
+    disableRoomFirebaseAuth: auctionMode === "SEALED_BID",
   });
 
   const connectedLeaderIds = new Set(

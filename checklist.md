@@ -649,3 +649,4 @@
 - [x] presence/custom token 장애가 경매 진행과 팀장 패널 렌더링을 막지 않도록 보강한다.
 - [x] token 누락과 presence gate 회귀 테스트를 추가한다.
 - [x] `debugAuth=1` 브라우저 콘솔 진단 로그를 추가한다.
+- [x] 비공개 입찰 방에서 custom token 요청과 self presence write를 건너뛰도록 수정한다.

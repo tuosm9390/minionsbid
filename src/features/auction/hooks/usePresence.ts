@@ -13,6 +13,7 @@ interface PresenceOptions {
   role: string | null
   teamName?: string
   authToken?: string | null
+  disableRoomFirebaseAuth?: boolean
 }
 
 type PresenceRecord = {
@@ -50,7 +51,14 @@ function logPresenceDebug(
  * Firebase RTDB 기반 Presence 훅.
  * onDisconnect를 활용하여 연결 끊김 시 자동으로 presence 정보를 제거한다.
  */
-export function useFirebasePresence({ roomId, teamId, role, teamName, authToken }: PresenceOptions) {
+export function useFirebasePresence({
+  roomId,
+  teamId,
+  role,
+  teamName,
+  authToken,
+  disableRoomFirebaseAuth = false,
+}: PresenceOptions) {
   const setRealtimeData = useAuctionStore(s => s.setRealtimeData)
   const setPresenceLoaded = useAuctionStore(s => s.setPresenceLoaded)
   const setLocalConnected = useAuctionStore(s => s.setLocalConnected)
@@ -88,7 +96,21 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
         const effectiveAuthToken = authToken ?? roomAuthToken
         let authUid: string | null = null
 
-        if (shouldRegisterSelf) {
+        if (shouldRegisterSelf && disableRoomFirebaseAuth) {
+          logPresenceDebug('room-firebase-auth-disabled', {
+            roomId,
+            role,
+            teamId,
+            tokenPresent: !!effectiveAuthToken,
+          })
+          setPresenceLoaded(true)
+          if (role === 'LEADER') {
+            localPresenceRef.current = {
+              teamId: teamId ?? null,
+              role: role as PresenceUser['role'],
+            }
+          }
+        } else if (shouldRegisterSelf) {
           if (!effectiveAuthToken) {
             logPresenceDebug('auth-token-missing', {
               roomId,
@@ -259,5 +281,17 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
       localPresenceRef.current = null
       unsubs.forEach((unsub) => unsub())
     }
-  }, [roomId, teamId, role, teamName, authToken, roomAuthToken, setRealtimeData, setPresenceLoaded, setLocalConnected, setPresenceAuthError])
+  }, [
+    roomId,
+    teamId,
+    role,
+    teamName,
+    authToken,
+    roomAuthToken,
+    disableRoomFirebaseAuth,
+    setRealtimeData,
+    setPresenceLoaded,
+    setLocalConnected,
+    setPresenceAuthError,
+  ])
 }
