@@ -581,3 +581,13 @@
 - 브라우저 계산값에서 제목은 `position: absolute`, 흰 배경, minion blue 테두리로 확인됐고, 제목 rect가 박스 상단 경계와 겹쳐 박스 제목 배지처럼 렌더링됨을 확인했다.
 - 후속 요청에 따라 입찰 대상 정보 박스와 점수공개 박스 사이 간격을 `mt-2`에서 `mt-8`로 늘리고, 제목 배지와 카드 grid가 겹쳐 보이지 않도록 내부 상단 padding을 `pt-6`에서 `pt-14`로 늘린다. 1차 `pt-10` 확인에서 제목과 카드 간격이 약 1.5px에 그쳐 추가 확대했다.
 - 후속 요청에 따라 `입찰 대상`도 박스 내부 첫 줄이 아니라 상단 중앙 제목 배지로 조정한다. 대상 박스는 기존 노란 배경과 검은 테두리 계층을 유지하되, 제목 배지는 `border-black bg-yellow-50 shadow-pixel-sm`로 맞춘다.
+
+## 2026-06-29 비공개 입찰 팀장 권한 누락 원인 분석
+
+- 요청은 주최자 1명과 팀장 8명 테스트에서 특정 팀장 1명만 권한을 받지 못하고, Edge와 Chrome 모두 같은 PC/사용자에서 경매 참여 패널 또는 권한이 정상 표시되지 않는 원인을 파악하는 것이다.
+- 현재 팀장 권한은 URL의 `role=LEADER`, `teamId`, `token/authToken`으로 클라이언트 상태가 만들어진 뒤, 별도로 `/api/room-auth/firebase-token` custom token 발급과 Firebase Auth sign-in이 성공해야 presence와 공개 입찰 direct bid가 통과한다.
+- 비공개 입찰 제출은 Firestore client write가 아니라 `submitSealedBid()` Server Action이며, `requireRoomLeader(roomId, teamId, leaderToken)`가 `room_auth_secrets/{roomId}/team_tokens/{teamId}.leader_token`과 URL token을 비교한다.
+- `RoomClient`의 팀장 패널 렌더 조건은 `effectiveRole === "LEADER" && roomId && storeTeamId`다. 따라서 패널 자체가 아예 없으면 URL role/teamId 전달 또는 store context 문제를 먼저 본다. 패널은 있으나 제출 실패면 token 누락/불일치 또는 Server Action 검증 실패를 먼저 본다.
+- Edge와 Chrome 모두 같은 사용자/PC에서 실패했다면 브라우저 엔진보다 링크 또는 운영 데이터 문제가 우선 후보이다. 특히 특정 팀의 `teamId`와 `leader_token` 매핑이 누락되거나, 공유된 링크의 token이 잘렸거나 다른 팀 token과 섞인 경우 두 브라우저에서 동일하게 실패한다.
+- 환경 요인으로 가능한 것은 corporate/security 제품이 `/api/room-auth/firebase-token` POST, Firebase Auth identitytoolkit 요청, RTDB websocket/long-polling을 차단하는 경우다. 이 경우 custom token sign-in과 presence가 함께 실패하고 주최자 화면에는 presence 인증 오류 또는 해당 팀장 미접속처럼 보일 수 있다.
+- 운영 확정에는 해당 팀장의 최종 접속 URL 파라미터, `/api/room-auth/firebase-token` 응답 status, 브라우저 console의 `[presence] anonymous auth failed`, Firebase Auth sign-in 에러 코드, `room_auth_secrets` audit 결과가 필요하다.
