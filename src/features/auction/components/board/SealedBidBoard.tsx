@@ -189,6 +189,9 @@ export function SealedBidBoard({
   const srTierImageSrc = srTier ? getTierImage(srTier) : null;
   const mainPosition = currentPlayer.main_position?.trim() || null;
   const subPosition = currentPlayer.sub_position?.trim() || null;
+  const positionText = mainPosition
+    ? `${mainPosition}${subPosition ? ` / ${subPosition}` : ""}`
+    : null;
   const playerComment = currentPlayer.description.trim();
   const desiredTeam = currentPlayer.desired_team?.trim() || null;
 
@@ -255,107 +258,129 @@ export function SealedBidBoard({
               isScoreRevealPhase ? "mt-2" : "mt-4"
             }`}
           >
-            <div
-              className={`border-2 border-black bg-white shadow-pixel-sm text-center ${
-                isScoreRevealPhase ? "px-4 py-3" : "px-5 py-5"
-              }`}
-            >
-              {(srTier || mainPosition) && (
+            {isScoreRevealPhase ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 border-2 border-black bg-white px-4 py-3 shadow-pixel-sm">
                 <div
-                  className={`flex justify-center ${
-                    isScoreRevealPhase ? "gap-3 mb-2" : "gap-6 mb-4"
-                  }`}
+                  className="flex min-w-0 flex-col items-center justify-center border-2 border-black bg-white px-3 py-2 text-center"
+                  data-testid="sealed-bid-target-identity"
                 >
-                  {srTier && srTierImageSrc && (
-                    <div
-                      className={`flex flex-col items-center ${
-                        isScoreRevealPhase
-                          ? "w-[22%] max-w-16 gap-1"
-                          : "w-[30%] gap-2"
-                      }`}
-                    >
-                      <Image
-                        src={srTierImageSrc}
-                        alt={srTier}
-                        width={200}
-                        height={200}
-                        className="w-full h-auto pixelated"
-                      />
-                      <span
-                        className={`font-bold text-gray-600 ${
-                          isScoreRevealPhase
-                            ? "text-fluid-xs"
-                            : "text-fluid-base"
-                        }`}
-                      >
-                        {srTier}
-                      </span>
+                  <div className="flex w-full items-start justify-center gap-3">
+                    {srTier && srTierImageSrc && (
+                      <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                        <Image
+                          src={srTierImageSrc}
+                          alt={srTier}
+                          width={200}
+                          height={200}
+                          className="h-auto w-full max-w-14 pixelated"
+                        />
+                        <span className="w-full truncate whitespace-nowrap text-fluid-xs font-bold text-gray-600">
+                          {srTier}
+                        </span>
+                      </div>
+                    )}
+                    {mainPosition && (
+                      <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                        <Image
+                          src={getPositionImage(mainPosition)}
+                          alt={mainPosition}
+                          width={200}
+                          height={200}
+                          className="h-auto w-full max-w-14"
+                        />
+                        <span className="w-full truncate whitespace-nowrap text-fluid-xs font-bold text-gray-600">
+                          {positionText}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <h2 className="mt-2 max-w-full break-all text-fluid-base font-black leading-tight text-black">
+                    {currentPlayer.name}
+                  </h2>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2">
+                  {desiredTeam && (
+                    <div className="min-w-0 border-2 border-black bg-[#fff7cc] px-3 py-2 shadow-pixel-sm">
+                      <p className="text-[10px] font-black uppercase text-gray-500">
+                        희망 팀
+                      </p>
+                      <p className="mt-1 truncate text-fluid-xs font-black text-black">
+                        {desiredTeam}
+                      </p>
                     </div>
                   )}
-                  {mainPosition && (
-                    <div
-                      className={`flex flex-col items-center ${
-                        isScoreRevealPhase
-                          ? "w-[22%] max-w-16 gap-1"
-                          : "w-[30%] gap-2"
-                      }`}
-                    >
-                      <Image
-                        src={getPositionImage(mainPosition)}
-                        alt={mainPosition}
-                        width={200}
-                        height={200}
-                        className="w-full h-auto"
-                      />
-                      <span
-                        className={`font-bold text-gray-600 ${
-                          isScoreRevealPhase
-                            ? "text-fluid-xs"
-                            : "text-fluid-base"
-                        }`}
-                      >
-                        {mainPosition}
-                        {subPosition ? ` / ${subPosition}` : ""}
-                      </span>
+                  {playerComment && (
+                    <div className="min-w-0 flex-1 border-2 border-black bg-white px-3 py-2 shadow-pixel-sm">
+                      <p className="text-[10px] font-black uppercase text-gray-500">
+                        한마디
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-fluid-xs font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                        &ldquo;{playerComment}&rdquo;
+                      </p>
                     </div>
                   )}
                 </div>
-              )}
-              <h2
-                className={`font-black leading-tight text-black break-all ${
-                  isScoreRevealPhase ? "text-fluid-base" : "text-fluid-lg"
-                }`}
-              >
-                {currentPlayer.name}
-              </h2>
-            </div>
-            {!isScoreRevealPhase && desiredTeam && (
-              <div
-                className={`border-2 border-black bg-[#fff7cc] shadow-pixel-sm ${
-                  isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
-                }`}
-              >
-                <p className="text-xs font-black uppercase text-gray-500">
-                  희망 팀
-                </p>
-                <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
-                  {desiredTeam}
-                </p>
               </div>
-            )}
-            {!isScoreRevealPhase && playerComment && (
-              <div
-                className={`border-2 border-black bg-white shadow-pixel-sm ${
-                  isScoreRevealPhase ? "px-4 py-2" : "px-5 py-4"
-                }`}
-              >
-                <p className="text-xs font-black uppercase text-gray-500">
-                  한마디
-                </p>
-                <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
-                  &ldquo;{playerComment}&rdquo;
-                </p>
-              </div>
+            ) : (
+              <>
+                <div className="border-2 border-black bg-white px-5 py-5 text-center shadow-pixel-sm">
+                  {(srTier || mainPosition) && (
+                    <div className="mb-4 flex justify-center gap-6">
+                      {srTier && srTierImageSrc && (
+                        <div className="flex w-[30%] flex-col items-center gap-2">
+                          <Image
+                            src={srTierImageSrc}
+                            alt={srTier}
+                            width={200}
+                            height={200}
+                            className="h-auto w-full pixelated"
+                          />
+                          <span className="w-full truncate whitespace-nowrap text-fluid-base font-bold text-gray-600">
+                            {srTier}
+                          </span>
+                        </div>
+                      )}
+                      {mainPosition && (
+                        <div className="flex w-[30%] flex-col items-center gap-2">
+                          <Image
+                            src={getPositionImage(mainPosition)}
+                            alt={mainPosition}
+                            width={200}
+                            height={200}
+                            className="h-auto w-full"
+                          />
+                          <span className="w-full truncate whitespace-nowrap text-fluid-base font-bold text-gray-600">
+                            {positionText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <h2 className="break-all text-fluid-lg font-black leading-tight text-black">
+                    {currentPlayer.name}
+                  </h2>
+                </div>
+                {desiredTeam && (
+                  <div className="border-2 border-black bg-[#fff7cc] px-5 py-4 shadow-pixel-sm">
+                    <p className="text-xs font-black uppercase text-gray-500">
+                      희망 팀
+                    </p>
+                    <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                      {desiredTeam}
+                    </p>
+                  </div>
+                )}
+                {playerComment && (
+                  <div className="border-2 border-black bg-white px-5 py-4 shadow-pixel-sm">
+                    <p className="text-xs font-black uppercase text-gray-500">
+                      한마디
+                    </p>
+                    <p className="mt-2 text-fluid-sm font-black leading-snug text-black break-words [overflow-wrap:anywhere]">
+                      &ldquo;{playerComment}&rdquo;
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
           {sealedBid.minAmount > 0 && (

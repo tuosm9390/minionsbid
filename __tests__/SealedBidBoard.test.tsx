@@ -222,7 +222,7 @@ describe("SealedBidBoard", () => {
     );
   });
 
-  it("입찰가격 공개 단계에서는 희망 팀과 한마디를 표시하지 않는다", () => {
+  it("입찰가격 공개 단계에서는 입찰 대상 정보를 2열 compact 카드로 표시한다", () => {
     const sealedBid: SealedBidState = {
       phase: "LOCKED",
       roundId: "round-1",
@@ -249,7 +249,10 @@ describe("SealedBidBoard", () => {
       <SealedBidBoard
         roomId="room-1"
         role="VIEWER"
-        currentPlayer={currentPlayer}
+        currentPlayer={{
+          ...currentPlayer,
+          desired_team: "Dream Team",
+        }}
         teams={[]}
         timerEndsAt={null}
         sealedBid={sealedBid}
@@ -257,9 +260,15 @@ describe("SealedBidBoard", () => {
     );
 
     expect(screen.getByText("입찰가격공개")).toBeInTheDocument();
-    expect(screen.queryByText("희망 팀")).not.toBeInTheDocument();
-    expect(screen.queryByText("한마디")).not.toBeInTheDocument();
-    expect(screen.queryByText(/라인전 자신 있습니다/)).not.toBeInTheDocument();
+    expect(screen.getByText("희망 팀")).toBeInTheDocument();
+    expect(screen.getByText("Dream Team")).toBeInTheDocument();
+    expect(screen.getByText("한마디")).toBeInTheDocument();
+    expect(screen.getByText(/라인전 자신 있습니다/)).toBeInTheDocument();
+    expect(screen.getByTestId("sealed-bid-target-identity")).toHaveClass(
+      "border-2",
+    );
+    expect(screen.getByText("골드 IV")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("MID / SUP")).toHaveClass("whitespace-nowrap");
   });
 
   it("같은 비공개 라운드의 가격 공개 전환에서는 컨테이너를 새로 렌더링하지 않는다", () => {
