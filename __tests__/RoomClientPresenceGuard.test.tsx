@@ -188,7 +188,7 @@ describe("RoomClient presence guard", () => {
 
     expect(mockedUseAuctionPresenceGuard).toHaveBeenCalledWith(
       expect.objectContaining({
-        allConnected: false,
+        allConnected: true,
         currentPlayerId: "player-1",
         effectiveRole: "ORGANIZER",
         timerEndsAt: expect.any(String) as string,
@@ -203,5 +203,26 @@ describe("RoomClient presence guard", () => {
     expect(scaleRoot).toContainElement(
       container.querySelector("[data-testid='auction-board']"),
     );
+  });
+
+  it("팀장 token이 없어도 비공개 입찰 패널 렌더링은 유지한다", () => {
+    useAuctionStore.setState({
+      role: "LEADER",
+      teamId: "team-1",
+      roomAuthToken: null,
+      organizerToken: null,
+      presences: [],
+    });
+
+    const { getByTestId } = render(
+      <RoomClient
+        roomId="room-1"
+        roleParam="LEADER"
+        teamIdParam="team-1"
+        roomAuthTokenParam={null}
+      />,
+    );
+
+    expect(getByTestId("sealed-bidding-control")).toBeInTheDocument();
   });
 });

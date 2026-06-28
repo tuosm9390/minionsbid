@@ -430,7 +430,7 @@ test('heals bid state from room fallback event when direct fixture bid sync is s
   await fallbackContext.close()
 })
 
-test('pauses the auction when a leader disconnects and resumes after reconnection', async ({
+test('keeps the auction running when a leader presence drops', async ({
   request,
   browser,
 }) => {
@@ -454,20 +454,18 @@ test('pauses the auction when a leader disconnects and resumes after reconnectio
     connected: false,
   })
 
-  await expect(organizerPage.getByRole('heading', { name: '연결 끊김' })).toBeVisible({
-    timeout: 5000,
-  })
-  await expect(organizerPage.getByText(/경매가 일시정지되었습니다/)).toBeVisible({ timeout: 5000 })
+  await expect(organizerPage.getByRole('heading', { name: '연결 끊김' })).toHaveCount(0)
+  await expect(organizerPage.locator('[role="timer"]')).toBeVisible({ timeout: 5000 })
   await expect
     .poll(async () => {
       const state = await getFixtureState(request, fixture.roomId)
       return {
-        timerEndsAt: state.timerEndsAt,
+        hasTimer: !!state.timerEndsAt,
         leaderCount: state.presences.filter((presence) => presence.role === 'LEADER').length,
       }
     })
     .toEqual({
-      timerEndsAt: null,
+      hasTimer: true,
       leaderCount: 1,
     })
 

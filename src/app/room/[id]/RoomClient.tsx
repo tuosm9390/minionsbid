@@ -50,6 +50,9 @@ import {
   SEALED_BID_DURATION_MS,
 } from "@/features/auction/constants/auctionTimings";
 
+const REQUIRE_ALL_LEADERS_CONNECTED =
+  process.env.NEXT_PUBLIC_REQUIRE_ALL_LEADERS_CONNECTED === "1";
+
 export function RoomClient({
   roomId,
   roleParam,
@@ -122,6 +125,8 @@ export function RoomClient({
   );
   const allConnected =
     teams.length > 0 && connectedLeaderIds.size >= teams.length;
+  const canProceedWithPresence =
+    !REQUIRE_ALL_LEADERS_CONNECTED || allConnected;
   const {
     currentPlayer,
     waitingPlayers,
@@ -189,7 +194,7 @@ export function RoomClient({
     roomId,
     effectiveRole,
     isPresenceLoaded,
-    allConnected,
+    allConnected: canProceedWithPresence,
     currentPlayerId: guardCurrentPlayerId,
     timerEndsAt,
     lotteryPlayerId: lotteryPlayer?.id ?? null,
@@ -445,7 +450,7 @@ export function RoomClient({
                 lotteryPlayer={lotteryPlayer}
                 waitingPlayers={displayWaitingPlayers}
                 role={effectiveRole}
-                allConnected={allConnected}
+                allConnected={canProceedWithPresence}
                 onCloseLottery={handleStartFromLottery}
                 onShowResult={() => setShowResultModal(true)}
                 roomId={roomId}
@@ -472,7 +477,7 @@ export function RoomClient({
                   timerEndsAt={timerEndsAt}
                   lotteryPlayer={lotteryPlayer}
                   isDrawing={isDrawing}
-                  allConnected={allConnected}
+                  allConnected={canProceedWithPresence}
                   auctionMode={auctionMode}
                   sealedBid={sealedBid}
                   onDraw={handleDraw}

@@ -646,4 +646,5 @@
 - [x] Firebase custom token 발급, `signInWithCustomToken`, RTDB presence write 흐름을 확인한다.
 - [x] 비공개 입찰 제출이 Server Action의 `requireRoomLeader` 토큰 검증을 쓰는지 확인한다.
 - [x] 특정 PC/브라우저 환경에서 실패할 수 있는 지점을 코드 기준으로 분리한다.
-- [ ] 운영 데이터와 브라우저 네트워크 로그로 특정 팀장의 실패 지점을 확정한다.
+- [x] presence/custom token 장애가 경매 진행과 팀장 패널 렌더링을 막지 않도록 보강한다.
+- [x] token 누락과 presence gate 회귀 테스트를 추가한다.

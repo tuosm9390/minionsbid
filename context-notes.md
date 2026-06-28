@@ -591,3 +591,6 @@
 - Edge와 Chrome 모두 같은 사용자/PC에서 실패했다면 브라우저 엔진보다 링크 또는 운영 데이터 문제가 우선 후보이다. 특히 특정 팀의 `teamId`와 `leader_token` 매핑이 누락되거나, 공유된 링크의 token이 잘렸거나 다른 팀 token과 섞인 경우 두 브라우저에서 동일하게 실패한다.
 - 환경 요인으로 가능한 것은 corporate/security 제품이 `/api/room-auth/firebase-token` POST, Firebase Auth identitytoolkit 요청, RTDB websocket/long-polling을 차단하는 경우다. 이 경우 custom token sign-in과 presence가 함께 실패하고 주최자 화면에는 presence 인증 오류 또는 해당 팀장 미접속처럼 보일 수 있다.
 - 운영 확정에는 해당 팀장의 최종 접속 URL 파라미터, `/api/room-auth/firebase-token` 응답 status, 브라우저 console의 `[presence] anonymous auth failed`, Firebase Auth sign-in 에러 코드, `room_auth_secrets` audit 결과가 필요하다.
+- 추가 증상은 새 방의 새 링크에서도 같은 유저 환경에서만 팀장 패널이 보이지 않는 것이다. 이 경우 token 불일치 단일 데이터 문제보다, query token 제거 또는 Firebase Auth/RTDB 차단으로 `useFirebasePresence()`가 로딩 상태에 갇히는 경로를 우선 차단한다.
+- `useFirebasePresence()`는 이제 팀장 token이 누락되거나 custom token 발급이 실패해도 `setPresenceLoaded(true)`를 호출하고 presence read 구독을 계속 시도한다. 로컬 팀장 화면은 presence auth 실패 때문에 `접속 현황 확인 중...`에 갇히지 않는다.
+- `RoomClient`는 기본적으로 presence를 경매 진행 gate로 쓰지 않는다. `NEXT_PUBLIC_REQUIRE_ALL_LEADERS_CONNECTED=1`일 때만 기존처럼 모든 팀장 presence를 진행 조건으로 사용한다. 비공개 입찰 제출 권한은 계속 Server Action의 `requireRoomLeader()`가 leader token으로 검증한다.

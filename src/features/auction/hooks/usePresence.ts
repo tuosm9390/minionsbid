@@ -55,18 +55,40 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
 
         const shouldRegisterSelf = role === 'LEADER' || role === 'ORGANIZER'
         const effectiveAuthToken = authToken ?? roomAuthToken
-        if (shouldRegisterSelf && !effectiveAuthToken) {
-          return
-        }
+        let authUid: string | null = null
 
-        const authUid = shouldRegisterSelf
-          ? await ensureRoomFirebaseAuth({
-              roomId,
-              role,
-              teamId,
-              token: effectiveAuthToken,
-            })
-          : null
+        if (shouldRegisterSelf) {
+          if (!effectiveAuthToken) {
+            setPresenceAuthError(true)
+            setPresenceLoaded(true)
+            if (role === 'LEADER') {
+              localPresenceRef.current = {
+                teamId: teamId ?? null,
+                role: role as PresenceUser['role'],
+              }
+            }
+          } else {
+            try {
+              authUid = await ensureRoomFirebaseAuth({
+                roomId,
+                role,
+                teamId,
+                token: effectiveAuthToken,
+              })
+              setPresenceAuthError(false)
+            } catch (error) {
+              console.error('[presence] anonymous auth failed', error)
+              setPresenceAuthError(true)
+              setPresenceLoaded(true)
+              if (role === 'LEADER') {
+                localPresenceRef.current = {
+                  teamId: teamId ?? null,
+                  role: role as PresenceUser['role'],
+                }
+              }
+            }
+          }
+        }
         if (cancelled) return
         const { rtdb } = getAuctionClientServices()
 
@@ -143,7 +165,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
         unsubs.push(unsubPresence)
         unsubs.push(() => { if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer) })
       } catch (error) {
-        console.error('[presence] anonymous auth failed', error)
+        console.error('[presence] setup failed', error)
         setPresenceAuthError(true)
         setPresenceLoaded(true)
       }

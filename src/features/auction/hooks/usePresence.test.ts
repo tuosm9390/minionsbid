@@ -119,6 +119,22 @@ describe('useFirebasePresence', () => {
     expect(ensureRoomFirebaseAuth).not.toHaveBeenCalled()
   })
 
+  it('should not block presence loading when a leader token is missing', async () => {
+    renderHook(() => useFirebasePresence({
+      roomId: 'room1',
+      teamId: 'team1',
+      role: 'LEADER',
+      authToken: null,
+    }))
+
+    await Promise.resolve()
+
+    expect(ensureRoomFirebaseAuth).not.toHaveBeenCalled()
+    expect(setPresenceAuthError).toHaveBeenCalledWith(true)
+    expect(setPresenceLoaded).toHaveBeenCalledWith(true)
+    expect(onValue).toHaveBeenCalled()
+  })
+
 it('should subscribe to all presence even if role is VIEWER (FR-001)', async () => {
     renderHook(() => useFirebasePresence({
       roomId: 'room1',
