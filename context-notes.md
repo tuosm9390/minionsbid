@@ -594,3 +594,4 @@
 - 추가 증상은 새 방의 새 링크에서도 같은 유저 환경에서만 팀장 패널이 보이지 않는 것이다. 이 경우 token 불일치 단일 데이터 문제보다, query token 제거 또는 Firebase Auth/RTDB 차단으로 `useFirebasePresence()`가 로딩 상태에 갇히는 경로를 우선 차단한다.
 - `useFirebasePresence()`는 이제 팀장 token이 누락되거나 custom token 발급이 실패해도 `setPresenceLoaded(true)`를 호출하고 presence read 구독을 계속 시도한다. 로컬 팀장 화면은 presence auth 실패 때문에 `접속 현황 확인 중...`에 갇히지 않는다.
 - `RoomClient`는 기본적으로 presence를 경매 진행 gate로 쓰지 않는다. `NEXT_PUBLIC_REQUIRE_ALL_LEADERS_CONNECTED=1`일 때만 기존처럼 모든 팀장 presence를 진행 조건으로 사용한다. 비공개 입찰 제출 권한은 계속 Server Action의 `requireRoomLeader()`가 leader token으로 검증한다.
+- 브라우저 콘솔 진단은 `debugAuth=1` 쿼리 또는 `localStorage.debugAuth = "1"`일 때만 출력한다. `[room-auth]`는 custom token 요청, HTTP status, sign-in, claim 요약을 보여주고, `[presence]`는 RTDB 연결, self registration, snapshot count를 보여준다. token 원문은 출력하지 않고 존재 여부와 길이만 기록한다.

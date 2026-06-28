@@ -22,6 +22,30 @@ type PresenceRecord = {
   connectedAt: ReturnType<typeof serverTimestamp>
 }
 
+function isPresenceDebugEnabled() {
+  if (typeof window === 'undefined') return false
+  const params = new URLSearchParams(window.location.search)
+  return params.has('debugAuth') || window.localStorage.getItem('debugAuth') === '1'
+}
+
+function logPresenceDebug(
+  stage: string,
+  payload: {
+    roomId: string
+    role: string | null
+    teamId: string | null
+    tokenPresent?: boolean
+    authUid?: string | null
+    connected?: boolean
+    presenceCount?: number
+    hasLocalPresence?: boolean
+    error?: string
+  },
+) {
+  if (!isPresenceDebugEnabled()) return
+  console.info('[presence]', stage, payload)
+}
+
 /**
  * Firebase RTDB 기반 Presence 훅.
  * onDisconnect를 활용하여 연결 끊김 시 자동으로 presence 정보를 제거한다.
@@ -48,7 +72,14 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
 
     const run = async () => {
       try {
+        logPresenceDebug('setup-start', {
+          roomId,
+          role,
+          teamId,
+          tokenPresent: !!(authToken ?? roomAuthToken),
+        })
         if (role === 'LEADER' && !teamId) {
+          logPresenceDebug('leader-team-missing', { roomId, role, teamId })
           setPresenceLoaded(true)
           return
         }
@@ -59,6 +90,12 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
 
         if (shouldRegisterSelf) {
           if (!effectiveAuthToken) {
+            logPresenceDebug('auth-token-missing', {
+              roomId,
+              role,
+              teamId,
+              tokenPresent: false,
+            })
             setPresenceAuthError(true)
             setPresenceLoaded(true)
             if (role === 'LEADER') {
@@ -75,8 +112,22 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
                 teamId,
                 token: effectiveAuthToken,
               })
+              logPresenceDebug('auth-success', {
+                roomId,
+                role,
+                teamId,
+                tokenPresent: true,
+                authUid,
+              })
               setPresenceAuthError(false)
             } catch (error) {
+              logPresenceDebug('auth-failed', {
+                roomId,
+                role,
+                teamId,
+                tokenPresent: true,
+                error: error instanceof Error ? error.message : String(error),
+              })
               console.error('[presence] anonymous auth failed', error)
               setPresenceAuthError(true)
               setPresenceLoaded(true)
@@ -95,7 +146,14 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
         // 1. 로컬 연결 상태 모니터링 (FR-006)
         const connectedRef = ref(rtdb, '.info/connected')
         const unsubConnected = onValue(connectedRef, (snap) => {
-          setLocalConnected(snap.val() === true)
+          const connected = snap.val() === true
+          logPresenceDebug('connection-state', {
+            roomId,
+            role,
+            teamId,
+            connected,
+          })
+          setLocalConnected(connected)
         })
         unsubs.push(unsubConnected)
 
@@ -124,6 +182,12 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
             teamId: teamId ?? null,
             role: role as PresenceUser['role'],
           }
+          logPresenceDebug('self-registered', {
+            roomId,
+            role,
+            teamId,
+            authUid,
+          })
         }
 
         // 3. 전체 presence 구독 (모든 역할 수행, FR-001)
@@ -160,11 +224,24 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
           presenceDebounceTimer = setTimeout(() => {
             setPresenceLoaded(true)
             setRealtimeData({ presences: nextPresences })
+            logPresenceDebug('snapshot-applied', {
+              roomId,
+              role,
+              teamId,
+              presenceCount: nextPresences.length,
+              hasLocalPresence: !!localPresenceRef.current,
+            })
           }, 50)
         })
         unsubs.push(unsubPresence)
         unsubs.push(() => { if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer) })
       } catch (error) {
+        logPresenceDebug('setup-failed', {
+          roomId,
+          role,
+          teamId,
+          error: error instanceof Error ? error.message : String(error),
+        })
         console.error('[presence] setup failed', error)
         setPresenceAuthError(true)
         setPresenceLoaded(true)
@@ -175,6 +252,7 @@ export function useFirebasePresence({ roomId, teamId, role, teamName, authToken 
 
     return () => {
       cancelled = true
+      logPresenceDebug('cleanup', { roomId, role, teamId })
       if (myPresenceRef) {
         set(myPresenceRef, null)
       }

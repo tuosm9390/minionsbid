@@ -21,6 +21,29 @@ declare global {
   var __firebaseClientEmulatorsConnected__: boolean | undefined
 }
 
+type RoomAuthDebugPayload = {
+  roomId?: string
+  role?: string | null
+  teamId?: string | null
+  tokenPresent?: boolean
+  tokenLength?: number
+  uid?: string | null
+  claims?: Record<string, unknown>
+  status?: number
+  error?: string
+}
+
+function isRoomAuthDebugEnabled() {
+  if (typeof window === 'undefined') return false
+  const params = new URLSearchParams(window.location.search)
+  return params.has('debugAuth') || window.localStorage.getItem('debugAuth') === '1'
+}
+
+function logRoomAuthDebug(stage: string, payload: RoomAuthDebugPayload) {
+  if (!isRoomAuthDebugEnabled()) return
+  console.info('[room-auth]', stage, payload)
+}
+
 function connectClientEmulators() {
   if (typeof window === 'undefined') return
   if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR !== '1') return
@@ -46,10 +69,22 @@ export async function ensureRoomFirebaseAuth(args: {
 }): Promise<string | null> {
   if (typeof window === 'undefined') return null
   if (!args.role) return null
+  const debugPayload = {
+    roomId: args.roomId,
+    role: args.role,
+    teamId: args.teamId ?? null,
+    tokenPresent: !!args.token,
+    tokenLength: args.token?.length ?? 0,
+  }
 
   const key = `${args.roomId}:${args.role}:${args.teamId ?? ''}:${args.token ?? ''}`
+  logRoomAuthDebug('ensure-start', debugPayload)
   if (auth.currentUser?.uid && roomAuthKey === key) {
     await auth.currentUser.getIdToken()
+    logRoomAuthDebug('cache-hit', {
+      ...debugPayload,
+      uid: auth.currentUser.uid,
+    })
     return auth.currentUser.uid
   }
 
@@ -65,21 +100,39 @@ export async function ensureRoomFirebaseAuth(args: {
         (args.role !== 'LEADER' || c['teamId'] === args.teamId)
       ) {
         roomAuthKey = key
+        logRoomAuthDebug('claims-reused', {
+          ...debugPayload,
+          uid: auth.currentUser.uid,
+          claims: {
+            roomId: c['roomId'],
+            role: c['role'],
+            teamId: c['teamId'] ?? null,
+          },
+        })
         return auth.currentUser.uid
       }
-    } catch {
+    } catch (error) {
+      logRoomAuthDebug('claims-reuse-failed', {
+        ...debugPayload,
+        error: error instanceof Error ? error.message : String(error),
+      })
       // 토큰 만료 등 → fetch 경로로 진행
     }
   }
 
   if (!roomAuthPromise || roomAuthKey !== key) {
     roomAuthKey = key
+    logRoomAuthDebug('token-request-start', debugPayload)
     roomAuthPromise = fetch('/api/room-auth/firebase-token', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(args),
     })
       .then(async (response) => {
+        logRoomAuthDebug('token-response', {
+          ...debugPayload,
+          status: response.status,
+        })
         if (!response.ok) {
           const body = (await response.json().catch(() => null)) as { error?: unknown } | null
           const detail = typeof body?.error === 'string' ? `: ${body.error}` : ''
@@ -89,11 +142,18 @@ export async function ensureRoomFirebaseAuth(args: {
       })
       .then(({ token }) => {
         if (!token) throw new Error('Firebase auth token response missing token')
+        logRoomAuthDebug('custom-token-received', {
+          ...debugPayload,
+          tokenPresent: true,
+          tokenLength: token.length,
+        })
         return signInWithCustomToken(auth, token)
       })
       .then(async (credential) => {
         await credential.user.getIdToken(true)
-        if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === '1') {
+        const shouldExposeDebug =
+          process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === '1' || isRoomAuthDebugEnabled()
+        if (shouldExposeDebug) {
           const tokenResult = await getIdTokenResult(credential.user, true)
           ;(
             window as Window & {
@@ -106,10 +166,28 @@ export async function ensureRoomFirebaseAuth(args: {
             uid: credential.user.uid,
             claims: tokenResult.claims,
           }
+          logRoomAuthDebug('signin-success', {
+            ...debugPayload,
+            uid: credential.user.uid,
+            claims: {
+              roomId: tokenResult.claims.roomId,
+              role: tokenResult.claims.role,
+              teamId: tokenResult.claims.teamId ?? null,
+            },
+          })
+        } else {
+          logRoomAuthDebug('signin-success', {
+            ...debugPayload,
+            uid: credential.user.uid,
+          })
         }
         return credential.user.uid
       })
       .catch((error) => {
+        logRoomAuthDebug('failed', {
+          ...debugPayload,
+          error: error instanceof Error ? error.message : String(error),
+        })
         roomAuthPromise = null
         roomAuthKey = null
         throw error
