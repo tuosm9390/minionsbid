@@ -32,7 +32,7 @@ const players: Player[] = [
 ];
 
 describe("DraftPanel", () => {
-  it("재경매 시작 버튼을 선수 목록 하단에 크게 표시하고 shine 효과를 적용한다", () => {
+  it("재경매 시작 버튼을 선수 목록 하단에 크게 표시하고 전체 반짝임 효과를 적용한다", () => {
     render(
       <DraftPanel
         phase="RE_AUCTION_READY"
@@ -55,6 +55,9 @@ describe("DraftPanel", () => {
     );
     expect(restartButton).toHaveClass("min-h-14");
     expect(restartButton).toHaveClass("px-10");
-    expect(restartButton.querySelector(".animate-shimmer")).toBeInTheDocument();
+    expect(restartButton).toHaveClass("reauction-cta-sparkle");
+    expect(
+      restartButton.querySelector(".animate-shimmer"),
+    ).not.toBeInTheDocument();
   });
 });
