@@ -44,17 +44,6 @@ export function DraftPanel({
             </div>
           </div>
         )}
-        {isReAuctionPhase && role === "ORGANIZER" && (
-          <div className="flex justify-center mt-2">
-            <button
-              onClick={onRestartAuction}
-              disabled={isRestarting}
-              className="pixel-button bg-minion-blue text-white px-5 py-2 text-fluid-xs font-heading uppercase tracking-tight disabled:bg-gray-400"
-            >
-              {isRestarting ? "재경매 준비 중..." : "재경매 시작"}
-            </button>
-          </div>
-        )}
       </div>
       <div className="grid grid-cols-2 gap-3 overflow-y-auto max-h-[300px] p-2">
         {playersList.map((p) => (
@@ -81,6 +70,22 @@ export function DraftPanel({
           </div>
         ))}
       </div>
+      {isReAuctionPhase && role === "ORGANIZER" && (
+        <div className="flex justify-center px-2 pt-6">
+          <button
+            onClick={onRestartAuction}
+            disabled={isRestarting}
+            className="pixel-button relative overflow-hidden bg-minion-blue text-white min-h-14 px-10 py-4 text-fluid-sm font-heading uppercase tracking-tight shadow-[6px_6px_0px_rgba(0,0,0,1)] disabled:bg-gray-400"
+          >
+            {!isRestarting && (
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine pointer-events-none" />
+            )}
+            <span className="relative z-10">
+              {isRestarting ? "재경매 준비 중..." : "재경매 시작"}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
