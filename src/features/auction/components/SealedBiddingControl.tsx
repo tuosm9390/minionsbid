@@ -36,6 +36,8 @@ export function SealedBiddingControl({
   const minAmount = sealedBid.minAmount;
   const isEligible =
     !sealedBid.eligibleTeamIds || sealedBid.eligibleTeamIds.includes(teamId);
+  const isRebidExcluded =
+    !!sealedBid.eligibleTeamIds && !sealedBid.eligibleTeamIds.includes(teamId);
   const canSubmit =
     !!currentPlayer &&
     isAuctionActive &&
@@ -83,7 +85,10 @@ export function SealedBiddingControl({
 
   const numericAmount =
     typeof amount === "string" ? parseInt(amount, 10) || 0 : amount;
-  const clampedBidAmount = Math.max(minAmount, Math.min(pointBalance, numericAmount));
+  const clampedBidAmount = Math.max(
+    minAmount,
+    Math.min(pointBalance, numericAmount),
+  );
   const canBidAmount = canSubmit && pointBalance >= minAmount;
   const inactiveMessage = !currentPlayer
     ? "다음 선수를 기다리는 중..."
@@ -94,6 +99,23 @@ export function SealedBiddingControl({
         : sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING"
           ? "입찰이 마감되었습니다"
           : "비공개 입찰 대기중...";
+
+  if (isRebidExcluded) {
+    return (
+      <div className="pixel-box bg-white p-5 shrink-0 relative z-20 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+        <div className="bg-black text-white px-4 py-2 mb-0 flex justify-between items-center border-b-4 border-black -mx-5 -mt-5">
+          <span className="text-fluid-xs font-heading uppercase tracking-tighter">
+            CONTROL PANEL
+          </span>
+        </div>
+        <div className="h-14 flex items-center justify-center">
+          <span className="text-fluid-xs font-heading text-gray-500 uppercase">
+            다음 선수 추첨을 기다리는 중...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (!canSubmit) {
     return (
@@ -163,7 +185,9 @@ export function SealedBiddingControl({
           max={pointBalance}
           step={1}
           onChange={(event) =>
-            setAmount(event.target.value === "" ? "" : parseInt(event.target.value, 10))
+            setAmount(
+              event.target.value === "" ? "" : parseInt(event.target.value, 10),
+            )
           }
           onFocus={(event) => event.target.select()}
           disabled={!canSubmit || !canBidAmount}

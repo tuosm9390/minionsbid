@@ -1,5 +1,11 @@
 # 비공개 입찰 구현 컨텍스트 노트
 
+## 2026-06-28 동점 재입찰 UI 제한
+
+- 요청은 점수 공개 결과에서 재입찰 대상이 관찰된 경우 주최자 확정 버튼을 `낙찰 결과 반영`이 아니라 `재입찰 준비`로 표시하고, 클릭 후 재입찰 진행 팀장만 입찰 상태 UI를 볼 수 있게 하는 것이다.
+- 재입찰 발생 조건은 `sealedBid.phase === "REVEALING"`, `sealedBid.highestAmount > 0`, `sealedBid.tiedTeamIds.length > 1`이다. 서버의 `completeSealedBidReveal()`도 같은 조건에서 `startSealedBidRound()`를 호출해 `eligibleTeamIds`가 동점 팀으로 제한된 새 `ACTIVE` 라운드를 시작한다.
+- 비대상 팀장은 `sealedBid.eligibleTeamIds`가 있고 본인 `teamId`가 포함되지 않는 경우다. 이 경우 입찰 금액, 포기, 제출 버튼을 렌더하지 않고 추첨 대기형 비활성 컨트롤만 표시한다.
+
 ## 2026-06-26 Firebase 운영 검증 강화
 
 - 요청은 Firebase 선택 시 보완해야 할 운영 검증 항목을 보고서 형식으로 `doc/results`에 저장하고, 해당 보완 작업을 진행하는 것이다.
@@ -396,6 +402,7 @@
 - 2026-06-17: 접속 상태 자체는 `presence/{roomId}` 구독 결과를 `presences`와 `allConnected`로 관리하고 있다. 문제는 `RoomClient`가 `useAuctionPresenceGuard`에 room 정본 `currentPlayerId`가 아니라 `currentPlayer?.id`를 넘겨, players snapshot이나 파생 currentPlayer가 아직 비어 있는 순간 guard에 `null`이 전달될 수 있는 경로였다.
 - 2026-06-17: `RoomClient`는 presence guard에 `currentPlayerId ?? currentPlayer?.id ?? null`을 전달한다. 따라서 room 정본에 현재 선수 id가 있으면 비공개입찰 ACTIVE 라운드에서도 null로 빠지지 않는다.
 - 2026-06-17: 검증 결과 `npx vitest run __tests__/RoomClientPresenceGuard.test.tsx`, `npx vitest run __tests__/RoomClientPresenceGuard.test.tsx src/features/auction/hooks/useAuctionPresenceGuard.test.ts src/features/auction/hooks/usePresence.test.ts`, `npm run build`가 통과했다.
+
 ## 2026-06-18 리그일정관리 날짜 고정
 
 - 요구사항은 리그일정관리의 선택 날짜 초기값을 오늘 날짜로 통일하고, 경기 입력/수정 후 타임라인을 다시 불러와도 사용자가 선택한 날짜를 바꾸지 않는 것이다.

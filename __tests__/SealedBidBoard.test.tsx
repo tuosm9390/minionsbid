@@ -1,6 +1,6 @@
 // 비공개 입찰 대상 카드의 티어와 희망 팀 표시를 검증한다.
 import React, { type ImgHTMLAttributes } from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SealedBidBoard } from "@/features/auction/components/board/SealedBidBoard";
 import type {
@@ -210,5 +210,68 @@ describe("SealedBidBoard", () => {
     expect(screen.getByText("입찰 대상").closest(".pixel-box")).not.toHaveClass(
       "-translate-y-1/2",
     );
+  });
+
+  it("동점 재입찰 대상이 있으면 확정 버튼을 재입찰 준비로 표시한다", async () => {
+    vi.useFakeTimers();
+    const sealedBid: SealedBidState = {
+      phase: "REVEALING",
+      roundId: "round-1",
+      roundNumber: 1,
+      minAmount: 0,
+      eligibleTeamIds: null,
+      revealOrder: ["team-1", "team-2"],
+      revealResult: [
+        {
+          team_id: "team-1",
+          team_name: "Blue",
+          amount: 100,
+          is_pass: false,
+          is_highest: true,
+          is_tied: true,
+          eligible: true,
+        },
+        {
+          team_id: "team-2",
+          team_name: "Red",
+          amount: 100,
+          is_pass: false,
+          is_highest: true,
+          is_tied: true,
+          eligible: true,
+        },
+      ],
+      highestAmount: 100,
+      tiedTeamIds: ["team-1", "team-2"],
+    };
+
+    try {
+      render(
+        <SealedBidBoard
+          roomId="room-1"
+          role="ORGANIZER"
+          currentPlayer={currentPlayer}
+          teams={[]}
+          timerEndsAt={null}
+          sealedBid={sealedBid}
+        />,
+      );
+
+      await act(async () => {
+        vi.advanceTimersByTime(250);
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(650);
+      });
+
+      expect(
+        screen.getByRole("button", { name: "재입찰 준비" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "낙찰 결과 반영" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

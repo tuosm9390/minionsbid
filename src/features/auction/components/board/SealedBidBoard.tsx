@@ -150,6 +150,8 @@ export function SealedBidBoard({
     sealedBid.phase === "REVEALING" &&
     visibleCards.length > 0 &&
     revealComplete;
+  const isRebidReady =
+    sealedBid.highestAmount > 0 && sealedBid.tiedTeamIds.length > 1;
   const shouldCenterAuctionTarget =
     sealedBid.phase === null || sealedBid.phase === "ACTIVE";
 
@@ -369,7 +371,13 @@ export function SealedBidBoard({
             disabled={isCompleting}
             className="pixel-button bg-minion-yellow text-black h-14 px-10 text-fluid-xs font-heading uppercase tracking-tighter hover:bg-minion-yellow-hover"
           >
-            {isCompleting ? "반영 중..." : "낙찰 결과 반영"}
+            {isCompleting
+              ? isRebidReady
+                ? "재입찰 준비 중..."
+                : "반영 중..."
+              : isRebidReady
+                ? "재입찰 준비"
+                : "낙찰 결과 반영"}
           </button>
         </div>
       )}
