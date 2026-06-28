@@ -439,7 +439,8 @@
 
   .room-layout-scale {
     width: calc(100% / 0.9);
-    height: calc(100% / 0.9);
+    height: calc(100dvh / 0.9);
+    min-height: calc(100dvh / 0.9);
     transform: scale(0.9);
     transform-origin: top left;
   }

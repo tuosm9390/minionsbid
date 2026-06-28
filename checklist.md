@@ -1,5 +1,12 @@
 # 비공개 입찰 구현 체크리스트
 
+## 0.9 스케일 적용 후 하단 여백 제거
+
+- [x] scale wrapper와 main 높이 제한 확인
+- [x] wrapper 높이를 viewport 기준으로 보정
+- [x] main의 95vh 최대 높이 제한 제거
+- [x] RoomClient 회귀 테스트 실행
+
 ## 경매방 전체 레이아웃 0.9 스케일 축소
 
 - [x] RoomClient 레이아웃 root 구조 확인

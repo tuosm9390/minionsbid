@@ -196,6 +196,7 @@ describe("RoomClient presence guard", () => {
     );
     const scaleRoot = container.querySelector(".room-layout-scale");
     expect(scaleRoot).toBeInTheDocument();
+    expect(container.querySelector("main")).not.toHaveClass("max-h-[95vh]");
     expect(scaleRoot).toContainElement(
       container.querySelector("[data-testid='room-header']"),
     );

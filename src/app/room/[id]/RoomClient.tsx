@@ -360,7 +360,7 @@ export function RoomClient({
           onLeaveRoom={() => setIsLeaveRoomOpen(true)}
         />
 
-        <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden xl:overflow-visible w-full max-w-7xl mx-auto z-10 relative max-h-[95vh] custom-scrollbar">
+        <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden xl:overflow-visible w-full max-w-7xl mx-auto z-10 relative min-h-0 custom-scrollbar">
           {/* Left Side: Team List (Mobile Accordion) */}
           <aside
             className={`lg:col-span-3 flex flex-col min-h-0 order-3 lg:order-1 transition-all duration-300 ease-in-out xl:relative xl:overflow-visible ${isTeamsExpanded ? "h-auto" : "h-14 lg:h-full"}`}
