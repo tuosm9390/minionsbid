@@ -598,3 +598,11 @@
 - 후속 요청에 따라 비공개 입찰(`auctionMode === "SEALED_BID"`)에서는 `RoomClient`가 `useFirebasePresence()`에 `disableRoomFirebaseAuth: true`를 전달한다. 이 모드에서는 leader token이 있어도 `ensureRoomFirebaseAuth()`와 RTDB self presence write를 건너뛰고 presence read 구독만 유지한다. 공개 입찰은 기존 custom token 경로를 유지한다.
 - 후속 요청에 따라 팀장 링크는 `role=LEADER&teamId=...&token=...` 노출 대신 `invite=...` 형태의 AES-GCM 암호화 토큰으로 전환한다. invite 내부에는 `roomId`, `role`, `teamId`, 기존 `leaderToken`이 들어가며, 서버는 복호화 후 기존 `room_auth_secrets/{roomId}/team_tokens/{teamId}.leader_token`과 다시 비교한다. 즉 링크는 단순 식별자가 아니라 위조와 임의 teamId 변경을 막는 capability로 유지한다.
 - `drawNextPlayer()`의 RTDB presence 리더 수 검증은 제거한다. 현재 정책은 presence/custom token 장애가 경매 진행을 막지 않는 것이며, 추첨 시작 권한은 주최자 토큰으로 검증하고 팀장 입찰 권한은 각 입찰 액션에서 검증한다. presence는 접속 현황 표시와 진단 정보로만 취급한다.
+
+## 2026-06-29 auction archive 팀장 엑셀 추출
+
+- 요청은 Firestore `auction_archives/c45A1cRNXiWbHXj41Tgt` 문서의 완료된 팀장 데이터를 첨부 이미지 형태의 엑셀 파일로 추출하는 것이다.
+- 기존 저장 경로는 `result_snapshot[]`이며 팀별 `leader_name`과 `players[].name`을 사용하면 된다. 사용자는 닉네임만 요청했으므로 티어, 포지션, 가격은 출력하지 않는다.
+- 레이아웃은 이미지 기준으로 왼쪽 1~4팀, 오른쪽 5~8팀의 2열 x 4행 블록으로 배치한다. 각 블록은 왼쪽 열에 팀장명, 오른쪽 열에 팀원 닉네임을 순서대로 표시한다.
+- 실제 문서 조회 결과 팀은 8개이고, roster의 첫 항목에 팀장명이 중복 포함된 팀이 있어 오른쪽 팀원 열에서는 팀장명과 같은 닉네임을 제외한다. 최종 출력 선수 수는 32명이다.
+- 생성 파일은 `results/auction-archive-c45A1cRNXiWbHXj41Tgt-leaders.xlsx`다. workbook 확인 결과 시트명은 `팀장 결과`, 범위는 `A1:E23`이며 왼쪽과 오른쪽 팀 블록 모두 샘플 셀이 채워져 있다.
