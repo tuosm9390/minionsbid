@@ -5,6 +5,7 @@ import {
   ROOM_AUTH_COLLECTION,
   ROOM_AUTH_TEAM_TOKENS_COLLECTION,
 } from '@/features/auction/utils/roomAuth'
+import { parseRoomInviteToken } from '@/features/auction/utils/roomInviteToken'
 
 export const LEADER_AUTH_ERROR = '팀장 권한이 필요합니다.'
 export const VIEWER_AUTH_ERROR = '관전자 권한이 필요합니다.'
@@ -23,15 +24,42 @@ export async function requireRoomLeader(
 ): Promise<string | null> {
   if (!teamId || !token) return LEADER_AUTH_ERROR
 
+  const invite = parseRoomInviteToken(token)
+  const effectiveTeamId =
+    invite?.role === 'LEADER' && invite.roomId === roomId && invite.teamId
+      ? invite.teamId
+      : teamId
+  const effectiveToken =
+    invite?.role === 'LEADER' && invite.roomId === roomId && invite.teamId === teamId
+      ? invite.token
+      : token
+
   const { firestore } = getAuctionServerServices()
   const teamSecretSnap = await firestore
     .collection(ROOM_AUTH_COLLECTION)
     .doc(roomId)
     .collection(ROOM_AUTH_TEAM_TOKENS_COLLECTION)
-    .doc(teamId)
+    .doc(effectiveTeamId)
     .get()
 
-  return isEqualToken(teamSecretSnap.data()?.leader_token, token) ? null : LEADER_AUTH_ERROR
+  return isEqualToken(teamSecretSnap.data()?.leader_token, effectiveToken) ? null : LEADER_AUTH_ERROR
+}
+
+export async function requireRoomLeaderInvite(
+  roomId: string,
+  inviteToken?: string | null,
+): Promise<{ error: string } | { teamId: string; leaderToken: string }> {
+  if (!inviteToken) return { error: LEADER_AUTH_ERROR }
+
+  const invite = parseRoomInviteToken(inviteToken)
+  if (invite?.role !== 'LEADER' || invite.roomId !== roomId || !invite.teamId) {
+    return { error: LEADER_AUTH_ERROR }
+  }
+
+  const authError = await requireRoomLeader(roomId, invite.teamId, inviteToken)
+  if (authError) return { error: authError }
+
+  return { teamId: invite.teamId, leaderToken: invite.token }
 }
 
 export async function requireRoomViewer(

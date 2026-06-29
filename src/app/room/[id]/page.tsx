@@ -2,9 +2,10 @@ import { Metadata } from 'next'
 import { RoomClient } from './RoomClient'
 import { Role } from '@/features/auction/store/useAuctionStore'
 import { isValidRoomRole } from '@/features/auction/utils/roomAuth'
+import { parseRoomInviteToken } from '@/features/auction/utils/roomInviteToken'
 
 type Params = Promise<{ id: string }>
-type SearchParams = Promise<{ role?: string; teamId?: string; token?: string; authToken?: string }>
+type SearchParams = Promise<{ role?: string; teamId?: string; token?: string; authToken?: string; invite?: string }>
 
 export const runtime = 'nodejs'
 export const preferredRegion = 'sin1'
@@ -27,9 +28,22 @@ export default async function RoomPage(props: {
   const roomId = resolvedParams.id
 
   const rawRole = resolvedSearchParams.role
-  const role: Role = isValidRoomRole(rawRole) ? rawRole : null
-  const teamId = role === 'LEADER' ? (resolvedSearchParams.teamId || null) : null
-  const roomAuthToken = resolvedSearchParams.token || resolvedSearchParams.authToken || null
+  const inviteToken = resolvedSearchParams.invite || null
+  const invite = inviteToken ? parseRoomInviteToken(inviteToken) : null
+  const isValidInvite = invite?.roomId === roomId
+  const role: Role = isValidInvite
+    ? invite.role
+    : isValidRoomRole(rawRole)
+      ? rawRole
+      : null
+  const teamId = role === 'LEADER'
+    ? isValidInvite
+      ? invite.teamId ?? null
+      : resolvedSearchParams.teamId || null
+    : null
+  const roomAuthToken = isValidInvite
+    ? inviteToken
+    : resolvedSearchParams.token || resolvedSearchParams.authToken || null
 
   return (
     <RoomClient

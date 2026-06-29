@@ -15,7 +15,7 @@ interface OrganizerLinksPayload {
     teamId: string;
     teamName: string;
     leaderName: string;
-    leaderToken: string;
+    inviteToken: string;
   }>;
 }
 
@@ -158,7 +158,7 @@ export function LinksModal() {
               {[...(links?.captainLinks ?? [])]
                 .sort((a, b) => a.teamName.localeCompare(b.teamName, undefined, { numeric: true }))
                 .map((team, i: number) => {
-                  const link = `${baseUrl}/room/${roomId}?role=LEADER&teamId=${team.teamId}&token=${encodeURIComponent(team.leaderToken)}`;
+                  const link = `${baseUrl}/room/${roomId}?invite=${encodeURIComponent(team.inviteToken)}`;
                   return (
                     <LinkCard
                       key={team.teamId} label={team.teamName}

@@ -650,3 +650,7 @@
 - [x] token 누락과 presence gate 회귀 테스트를 추가한다.
 - [x] `debugAuth=1` 브라우저 콘솔 진단 로그를 추가한다.
 - [x] 비공개 입찰 방에서 custom token 요청과 self presence write를 건너뛰도록 수정한다.
+- [x] 팀장 링크를 `roomId/teamId/token` 쿼리 조합에서 암호화된 `invite` 링크로 전환한다.
+- [x] 서버 액션이 invite에서 복원한 팀장 권한으로 입찰을 검증하도록 수정한다.
+- [x] invite 변조 방지와 기존 token 호환 경로 테스트를 추가한다.
+- [x] 추첨 시작 서버 액션의 RTDB presence 리더 수 검증을 제거한다.

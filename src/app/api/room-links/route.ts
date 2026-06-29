@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
 import { requireRoomOrganizer } from '@/features/auction/api/organizerAuth'
 import { ROOM_AUTH_COLLECTION, ROOM_AUTH_TEAM_TOKENS_COLLECTION } from '@/features/auction/utils/roomAuth'
+import { createRoomInviteToken } from '@/features/auction/utils/roomInviteToken'
 import {
   getE2EAuctionFixtureRoomLinks,
   isE2EAuctionFixtureEnabled,
@@ -55,12 +56,18 @@ export async function GET(request: NextRequest) {
         const privateToken = privateTokensByTeamId.get(teamDoc.id)
         const leaderToken = typeof privateToken === 'string' ? privateToken : ''
         if (!teamName || !leaderToken) return null
+        const inviteToken = createRoomInviteToken({
+          roomId,
+          role: 'LEADER',
+          teamId: teamDoc.id,
+          token: leaderToken,
+        })
 
         return {
           teamId: teamDoc.id,
           teamName,
           leaderName,
-          leaderToken,
+          inviteToken,
         }
       })
       .filter(
@@ -70,7 +77,7 @@ export async function GET(request: NextRequest) {
           teamId: string
           teamName: string
           leaderName: string
-          leaderToken: string
+          inviteToken: string
         } => link !== null,
       )
 

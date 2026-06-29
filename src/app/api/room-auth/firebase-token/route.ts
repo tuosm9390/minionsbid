@@ -8,6 +8,7 @@ import {
   ROOM_AUTH_COLLECTION,
   ROOM_AUTH_TEAM_TOKENS_COLLECTION,
 } from '@/features/auction/utils/roomAuth'
+import { parseRoomInviteToken } from '@/features/auction/utils/roomInviteToken'
 import { getAuctionServerServices } from '@/features/auction/realtime/serverAdapter'
 import {
   isE2EAuctionFixtureEnabled,
@@ -31,8 +32,8 @@ export async function POST(request: NextRequest) {
   const payload = (await request.json().catch(() => null)) as FirebaseTokenPayload | null
   const roomId = payload?.roomId
   const role = payload?.role ?? null
-  const teamId = payload?.teamId ?? null
-  const token = payload?.token ?? null
+  let teamId = payload?.teamId ?? null
+  let token = payload?.token ?? null
 
   if (!roomId || !isValidRoomRole(role)) {
     return NextResponse.json({ error: 'invalid request' }, { status: 400 })
@@ -42,6 +43,15 @@ export async function POST(request: NextRequest) {
   }
   if (!token) {
     return NextResponse.json({ error: 'invalid request' }, { status: 400 })
+  }
+
+  const invite = parseRoomInviteToken(token)
+  if (invite) {
+    if (invite.roomId !== roomId || invite.role !== role) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+    teamId = invite.role === 'LEADER' ? invite.teamId ?? null : null
+    token = invite.token
   }
 
   try {

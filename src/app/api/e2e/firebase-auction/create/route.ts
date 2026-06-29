@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
       teamId: team.id,
       teamName: team.name,
       token: team.leader_token,
-      link: `${baseUrl}/room/${result.roomId}?role=LEADER&teamId=${team.id}&authToken=${team.leader_token}`,
+      link: team.invite_token
+        ? `${baseUrl}/room/${result.roomId}?invite=${encodeURIComponent(team.invite_token)}`
+        : `${baseUrl}/room/${result.roomId}?role=LEADER&teamId=${team.id}&authToken=${team.leader_token}`,
     })),
   })
 }

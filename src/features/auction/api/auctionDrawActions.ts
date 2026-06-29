@@ -2,7 +2,6 @@
 
 // 선수 추첨(drawNextPlayer)과 추첨 모달 닫기(closeLotteryAction) 서버 액션
 import type { AuctionEventEnvelope } from "@/features/auction/utils/auctionRealtime";
-import { getAuctionServerServices } from "@/features/auction/realtime/serverAdapter";
 import {
   closeFixtureLottery,
   drawFixtureNextPlayer,
@@ -11,14 +10,11 @@ import {
 import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
 import {
   getAuctionFirestore,
-  sleep,
   publishAuctionEvent,
   createAuctionEventPatch,
-  getPresenceRole,
   toTimestamp,
   queueSystemMessage,
   type AuctionRoomState,
-  type PresenceRecord,
 } from "./auctionFlowShared";
 
 /** 랜덤으로 WAITING 선수 1명을 IN_AUCTION으로 전환 */
@@ -54,33 +50,6 @@ export async function drawNextPlayer(
     const docs = waitingSnap.docs;
     const picked = docs[Math.floor(Math.random() * docs.length)];
     const pickedData = picked.data();
-
-    // 1. 참여 인원 검증 (리더 최소 2명)
-    const { rtdb } = getAuctionServerServices();
-    let leaderCount = 0;
-
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const presenceSnap = await rtdb.ref(`presence/${roomId}`).get();
-      const presenceData = presenceSnap.val() as Record<
-        string,
-        PresenceRecord
-      > | null;
-      const presenceRoles = presenceData
-        ? Object.entries(presenceData).map(([sessionId, record]) =>
-            getPresenceRole(sessionId, record),
-          )
-        : [];
-
-      leaderCount = presenceRoles.filter((role) => role === "LEADER").length;
-      if (leaderCount >= 2) break;
-      if (attempt < 2) await sleep(150);
-    }
-
-    if (leaderCount < 2) {
-      return {
-        error: `경매를 시작하려면 최소 2명의 리더가 필요합니다. (현재 리더: ${leaderCount})`,
-      };
-    }
 
     let drawEvent: AuctionEventEnvelope | null = null;
     await getAuctionFirestore().runTransaction(async (tx) => {

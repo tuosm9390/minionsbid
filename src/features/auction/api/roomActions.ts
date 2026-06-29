@@ -15,6 +15,7 @@ import {
   isE2EAuctionFixtureEnabled,
 } from "@/features/auction/api/e2eAuctionFixture";
 import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
+import { createRoomInviteToken } from "@/features/auction/utils/roomInviteToken";
 
 // ---------- 타입 ----------
 
@@ -58,7 +59,7 @@ export interface CreateRoomResult {
   roomId?: string;
   organizerToken?: string;
   viewerToken?: string;
-  teams?: { id: string; name: string; leader_token: string }[];
+  teams?: { id: string; name: string; leader_token: string; invite_token?: string }[];
 }
 
 const ROOM_AUTH_COLLECTION = "room_auth_secrets";
@@ -157,7 +158,7 @@ export async function createRoom(
     });
 
     // teams 서브컬렉션 생성
-    const teamsResult: { id: string; name: string; leader_token: string }[] =
+    const teamsResult: { id: string; name: string; leader_token: string; invite_token: string }[] =
       [];
     for (const captain of payload.captains) {
       const teamRef = roomRef.collection("teams").doc();
@@ -187,6 +188,12 @@ export async function createRoom(
         id: teamRef.id,
         name: captain.teamName,
         leader_token: leaderToken,
+        invite_token: createRoomInviteToken({
+          roomId,
+          role: "LEADER",
+          teamId: teamRef.id,
+          token: leaderToken,
+        }),
       });
     }
 

@@ -13,7 +13,11 @@ import type {
   SealedBidState,
 } from "@/features/auction/store/useAuctionStore";
 import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
-import { requireRoomLeader } from "@/features/auction/api/roomRoleAuth";
+import {
+  requireRoomLeader,
+  requireRoomLeaderInvite,
+} from "@/features/auction/api/roomRoleAuth";
+import { parseRoomInviteToken } from "@/features/auction/utils/roomInviteToken";
 import {
   getAuctionFirestore,
   getNextRosterSlotsUsed,
@@ -38,8 +42,15 @@ export async function submitSealedBid(
   }
 
   try {
-    const authError = await requireRoomLeader(roomId, teamId, leaderToken);
-    if (authError) return { error: authError };
+    let effectiveTeamId = teamId;
+    if (parseRoomInviteToken(leaderToken)) {
+      const inviteAuth = await requireRoomLeaderInvite(roomId, leaderToken);
+      if ("error" in inviteAuth) return { error: inviteAuth.error };
+      effectiveTeamId = inviteAuth.teamId;
+    } else {
+      const authError = await requireRoomLeader(roomId, teamId, leaderToken);
+      if (authError) return { error: authError };
+    }
 
     const roomRef = getAuctionFirestore().collection("rooms").doc(roomId);
     const roomSnap = await roomRef.get();
@@ -63,16 +74,16 @@ export async function submitSealedBid(
       return { error: "비공개 입찰 시간이 종료되었습니다." };
     }
     const eligibleTeamIds = roomData.sealed_bid_eligible_team_ids ?? null;
-    if (eligibleTeamIds && !eligibleTeamIds.includes(teamId)) {
+    if (eligibleTeamIds && !eligibleTeamIds.includes(effectiveTeamId)) {
       return { error: "재입찰 대상 팀만 입찰할 수 있습니다." };
     }
 
-    const teamRef = roomRef.collection("teams").doc(teamId);
+    const teamRef = roomRef.collection("teams").doc(effectiveTeamId);
     const [teamSnap, soldCountSnap] = await Promise.all([
       teamRef.get(),
       roomRef
         .collection("players")
-        .where("team_id", "==", teamId)
+        .where("team_id", "==", effectiveTeamId)
         .where("status", "==", "SOLD")
         .get(),
     ]);
@@ -102,12 +113,12 @@ export async function submitSealedBid(
       .collection("sealed_bid_rounds")
       .doc(roomData.sealed_bid_round_id)
       .collection("submissions")
-      .doc(teamId)
+      .doc(effectiveTeamId)
       .set(
         {
           room_id: roomId,
           player_id: playerId,
-          team_id: teamId,
+          team_id: effectiveTeamId,
           amount,
           updated_at: FieldValue.serverTimestamp(),
         },

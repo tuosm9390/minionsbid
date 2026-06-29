@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   LEADER_AUTH_ERROR,
   requireRoomLeader,
+  requireRoomLeaderInvite,
   requireRoomViewer,
   VIEWER_AUTH_ERROR,
 } from '@/features/auction/api/roomRoleAuth'
+import { createRoomInviteToken } from '@/features/auction/utils/roomInviteToken'
 
 const { mockRoomAuthDocGet, mockTeamTokenGet, mockRoomDocGet, mockTeamDocGet } = vi.hoisted(() => ({
   mockRoomAuthDocGet: vi.fn(),
@@ -59,6 +61,22 @@ describe('roomRoleAuth', () => {
     mockTeamDocGet.mockResolvedValue({ data: () => ({}) })
 
     await expect(requireRoomLeader('room-1', 'team-1', 'wrong-token')).resolves.toBe(LEADER_AUTH_ERROR)
+  })
+
+  it('암호화된 팀장 invite를 저장된 팀장 토큰과 비교한다', async () => {
+    const invite = createRoomInviteToken({
+      roomId: 'room-1',
+      role: 'LEADER',
+      teamId: 'team-1',
+      token: 'leader-token',
+    })
+    mockTeamTokenGet.mockResolvedValue({ data: () => ({ leader_token: 'leader-token' }) })
+
+    await expect(requireRoomLeader('room-1', 'team-1', invite)).resolves.toBeNull()
+    await expect(requireRoomLeaderInvite('room-1', invite)).resolves.toMatchObject({
+      teamId: 'team-1',
+      leaderToken: 'leader-token',
+    })
   })
 
   it('관전자 토큰을 검증한다', async () => {
