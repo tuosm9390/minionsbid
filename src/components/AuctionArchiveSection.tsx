@@ -38,7 +38,7 @@ function ArchiveDetailModal({
 
     setIsExporting(true);
     try {
-      const XLSX = await import("xlsx");
+      const XLSX = await import("xlsx-js-style");
       const workbook = buildArchiveRosterWorkbook(XLSX, archive);
       XLSX.writeFile(workbook, getArchiveRosterExcelFileName(archive));
     } catch {

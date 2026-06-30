@@ -6,6 +6,20 @@ const ROSTER_ROWS_PER_TEAM = 5;
 const TEAM_WIDTH = 2;
 const GAP_COLUMNS = 1;
 const GAP_ROWS = 1;
+const HEADER_ROW = 0;
+const FIRST_TEAM_ROW = 3;
+const BLUE_START_COLUMN = 0;
+const CENTER_COLUMN = 2;
+const RED_START_COLUMN = 3;
+const BLUE_HEADER = "블루";
+const RED_HEADER = "레드";
+const BLUE_HEADER_FILL = "243C91";
+const RED_HEADER_FILL = "A71919";
+const BLUE_TEAM_FILL = "D8E6F7";
+const RED_TEAM_FILL = "F8DADA";
+const WHITE_FILL = "FFFFFF";
+const BLACK = "000000";
+const WHITE = "FFFFFF";
 
 export interface AuctionArchiveExcelSource {
   id: string;
@@ -14,6 +28,13 @@ export interface AuctionArchiveExcelSource {
 }
 
 export type ArchiveRosterSheetRows = Array<Array<string>>;
+type XlsxModule = typeof import("xlsx-js-style");
+type CellStyle = Record<string, unknown>;
+type StyledCell = {
+  v: string;
+  t: "s";
+  s: CellStyle;
+};
 
 function getNicknameOnly(name: string | null | undefined) {
   const trimmed = typeof name === "string" ? name.trim() : "";
@@ -29,11 +50,24 @@ function getSortedTeams(teams: ArchiveTeam[]) {
 
 function createEmptyRows() {
   const rowCount =
-    TEAMS_PER_SIDE * ROSTER_ROWS_PER_TEAM + (TEAMS_PER_SIDE - 1) * GAP_ROWS;
+    FIRST_TEAM_ROW +
+    TEAMS_PER_SIDE * ROSTER_ROWS_PER_TEAM +
+    (TEAMS_PER_SIDE - 1) * GAP_ROWS;
   const columnCount = TEAM_WIDTH * 2 + GAP_COLUMNS;
   return Array.from({ length: rowCount }, () =>
     Array.from({ length: columnCount }, () => ""),
   );
+}
+
+function getTeamPosition(teamIndex: number) {
+  const isBlueSide = teamIndex < TEAMS_PER_SIDE;
+  const rowGroup = teamIndex % TEAMS_PER_SIDE;
+
+  return {
+    isBlueSide,
+    startColumn: isBlueSide ? BLUE_START_COLUMN : RED_START_COLUMN,
+    startRow: FIRST_TEAM_ROW + rowGroup * (ROSTER_ROWS_PER_TEAM + GAP_ROWS),
+  };
 }
 
 export function buildArchiveRosterSheetRows(
@@ -44,19 +78,21 @@ export function buildArchiveRosterSheetRows(
   getSortedTeams(teams)
     .slice(0, TEAMS_PER_SIDE * 2)
     .forEach((team, teamIndex) => {
-      const sideIndex = teamIndex < TEAMS_PER_SIDE ? 0 : 1;
-      const rowGroup = teamIndex % TEAMS_PER_SIDE;
-      const startColumn = sideIndex * (TEAM_WIDTH + GAP_COLUMNS);
-      const startRow = rowGroup * (ROSTER_ROWS_PER_TEAM + GAP_ROWS);
+      const { startColumn, startRow } = getTeamPosition(teamIndex);
       const rosterNames = team.players
         .map((player) => getNicknameOnly(player.name))
         .slice(0, ROSTER_ROWS_PER_TEAM);
 
-      rows[startRow][startColumn] = getNicknameOnly(team.leader_name);
+      rows[startRow][startColumn] = `${teamIndex + 1}팀`;
       rosterNames.forEach((playerName, playerIndex) => {
         rows[startRow + playerIndex][startColumn + 1] = playerName;
       });
     });
+
+  rows[HEADER_ROW][BLUE_START_COLUMN] = BLUE_HEADER;
+  rows[HEADER_ROW][RED_START_COLUMN] = RED_HEADER;
+  rows[12][CENTER_COLUMN] = "V";
+  rows[13][CENTER_COLUMN] = "S";
 
   return rows;
 }
@@ -70,21 +106,160 @@ export function getArchiveRosterExcelFileName(archive: AuctionArchiveExcelSource
 }
 
 export function buildArchiveRosterWorkbook(
-  xlsx: typeof import("xlsx"),
+  xlsx: XlsxModule,
   archive: AuctionArchiveExcelSource,
 ) {
-  const worksheet = xlsx.utils.aoa_to_sheet(
-    buildArchiveRosterSheetRows(archive.result_snapshot),
-  );
-  worksheet["!cols"] = [
-    { wch: 18 },
-    { wch: 24 },
-    { wch: 4 },
-    { wch: 18 },
-    { wch: 24 },
-  ];
+  const worksheet = xlsx.utils.aoa_to_sheet(buildArchiveRosterSheetRows(archive.result_snapshot));
+  const sortedTeams = getSortedTeams(archive.result_snapshot).slice(0, TEAMS_PER_SIDE * 2);
+
+  applyArchiveRosterSheetStyle(xlsx, worksheet, sortedTeams.length);
 
   const workbook = xlsx.utils.book_new();
   xlsx.utils.book_append_sheet(workbook, worksheet, "팀장 결과");
   return workbook;
+}
+
+function makeBorder(style: "thin" | "medium" = "thin") {
+  return {
+    top: { style, color: { rgb: BLACK } },
+    right: { style, color: { rgb: BLACK } },
+    bottom: { style, color: { rgb: BLACK } },
+    left: { style, color: { rgb: BLACK } },
+  };
+}
+
+function makeCell(value: string, style: CellStyle): StyledCell {
+  return {
+    v: value,
+    t: "s",
+    s: style,
+  };
+}
+
+function makeStyle(options: {
+  fill: string;
+  fontColor?: string;
+  bold?: boolean;
+  fontSize?: number;
+  borderStyle?: "thin" | "medium";
+}): CellStyle {
+  return {
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: makeBorder(options.borderStyle),
+    fill: { patternType: "solid", fgColor: { rgb: options.fill } },
+    font: {
+      name: "맑은 고딕",
+      sz: options.fontSize ?? 11,
+      bold: options.bold ?? false,
+      color: { rgb: options.fontColor ?? BLACK },
+    },
+  };
+}
+
+function setStyledCell(
+  xlsx: XlsxModule,
+  worksheet: import("xlsx-js-style").WorkSheet,
+  row: number,
+  column: number,
+  value: string,
+  style: CellStyle,
+) {
+  const address = xlsx.utils.encode_cell({ r: row, c: column });
+  worksheet[address] = makeCell(value, style);
+}
+
+function applyArchiveRosterSheetStyle(
+  xlsx: XlsxModule,
+  worksheet: import("xlsx-js-style").WorkSheet,
+  teamCount: number,
+) {
+  const headerBlueStyle = makeStyle({
+    fill: BLUE_HEADER_FILL,
+    fontColor: WHITE,
+    bold: true,
+    fontSize: 24,
+    borderStyle: "medium",
+  });
+  const headerRedStyle = makeStyle({
+    fill: RED_HEADER_FILL,
+    fontColor: WHITE,
+    bold: true,
+    fontSize: 24,
+    borderStyle: "medium",
+  });
+  const blueTeamStyle = makeStyle({
+    fill: BLUE_TEAM_FILL,
+    bold: true,
+    fontSize: 15,
+    borderStyle: "medium",
+  });
+  const redTeamStyle = makeStyle({
+    fill: RED_TEAM_FILL,
+    bold: true,
+    fontSize: 15,
+    borderStyle: "medium",
+  });
+  const rosterStyle = makeStyle({ fill: WHITE_FILL, fontSize: 10 });
+  const vsStyle = makeStyle({ fill: WHITE_FILL, bold: true, fontSize: 13 });
+
+  setStyledCell(xlsx, worksheet, HEADER_ROW, BLUE_START_COLUMN, BLUE_HEADER, headerBlueStyle);
+  setStyledCell(xlsx, worksheet, HEADER_ROW, BLUE_START_COLUMN + 1, "", headerBlueStyle);
+  setStyledCell(xlsx, worksheet, HEADER_ROW, RED_START_COLUMN, RED_HEADER, headerRedStyle);
+  setStyledCell(xlsx, worksheet, HEADER_ROW, RED_START_COLUMN + 1, "", headerRedStyle);
+  setStyledCell(xlsx, worksheet, 12, CENTER_COLUMN, "V", vsStyle);
+  setStyledCell(xlsx, worksheet, 13, CENTER_COLUMN, "S", vsStyle);
+
+  for (let teamIndex = 0; teamIndex < teamCount; teamIndex += 1) {
+    const { isBlueSide, startColumn, startRow } = getTeamPosition(teamIndex);
+    const teamStyle = isBlueSide ? blueTeamStyle : redTeamStyle;
+
+    for (let rowOffset = 0; rowOffset < ROSTER_ROWS_PER_TEAM; rowOffset += 1) {
+      const teamNumberValue = rowOffset === 0 ? `${teamIndex + 1}팀` : "";
+      const teamAddress = xlsx.utils.encode_cell({
+        r: startRow + rowOffset,
+        c: startColumn,
+      });
+      const rosterAddress = xlsx.utils.encode_cell({
+        r: startRow + rowOffset,
+        c: startColumn + 1,
+      });
+      const rosterValue = typeof worksheet[rosterAddress]?.v === "string"
+        ? worksheet[rosterAddress].v
+        : "";
+
+      worksheet[teamAddress] = makeCell(teamNumberValue, teamStyle);
+      worksheet[rosterAddress] = makeCell(rosterValue, rosterStyle);
+    }
+  }
+
+  const totalRows =
+    FIRST_TEAM_ROW +
+    TEAMS_PER_SIDE * ROSTER_ROWS_PER_TEAM +
+    (TEAMS_PER_SIDE - 1) * GAP_ROWS;
+
+  worksheet["!ref"] = xlsx.utils.encode_range({
+    s: { r: 0, c: 0 },
+    e: { r: totalRows - 1, c: RED_START_COLUMN + 1 },
+  });
+  worksheet["!merges"] = [
+    { s: { r: HEADER_ROW, c: BLUE_START_COLUMN }, e: { r: HEADER_ROW, c: BLUE_START_COLUMN + 1 } },
+    { s: { r: HEADER_ROW, c: RED_START_COLUMN }, e: { r: HEADER_ROW, c: RED_START_COLUMN + 1 } },
+    ...Array.from({ length: teamCount }, (_, teamIndex) => {
+      const { startColumn, startRow } = getTeamPosition(teamIndex);
+      return {
+        s: { r: startRow, c: startColumn },
+        e: { r: startRow + ROSTER_ROWS_PER_TEAM - 1, c: startColumn },
+      };
+    }),
+  ];
+  worksheet["!cols"] = [
+    { wch: 9 },
+    { wch: 27 },
+    { wch: 3 },
+    { wch: 9 },
+    { wch: 27 },
+  ];
+  worksheet["!rows"] = Array.from({ length: totalRows }, (_, rowIndex) => ({
+    hpt: rowIndex === HEADER_ROW ? 34 : 17,
+  }));
 }
