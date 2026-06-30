@@ -81,7 +81,8 @@ function normalizeTeams(data) {
     const players = Array.isArray(team?.players)
       ? team.players
           .map((player) => getNicknameOnly(player?.name))
-          .filter((playerName) => playerName && playerName !== leaderName)
+          .filter(Boolean)
+          .slice(0, 5)
       : [];
 
     return {

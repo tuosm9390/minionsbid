@@ -2,11 +2,15 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useState, useCallback } from "react";
-import { X, RefreshCw } from "@/components/ui/CyberIcons";
+import { X, RefreshCw, Save } from "@/components/ui/CyberIcons";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { getVisibleAuctionArchives } from "@/features/hall-of-fame/api/hallOfFameActions";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
 import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
+import {
+  buildArchiveRosterWorkbook,
+  getArchiveRosterExcelFileName,
+} from "@/components/auctionArchiveExcel";
 
 interface AuctionArchiveRow {
   id: string;
@@ -27,6 +31,22 @@ function ArchiveDetailModal({
     a.name.localeCompare(b.name, "ko-KR", { numeric: true }),
   );
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const XLSX = await import("xlsx");
+      const workbook = buildArchiveRosterWorkbook(XLSX, archive);
+      XLSX.writeFile(workbook, getArchiveRosterExcelFileName(archive));
+    } catch {
+      alert("엑셀 파일 생성에 실패했습니다.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div
@@ -139,7 +159,14 @@ function ArchiveDetailModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0">
+        <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="pixel-button w-full py-3 bg-minion-blue text-white text-fluid-xs font-heading disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <Save size={14} /> {isExporting ? "EXPORTING..." : "DOWNLOAD XLSX"}
+          </button>
           <button
             onClick={onClose}
             className="pixel-button w-full py-3 bg-black text-white text-fluid-xs font-heading"
