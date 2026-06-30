@@ -6,20 +6,15 @@ const ROSTER_ROWS_PER_TEAM = 5;
 const TEAM_WIDTH = 2;
 const GAP_COLUMNS = 1;
 const GAP_ROWS = 1;
-const HEADER_ROW = 0;
-const FIRST_TEAM_ROW = 3;
+const FIRST_TEAM_ROW = 0;
 const BLUE_START_COLUMN = 0;
 const CENTER_COLUMN = 2;
 const RED_START_COLUMN = 3;
-const BLUE_HEADER = "블루";
-const RED_HEADER = "레드";
-const BLUE_HEADER_FILL = "243C91";
-const RED_HEADER_FILL = "A71919";
 const BLUE_TEAM_FILL = "D8E6F7";
 const RED_TEAM_FILL = "F8DADA";
 const WHITE_FILL = "FFFFFF";
 const BLACK = "000000";
-const WHITE = "FFFFFF";
+const VS_TOP_ROW = 9;
 
 export interface AuctionArchiveExcelSource {
   id: string;
@@ -89,10 +84,8 @@ export function buildArchiveRosterSheetRows(
       });
     });
 
-  rows[HEADER_ROW][BLUE_START_COLUMN] = BLUE_HEADER;
-  rows[HEADER_ROW][RED_START_COLUMN] = RED_HEADER;
-  rows[12][CENTER_COLUMN] = "V";
-  rows[13][CENTER_COLUMN] = "S";
+  rows[VS_TOP_ROW][CENTER_COLUMN] = "V";
+  rows[VS_TOP_ROW + 1][CENTER_COLUMN] = "S";
 
   return rows;
 }
@@ -173,20 +166,6 @@ function applyArchiveRosterSheetStyle(
   worksheet: import("xlsx-js-style").WorkSheet,
   teamCount: number,
 ) {
-  const headerBlueStyle = makeStyle({
-    fill: BLUE_HEADER_FILL,
-    fontColor: WHITE,
-    bold: true,
-    fontSize: 24,
-    borderStyle: "medium",
-  });
-  const headerRedStyle = makeStyle({
-    fill: RED_HEADER_FILL,
-    fontColor: WHITE,
-    bold: true,
-    fontSize: 24,
-    borderStyle: "medium",
-  });
   const blueTeamStyle = makeStyle({
     fill: BLUE_TEAM_FILL,
     bold: true,
@@ -202,12 +181,8 @@ function applyArchiveRosterSheetStyle(
   const rosterStyle = makeStyle({ fill: WHITE_FILL, fontSize: 10 });
   const vsStyle = makeStyle({ fill: WHITE_FILL, bold: true, fontSize: 13 });
 
-  setStyledCell(xlsx, worksheet, HEADER_ROW, BLUE_START_COLUMN, BLUE_HEADER, headerBlueStyle);
-  setStyledCell(xlsx, worksheet, HEADER_ROW, BLUE_START_COLUMN + 1, "", headerBlueStyle);
-  setStyledCell(xlsx, worksheet, HEADER_ROW, RED_START_COLUMN, RED_HEADER, headerRedStyle);
-  setStyledCell(xlsx, worksheet, HEADER_ROW, RED_START_COLUMN + 1, "", headerRedStyle);
-  setStyledCell(xlsx, worksheet, 12, CENTER_COLUMN, "V", vsStyle);
-  setStyledCell(xlsx, worksheet, 13, CENTER_COLUMN, "S", vsStyle);
+  setStyledCell(xlsx, worksheet, VS_TOP_ROW, CENTER_COLUMN, "V", vsStyle);
+  setStyledCell(xlsx, worksheet, VS_TOP_ROW + 1, CENTER_COLUMN, "S", vsStyle);
 
   for (let teamIndex = 0; teamIndex < teamCount; teamIndex += 1) {
     const { isBlueSide, startColumn, startRow } = getTeamPosition(teamIndex);
@@ -242,8 +217,6 @@ function applyArchiveRosterSheetStyle(
     e: { r: totalRows - 1, c: RED_START_COLUMN + 1 },
   });
   worksheet["!merges"] = [
-    { s: { r: HEADER_ROW, c: BLUE_START_COLUMN }, e: { r: HEADER_ROW, c: BLUE_START_COLUMN + 1 } },
-    { s: { r: HEADER_ROW, c: RED_START_COLUMN }, e: { r: HEADER_ROW, c: RED_START_COLUMN + 1 } },
     ...Array.from({ length: teamCount }, (_, teamIndex) => {
       const { startColumn, startRow } = getTeamPosition(teamIndex);
       return {
@@ -259,7 +232,7 @@ function applyArchiveRosterSheetStyle(
     { wch: 9 },
     { wch: 27 },
   ];
-  worksheet["!rows"] = Array.from({ length: totalRows }, (_, rowIndex) => ({
-    hpt: rowIndex === HEADER_ROW ? 34 : 17,
+  worksheet["!rows"] = Array.from({ length: totalRows }, () => ({
+    hpt: 17,
   }));
 }

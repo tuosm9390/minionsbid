@@ -40,10 +40,10 @@ describe("auction archive excel export", () => {
       ]),
     ]);
 
-    expect(rows[3][0]).toBe("1팀");
-    expect(rows[3][1]).toBe("Captain");
-    expect(rows[4][1]).toBe("PlayerA");
-    expect(rows[7][1]).toBe("PlayerD");
+    expect(rows[0][0]).toBe("1팀");
+    expect(rows[0][1]).toBe("Captain");
+    expect(rows[1][1]).toBe("PlayerA");
+    expect(rows[4][1]).toBe("PlayerD");
   });
 
   it("팀장이 roster에 없으면 오른쪽 로스터 열에 팀장 이름을 추가하지 않는다", () => {
@@ -57,15 +57,15 @@ describe("auction archive excel export", () => {
       ]),
     ]);
 
-    expect(rows[3][0]).toBe("1팀");
-    expect(rows.slice(3, 8).map((row) => row[1])).toEqual([
+    expect(rows[0][0]).toBe("1팀");
+    expect(rows.slice(0, 5).map((row) => row[1])).toEqual([
       "PlayerA",
       "PlayerB",
       "PlayerC",
       "PlayerD",
       "PlayerE",
     ]);
-    expect(rows.slice(3, 8).map((row) => row[1])).not.toContain("LeaderOnly");
+    expect(rows.slice(0, 5).map((row) => row[1])).not.toContain("LeaderOnly");
   });
 
   it("5번째 팀부터 오른쪽 팀 영역에 배치한다", () => {
@@ -77,11 +77,11 @@ describe("auction archive excel export", () => {
       team("5팀", "Leader5", ["P5"]),
     ]);
 
-    expect(rows[3][3]).toBe("5팀");
-    expect(rows[3][4]).toBe("P5");
+    expect(rows[0][3]).toBe("5팀");
+    expect(rows[0][4]).toBe("P5");
   });
 
-  it("블루 레드 헤더와 팀 번호 병합 스타일을 만든다", () => {
+  it("팀 번호 병합과 블루 레드 팀 배경 스타일을 만든다", () => {
     const workbook = buildArchiveRosterWorkbook(XLSX, {
       id: "archive-id",
       room_name: "테스트",
@@ -95,25 +95,23 @@ describe("auction archive excel export", () => {
     });
     const worksheet = workbook.Sheets["팀장 결과"];
 
-    expect(worksheet["A1"]?.v).toBe("블루");
-    expect(worksheet["D1"]?.v).toBe("레드");
-    expect(worksheet["A4"]?.v).toBe("1팀");
-    expect(worksheet["B4"]?.v).toBe("P1");
-    expect(worksheet["D4"]?.v).toBe("5팀");
-    expect(worksheet["E4"]?.v).toBe("P9");
-    expect(worksheet["C13"]?.v).toBe("V");
-    expect(worksheet["C14"]?.v).toBe("S");
+    expect(worksheet["A1"]?.v).toBe("1팀");
+    expect(worksheet["B1"]?.v).toBe("P1");
+    expect(worksheet["D1"]?.v).toBe("5팀");
+    expect(worksheet["E1"]?.v).toBe("P9");
+    expect(worksheet["C10"]?.v).toBe("V");
+    expect(worksheet["C11"]?.v).toBe("S");
     expect(worksheet["A1"]?.s).toMatchObject({
-      fill: { fgColor: { rgb: "243C91" } },
-      font: { color: { rgb: "FFFFFF" }, bold: true },
+      fill: { fgColor: { rgb: "D8E6F7" } },
+      font: { bold: true },
     });
     expect(worksheet["D1"]?.s).toMatchObject({
-      fill: { fgColor: { rgb: "A71919" } },
-      font: { color: { rgb: "FFFFFF" }, bold: true },
+      fill: { fgColor: { rgb: "F8DADA" } },
+      font: { bold: true },
     });
     expect(worksheet["!merges"]).toContainEqual({
-      s: { r: 3, c: 0 },
-      e: { r: 7, c: 0 },
+      s: { r: 0, c: 0 },
+      e: { r: 4, c: 0 },
     });
   });
 

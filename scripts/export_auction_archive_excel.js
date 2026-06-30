@@ -12,20 +12,15 @@ const DEFAULT_OUT_DIR = "results";
 const TEAMS_PER_SIDE = 4;
 const ROSTER_ROWS_PER_TEAM = 5;
 const GAP_ROWS = 1;
-const HEADER_ROW = 0;
-const FIRST_TEAM_ROW = 3;
+const FIRST_TEAM_ROW = 0;
 const BLUE_START_COLUMN = 0;
 const CENTER_COLUMN = 2;
 const RED_START_COLUMN = 3;
-const BLUE_HEADER = "블루";
-const RED_HEADER = "레드";
-const BLUE_HEADER_FILL = "243C91";
-const RED_HEADER_FILL = "A71919";
 const BLUE_TEAM_FILL = "D8E6F7";
 const RED_TEAM_FILL = "F8DADA";
 const WHITE_FILL = "FFFFFF";
 const BLACK = "000000";
-const WHITE = "FFFFFF";
+const VS_TOP_ROW = 9;
 
 function normalizePrivateKey(privateKey) {
   return privateKey.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
@@ -159,8 +154,6 @@ function getTotalRows() {
 
 function buildWorkbook(teams) {
   const sheet = {};
-  const headerBlueStyle = makeStyle({ fill: BLUE_HEADER_FILL, fontColor: WHITE, bold: true, fontSize: 24, borderStyle: "medium" });
-  const headerRedStyle = makeStyle({ fill: RED_HEADER_FILL, fontColor: WHITE, bold: true, fontSize: 24, borderStyle: "medium" });
   const blueTeamStyle = makeStyle({ fill: BLUE_TEAM_FILL, bold: true, fontSize: 15, borderStyle: "medium" });
   const redTeamStyle = makeStyle({ fill: RED_TEAM_FILL, bold: true, fontSize: 15, borderStyle: "medium" });
   const rosterStyle = makeStyle({ fill: WHITE_FILL, fontSize: 10 });
@@ -168,12 +161,8 @@ function buildWorkbook(teams) {
   const visibleTeams = teams.slice(0, TEAMS_PER_SIDE * 2);
   const totalRows = getTotalRows();
 
-  setCell(sheet, HEADER_ROW, BLUE_START_COLUMN, BLUE_HEADER, headerBlueStyle);
-  setCell(sheet, HEADER_ROW, BLUE_START_COLUMN + 1, "", headerBlueStyle);
-  setCell(sheet, HEADER_ROW, RED_START_COLUMN, RED_HEADER, headerRedStyle);
-  setCell(sheet, HEADER_ROW, RED_START_COLUMN + 1, "", headerRedStyle);
-  setCell(sheet, 12, CENTER_COLUMN, "V", vsStyle);
-  setCell(sheet, 13, CENTER_COLUMN, "S", vsStyle);
+  setCell(sheet, VS_TOP_ROW, CENTER_COLUMN, "V", vsStyle);
+  setCell(sheet, VS_TOP_ROW + 1, CENTER_COLUMN, "S", vsStyle);
 
   for (let teamIndex = 0; teamIndex < visibleTeams.length; teamIndex += 1) {
     const team = visibleTeams[teamIndex];
@@ -191,8 +180,6 @@ function buildWorkbook(teams) {
     e: { r: totalRows - 1, c: RED_START_COLUMN + 1 },
   });
   sheet["!merges"] = [
-    { s: { r: HEADER_ROW, c: BLUE_START_COLUMN }, e: { r: HEADER_ROW, c: BLUE_START_COLUMN + 1 } },
-    { s: { r: HEADER_ROW, c: RED_START_COLUMN }, e: { r: HEADER_ROW, c: RED_START_COLUMN + 1 } },
     ...Array.from({ length: visibleTeams.length }, (_, teamIndex) => {
       const { startColumn, startRow } = getTeamPosition(teamIndex);
       return {
@@ -208,8 +195,8 @@ function buildWorkbook(teams) {
     { wch: 9 },
     { wch: 27 },
   ];
-  sheet["!rows"] = Array.from({ length: totalRows }, (_, rowIndex) => ({
-    hpt: rowIndex === HEADER_ROW ? 34 : 17,
+  sheet["!rows"] = Array.from({ length: totalRows }, () => ({
+    hpt: 17,
   }));
 
   const workbook = XLSX.utils.book_new();
