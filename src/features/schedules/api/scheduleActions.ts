@@ -68,6 +68,16 @@ function normalizeRosterSourceType(value: unknown): LeagueRosterSourceType | nul
   return value === 'room' || value === 'archive' ? value : null
 }
 
+function hasConfirmedTeamAssignment(data: Record<string, unknown>): boolean {
+  const teamAssignment = data.team_assignment
+  return (
+    typeof teamAssignment === 'object' &&
+    teamAssignment !== null &&
+    (teamAssignment as Record<string, unknown>).status === 'CONFIRMED' &&
+    Array.isArray((teamAssignment as Record<string, unknown>).assignments)
+  )
+}
+
 function toDateKey(value: string) {
   const date = new Date(`${value}T00:00:00`)
   if (Number.isNaN(date.getTime())) return null
@@ -566,6 +576,14 @@ export async function createLeagueSchedule(
   const notes = payload.notes?.trim() || ''
 
   if (!name) return { error: '일정 이름을 입력해주세요.' }
+
+  if (rosterSourceType === 'archive' && rosterSourceId) {
+    const archiveSnap = await adminDb.collection('auction_archives').doc(rosterSourceId).get()
+    const archiveData = archiveSnap.exists ? archiveSnap.data() ?? {} : {}
+    if (!archiveSnap.exists || !hasConfirmedTeamAssignment(archiveData)) {
+      return { error: '일정 생성 전 최종 팀 배정을 확정해주세요.' }
+    }
+  }
 
   const rawStartDate = new Date(payload.startsAt)
   if (Number.isNaN(rawStartDate.getTime())) {

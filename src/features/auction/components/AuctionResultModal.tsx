@@ -18,6 +18,7 @@ import {
 import { bucketAuctionPlayers } from "@/features/auction/store/auctionSelectors";
 import { getNicknameWithoutTag } from "@/features/auction/utils/display";
 import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
+import { buildAssignedTeamLabelMap } from "@/features/auction/utils/teamAssignmentDisplay";
 
 // 개별 팀 카드를 별도 컴포넌트로 분리하여 메모이제이션
 const TeamResultCard = memo(
@@ -26,11 +27,13 @@ const TeamResultCard = memo(
     soldPlayers,
     rosterSlots,
     captainMode,
+    assignedTeamLabel,
   }: {
     team: Team;
     soldPlayers: Player[];
     rosterSlots: number;
     captainMode: CaptainMode;
+    assignedTeamLabel?: string;
   }) => {
     const teamPlayers = useMemo(
       () =>
@@ -62,6 +65,11 @@ const TeamResultCard = memo(
               <h3 className="text-fluid-sm font-black text-black leading-none">
                 {team.name}
               </h3>
+              {assignedTeamLabel && (
+                <span className="mt-2 inline-block border-2 border-black bg-minion-yellow px-2 py-1 text-fluid-xs font-heading text-black">
+                  {assignedTeamLabel}
+                </span>
+              )}
             </div>
             <div className="w-20 shrink-0 bg-black text-minion-yellow px-2 py-1 text-center pixel-box border-2 shadow-none text-fluid-xs font-heading leading-none tabular-nums">
               {team.point_balance}P
@@ -151,8 +159,13 @@ export function AuctionResultModal({
   const players = useAuctionStore((state) => state.players);
   const membersPerTeam = useAuctionStore((state) => state.membersPerTeam);
   const captainMode = useAuctionStore((state) => state.captainMode);
+  const teamAssignment = useAuctionStore((state) => state.teamAssignment);
   const { soldPlayersByTeam } = useMemo(() => bucketAuctionPlayers(players), [players]);
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
+  const assignedTeamLabels = useMemo(
+    () => buildAssignedTeamLabelMap(teamAssignment),
+    [teamAssignment],
+  );
 
   // 팀 정렬 결과 메모이제이션
   const sortedTeams = useMemo(
@@ -222,6 +235,7 @@ export function AuctionResultModal({
                   soldPlayers={soldPlayersByTeam.get(team.id) ?? []}
                   rosterSlots={rosterSlots}
                   captainMode={captainMode}
+                  assignedTeamLabel={assignedTeamLabels.get(team.id)}
                 />
               ))}
             </div>

@@ -17,6 +17,7 @@ import {
   draftPlayer,
   deleteRoom,
   saveAuctionArchive,
+  saveTeamAssignment,
 } from '@/features/auction/api/auctionActions'
 
 // ─────────────────────────────────────────────────────────────
@@ -888,5 +889,81 @@ describe('saveAuctionArchive', () => {
     mockCollectionAdd.mockRejectedValueOnce(new Error('duplicate key value'))
     const result = await saveAuctionArchive(payload)
     expect(result.error).toMatch(/duplicate key value/)
+  })
+})
+
+describe('saveTeamAssignment', () => {
+  beforeEach(resetMocks)
+
+  it('중복 실제 팀 배정을 거부한다', async () => {
+    const result = await saveTeamAssignment({
+      roomId: 'room-1',
+      organizerToken: 'organizer-token',
+      assignments: [
+        {
+          auctionTeamId: 'team-1',
+          assignedTeamId: 1,
+          status: 'MANUAL',
+          originalCandidateTeamIds: [1, 2],
+        },
+        {
+          auctionTeamId: 'team-2',
+          assignedTeamId: 1,
+          status: 'MANUAL',
+          originalCandidateTeamIds: [1, 3],
+        },
+      ],
+    })
+
+    expect(result.error).toBe('하나의 실제 팀은 한 경매 팀에만 배정할 수 있습니다.')
+    expect(mockDocUpdate).not.toHaveBeenCalled()
+  })
+
+  it('예외 배정 사유가 없으면 저장을 거부한다', async () => {
+    const result = await saveTeamAssignment({
+      roomId: 'room-1',
+      organizerToken: 'organizer-token',
+      assignments: [
+        {
+          auctionTeamId: 'team-1',
+          assignedTeamId: 4,
+          status: 'EXCEPTION',
+          originalCandidateTeamIds: [],
+        },
+      ],
+    })
+
+    expect(result.error).toBe('예외 배정은 사유가 필요합니다.')
+    expect(mockDocUpdate).not.toHaveBeenCalled()
+  })
+
+  it('유효한 최종 배정을 room final 상태에 저장한다', async () => {
+    const result = await saveTeamAssignment({
+      roomId: 'room-1',
+      organizerToken: 'organizer-token',
+      assignments: [
+        {
+          auctionTeamId: 'team-1',
+          assignedTeamId: 1,
+          status: 'MANUAL',
+          originalCandidateTeamIds: [1, 2],
+        },
+        {
+          auctionTeamId: 'team-2',
+          assignedTeamId: 2,
+          status: 'SUGGESTED',
+          originalCandidateTeamIds: [1, 2],
+        },
+      ],
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(mockDocUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team_assignment: expect.objectContaining({
+          status: 'CONFIRMED',
+        }),
+      }),
+    )
   })
 })

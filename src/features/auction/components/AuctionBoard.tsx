@@ -17,11 +17,13 @@ import { BidStatus } from "./board/BidStatus";
 import { DraftPanel } from "./board/DraftPanel";
 import { AuctionWaitingState } from "./board/AuctionWaitingState";
 import { SealedBidBoard } from "./board/SealedBidBoard";
+import { TeamAssignmentPanel } from "@/features/auction/components/TeamAssignmentPanel";
 import { useAuctionStore, Player, Role } from "../store/useAuctionStore";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
 import { AUCTION_DURATION_MS } from "@/features/auction/constants/auctionTimings";
+import { evaluateDesiredTeamConflict } from "@/features/auction/utils/desiredTeamAssignment";
 import { cn } from "@/lib/utils";
 import { CheckedBoxLight } from "@/components/ui/CyberIcons";
 
@@ -38,7 +40,13 @@ interface AuctionBoardProps {
 }
 
 type SceneName =
-  "lottery" | "bidding" | "sealed" | "draft" | "finished" | "waiting";
+  | "lottery"
+  | "bidding"
+  | "sealed"
+  | "draft"
+  | "assignment"
+  | "finished"
+  | "waiting";
 
 const phaseSceneVariant: Variants = {
   initial: { x: -18, opacity: 0 },
@@ -60,6 +68,7 @@ const sceneVariants: Record<SceneName, Variants> = {
   bidding: phaseSceneVariant,
   sealed: phaseSceneVariant,
   draft: phaseSceneVariant,
+  assignment: phaseSceneVariant,
   finished: phaseSceneVariant,
 };
 
@@ -89,6 +98,11 @@ const reducedSceneVariants: Record<SceneName, Variants> = {
     animate: { opacity: 1, transition: { duration: 0.2 } },
     exit: { opacity: 0, transition: { duration: 0.15 } },
   },
+  assignment: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.25 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
+  },
   finished: {
     initial: { opacity: 0 },
     animate: { opacity: 1, transition: { duration: 0.25 } },
@@ -104,9 +118,13 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
   const auctionMode = useAuctionStore((s) => s.auctionMode);
   const sealedBid = useAuctionStore((s) => s.sealedBid);
+  const roomAuthToken = useAuctionStore((s) => s.roomAuthToken);
+  const totalTeams = useAuctionStore((s) => s.totalTeams);
+  const teamAssignment = useAuctionStore((s) => s.teamAssignment);
 
   const {
     teams,
+    players,
     teamId,
     timerEndsAt,
     connectedLeaderIds,
@@ -141,6 +159,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
     allConnected: props.allConnected,
   });
 
+  const isTeamAssignmentConfirmed = teamAssignment?.status === "CONFIRMED";
   const currentScene: SceneName = props.isLotteryActive
     ? "lottery"
     : currentPlayer
@@ -152,7 +171,9 @@ export function AuctionBoard(props: AuctionBoardProps) {
           !isRoomComplete
         ? "draft"
         : isAuctionTerminal
-          ? "finished"
+          ? isTeamAssignmentConfirmed
+            ? "finished"
+            : "assignment"
           : "waiting";
 
   const bgStyle =
@@ -181,6 +202,16 @@ export function AuctionBoard(props: AuctionBoardProps) {
     (isAuctionStarted || isPreStartLotteryDisconnect) &&
     !isAuctionComplete;
   const isBiddingBeforeResultReveal = currentScene === "bidding";
+  const desiredTeamConflict =
+    props.role === "LEADER" && teamId && currentPlayer
+      ? evaluateDesiredTeamConflict(
+          players.filter(
+            (player) => player.team_id === teamId && player.status === "SOLD",
+          ),
+          currentPlayer,
+          totalTeams,
+        )
+      : null;
 
   return (
     <div
@@ -350,6 +381,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                 >
                   <PlayerInAuction
                     player={currentPlayer!}
+                    desiredTeamConflict={desiredTeamConflict}
                     className={
                       isBiddingBeforeResultReveal ? "flex-none" : undefined
                     }
@@ -380,6 +412,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                 timerEndsAt={timerEndsAt}
                 sealedBid={sealedBid}
                 onTimerExpire={props.onTimerExpire}
+                desiredTeamConflict={desiredTeamConflict}
               />
             )}
 
@@ -398,6 +431,37 @@ export function AuctionBoard(props: AuctionBoardProps) {
               />
             )}
 
+            {currentScene === "assignment" && (
+              <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
+                <div className="space-y-4">
+                  <h1 className="inline-flex border-4 border-black bg-minion-yellow px-5 py-2 font-heading text-fluid-sm text-black shadow-pixel-sm">
+                    팀 배정
+                  </h1>
+                  <p className="text-fluid-sm font-bold text-gray-500">
+                    모든 선수 경매가 끝났습니다. 실제 팀 배정을 확정하면 경매가 종료됩니다.
+                  </p>
+                </div>
+                {props.role === "ORGANIZER" && (
+                  <div className="w-full max-w-3xl">
+                    <TeamAssignmentPanel
+                      roomId={props.roomId}
+                      organizerToken={roomAuthToken ?? ""}
+                      teams={teams}
+                      players={players}
+                      totalTeamCount={totalTeams}
+                    />
+                  </div>
+                )}
+                {props.role !== "ORGANIZER" && (
+                  <div className="pixel-box max-w-2xl bg-white p-5 text-left">
+                    <p className="text-fluid-xs font-black text-gray-700">
+                      주최자가 실제 팀 배정을 확정하는 중입니다.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {currentScene === "finished" && (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-8">
                 <div className="mb-4">
@@ -408,7 +472,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                     경매 종료
                   </h1>
                   <p className="text-fluid-sm font-bold text-gray-500">
-                    모든 경매가 성공적으로 종료되었습니다!
+                    모든 경매와 팀 배정이 성공적으로 종료되었습니다!
                   </p>
                 </div>
                 <button

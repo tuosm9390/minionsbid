@@ -74,6 +74,10 @@ function mapAuctionArchive(
     room_id: normalizeText(data.room_id),
     room_name: normalizeText(data.room_name),
     closed_at: toIsoString(data.closed_at),
+    team_assignment:
+      typeof data.team_assignment === 'object' && data.team_assignment !== null
+        ? data.team_assignment
+        : null,
     result_snapshot: Array.isArray(data.result_snapshot) ? data.result_snapshot : [],
   }
 }

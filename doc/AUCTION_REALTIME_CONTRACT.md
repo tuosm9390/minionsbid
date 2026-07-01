@@ -143,6 +143,16 @@ organizer animation complete
 - 재입찰은 직전 최고 동점 금액을 최소 금액으로 삼고, 동점 팀만 제출할 수 있다.
 - 점수공개 시점에는 공개 결과만 확정하고, 선수 SOLD/UNSOLD 및 팀 포인트 차감은 카드 애니메이션 완료 후 확정한다.
 
+## Desired Team Assignment
+
+희망 팀 충돌 경고와 종료 후 실제 팀 배정은 경매 hot state 이벤트를 추가하지 않는다.
+
+- 경매 중 경고는 `players.desired_team`, 현재 팀 로스터, 현재 입찰 대상 선수를 클라이언트에서 파생 계산한다.
+- 경고는 입찰 차단 조건이 아니며 `BID_PLACED`, `SEALED_BID_*`, `auction_revision` 계약에 영향을 주지 않는다.
+- 최종 실제 팀 배정은 `rooms/{roomId}.team_assignment`에 저장되는 종료 후 확정 데이터다.
+- archive 저장 시 `auction_archives/{archiveId}.team_assignment`로 복사해 일정 생성 전 확정 조건과 후속 audit에 사용한다.
+- 이 확정 저장은 별도 Server Action 경계이며 RTDB fanout을 발행하지 않는다.
+
 ## Bid Flow
 
 ```text

@@ -24,6 +24,10 @@ export interface AuctionArchiveForHof {
   room_id: string
   room_name: string
   closed_at: string
+  team_assignment?: {
+    status?: string
+    assignments?: unknown[]
+  } | null
   result_snapshot: {
     id: string
     name: string

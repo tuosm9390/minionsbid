@@ -105,6 +105,12 @@ export interface Message {
   created_at: string
 }
 
+export interface TeamAssignmentState {
+  status: 'CONFIRMED'
+  confirmed_at?: unknown
+  assignments?: unknown[]
+}
+
 interface AuctionState {
   roomId: string | null
   roomName: string | null
@@ -131,6 +137,7 @@ interface AuctionState {
   liveBid: LiveBidState | null
   sealedBid: SealedBidState
   players: Player[]
+  teamAssignment: TeamAssignmentState | null
   messagesById: Record<string, Message>
   orderedMessageIds: string[]
 
@@ -194,6 +201,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     tiedTeamIds: [],
   },
   players: [],
+  teamAssignment: null,
   messagesById: {},
   orderedMessageIds: [],
   presences: [],
@@ -212,6 +220,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     roomExists: true,
     nextAuctionDurationMs: null,
     auctionEventRevision: 0,
+    teamAssignment: null,
   }),
   setRealtimeData: (data) => set((state) => ({
     ...state, ...data, isRoomLoaded: true

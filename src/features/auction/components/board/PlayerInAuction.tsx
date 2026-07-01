@@ -5,13 +5,20 @@ import { Player } from "@/features/auction/store/useAuctionStore";
 import { getTierImage, getPositionImage } from "../../utils/display";
 import { TIER_COLOR } from "../../constants/room";
 import { cn } from "@/lib/utils";
+import { DesiredTeamConflictWarning } from "@/features/auction/components/DesiredTeamConflictWarning";
+import type { DesiredTeamConflictEvaluation } from "@/features/auction/utils/desiredTeamAssignment";
 
 interface PlayerInAuctionProps {
   player: Player;
   className?: string;
+  desiredTeamConflict?: DesiredTeamConflictEvaluation | null;
 }
 
-export function PlayerInAuction({ player, className }: PlayerInAuctionProps) {
+export function PlayerInAuction({
+  player,
+  className,
+  desiredTeamConflict,
+}: PlayerInAuctionProps) {
   const eventGameRows = [
     { label: "무작위 총력전 : 아수라장", value: player.aram_tier },
     { label: "전략적 팀 전투", value: player.tft_tier },
@@ -111,6 +118,10 @@ export function PlayerInAuction({ player, className }: PlayerInAuctionProps) {
             </p>
           </div>
         )}
+
+        <div className="w-full max-w-lg">
+          <DesiredTeamConflictWarning evaluation={desiredTeamConflict ?? null} />
+        </div>
 
         {player.description && (
           <div className="bg-minion-yellow/10 p-3 border-4 border-dashed border-black/10 w-full max-w-lg text-center relative">

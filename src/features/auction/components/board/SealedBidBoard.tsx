@@ -24,6 +24,8 @@ import {
   getPositionImage,
   getTierImage,
 } from "@/features/auction/utils/display";
+import { DesiredTeamConflictWarning } from "@/features/auction/components/DesiredTeamConflictWarning";
+import type { DesiredTeamConflictEvaluation } from "@/features/auction/utils/desiredTeamAssignment";
 import { cn } from "@/lib/utils";
 
 interface SealedBidBoardProps {
@@ -34,6 +36,7 @@ interface SealedBidBoardProps {
   timerEndsAt: string | null;
   sealedBid: SealedBidState;
   onTimerExpire?: () => void;
+  desiredTeamConflict?: DesiredTeamConflictEvaluation | null;
 }
 
 const sealedPhaseVariants: Variants = {
@@ -131,6 +134,7 @@ export function SealedBidBoard({
   timerEndsAt,
   sealedBid,
   onTimerExpire,
+  desiredTeamConflict,
 }: SealedBidBoardProps) {
   const shouldReduceMotion = useReducedMotion();
   const [revealedCount, setRevealedCount] = useState(0);
@@ -380,6 +384,9 @@ export function SealedBidBoard({
                     </p>
                   </div>
                 )}
+                <DesiredTeamConflictWarning
+                  evaluation={desiredTeamConflict ?? null}
+                />
               </>
             )}
           </div>

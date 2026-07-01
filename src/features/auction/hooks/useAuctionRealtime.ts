@@ -22,6 +22,7 @@ import type {
   PresenceUser,
   LiveBidState,
   SealedBidRevealCard,
+  TeamAssignmentState,
 } from '../store/useAuctionStore'
 import { normalizeCaptainMode } from '../utils/roster'
 import { normalizeAuctionMode } from '../utils/auctionMode'
@@ -62,6 +63,7 @@ interface FirestoreRoomData {
   sealed_bid_reveal_result?: SealedBidRevealCard[] | null
   sealed_bid_highest_amount?: number
   sealed_bid_tied_team_ids?: string[] | null
+  team_assignment?: TeamAssignmentState | null
 }
 
 interface FirestoreTeamData {
@@ -283,6 +285,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             presences: PresenceUser[]
             lotteryPlayer: Player | null
             liveBid: LiveBidState | null
+            teamAssignment?: TeamAssignmentState | null
             lastAuctionEvent?: AuctionEventEnvelope | null
             revision: number
           }
@@ -307,6 +310,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             players: data.players,
             bids: data.bids,
             presences: data.presences,
+            teamAssignment: data.teamAssignment ?? null,
           })
           setMessages(data.messages)
 
@@ -411,6 +415,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             totalTeams: data.total_teams ?? 0,
             createdAt: timestampToISO(data.created_at),
             nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
+            teamAssignment: data.team_assignment ?? null,
             sealedBid: {
               phase:
                 data.sealed_bid_phase === 'ACTIVE' ||

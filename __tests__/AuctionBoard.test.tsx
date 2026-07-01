@@ -69,6 +69,10 @@ vi.mock("@/features/auction/components/board/SealedBidBoard", () => ({
   SealedBidBoard: () => null,
 }));
 
+vi.mock("@/features/auction/components/TeamAssignmentPanel", () => ({
+  TeamAssignmentPanel: () => <div>배정 패널</div>,
+}));
+
 const mockedUseAuctionBoard = vi.mocked(useAuctionBoard);
 
 describe("AuctionBoard", () => {
@@ -93,6 +97,7 @@ describe("AuctionBoard", () => {
       hasPresenceAuthError: false,
       nextAuctionDurationMs: null,
       auctionMode: "OPEN_ASCENDING",
+      teamAssignment: null,
       sealedBid: {
         phase: null,
         roundId: null,
@@ -254,4 +259,123 @@ describe("AuctionBoard", () => {
       expect(playerCard.parentElement).toHaveClass("-translate-y-1/2");
     },
   );
+
+  it("모든 경매가 끝났지만 팀 배정이 확정되지 않으면 팀 배정 페이즈를 표시한다", () => {
+    mockedUseAuctionBoard.mockReturnValue({
+      teams: [],
+      players: [],
+      teamId: null,
+      timerEndsAt: null,
+      connectedLeaderIds: new Set(),
+      currentPlayer: undefined,
+      latestNotice: null,
+      highestBid: 0,
+      topBid: null,
+      leadingTeam: null,
+      unsoldPlayers: [],
+      soldPlayers: [lotteryPlayer],
+      waitingPlayersList: [],
+      teamPlayerCounts: [],
+      needyTeams: [],
+      isRoomComplete: true,
+      isAuctionFinished: true,
+      isAuctionStarted: true,
+      isAuctionComplete: true,
+      isAuctionTerminal: true,
+      isAutoDraftMode: false,
+      hasDraftablePlayers: false,
+      phase: "DRAFT",
+      currentTurnTeam: null,
+      lotteryDone: true,
+      setLotteryDone: vi.fn(),
+      handleDraft: vi.fn(),
+      handleRestartAuction: vi.fn(),
+      soldOverlayData: null,
+      setSoldOverlayData: vi.fn(),
+      unsoldPlayerName: null,
+      setUnsoldPlayerName: vi.fn(),
+      isProcessingAction: null,
+      isRestarting: false,
+    });
+
+    render(
+      <AuctionBoard
+        isLotteryActive={false}
+        lotteryPlayer={null}
+        waitingPlayers={[]}
+        role="ORGANIZER"
+        allConnected
+        onCloseLottery={vi.fn()}
+        onShowResult={vi.fn()}
+        roomId="room-1"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "팀 배정" })).toBeInTheDocument();
+    expect(screen.getByText("배정 패널")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "경매 종료" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("팀 배정이 확정되면 경매 종료 페이즈를 표시한다", () => {
+    useAuctionStore.setState({
+      teamAssignment: {
+        status: "CONFIRMED",
+        assignments: [],
+      },
+    });
+    mockedUseAuctionBoard.mockReturnValue({
+      teams: [],
+      players: [],
+      teamId: null,
+      timerEndsAt: null,
+      connectedLeaderIds: new Set(),
+      currentPlayer: undefined,
+      latestNotice: null,
+      highestBid: 0,
+      topBid: null,
+      leadingTeam: null,
+      unsoldPlayers: [],
+      soldPlayers: [lotteryPlayer],
+      waitingPlayersList: [],
+      teamPlayerCounts: [],
+      needyTeams: [],
+      isRoomComplete: true,
+      isAuctionFinished: true,
+      isAuctionStarted: true,
+      isAuctionComplete: true,
+      isAuctionTerminal: true,
+      isAutoDraftMode: false,
+      hasDraftablePlayers: false,
+      phase: "DRAFT",
+      currentTurnTeam: null,
+      lotteryDone: true,
+      setLotteryDone: vi.fn(),
+      handleDraft: vi.fn(),
+      handleRestartAuction: vi.fn(),
+      soldOverlayData: null,
+      setSoldOverlayData: vi.fn(),
+      unsoldPlayerName: null,
+      setUnsoldPlayerName: vi.fn(),
+      isProcessingAction: null,
+      isRestarting: false,
+    });
+
+    render(
+      <AuctionBoard
+        isLotteryActive={false}
+        lotteryPlayer={null}
+        waitingPlayers={[]}
+        role="ORGANIZER"
+        allConnected
+        onCloseLottery={vi.fn()}
+        onShowResult={vi.fn()}
+        roomId="room-1"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "경매 종료" })).toBeInTheDocument();
+    expect(screen.queryByText("배정 패널")).not.toBeInTheDocument();
+  });
 });

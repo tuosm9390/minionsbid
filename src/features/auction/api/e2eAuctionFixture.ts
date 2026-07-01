@@ -6,6 +6,7 @@ import type {
   PresenceUser,
   SealedBidState,
   Team,
+  TeamAssignmentState,
 } from '@/features/auction/store/useAuctionStore'
 import { getAuctionSlotsPerTeam, type CaptainMode } from '@/features/auction/utils/roster'
 import type { AuctionMode } from '@/features/auction/utils/auctionMode'
@@ -39,6 +40,7 @@ type FixtureRoom = {
   lotteryPlayer: Player | null
   liveBid: LiveBidState | null
   sealedBid: SealedBidState
+  teamAssignment: TeamAssignmentState | null
   lastAuctionEvent: AuctionEventEnvelope | null
   revision: number
 }
@@ -68,8 +70,18 @@ export type FixtureRoomSnapshot = {
   lotteryPlayer: Player | null
   liveBid: LiveBidState | null
   sealedBid: SealedBidState
+  teamAssignment: TeamAssignmentState | null
   lastAuctionEvent: AuctionEventEnvelope | null
   revision: number
+}
+
+type FixtureAssignmentSelection = {
+  auctionTeamId: string
+  assignedTeamId: number | null
+  status: string
+  exceptionReason?: string
+  originalCandidateTeamIds: number[]
+  message?: string
 }
 
 type ResetResult = {
@@ -120,6 +132,9 @@ type ResetOptions = {
     | 'active-auction'
     | 'active-auction-expiring'
     | 'active-auction-final-second'
+    | 'desired-team-conflict'
+    | 'team-assignment-finished'
+    | 'desired-team-random-finished'
     | 'draft-last-slot'
     | 'unsold-reauction'
 }
@@ -299,6 +314,7 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
       highestAmount: 0,
       tiedTeamIds: [],
     },
+    teamAssignment: null,
     lastAuctionEvent: null,
     revision: 1,
   }
@@ -307,6 +323,284 @@ function createFixtureRoom(options: ResetOptions = {}): FixtureRoom {
     room.players[0].status = 'IN_AUCTION'
     room.currentPlayerId = room.players[0].id
     room.timerEndsAt = new Date(Date.now() + EXTEND_THRESHOLD_MS).toISOString()
+    room.lotteryPlayer = null
+  } else if (options.stage === 'desired-team-conflict') {
+    room.players[0].status = 'IN_AUCTION'
+    room.players[0].desired_team = '3팀'
+    room.players[1].status = 'SOLD'
+    room.players[1].team_id = 'team-blue'
+    room.players[1].sold_price = 100
+    room.players[1].desired_team = '1팀'
+    room.teams[0].roster_slots_used = 1
+    room.currentPlayerId = room.players[0].id
+    room.timerEndsAt = new Date(Date.now() + EXTEND_THRESHOLD_MS).toISOString()
+    room.lotteryPlayer = null
+  } else if (options.stage === 'team-assignment-finished') {
+    room.players[0].status = 'SOLD'
+    room.players[0].team_id = 'team-blue'
+    room.players[0].sold_price = 100
+    room.players[0].desired_team = '1팀'
+    room.players[1].status = 'SOLD'
+    room.players[1].team_id = 'team-red'
+    room.players[1].sold_price = 100
+    room.players[1].desired_team = '상관없음'
+    room.players[2].status = 'SOLD'
+    room.players[2].team_id = 'team-blue'
+    room.players[2].sold_price = 100
+    room.players[2].desired_team = '1팀'
+    room.players[3].status = 'SOLD'
+    room.players[3].team_id = 'team-red'
+    room.players[3].sold_price = 100
+    room.players[3].desired_team = '상관없음'
+    room.teams[0].roster_slots_used = 2
+    room.teams[1].roster_slots_used = 2
+    room.currentPlayerId = null
+    room.timerEndsAt = null
+    room.lotteryPlayer = null
+  } else if (options.stage === 'desired-team-random-finished') {
+    room.name = '희망 팀 배정 QA 방'
+    room.totalTeams = 4
+    room.membersPerTeam = 4
+    room.basePoint = 1000
+    room.leaderTokens = {
+      'team-blue': 'fixture-blue-token',
+      'team-red': 'fixture-red-token',
+      'team-green': 'fixture-green-token',
+      'team-yellow': 'fixture-yellow-token',
+    }
+    room.teams = [
+      {
+        id: 'team-blue',
+        room_id: roomId,
+        name: 'Blue',
+        point_balance: 730,
+        roster_slots_used: 3,
+        roster_slots_total: 3,
+        leader_name: 'Blue Leader',
+        leader_tier: '팀장',
+        leader_position: 'TOP',
+        leader_description: '',
+        captain_points: 0,
+      },
+      {
+        id: 'team-red',
+        room_id: roomId,
+        name: 'Red',
+        point_balance: 650,
+        roster_slots_used: 3,
+        roster_slots_total: 3,
+        leader_name: 'Red Leader',
+        leader_tier: '팀장',
+        leader_position: 'JGL',
+        leader_description: '',
+        captain_points: 0,
+      },
+      {
+        id: 'team-green',
+        room_id: roomId,
+        name: 'Green',
+        point_balance: 710,
+        roster_slots_used: 3,
+        roster_slots_total: 3,
+        leader_name: 'Green Leader',
+        leader_tier: '팀장',
+        leader_position: 'MID',
+        leader_description: '',
+        captain_points: 0,
+      },
+      {
+        id: 'team-yellow',
+        room_id: roomId,
+        name: 'Yellow',
+        point_balance: 690,
+        roster_slots_used: 3,
+        roster_slots_total: 3,
+        leader_name: 'Yellow Leader',
+        leader_tier: '팀장',
+        leader_position: 'SUP',
+        leader_description: '',
+        captain_points: 0,
+      },
+    ]
+    room.players = [
+      {
+        id: 'player-qa-1',
+        room_id: roomId,
+        name: 'Alpha',
+        tier: '챌린저',
+        main_position: 'TOP',
+        sub_position: 'MID',
+        status: 'SOLD',
+        team_id: 'team-blue',
+        sold_price: 120,
+        description: '희망 팀 1',
+        desired_team: '1팀',
+        order: 1,
+      },
+      {
+        id: 'player-qa-2',
+        room_id: roomId,
+        name: 'Bravo',
+        tier: '다이아',
+        main_position: 'JGL',
+        sub_position: 'TOP',
+        status: 'SOLD',
+        team_id: 'team-blue',
+        sold_price: 80,
+        description: '희망 팀 1 또는 2',
+        desired_team: '1팀, 2팀',
+        order: 2,
+      },
+      {
+        id: 'player-qa-3',
+        room_id: roomId,
+        name: 'Charlie',
+        tier: '에메랄드',
+        main_position: 'ADC',
+        sub_position: 'SUP',
+        status: 'SOLD',
+        team_id: 'team-blue',
+        sold_price: 70,
+        description: '상관없음',
+        desired_team: '상관없음',
+        order: 3,
+      },
+      {
+        id: 'player-qa-4',
+        room_id: roomId,
+        name: 'Delta',
+        tier: '마스터',
+        main_position: 'MID',
+        sub_position: 'ADC',
+        status: 'SOLD',
+        team_id: 'team-red',
+        sold_price: 140,
+        description: '상관없음',
+        desired_team: '상관없음',
+        order: 4,
+      },
+      {
+        id: 'player-qa-5',
+        room_id: roomId,
+        name: 'Echo',
+        tier: '플래티넘',
+        main_position: 'SUP',
+        sub_position: 'JGL',
+        status: 'SOLD',
+        team_id: 'team-red',
+        sold_price: 110,
+        description: '희망 팀 없음',
+        desired_team: '',
+        order: 5,
+      },
+      {
+        id: 'player-qa-6',
+        room_id: roomId,
+        name: 'Foxtrot',
+        tier: '골드',
+        main_position: 'TOP',
+        sub_position: 'SUP',
+        status: 'SOLD',
+        team_id: 'team-red',
+        sold_price: 100,
+        description: '상관없음',
+        desired_team: '무관',
+        order: 6,
+      },
+      {
+        id: 'player-qa-7',
+        room_id: roomId,
+        name: 'Gamma',
+        tier: '다이아',
+        main_position: 'ADC',
+        sub_position: 'MID',
+        status: 'SOLD',
+        team_id: 'team-green',
+        sold_price: 130,
+        description: '희망 팀 3 또는 4',
+        desired_team: '3팀/4팀',
+        order: 7,
+      },
+      {
+        id: 'player-qa-8',
+        room_id: roomId,
+        name: 'Hotel',
+        tier: '실버',
+        main_position: 'JGL',
+        sub_position: 'TOP',
+        status: 'SOLD',
+        team_id: 'team-green',
+        sold_price: 60,
+        description: '희망 팀 4',
+        desired_team: '4팀',
+        order: 8,
+      },
+      {
+        id: 'player-qa-9',
+        room_id: roomId,
+        name: 'Iris',
+        tier: '브론즈',
+        main_position: 'SUP',
+        sub_position: 'ADC',
+        status: 'SOLD',
+        team_id: 'team-green',
+        sold_price: 100,
+        description: '희망 팀 3',
+        desired_team: '3팀',
+        order: 9,
+      },
+      {
+        id: 'player-qa-10',
+        room_id: roomId,
+        name: 'Juliet',
+        tier: '에메랄드',
+        main_position: 'MID',
+        sub_position: 'TOP',
+        status: 'SOLD',
+        team_id: 'team-yellow',
+        sold_price: 90,
+        description: '상관없음',
+        desired_team: '상관없음',
+        order: 10,
+      },
+      {
+        id: 'player-qa-11',
+        room_id: roomId,
+        name: 'Kilo',
+        tier: '플래티넘',
+        main_position: 'ADC',
+        sub_position: 'JGL',
+        status: 'SOLD',
+        team_id: 'team-yellow',
+        sold_price: 120,
+        description: '희망 팀 1 또는 4',
+        desired_team: '1팀, 4팀',
+        order: 11,
+      },
+      {
+        id: 'player-qa-12',
+        room_id: roomId,
+        name: 'Lima',
+        tier: '골드',
+        main_position: 'TOP',
+        sub_position: 'SUP',
+        status: 'SOLD',
+        team_id: 'team-yellow',
+        sold_price: 100,
+        description: '희망 팀 없음',
+        desired_team: '',
+        order: 12,
+      },
+    ]
+    room.presences = [
+      { role: 'ORGANIZER', teamId: null },
+      { role: 'LEADER', teamId: 'team-blue' },
+      { role: 'LEADER', teamId: 'team-red' },
+      { role: 'LEADER', teamId: 'team-green' },
+      { role: 'LEADER', teamId: 'team-yellow' },
+    ]
+    room.currentPlayerId = null
+    room.timerEndsAt = null
     room.lotteryPlayer = null
   } else if (options.stage === 'active-auction-expiring') {
     room.players[0].status = 'IN_AUCTION'
@@ -431,6 +725,7 @@ function toSnapshot(room: FixtureRoom): FixtureRoomSnapshot {
     lotteryPlayer: clone(room.lotteryPlayer),
     liveBid: clone(room.liveBid),
     sealedBid: clone(room.sealedBid),
+    teamAssignment: clone(room.teamAssignment),
     lastAuctionEvent: clone(room.lastAuctionEvent),
     revision: room.revision,
   }
@@ -462,6 +757,31 @@ export function getE2EAuctionFixtureRoomState(roomId: string): FixtureRoomSnapsh
   const room = getFixtureState().rooms.get(roomId)
   if (!room || room.roomDeleted) return null
   return toSnapshot(room)
+}
+
+export function saveE2EAuctionFixtureTeamAssignment(
+  roomId: string,
+  organizerToken: string,
+  assignments: FixtureAssignmentSelection[],
+): { error?: string } {
+  const room = getRoomOrThrow(roomId)
+  if (organizerToken !== room.organizerToken) {
+    return { error: '주최자 권한이 필요합니다.' }
+  }
+  room.teamAssignment = {
+    status: 'CONFIRMED',
+    confirmed_at: nowIso(),
+    assignments: assignments.map((assignment) => ({
+      auction_team_id: assignment.auctionTeamId,
+      assigned_team_id: assignment.assignedTeamId,
+      status: assignment.status,
+      exception_reason: assignment.exceptionReason ?? null,
+      original_candidate_team_ids: assignment.originalCandidateTeamIds,
+      message: assignment.message ?? null,
+    })),
+  }
+  nextRevision(room)
+  return {}
 }
 
 export function getE2EAuctionFixtureRoomLinks(roomId: string) {
@@ -563,6 +883,7 @@ export function createE2EAuctionFixtureRoom(
       highestAmount: 0,
       tiedTeamIds: [],
     },
+    teamAssignment: null,
     lastAuctionEvent: null,
     revision: 1,
   }

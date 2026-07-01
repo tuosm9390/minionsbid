@@ -316,6 +316,20 @@ describe('scheduleActions', () => {
   })
 
   it('createLeagueSchedule stores roster source metadata when admin code is valid', async () => {
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      team_assignment: {
+        status: 'CONFIRMED',
+        assignments: [
+          { auction_team_id: 'team-blue', assigned_team_id: 1 },
+          { auction_team_id: 'team-red', assigned_team_id: 2 },
+        ],
+      },
+      result_snapshot: [
+        { id: 'team-blue', name: 'Blue', leader_name: 'Blue Captain', players: [] },
+        { id: 'team-red', name: 'Red', leader_name: 'Red Captain', players: [] },
+      ],
+    })
     const { createLeagueSchedule } = await import('../scheduleActions')
     const expectedStart = new Date(2026, 3, 1, 0, 0, 0, 0).toISOString()
     const expectedEnd = new Date(2026, 3, 10, 0, 0, 0, 0).toISOString()
@@ -353,6 +367,29 @@ describe('scheduleActions', () => {
         }
       ).toDate().toISOString(),
     ).toBe(expectedEnd)
+  })
+
+  it('createLeagueSchedule rejects linked auction archives without confirmed team assignment', async () => {
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      result_snapshot: [],
+    })
+
+    const { createLeagueSchedule } = await import('../scheduleActions')
+
+    const result = await createLeagueSchedule(
+      {
+        name: 'Spring Split',
+        linkedAuctionId: 'archive-1',
+        rosterSourceType: 'archive',
+        rosterSourceId: 'archive-1',
+        startsAt: new Date(2026, 3, 1).toISOString(),
+      },
+      'secret-code',
+    )
+
+    expect(result.error).toBe('일정 생성 전 최종 팀 배정을 확정해주세요.')
+    expect(dbState.leagueSchedules.size).toBe(0)
   })
 
   it('saveLeagueScheduleDay requires admin code and persists through a transaction', async () => {

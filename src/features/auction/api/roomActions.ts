@@ -289,6 +289,7 @@ export async function saveAuctionArchive(
         room_created_at: payload.roomCreatedAt,
         closed_at: FieldValue.serverTimestamp(),
         result_snapshot: payload.teams,
+        team_assignment: roomData.team_assignment ?? null,
       });
     return {};
   } catch (err) {

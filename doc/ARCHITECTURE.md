@@ -32,6 +32,7 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - **권한 경계**: `/league-schedule`은 공개 경로를 유지하지만 일정 생성/저장/결과 등록/삭제/종료는 모두 Server Action의 관리자 가드를 통과해야 한다.
 - **쓰기 일관성**: `saveLeagueScheduleDay`, `registerLeagueMatchResult`, `completeLeagueSchedule`는 transaction과 `revision`을 사용한다.
 - **로스터 연결**: 스케줄 문서는 `rosterSourceType` / `rosterSourceId`를 저장하고, 로스터 조회는 전체 스캔보다 직접 조회를 우선한다.
+- **실제 팀 배정 조건**: archive 기반 일정은 `auction_archives/{archiveId}.team_assignment.status == CONFIRMED` 상태가 있어야 생성할 수 있다. 배정 확정 전에는 일정 연결을 진행하지 않는다.
 - **결정 기록**: 현재 채택안과 재검토 트리거는 `doc/results/260427_LeagueScheduleArchitectureDecision.md`를 기준으로 본다.
 
 ---

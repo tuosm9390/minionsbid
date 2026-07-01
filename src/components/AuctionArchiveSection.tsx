@@ -11,12 +11,17 @@ import {
   buildArchiveRosterWorkbook,
   getArchiveRosterExcelFileName,
 } from "@/components/auctionArchiveExcel";
+import { buildAssignedTeamLabelMap } from "@/features/auction/utils/teamAssignmentDisplay";
 
 interface AuctionArchiveRow {
   id: string;
   room_id: string;
   room_name: string;
   closed_at: string;
+  team_assignment?: {
+    status?: string;
+    assignments?: unknown[];
+  } | null;
   result_snapshot: ArchiveTeam[];
 }
 
@@ -30,6 +35,7 @@ function ArchiveDetailModal({
   const sortedTeams = [...archive.result_snapshot].sort((a, b) =>
     a.name.localeCompare(b.name, "ko-KR", { numeric: true }),
   );
+  const assignedTeamLabels = buildAssignedTeamLabelMap(archive.team_assignment);
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -101,6 +107,11 @@ function ArchiveDetailModal({
                         <div className="text-fluid-xs font-heading text-minion-blue mb-2">
                           {team.name}
                         </div>
+                        {assignedTeamLabels.get(team.id) && (
+                          <div className="mb-2 inline-block border-2 border-black bg-minion-yellow px-2 py-1 text-fluid-xs font-heading text-black">
+                            {assignedTeamLabels.get(team.id)}
+                          </div>
+                        )}
                         <div className="inline-block border-2 border-black bg-minion-yellow text-black font-heading text-fluid-xs px-2 py-1 uppercase">
                           {team.point_balance.toLocaleString()}P LEFT
                         </div>
