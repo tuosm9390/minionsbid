@@ -6,6 +6,7 @@ import {
   placeBid,
 } from "@/features/auction/api/auctionActions";
 import { placeBidDirect } from "@/features/auction/api/placeBidClient";
+import { mirrorShadowBid } from "@/features/auction/socket/socketShadowClient";
 import { clearAuctionLatencyMarkers } from "@/features/auction/utils/latencyDebug";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
 import type { Player, Team } from "@/features/auction/store/useAuctionStore";
@@ -17,6 +18,10 @@ vi.mock("@/features/auction/api/auctionActions", () => ({
 
 vi.mock("@/features/auction/api/placeBidClient", () => ({
   placeBidDirect: vi.fn(),
+}));
+
+vi.mock("@/features/auction/socket/socketShadowClient", () => ({
+  mirrorShadowBid: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 describe("useBiddingControl", () => {
@@ -69,6 +74,7 @@ describe("useBiddingControl", () => {
       timerEndsAt: null,
       players: [],
       auctionEventRevision: 0,
+      auctionTransport: "FIREBASE",
     });
     clearAuctionLatencyMarkers();
   });
@@ -161,6 +167,42 @@ describe("useBiddingControl", () => {
     expect(result.current.bidAmount).toBe(20);
     expect(result.current.bidError).toBeNull();
     expect(useAuctionStore.getState().auctionEventRevision).toBe(3);
+  });
+
+  it("SOCKET_SHADOW에서는 direct bid 성공 후 shadow mirror를 비차단 호출한다", async () => {
+    (placeBidDirect as Mock).mockResolvedValue({
+      eventId: "bid-direct-shadow-1",
+      timerEndsAt: null,
+      revision: 4,
+    });
+    useAuctionStore.setState({ auctionTransport: "SOCKET_SHADOW" });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+    await act(async () => { await result.current.handleBid(); });
+
+    expect(mirrorShadowBid).toHaveBeenCalledWith({
+      auctionTransport: "SOCKET_SHADOW",
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 10,
+      requestId: "bid-direct-shadow-1",
+    });
+    expect(placeBid).not.toHaveBeenCalled();
+    expect(result.current.bidError).toBeNull();
+  });
+
+  it("FIREBASE transport에서는 shadow mirror를 호출하지 않는다", async () => {
+    (placeBidDirect as Mock).mockResolvedValue({
+      eventId: "bid-direct-firebase-1",
+      timerEndsAt: null,
+      revision: 4,
+    });
+
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+    await act(async () => { await result.current.handleBid(); });
+
+    expect(mirrorShadowBid).not.toHaveBeenCalled();
   });
 
   it("direct-event 성공 시 같은 eventId로 클릭과 응답 latency marker를 남긴다", async () => {

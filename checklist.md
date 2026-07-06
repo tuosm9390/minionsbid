@@ -789,3 +789,14 @@
 - [x] `SOCKET_SHADOW` 구현 순서와 성공 기준을 계획서로 작성한다.
 - [x] 의존성 추가 후 lint, 타입 검사, build를 실행한다.
 - [x] 준비작업 변경을 커밋한다.
+
+## SOCKET_SHADOW mirror 1차 구현
+
+- [x] shadow mirror client adapter 테스트를 RED로 추가한다.
+- [x] `SOCKET_SHADOW`에서 direct bid 성공 후 mirror 호출 테스트를 RED로 추가한다.
+- [x] shadow adapter가 fixture shadow endpoint에 bid command를 전송하도록 구현한다.
+- [x] Firebase transport에서는 shadow mirror를 호출하지 않도록 구현한다.
+- [x] shadow 요청 실패가 입찰 흐름을 깨지 않도록 실패 결과로 접는다.
+- [x] HTTP 수동 QA로 shadow endpoint accepted/rejected 경로를 검증한다.
+- [x] lint, 타입 검사, 전체 테스트, build를 실행한다.
+- [x] 변경을 커밋한다.

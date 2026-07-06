@@ -738,3 +738,11 @@
 - 실제 구현을 바로 시작하려면 Socket.IO server와 browser client runtime dependency가 필요하므로 `socket.io`와 `socket.io-client`를 추가했다. 두 패키지는 타입을 포함하므로 별도 `@types`는 추가하지 않는다.
 - `npm audit --omit=dev` 기준 production 취약점 10건은 남아 있다. 출력상 새 Socket.IO 패키지 직접 취약점은 아니고 기존 `firebase-admin`, `next`, `@grpc/grpc-js`, `uuid`, `form-data` 계열이다.
 - 구현 계획은 `plans/socketio-shadow-mode-preparation-plan.md`에 정리했다. 핵심 순서는 Socket server skeleton, 인증과 room join, shadow sync, shadow bid mirror, 관측성과 QA다.
+
+## 2026-07-06 SOCKET_SHADOW mirror 1차 구현
+
+- 요청은 `$omo:ulw-loop`로 실제 구현을 시작하는 것이다. 이번 increment는 기존 Firebase 입찰 성공 후 shadow command를 비차단 mirror하는 클라이언트 경계를 구현한다.
+- 별도 Socket.IO server process는 아직 두지 않는다. 현재 검증 가능한 canary surface인 `/api/e2e/socket-hybrid/command`를 shadow adapter의 첫 endpoint로 사용한다.
+- `SOCKET_SHADOW`일 때만 direct bid 성공 후 `mirrorShadowBid()`를 호출한다. `FIREBASE` transport에서는 호출하지 않는다.
+- `mirrorShadowBid()`는 shadow endpoint 실패를 throw하지 않고 `{ ok: false, error }`로 접는다. 따라서 shadow 경로 장애가 사용자 입찰 성공 흐름을 막지 않는다.
+- 다음 increment에서는 실제 Socket.IO server process와 `socket.io-client` 연결로 endpoint를 교체해야 한다.

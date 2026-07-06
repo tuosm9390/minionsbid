@@ -12,6 +12,7 @@ import {
   placeBid,
 } from '@/features/auction/api/auctionActions'
 import { placeBidDirect } from '@/features/auction/api/placeBidClient'
+import { mirrorShadowBid } from '@/features/auction/socket/socketShadowClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
 import {
   recordAuctionLatencyMarker,
@@ -69,6 +70,7 @@ export function useBiddingControl({
   const [bidError, setBidError] = useState<string | null>(null)
 
   const liveBid = useAuctionStore((s) => s.liveBid)
+  const auctionTransport = useAuctionStore((s) => s.auctionTransport)
   const serverTimeOffset = useAuctionStore((s) => s.serverTimeOffset)
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData)
   const setLiveBid = useAuctionStore((s) => s.setLiveBid)
@@ -216,6 +218,18 @@ export function useBiddingControl({
             source: 'client-response',
             clickedAt: localNow,
             respondedAt: Date.now(),
+          })
+        }
+        if (auctionTransport === 'SOCKET_SHADOW') {
+          void mirrorShadowBid({
+            auctionTransport,
+            roomId,
+            playerId: currentPlayer.id,
+            teamId,
+            amount: finalAmount,
+            requestId:
+              directResult.eventId ??
+              `shadow-${roomId}-${currentPlayer.id}-${teamId}-${finalAmount}-${localNow}`,
           })
         }
         if (!E2E_AUCTION_FIXTURE) {
