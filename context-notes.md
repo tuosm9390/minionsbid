@@ -730,3 +730,11 @@
 - 네트워크 smoke 기준은 fixture reset, socket hybrid sync, 정상 bid accepted, 같은 requestId replay body equality, malformed payload 400, unsupported action 400이다.
 - 부하 기준은 같은 선수에 대해 여러 팀의 동시 입찰 요청을 넣었을 때 한 요청씩 sequence가 증가하고, 같은 최고 입찰 팀의 추가 입찰과 낮은 금액은 400으로 거부되며, 최종 sync state가 마지막 accepted sequence와 일치하는 것이다.
 - QA는 로컬 production server 포트를 사용하고 테스트 종료 후 해당 포트 listener count가 0인지 확인한다. `.omo/ulw-loop`의 기존 goals 상태는 과거 희망팀 작업 plan을 가리키므로 이번 요청의 pass/fail 기준은 별도 evidence 파일과 이 노트에 기록한다.
+
+## 2026-07-06 SOCKET_SHADOW 구현 준비
+
+- 요청은 `SOCKET_SHADOW` 작업을 진행하기 위해 필요한 준비작업을 완료하는 것이다.
+- 현재 완료 상태는 shadow 값을 읽고 정규화하는 기반, shared contract, authoritative engine, fixture HTTP canary까지다. 실제 Socket.IO server와 client 연결은 아직 없다.
+- 실제 구현을 바로 시작하려면 Socket.IO server와 browser client runtime dependency가 필요하므로 `socket.io`와 `socket.io-client`를 추가했다. 두 패키지는 타입을 포함하므로 별도 `@types`는 추가하지 않는다.
+- `npm audit --omit=dev` 기준 production 취약점 10건은 남아 있다. 출력상 새 Socket.IO 패키지 직접 취약점은 아니고 기존 `firebase-admin`, `next`, `@grpc/grpc-js`, `uuid`, `form-data` 계열이다.
+- 구현 계획은 `plans/socketio-shadow-mode-preparation-plan.md`에 정리했다. 핵심 순서는 Socket server skeleton, 인증과 room join, shadow sync, shadow bid mirror, 관측성과 QA다.

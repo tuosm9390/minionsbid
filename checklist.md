@@ -780,3 +780,12 @@
 - [x] lint, 타입 검사, 전체 테스트, build 회귀를 실행한다.
 - [x] QA 서버와 포트 cleanup을 확인한다.
 - [x] 문제가 없으면 commit과 push를 진행한다.
+
+## SOCKET_SHADOW 구현 준비
+
+- [x] 현재 hybrid 기반 구현과 미구현 범위를 확인한다.
+- [x] `socket.io`와 `socket.io-client` 의존성을 추가한다.
+- [x] runtime dependency audit 결과와 기존 취약점 범위를 확인한다.
+- [x] `SOCKET_SHADOW` 구현 순서와 성공 기준을 계획서로 작성한다.
+- [x] 의존성 추가 후 lint, 타입 검사, build를 실행한다.
+- [x] 준비작업 변경을 커밋한다.
