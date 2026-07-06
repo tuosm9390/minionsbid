@@ -722,3 +722,11 @@
 - fixture command route는 `E2E_AUCTION_FIXTURE=1`에서만 동작하며 `sync`와 `bid`를 제공한다. Next dev의 route module 재평가 후에도 fixture engine 멱등성 상태가 사라지지 않도록 `globalThis` store를 사용한다.
 - 클라이언트는 아직 Socket primary transport로 전환하지 않는다. 현재 구현은 Firestore room snapshot의 `auction_transport`를 store에 노출해 shadow/canary rollout 준비 상태를 만든다.
 - 검증은 RED/GREEN 대상 Vitest, `npm run lint`, `npx tsc --noEmit --pretty false`, `npm run test`, `npm run build`, dev server HTTP QA로 진행했다. HTTP QA에서는 sync, bid accepted, replay body equality, 10P 단위 거부, malformed payload 400, 서버 cleanup을 확인했다.
+
+## 2026-07-06 Socket.IO hybrid 네트워크와 부하 검증
+
+- 요청은 네트워크 테스트와 부하 테스트를 충분히 진행하고 문제가 없으면 commit과 push까지 진행하는 것이다.
+- 이번 작업은 애플리케이션 동작 코드 변경 없이 검증을 수행한다. 따라서 새 TDD 테스트를 추가하지 않고, 실제 production build와 `next start`로 띄운 fixture 서버에 HTTP 요청을 넣어 표면 동작을 검증한다.
+- 네트워크 smoke 기준은 fixture reset, socket hybrid sync, 정상 bid accepted, 같은 requestId replay body equality, malformed payload 400, unsupported action 400이다.
+- 부하 기준은 같은 선수에 대해 여러 팀의 동시 입찰 요청을 넣었을 때 한 요청씩 sequence가 증가하고, 같은 최고 입찰 팀의 추가 입찰과 낮은 금액은 400으로 거부되며, 최종 sync state가 마지막 accepted sequence와 일치하는 것이다.
+- QA는 로컬 production server 포트를 사용하고 테스트 종료 후 해당 포트 listener count가 0인지 확인한다. `.omo/ulw-loop`의 기존 goals 상태는 과거 희망팀 작업 plan을 가리키므로 이번 요청의 pass/fail 기준은 별도 evidence 파일과 이 노트에 기록한다.

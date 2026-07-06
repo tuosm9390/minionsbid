@@ -771,3 +771,12 @@
 - [x] fixture route의 sync, bid, module reload 후 멱등성 유지 경로를 구현한다.
 - [x] Firestore room snapshot의 `auction_transport`를 client store에 반영한다.
 - [x] 대상 Vitest, lint, 타입 검사, 전체 테스트, build, HTTP QA evidence를 수집한다.
+
+## Socket.IO hybrid 네트워크와 부하 검증
+
+- [x] production build와 fixture production server를 준비한다.
+- [x] HTTP smoke로 fixture reset, sync, 정상 bid, replay, malformed, unsupported action을 검증한다.
+- [x] 동시 입찰 부하 테스트로 sequence 증가와 accepted/rejected 계약을 검증한다.
+- [x] lint, 타입 검사, 전체 테스트, build 회귀를 실행한다.
+- [x] QA 서버와 포트 cleanup을 확인한다.
+- [x] 문제가 없으면 commit과 push를 진행한다.
