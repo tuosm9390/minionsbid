@@ -744,3 +744,30 @@
 - [x] 희망 팀이 없는 로스터 후보를 `상관없음`으로 표시하고 경고 문구를 숨긴다.
 - [x] select label 문구를 `배정 예정 팀`으로 변경한다.
 - [x] 관련 테스트와 브라우저 QA를 실행한다.
+
+## 실시간 경매 리서치 문서 코드베이스 대조 보고서
+
+- [x] 공유 ChatGPT 링크 접근 가능 범위를 확인한다.
+- [x] 로컬 deep research Markdown의 핵심 권고를 정리한다.
+- [x] 사용자가 첨부한 ChatGPT 공유 링크 본문을 보고서에 반영한다.
+- [x] 현재 Firestore, RTDB, direct bid, timer, 관측성, rules 구현 근거를 확인한다.
+- [x] 보완 및 수정 필요 항목을 우선순위별로 보고서에 작성한다.
+- [x] 문서 산출물과 워킹트리 상태를 확인한다.
+
+## Socket.IO hybrid 경매 전환 분석과 설계
+
+- [x] 현재 Firebase 경매 hot path와 Socket.IO hybrid 전환 충돌 지점을 정리한다.
+- [x] 상태 소유권, 데이터 저장, 인증, fanout, 장애 복구 관점의 전환 분석 보고서를 작성한다.
+- [x] 제품 기획 범위와 단계별 rollout, 성공 기준, 비목표를 문서화한다.
+- [x] Socket.IO 서버, 클라이언트 adapter, shared contract, persistence, 테스트 설계를 작성한다.
+- [x] 문서 산출물과 diff 품질을 확인한다.
+
+## Socket.IO hybrid 1단계 구현
+
+- [x] `auction_transport` feature flag 정규화와 store 연결 테스트를 먼저 추가한다.
+- [x] Socket hybrid shared contract와 공개 입찰 authoritative engine 테스트를 먼저 추가한다.
+- [x] fixture 전용 HTTP command route 테스트를 먼저 추가한다.
+- [x] engine의 sequence, requestId 멱등성, 포인트 예약, 타이머 연장, 10P 단위 검증을 구현한다.
+- [x] fixture route의 sync, bid, module reload 후 멱등성 유지 경로를 구현한다.
+- [x] Firestore room snapshot의 `auction_transport`를 client store에 반영한다.
+- [x] 대상 Vitest, lint, 타입 검사, 전체 테스트, build, HTTP QA evidence를 수집한다.

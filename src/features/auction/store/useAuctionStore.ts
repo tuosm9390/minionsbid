@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { CaptainMode } from '@/features/auction/utils/roster'
 import type { AuctionMode } from '@/features/auction/utils/auctionMode'
+import type { AuctionTransport } from '@/features/auction/utils/auctionTransport'
 import {
   appendOrderedMessage,
   buildOrderedMessageState,
@@ -120,6 +121,7 @@ interface AuctionState {
   roomAuthToken: string | null
   captainMode: CaptainMode
   auctionMode: AuctionMode
+  auctionTransport: AuctionTransport
 
   // Realtime Data sync
   basePoint: number
@@ -175,6 +177,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomAuthToken: null,
   captainMode: 'IN_ROSTER',
   auctionMode: 'OPEN_ASCENDING',
+  auctionTransport: 'FIREBASE',
 
   basePoint: 1000,
   totalTeams: 5,
@@ -221,6 +224,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     nextAuctionDurationMs: null,
     auctionEventRevision: 0,
     teamAssignment: null,
+    auctionTransport: 'FIREBASE',
   }),
   setRealtimeData: (data) => set((state) => ({
     ...state, ...data, isRoomLoaded: true

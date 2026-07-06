@@ -694,3 +694,31 @@
 - `상관없음` 로스터는 제한 조건이 없는 상태이므로 상태는 기존과 같은 `제안 대기`로 두고, 빨간 경고 문구는 표시하지 않는다. 후보 소진이나 예외 배정 경고는 제한 있는 로스터에만 의미가 있다.
 - 구현은 이미 배정된 실제 팀 번호를 다른 row의 `<option>`에서 disabled 처리하되, 해당 row 자신의 배정값은 계속 enabled 상태로 남겨 선택 상태가 깨지지 않게 했다. 보이는 label은 `{팀명} 실제 팀`에서 `배정 예정 팀`으로 변경했다.
 - QA fixture의 Red 로스터를 희망 팀 없는 케이스로 바꿔 수동 화면에서도 `후보: 상관없음`, `상태: 제안 대기`, 경고 없음 상태를 확인할 수 있게 했다. 브라우저 검증 후 3031번 fixture 방은 다시 확정 전 초기 상태로 reset했다.
+
+## 2026-07-06 실시간 경매 리서치 문서 코드베이스 대조 보고서
+
+- 요청은 ChatGPT 공유 링크와 `C:\Users\tuosm\Downloads\deep-research-report (2).md` 두 문서를 확인하고, 현재 코드베이스에서 보완 및 수정해야 할 부분을 보고서로 작성하는 것이다.
+- ChatGPT 공유 링크는 브라우저에서 로그인 shell만 표시되어 본문을 읽을 수 없었다. 보고서에는 접근 제한을 명시하고, 로컬 Markdown과 현재 코드베이스 근거를 중심으로 분석한다.
+- 로컬 Markdown은 WebSocket, SSE, Long Polling, WebRTC, WebTransport 비교와 함께 경매 시스템에는 서버 권위 상태, 원자적 입찰, Pub/Sub, 재연결 복구, 관측성, 부하 테스트, 인증과 replay 방어가 중요하다고 정리한다.
+- 현재 구현은 Firestore room hot state, RTDB fanout, direct bid Firestore transaction, Firestore rules, `last_auction_event`, RTDB `auctionEvents` 히스토리, latency report route를 이미 갖추고 있다.
+- 보완 우선순위는 새 WebSocket/Redis/NATS 도입이 아니라 운영 부하 게이트, 이벤트 히스토리 보존 정책, direct bid idempotency, 인증된 latency report, room read 권한 세분화, Firebase hot document 한계 기준 문서화로 잡는다.
+- 사용자가 ChatGPT 공유 링크 본문을 직접 첨부했다. 본문은 Firebase를 유지하되 Socket.IO를 경매 전용 authoritative engine으로 추가하고, Redis는 서버 이중화 시점에 도입하는 하이브리드 구조를 권고한다.
+- 보고서 갱신 방향은 Socket.IO 도입을 배제하지 않고, 현재 구현의 Firestore transaction authoritative 모델과 Socket.IO authoritative server 모델의 차이를 명확히 비교하는 것이다.
+
+## 2026-07-06 Socket.IO hybrid 경매 전환 분석과 설계
+
+- 요청은 hybrid 구조로 전환하기 위해 필요한 분석 보고서를 작성한 뒤, 기획 및 설계 문서를 작성하는 것이다.
+- 현재 코드베이스에서 가장 큰 전환 리스크는 Socket.IO 서버 추가 자체가 아니라 hot state 소유권이 Firestore transaction과 rules에서 Auction Server sequence로 이동한다는 점이다.
+- 문서는 분석 보고서, 제품 기획서, 기술 설계서 세 개로 분리한다. 분석 보고서는 전환 필요조건과 리스크, 기획서는 사용자 가치와 rollout, 설계서는 실제 모듈 경계와 이벤트 계약을 다룬다.
+- 기본 전략은 `shadow mode`, `fixture canary`, `OPEN_ASCENDING canary`, `Redis durable state`, `RTDB fanout 축소` 순서다. 비공개 입찰과 팀 배정 phase는 초기 Socket.IO 전환 범위에서 제외한다.
+- 성공 기준은 모든 클라이언트가 server sequence 기준 같은 상태를 보고, reconnect 시 snapshot sync로 회복하며, Firestore archive와 schedule 계약은 기존처럼 유지되는 것이다.
+
+## 2026-07-06 Socket.IO hybrid 1단계 구현
+
+- 요청은 위 문서를 참고해 구현 작업을 진행하는 것이다. 이번 범위는 실제 운영 Socket.IO 서버까지 붙이는 것이 아니라, 문서의 1단계 전환 토대인 transport flag, shared contract, authoritative engine, fixture canary command route를 코드로 고정하는 것이다.
+- `auction_transport`는 `FIREBASE`, `SOCKET_SHADOW`, `SOCKET_CANARY`, `SOCKET` 네 값으로 정규화한다. 알 수 없는 값과 빈 값은 기존 동작 보존을 위해 `FIREBASE`로 떨어뜨린다.
+- 공개 입찰 engine은 Firestore listener가 아니라 서버 결정 상태를 기준으로 `sequence`, `currentBid`, `timerEndsAt`, 팀별 예약 포인트를 계산한다. 같은 `requestId` 재전송은 같은 accepted event를 반환하고 sequence를 다시 올리지 않는다.
+- 엔진 경계에서 양의 정수와 10P 단위 검증을 수행한다. fixture route도 integer guard를 갖지만, 실제 Socket 서버에서 engine을 직접 호출할 수 있으므로 도메인 검증은 engine 내부 계약으로 둔다.
+- fixture command route는 `E2E_AUCTION_FIXTURE=1`에서만 동작하며 `sync`와 `bid`를 제공한다. Next dev의 route module 재평가 후에도 fixture engine 멱등성 상태가 사라지지 않도록 `globalThis` store를 사용한다.
+- 클라이언트는 아직 Socket primary transport로 전환하지 않는다. 현재 구현은 Firestore room snapshot의 `auction_transport`를 store에 노출해 shadow/canary rollout 준비 상태를 만든다.
+- 검증은 RED/GREEN 대상 Vitest, `npm run lint`, `npx tsc --noEmit --pretty false`, `npm run test`, `npm run build`, dev server HTTP QA로 진행했다. HTTP QA에서는 sync, bid accepted, replay body equality, 10P 단위 거부, malformed payload 400, 서버 cleanup을 확인했다.

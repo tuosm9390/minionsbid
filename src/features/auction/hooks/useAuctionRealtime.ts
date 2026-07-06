@@ -26,6 +26,7 @@ import type {
 } from '../store/useAuctionStore'
 import { normalizeCaptainMode } from '../utils/roster'
 import { normalizeAuctionMode } from '../utils/auctionMode'
+import { normalizeAuctionTransport } from '../utils/auctionTransport'
 import { recoverExpiredAuction } from '../api/auctionActions'
 import {
   applyAuctionEventToState,
@@ -45,6 +46,7 @@ interface FirestoreRoomData {
   members_per_team?: number
   captain_mode?: string
   auction_mode?: string
+  auction_transport?: string
   total_teams?: number
   timer_ends_at?: Timestamp | null
   current_player_id?: string | null
@@ -303,6 +305,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
             membersPerTeam: data.membersPerTeam,
             captainMode: normalizeCaptainMode(data.captainMode),
             auctionMode: normalizeAuctionMode(data.auctionMode),
+            auctionTransport: 'FIREBASE',
             timerEndsAt: data.timerEndsAt,
             currentPlayerId: findCurrentAuctionPlayerId(data.players),
             createdAt: data.createdAt,
@@ -410,31 +413,32 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         roomName: data.name ?? null,
         basePoint: data.base_point ?? 1000,
         membersPerTeam: data.members_per_team ?? 5,
-            captainMode: normalizeCaptainMode(data.captain_mode),
-            auctionMode: normalizeAuctionMode(data.auction_mode),
-            totalTeams: data.total_teams ?? 0,
-            createdAt: timestampToISO(data.created_at),
-            nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
-            teamAssignment: data.team_assignment ?? null,
-            sealedBid: {
-              phase:
-                data.sealed_bid_phase === 'ACTIVE' ||
-                data.sealed_bid_phase === 'LOCKED' ||
-                data.sealed_bid_phase === 'REVEALING' ||
-                data.sealed_bid_phase === 'REVEALED' ||
-                data.sealed_bid_phase === 'AWARDED' ||
-                data.sealed_bid_phase === 'TIE_REBID'
-                  ? data.sealed_bid_phase
-                  : null,
-              roundId: data.sealed_bid_round_id ?? null,
-              roundNumber: data.sealed_bid_round_number ?? 0,
-              minAmount: data.sealed_bid_min_amount ?? 0,
-              eligibleTeamIds: data.sealed_bid_eligible_team_ids ?? null,
-              revealOrder: data.sealed_bid_reveal_order ?? [],
-              revealResult: data.sealed_bid_reveal_result ?? [],
-              highestAmount: data.sealed_bid_highest_amount ?? 0,
-              tiedTeamIds: data.sealed_bid_tied_team_ids ?? [],
-            },
+        captainMode: normalizeCaptainMode(data.captain_mode),
+        auctionMode: normalizeAuctionMode(data.auction_mode),
+        auctionTransport: normalizeAuctionTransport(data.auction_transport),
+        totalTeams: data.total_teams ?? 0,
+        createdAt: timestampToISO(data.created_at),
+        nextAuctionDurationMs: data.next_auction_duration_ms ?? null,
+        teamAssignment: data.team_assignment ?? null,
+        sealedBid: {
+          phase:
+            data.sealed_bid_phase === 'ACTIVE' ||
+            data.sealed_bid_phase === 'LOCKED' ||
+            data.sealed_bid_phase === 'REVEALING' ||
+            data.sealed_bid_phase === 'REVEALED' ||
+            data.sealed_bid_phase === 'AWARDED' ||
+            data.sealed_bid_phase === 'TIE_REBID'
+              ? data.sealed_bid_phase
+              : null,
+          roundId: data.sealed_bid_round_id ?? null,
+          roundNumber: data.sealed_bid_round_number ?? 0,
+          minAmount: data.sealed_bid_min_amount ?? 0,
+          eligibleTeamIds: data.sealed_bid_eligible_team_ids ?? null,
+          revealOrder: data.sealed_bid_reveal_order ?? [],
+          revealResult: data.sealed_bid_reveal_result ?? [],
+          highestAmount: data.sealed_bid_highest_amount ?? 0,
+          tiedTeamIds: data.sealed_bid_tied_team_ids ?? [],
+        },
         ...(snapshotIsCurrentOrNewer && {
           // timerEndsAt은 RTDB 이벤트(applyLiveAuctionEvent)가 브라우저 클럭 기준으로 관리
           currentPlayerId: data.current_player_id ?? null,

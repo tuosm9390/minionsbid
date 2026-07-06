@@ -1,0 +1,150 @@
+// Socket.IO hybrid 공개 입찰 엔진의 sequence와 멱등성을 검증한다.
+import { describe, expect, it } from 'vitest'
+import { createInitialSocketAuctionState } from '@/features/auction/socket/socketContracts'
+import { createSocketAuctionEngine } from '@/features/auction/socket/socketAuctionEngine'
+
+function makeEngine() {
+  const state = createInitialSocketAuctionState({
+    roomId: 'room-1',
+    currentPlayerId: 'player-1',
+    timerEndsAt: new Date(Date.now() + 3_000).toISOString(),
+    teams: [
+      {
+        id: 'team-blue',
+        name: 'Blue',
+        pointBalance: 1000,
+        rosterSlotsUsed: 0,
+        rosterSlotsTotal: 2,
+      },
+      {
+        id: 'team-red',
+        name: 'Red',
+        pointBalance: 1000,
+        rosterSlotsUsed: 0,
+        rosterSlotsTotal: 2,
+      },
+    ],
+  })
+  return createSocketAuctionEngine(state)
+}
+
+describe('socket auction engine', () => {
+  it('입찰을 수락하면 sequence를 증가시키고 같은 state를 broadcast payload로 반환한다', () => {
+    const engine = makeEngine()
+
+    const result = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10,
+      sentAt: Date.now(),
+    })
+
+    expect(result.type).toBe('bid:accepted')
+    expect(result.state.sequence).toBe(1)
+    expect(result.state.currentBid).toMatchObject({
+      requestId: 'request-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10,
+    })
+    expect(result.state.teams.find((team) => team.id === 'team-blue')).toMatchObject({
+      pointBalance: 990,
+    })
+  })
+
+  it('같은 requestId 재전송은 같은 결과를 반환하고 sequence를 다시 증가시키지 않는다', () => {
+    const engine = makeEngine()
+
+    const first = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10,
+      sentAt: Date.now(),
+    })
+    const replay = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10,
+      sentAt: Date.now(),
+    })
+
+    expect(replay).toEqual(first)
+    expect(engine.getSnapshot().sequence).toBe(1)
+  })
+
+  it('최고 입찰 팀의 재입찰과 낮은 금액은 거부하고 state sequence를 유지한다', () => {
+    const engine = makeEngine()
+    engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 20,
+      sentAt: Date.now(),
+    })
+
+    const leadingTeamReplay = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-2',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 30,
+      sentAt: Date.now(),
+    })
+    const lowBid = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-3',
+      playerId: 'player-1',
+      teamId: 'team-red',
+      amount: 20,
+      sentAt: Date.now(),
+    })
+
+    expect(leadingTeamReplay).toMatchObject({
+      type: 'bid:rejected',
+      reason: '현재 최고 입찰자입니다. 추가 입찰이 불가합니다.',
+    })
+    expect(lowBid).toMatchObject({
+      type: 'bid:rejected',
+      reason: '최소 입찰액은 30P입니다.',
+    })
+    expect(engine.getSnapshot().sequence).toBe(1)
+  })
+
+  it('정수가 아니거나 10P 단위가 아닌 금액은 거부하고 state sequence를 유지한다', () => {
+    const engine = makeEngine()
+
+    const decimalBid = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-decimal',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10.5,
+      sentAt: Date.now(),
+    })
+    const offStepBid = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-off-step',
+      playerId: 'player-1',
+      teamId: 'team-red',
+      amount: 15,
+      sentAt: Date.now(),
+    })
+
+    expect(decimalBid).toMatchObject({
+      type: 'bid:rejected',
+      reason: '양의 정수 금액을 입력하세요.',
+    })
+    expect(offStepBid).toMatchObject({
+      type: 'bid:rejected',
+      reason: '10P 단위로 입찰해야 합니다.',
+    })
+    expect(engine.getSnapshot().sequence).toBe(0)
+  })
+})

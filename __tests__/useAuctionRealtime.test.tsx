@@ -438,6 +438,30 @@ describe('useFirebaseRealtime', () => {
     expect(selectIsReAuctionRound(useAuctionStore.getState())).toBe(true)
   })
 
+  it('room snapshot의 auction_transport를 store transport mode로 정규화한다', () => {
+    renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
+
+    act(() => {
+      emitRoomSnapshot({
+        id: 'room-1',
+        name: 'Socket Shadow Room',
+        auction_transport: 'SOCKET_SHADOW',
+      })
+    })
+
+    expect(useAuctionStore.getState().auctionTransport).toBe('SOCKET_SHADOW')
+
+    act(() => {
+      emitRoomSnapshot({
+        id: 'room-1',
+        name: 'Fallback Room',
+        auction_transport: 'UNKNOWN',
+      })
+    })
+
+    expect(useAuctionStore.getState().auctionTransport).toBe('FIREBASE')
+  })
+
   it('players snapshot이 SOLD terminal 상태를 내리면 stale currentPlayerId를 비운다', () => {
     renderHook(() => useFirebaseRealtime('room-1', 'VIEWER'))
 
