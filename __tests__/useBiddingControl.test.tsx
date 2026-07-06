@@ -187,6 +187,8 @@ describe("useBiddingControl", () => {
       teamId: "team-1",
       amount: 10,
       requestId: "bid-direct-shadow-1",
+      role: "LEADER",
+      authToken: "leader-token",
     });
     expect(placeBid).not.toHaveBeenCalled();
     expect(result.current.bidError).toBeNull();

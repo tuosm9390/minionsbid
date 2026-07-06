@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "audit:room-auth-secrets": "node scripts/audit_room_auth_secrets.js",
+    "smoke:socket-shadow": "tsx -r tsconfig-paths/register scripts/socket_shadow_socketio_smoke.ts",
     "smoke:room-auth-firebase-token": "node scripts/smoke_room_auth_firebase_token.js",
     "smoke:room-rules": "node scripts/smoke_room_rules.js",
     "backfill:team-roster-slots:dry-run": "node scripts/backfill_team_roster_slots.js",
@@ -68,6 +69,8 @@
     "jsdom": "^28.1.0",
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.23.0",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^2.0.0"

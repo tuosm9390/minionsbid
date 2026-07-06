@@ -746,3 +746,16 @@
 - `SOCKET_SHADOW`일 때만 direct bid 성공 후 `mirrorShadowBid()`를 호출한다. `FIREBASE` transport에서는 호출하지 않는다.
 - `mirrorShadowBid()`는 shadow endpoint 실패를 throw하지 않고 `{ ok: false, error }`로 접는다. 따라서 shadow 경로 장애가 사용자 입찰 성공 흐름을 막지 않는다.
 - 다음 increment에서는 실제 Socket.IO server process와 `socket.io-client` 연결로 endpoint를 교체해야 한다.
+
+## 2026-07-06 SOCKET_SHADOW 전체 작업 단위 구현
+
+- 요청은 `SOCKET_SHADOW` 관련 모든 남은 작업 단위를 구현하는 것이다.
+- 현재 1차 mirror는 HTTP fixture endpoint까지이고, 실제 Socket.IO server process, handshake auth, room join, sync, shadow bid submit, client socket adapter, 관측 기록, Socket.IO smoke는 아직 없다.
+- 이번 작업은 기존 Firebase direct bid를 계속 primary로 두고, Socket.IO 결과는 UI 정본 상태를 덮어쓰지 않는 관측 데이터로만 기록한다.
+- Socket.IO 서버는 Next.js route 내부 장기 실행 방식이 아니라 재사용 가능한 attach 함수와 smoke script로 구현한다. 운영 배포 단위는 이후 별도 process로 분리할 수 있게 둔다.
+- 검증은 서버와 클라이언트 Vitest, 실제 Socket.IO server/client smoke, lint, 전체 test, build로 진행한다.
+- `attachSocketShadowServer()`를 추가해 `auction:ping`, `auction:join`, `auction:sync`, `bid:shadowSubmit`을 처리한다. fixture auth는 `validateAuth()` 주입 방식으로 두어 운영 room auth helper와 나중에 연결할 수 있게 했다.
+- `mirrorShadowBid()`는 `NEXT_PUBLIC_SOCKET_SHADOW_URL` 또는 `window.__SOCKET_SHADOW_URL__`가 있으면 Socket.IO ack 경로를 사용하고, 없으면 기존 HTTP fixture fallback을 유지한다.
+- shadow 결과는 `window.__socketShadowBidResults__`에 최대 50개까지 남긴다. 기록 항목은 latency, accepted/rejected type, error, mismatch 여부이며 primary Firebase UI 상태는 변경하지 않는다.
+- 실제 사용 표면 검증은 `npm run smoke:socket-shadow`로 수행했다. 이 스크립트는 ephemeral port에서 Socket.IO server를 띄우고 leader ping/sync/bid accepted, viewer bid rejected, invalid token connect_error, cleanup을 확인한다.
+- 최종 검증은 대상 Vitest, smoke, port LISTEN cleanup 확인, 타입 검사, 변경 파일 ESLint, 전체 lint, 전체 Vitest, production build를 통과했다.

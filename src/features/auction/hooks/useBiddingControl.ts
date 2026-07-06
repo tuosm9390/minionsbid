@@ -230,6 +230,8 @@ export function useBiddingControl({
             requestId:
               directResult.eventId ??
               `shadow-${roomId}-${currentPlayer.id}-${teamId}-${finalAmount}-${localNow}`,
+            role: 'LEADER',
+            authToken: leaderToken,
           })
         }
         if (!E2E_AUCTION_FIXTURE) {

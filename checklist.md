@@ -800,3 +800,12 @@
 - [x] HTTP 수동 QA로 shadow endpoint accepted/rejected 경로를 검증한다.
 - [x] lint, 타입 검사, 전체 테스트, build를 실행한다.
 - [x] 변경을 커밋한다.
+
+## SOCKET_SHADOW 전체 작업 단위 구현
+
+- [x] Socket.IO 서버 skeleton 테스트 작성과 RED 확인
+- [x] fixture auth, room join, sync, shadow bid submit 구현
+- [x] Socket.IO client adapter와 HTTP fallback 구현
+- [x] shadow latency, mismatch, reject 관측 기록 구현
+- [x] 실제 Socket.IO server/client smoke 스크립트 추가
+- [x] 대상 Vitest, smoke QA, lint, 전체 test, build 검증
