@@ -29,6 +29,117 @@ function makeEngine() {
 }
 
 describe('socket auction engine', () => {
+  it('Firestore snapshot에서 복원한 revision과 active bid를 초기 sequence와 최고 입찰로 사용한다', () => {
+    const engine = createSocketAuctionEngine(
+      createInitialSocketAuctionState({
+        roomId: 'room-1',
+        sequence: 7,
+        currentPlayerId: 'player-1',
+        currentBid: {
+          eventId: 'existing-event',
+          requestId: 'existing-request',
+          playerId: 'player-1',
+          teamId: 'team-blue',
+          amount: 40,
+          createdAt: '2030-01-01T00:00:00.000Z',
+        },
+        timerEndsAt: new Date(Date.now() + 3_000).toISOString(),
+        teams: [
+          {
+            id: 'team-blue',
+            name: 'Blue',
+            pointBalance: 960,
+            rosterSlotsUsed: 0,
+            rosterSlotsTotal: 2,
+          },
+          {
+            id: 'team-red',
+            name: 'Red',
+            pointBalance: 1000,
+            rosterSlotsUsed: 0,
+            rosterSlotsTotal: 2,
+          },
+        ],
+      }),
+    )
+
+    const result = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'request-after-hydrate',
+      playerId: 'player-1',
+      teamId: 'team-red',
+      amount: 50,
+      sentAt: Date.now(),
+    })
+
+    expect(result.type).toBe('bid:accepted')
+    expect(result.state.sequence).toBe(8)
+    expect(result.state.currentBid).toMatchObject({
+      requestId: 'request-after-hydrate',
+      teamId: 'team-red',
+      amount: 50,
+    })
+    expect(result.state.teams.find((team) => team.id === 'team-blue')).toMatchObject({
+      pointBalance: 1000,
+    })
+    expect(result.state.teams.find((team) => team.id === 'team-red')).toMatchObject({
+      pointBalance: 950,
+    })
+  })
+
+  it('Firestore에서 복원한 currentBid와 같은 requestId 재전송은 sequence를 올리지 않고 같은 accepted state를 반환한다', () => {
+    const engine = createSocketAuctionEngine(
+      createInitialSocketAuctionState({
+        roomId: 'room-1',
+        sequence: 7,
+        currentPlayerId: 'player-1',
+        currentBid: {
+          eventId: 'existing-event',
+          requestId: 'existing-request',
+          playerId: 'player-1',
+          teamId: 'team-blue',
+          amount: 40,
+          createdAt: '2030-01-01T00:00:00.000Z',
+        },
+        timerEndsAt: new Date(Date.now() + 3_000).toISOString(),
+        teams: [
+          {
+            id: 'team-blue',
+            name: 'Blue',
+            pointBalance: 960,
+            rosterSlotsUsed: 0,
+            rosterSlotsTotal: 2,
+          },
+        ],
+      }),
+    )
+
+    const replay = engine.submitBid({
+      roomId: 'room-1',
+      requestId: 'existing-request',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 40,
+      sentAt: Date.now(),
+    })
+
+    expect(replay).toMatchObject({
+      type: 'bid:accepted',
+      requestId: 'existing-request',
+      eventId: 'existing-event',
+      state: {
+        sequence: 7,
+        currentBid: {
+          eventId: 'existing-event',
+          requestId: 'existing-request',
+          teamId: 'team-blue',
+          amount: 40,
+        },
+      },
+    })
+    expect(engine.getSnapshot().sequence).toBe(7)
+  })
+
   it('입찰을 수락하면 sequence를 증가시키고 같은 state를 broadcast payload로 반환한다', () => {
     const engine = makeEngine()
 

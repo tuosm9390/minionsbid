@@ -4,6 +4,8 @@ import { Server, type Socket } from 'socket.io'
 import {
   createInitialSocketAuctionState,
   type BidSubmitCommand,
+  type SocketAuctionBidState,
+  type SocketAuctionAcceptedEvent,
   type SocketAuctionState,
   type SocketAuctionTeamState,
 } from '@/features/auction/socket/socketContracts'
@@ -20,9 +22,13 @@ export type SocketShadowAuth = {
 
 export type SocketShadowRoomState = {
   roomId: string
+  sequence?: number
   currentPlayerId?: string | null
+  currentBid?: SocketAuctionBidState | null
   timerEndsAt?: string | null
   teams: SocketAuctionTeamState[]
+  lastEventId?: string | null
+  serverTime?: number
 }
 
 export type SocketShadowAuthResult =
@@ -36,6 +42,7 @@ export type SocketShadowServerOptions = {
   corsOrigin?: string | string[]
   getRoomState: (roomId: string) => SocketShadowRoomState | null
   validateAuth?: (auth: SocketShadowAuth) => SocketShadowAuthResult
+  onAcceptedBid?: (event: SocketAuctionAcceptedEvent) => void | Promise<void>
 }
 
 export type SocketShadowServerHandle = {
@@ -117,9 +124,13 @@ export function attachSocketShadowServer(
     const engine = createSocketAuctionEngine(
       createInitialSocketAuctionState({
         roomId: roomState.roomId,
+        sequence: roomState.sequence,
         currentPlayerId: roomState.currentPlayerId ?? null,
+        currentBid: roomState.currentBid ?? null,
         timerEndsAt: roomState.timerEndsAt ?? null,
         teams: roomState.teams,
+        lastEventId: roomState.lastEventId,
+        serverTime: roomState.serverTime,
       }),
     )
     engines.set(roomId, engine)
@@ -176,7 +187,11 @@ export function attachSocketShadowServer(
       ack?.(engine.sync('MANUAL'))
     })
 
-    socket.on('bid:shadowSubmit', (payload, ack) => {
+    const handleBidSubmit = async (
+      payload: unknown,
+      ack: ((value: unknown) => void) | undefined,
+      mode: 'shadow' | 'primary',
+    ) => {
       if (auth.role !== 'LEADER') {
         rejectAck(socket, payload, ack, '팀장만 shadow 입찰을 전송할 수 있습니다.')
         return
@@ -195,9 +210,40 @@ export function attachSocketShadowServer(
         rejectAck(socket, payload, ack, '방 상태를 찾을 수 없습니다.')
         return
       }
+      const previousState = engine.getSnapshot()
       const result = engine.submitBid(command)
+      if (mode === 'primary' && result.type === 'bid:accepted') {
+        const persistAcceptedBid =
+          options.onAcceptedBid ??
+          (async (event: SocketAuctionAcceptedEvent) => {
+            const { persistSocketAcceptedBid } = await import(
+              '@/features/auction/socket/socketBidPersistence'
+            )
+            await persistSocketAcceptedBid(event)
+          })
+        try {
+          await persistAcceptedBid(result)
+        } catch (error: unknown) {
+          engine.replaceSnapshot(previousState)
+          console.error('[socket-auction] accepted bid persistence failed', {
+            roomId,
+            requestId: result.requestId,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          ack?.({ ok: false, error: '입찰 저장에 실패했습니다.' })
+          return
+        }
+      }
       io.to(`auction:${roomId}`).emit('auction:state', result.state satisfies SocketAuctionState)
       ack?.(result)
+    }
+
+    socket.on('bid:shadowSubmit', (payload, ack) => {
+      void handleBidSubmit(payload, ack, 'shadow')
+    })
+
+    socket.on('bid:submit', (payload, ack) => {
+      void handleBidSubmit(payload, ack, 'primary')
     })
   })
 

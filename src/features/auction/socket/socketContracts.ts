@@ -73,19 +73,23 @@ export type SocketAuctionCommandResult =
 
 export function createInitialSocketAuctionState(args: {
   roomId: string
+  sequence?: number
   currentPlayerId?: string | null
+  currentBid?: SocketAuctionBidState | null
   timerEndsAt?: string | null
   teams: SocketAuctionTeamState[]
+  lastEventId?: string | null
+  serverTime?: number
 }): SocketAuctionState {
   return {
     roomId: args.roomId,
-    sequence: 0,
+    sequence: args.sequence ?? 0,
     phase: args.currentPlayerId ? 'ACTIVE' : 'WAITING',
     currentPlayerId: args.currentPlayerId ?? null,
-    currentBid: null,
+    currentBid: args.currentBid ?? null,
     timerEndsAt: args.timerEndsAt ?? null,
     teams: args.teams.map((team) => ({ ...team })),
-    lastEventId: null,
-    serverTime: Date.now(),
+    lastEventId: args.lastEventId ?? args.currentBid?.eventId ?? null,
+    serverTime: args.serverTime ?? Date.now(),
   }
 }

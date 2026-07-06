@@ -10,6 +10,8 @@ import {
 import { useFirebaseRealtime } from "@/features/auction/hooks/useAuctionRealtime";
 import { useFirebasePresence } from "@/features/auction/hooks/usePresence";
 import { useLatencyReporter } from "@/features/auction/hooks/useLatencyReporter";
+import { subscribeSocketAuctionState } from "@/features/auction/socket/socketAuctionClient";
+import { isSocketPrimaryTransport } from "@/features/auction/utils/auctionTransport";
 import { useAuctionPresenceGuard } from "@/features/auction/hooks/useAuctionPresenceGuard";
 import { useRoomAuth } from "@/features/auction/hooks/useRoomAuth";
 import { useAuctionControl } from "@/features/auction/hooks/useAuctionControl";
@@ -75,6 +77,7 @@ export function RoomClient({
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
   const captainMode = useAuctionStore((s) => s.captainMode);
   const auctionMode = useAuctionStore((s) => s.auctionMode);
+  const auctionTransport = useAuctionStore((s) => s.auctionTransport);
   const sealedBid = useAuctionStore((s) => s.sealedBid);
   const presences = useAuctionStore((s) => s.presences);
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
@@ -106,6 +109,15 @@ export function RoomClient({
     setRoomContext,
   });
   useFirebaseRealtime(roomId, effectiveRole);
+  useEffect(() => {
+    if (!effectiveRole || !isSocketPrimaryTransport(auctionTransport)) return;
+    return subscribeSocketAuctionState({
+      roomId,
+      role: effectiveRole === "ORGANIZER" || effectiveRole === "LEADER" ? effectiveRole : "VIEWER",
+      teamId: storeTeamId,
+      authToken: roomAuthToken,
+    });
+  }, [auctionTransport, effectiveRole, roomAuthToken, roomId, storeTeamId]);
   // 입찰 latency·폴백 발동 운영 리포트 (30초 주기 + 이탈 시 flush)
   useLatencyReporter(roomId);
 

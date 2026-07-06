@@ -6,6 +6,7 @@ import {
   placeBid,
 } from "@/features/auction/api/auctionActions";
 import { placeBidDirect } from "@/features/auction/api/placeBidClient";
+import { placeBidSocketPrimary } from "@/features/auction/socket/socketAuctionClient";
 import { mirrorShadowBid } from "@/features/auction/socket/socketShadowClient";
 import { clearAuctionLatencyMarkers } from "@/features/auction/utils/latencyDebug";
 import { useAuctionStore } from "@/features/auction/store/useAuctionStore";
@@ -22,6 +23,14 @@ vi.mock("@/features/auction/api/placeBidClient", () => ({
 
 vi.mock("@/features/auction/socket/socketShadowClient", () => ({
   mirrorShadowBid: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
+vi.mock("@/features/auction/socket/socketAuctionClient", () => ({
+  placeBidSocketPrimary: vi.fn().mockResolvedValue({
+    eventId: "socket-bid-1",
+    timerEndsAt: "2030-01-01T00:00:08.000Z",
+    revision: 1,
+  }),
 }));
 
 describe("useBiddingControl", () => {
@@ -120,6 +129,42 @@ describe("useBiddingControl", () => {
     expect(result.current.bidAmount).toBe(10);
   });
 
+  it("직접 입력한 입찰 금액은 10P 단위로만 상태에 반영된다", () => {
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+
+    act(() => {
+      result.current.setBidAmount("11");
+    });
+    expect(result.current.bidAmount).toBe(10);
+
+    act(() => {
+      result.current.setBidAmount("29");
+    });
+    expect(result.current.bidAmount).toBe(20);
+
+    act(() => {
+      result.current.setBidAmount("");
+    });
+    expect(result.current.bidAmount).toBe("");
+  });
+
+  it("직접 입력값이 1P 단위여도 제출 금액은 10P 단위로 보정된다", async () => {
+    const { result } = renderHook(() => useBiddingControl(defaultProps));
+
+    act(() => {
+      result.current.setBidAmount("29");
+    });
+    await act(async () => { await result.current.handleBid(); });
+
+    expect(placeBidDirect).toHaveBeenCalledWith({
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 20,
+      resetTimer: false,
+    });
+  });
+
   it("자신이 최고 입찰자일 때 canBid는 false", () => {
     useAuctionStore.setState({
       liveBid: {
@@ -137,7 +182,7 @@ describe("useBiddingControl", () => {
   });
 
   it("handleBid 성공 시 placeBidDirect를 호출하고 bidAmount가 증가한다", async () => {
-    const serverTimerEndsAt = new Date(Date.now() + 8000).toISOString();
+    const serverTimerEndsAt = new Date(Date.now() + 5000).toISOString();
     (placeBidDirect as Mock).mockResolvedValue({
       eventId: "bid-direct-1",
       timerEndsAt: serverTimerEndsAt,
@@ -207,6 +252,30 @@ describe("useBiddingControl", () => {
     expect(mirrorShadowBid).not.toHaveBeenCalled();
   });
 
+  it("SOCKET_CANARY에서는 Socket primary bid만 호출하고 Firebase direct bid와 낙관 타이머를 건너뛴다", async () => {
+    const shortTimer = new Date(Date.now() + 3000).toISOString();
+    useAuctionStore.setState({ auctionTransport: "SOCKET_CANARY" });
+
+    const { result } = renderHook(() =>
+      useBiddingControl({ ...defaultProps, timerEndsAt: shortTimer })
+    );
+    await act(async () => { await result.current.handleBid(); });
+
+    expect(placeBidSocketPrimary).toHaveBeenCalledWith({
+      roomId: "room-1",
+      playerId: "p1",
+      teamId: "team-1",
+      amount: 10,
+      authToken: "leader-token",
+      requestId: expect.stringContaining("socket-room-1-p1-team-1-10-"),
+    });
+    expect(placeBidDirect).not.toHaveBeenCalled();
+    expect(placeBid).not.toHaveBeenCalled();
+    expect(broadcastBidEvent).not.toHaveBeenCalled();
+    expect(useAuctionStore.getState().timerEndsAt).toBeNull();
+    expect(result.current.bidAmount).toBe(20);
+  });
+
   it("direct-event 성공 시 같은 eventId로 클릭과 응답 latency marker를 남긴다", async () => {
     (placeBidDirect as Mock).mockResolvedValue({
       eventId: "bid-direct-marker-1",
@@ -233,7 +302,7 @@ describe("useBiddingControl", () => {
     expect(markers[0].respondedAt!).toBeGreaterThanOrEqual(markers[0].clickedAt!);
   });
 
-  it("남은 시간 < 8s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
+  it("남은 시간 < 5s이면 클릭 즉시 낙관 타이머를 적용한다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })
@@ -250,14 +319,14 @@ describe("useBiddingControl", () => {
     const optimisticTimer = useAuctionStore.getState().timerEndsAt;
     expect(optimisticTimer).not.toBeNull();
     const remaining = new Date(optimisticTimer!).getTime() - Date.now();
-    expect(remaining).toBeGreaterThan(7000);
-    expect(remaining).toBeLessThan(9000);
+    expect(remaining).toBeGreaterThan(4000);
+    expect(remaining).toBeLessThan(6000);
 
     resolveBid({ timerEndsAt: null, revision: 2 });
     await act(async () => { await pending; });
   });
 
-  it("남은 시간 > 8s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
+  it("남은 시간 > 5s이면 클릭 시 낙관 타이머를 적용하지 않는다", async () => {
     let resolveBid!: (value: { timerEndsAt?: string | null; revision?: number }) => void;
     (placeBidDirect as Mock).mockImplementation(
       () => new Promise((resolve) => { resolveBid = resolve; })

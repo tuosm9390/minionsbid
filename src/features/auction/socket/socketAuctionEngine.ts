@@ -45,6 +45,10 @@ export function createSocketAuctionEngine(initialState: SocketAuctionState) {
       return cloneState(state)
     },
 
+    replaceSnapshot(nextState: SocketAuctionState) {
+      state = cloneState(nextState)
+    },
+
     sync(reason: 'JOIN' | 'RECONNECT' | 'GAP' | 'MANUAL') {
       return {
         type: 'auction:sync' as const,
@@ -59,6 +63,16 @@ export function createSocketAuctionEngine(initialState: SocketAuctionState) {
 
       if (command.roomId !== state.roomId) {
         return reject(command, '방 정보가 일치하지 않습니다.')
+      }
+      if (state.currentBid?.requestId === command.requestId) {
+        const accepted: SocketAuctionAcceptedEvent = {
+          type: 'bid:accepted',
+          requestId: command.requestId,
+          eventId: state.currentBid.eventId,
+          state: cloneState(state),
+        }
+        requestCache.set(command.requestId, accepted)
+        return accepted
       }
       if (!state.currentPlayerId || state.currentPlayerId !== command.playerId) {
         return reject(command, '현재 경매 중인 선수가 아닙니다.')

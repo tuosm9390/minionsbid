@@ -809,3 +809,49 @@
 - [x] shadow latency, mismatch, reject 관측 기록 구현
 - [x] 실제 Socket.IO server/client smoke 스크립트 추가
 - [x] 대상 Vitest, smoke QA, lint, 전체 test, build 검증
+
+## 실시간 경매 입찰 입력 10P 단위 제한
+
+- [x] 현재 공개 입찰 입력과 제출 경로 확인
+- [x] 1P 단위 직접 입력 방지 테스트 추가
+- [x] 입력값과 제출 금액을 10P 단위로 정규화
+- [x] 대상 테스트, 타입 검사, lint/build 검증
+
+## 단일 서버 Socket.IO authoritative 입찰 시작
+
+- [x] `bid:submit` primary Socket.IO 이벤트 테스트 추가
+- [x] 서버 engine accepted 결과 broadcast와 persistence callback 경계 구현
+- [x] `SOCKET_CANARY` client primary bid API 추가
+- [x] `SOCKET_CANARY`에서 Firebase direct bid와 낙관 타이머 갱신을 건너뛰도록 훅 분기
+- [x] RoomClient에서 Socket primary transport state broadcast 구독
+- [x] Socket.IO smoke, 대상 테스트, 전체 lint/test/build 검증
+
+## Socket primary 타이머 만료 낙찰 확정 보정
+
+- [x] Socket primary accepted bid가 Firestore `active_bid`에 저장되지 않는 원인 확인
+- [x] accepted bid Firestore persistence 테스트 추가
+- [x] Socket accepted bid를 room hot state와 bids subcollection에 저장
+- [x] persistence 실패 시 unhandled rejection 없이 서버 로그로 접기
+- [x] 대상 테스트, smoke, 타입 검사, lint, build 검증
+
+## Socket primary 데이터 보존 보완
+
+- [x] primary bid가 persistence 완료 전 ack/broadcast되는 RED 테스트 추가
+- [x] persistence 실패 시 accepted broadcast 없이 ack error로 반환하는 RED 테스트 추가
+- [x] Firestore snapshot revision과 active bid hydrate RED 테스트 추가
+- [x] persistence 정본 current player mismatch 검증 RED 테스트 추가
+- [x] Socket primary accepted bid를 durable persistence 이후에만 전파하도록 수정
+- [x] persistence 실패 시 Socket engine state rollback 적용
+- [x] Firestore revision, current bid, last event를 Socket initial state에 hydrate할 수 있게 보강
+- [x] 서버 재시작 후 hydrated currentBid와 같은 requestId 재전송은 같은 accepted state를 반환하도록 보강
+- [x] Admin SDK persistence transaction에 현재 선수, 타이머, 최고가 검증 추가
+- [x] RED/GREEN, smoke evidence 수집
+
+## 공개 입찰 타이머 5초 갱신 전환
+
+- [x] 기존 8초 연장 기준 사용처 확인
+- [x] 공개 입찰 연장 threshold와 duration을 5초로 변경
+- [x] Firestore direct bid rules의 타이머 허용 범위를 5초 기준으로 변경
+- [x] 서버 액션, realtime, bidding control 테스트 기대값을 5초 기준으로 갱신
+- [x] timer lab과 운영 문구를 5초 기준으로 갱신
+- [x] 실시간 계약 문서의 공개 입찰 갱신 정책을 5초 기준으로 갱신

@@ -213,8 +213,8 @@ leader click bid
   - 팀 문서의 `roster_slots_used < roster_slots_total`
   - `auction_revision == before + 1`
   - bid history create는 같은 transaction의 `getAfter(room).active_bid.event_id == bidId`와 일치
-- 성공한 입찰은 남은 시간이 8초 이하일 때만 `timer_ends_at`을 request time 기준 8초 근처로 재설정
-- 남은 시간이 8초 초과이면 입찰은 `active_bid`와 `auction_revision`만 갱신하고 기존 `timer_ends_at`을 유지
+- 성공한 입찰은 남은 시간이 5초 이하일 때만 `timer_ends_at`을 request time 기준 5초 근처로 재설정
+- 남은 시간이 5초 초과이면 입찰은 `active_bid`와 `auction_revision`만 갱신하고 기존 `timer_ends_at`을 유지
   - 클라이언트와 서버 시계 차이를 흡수하기 위해 request time 기준 5~11초 범위만 허용
 
 클라이언트 사전 검증은 UX용이다. 최종 방어선은 Firestore rules다.
@@ -225,8 +225,8 @@ leader click bid
 
 - 일반 경매 시작 타이머는 `10초`다.
 - 재경매에서 실제 경매를 시작할 때의 첫 타이머는 `5초`다.
-- 입찰이 들어왔을 때 남은 시간이 `8초 이하`이면 타이머를 입찰 시점 기준 최소 `8초` 이상 남도록 연장한다.
-- 남은 시간이 `8초 초과`이면 기존 타이머를 유지한다.
+- 입찰이 들어왔을 때 남은 시간이 `5초 이하`이면 타이머를 입찰 시점 기준 최소 `5초` 이상 남도록 연장한다.
+- 남은 시간이 `5초 초과`이면 기존 타이머를 유지한다.
 - 이 규칙은 direct bid와 Server Action fallback 경로 모두 동일하게 적용한다.
 
 ## Expiry Ownership

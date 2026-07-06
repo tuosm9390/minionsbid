@@ -55,7 +55,7 @@ service cloud.firestore {
         && (before.active_bid == null || before.active_bid.team_id != auth.token.teamId)
         // revision 정확히 +1
         && after.auction_revision == before.auction_revision + 1
-        // 남은 시간이 8초 이하인 경우에만 입찰 시점 기준 8초 후로 타이머 갱신 허용
+        // 남은 시간이 5초 이하인 경우에만 입찰 시점 기준 5초 후로 타이머 갱신 허용
         && isValidDirectBidTimerUpdate(before, after)
         // 팀 포인트 잔액 >= 입찰액
         && team.point_balance >= newBid.amount
@@ -89,14 +89,14 @@ service cloud.firestore {
     }
 
     function isValidDirectBidTimerUpdate(before, after) {
-      // 1. 타이머를 갱신하지 않는 경우 (남은 시간이 8초 초과일 때 권장)
+      // 1. 타이머를 갱신하지 않는 경우 (남은 시간이 5초 초과일 때 권장)
       return after.timer_ends_at == before.timer_ends_at
         || (
-          // 2. 타이머를 갱신하는 경우: 남은 시간이 8초 이하일 때만 허용
-          before.timer_ends_at <= request.time + duration.value(8, 's')
-          // 갱신 시 새로운 종료 시간은 현재 시간(입찰 시점) 기준 8초여야 함 (오차 범위 5~11초 허용)
-          && after.timer_ends_at >= request.time + duration.value(5, 's')
-          && after.timer_ends_at <= request.time + duration.value(11, 's')
+          // 2. 타이머를 갱신하는 경우: 남은 시간이 5초 이하일 때만 허용
+          before.timer_ends_at <= request.time + duration.value(5, 's')
+          // 갱신 시 새로운 종료 시간은 현재 시간(입찰 시점) 기준 5초여야 함 (오차 범위 3~8초 허용)
+          && after.timer_ends_at >= request.time + duration.value(3, 's')
+          && after.timer_ends_at <= request.time + duration.value(8, 's')
         );
     }
 

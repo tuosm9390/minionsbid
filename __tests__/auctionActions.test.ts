@@ -317,10 +317,10 @@ describe('placeBid', () => {
     expect(mockRunTransaction).toHaveBeenCalled()
   })
 
-  it('GREEN: 남은 시간 ≤ 8초이면 타이머 연장', async () => {
+  it('GREEN: 남은 시간 ≤ 5초이면 타이머 연장', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({
-        timer_ends_at: makeTimestamp(Date.now() + 8000),
+        timer_ends_at: makeTimestamp(Date.now() + 5000),
         current_player_id: playerId,
         members_per_team: 5,
         captain_mode: 'IN_ROSTER',
@@ -333,10 +333,10 @@ describe('placeBid', () => {
     expect(result.timerEndsAt).toBeDefined()
   })
 
-  it('남은 시간 < 8초(7800ms)이면 타이머 연장', async () => {
+  it('남은 시간 < 5초(4800ms)이면 타이머 연장', async () => {
     mockDocGet
       .mockResolvedValueOnce(makeSnap({
-        timer_ends_at: makeTimestamp(Date.now() + 7800),
+        timer_ends_at: makeTimestamp(Date.now() + 4800),
         current_player_id: playerId,
         members_per_team: 5,
         captain_mode: 'IN_ROSTER',
@@ -349,8 +349,8 @@ describe('placeBid', () => {
     expect(result.timerEndsAt).toBeDefined()
   })
 
-  it('GREEN: 남은 시간 > 8초이면 기존 타이머를 유지한다', async () => {
-    const existingTimerMs = Date.now() + 9000
+  it('GREEN: 남은 시간 > 5초이면 기존 타이머를 유지한다', async () => {
+    const existingTimerMs = Date.now() + 6000
     mockDocGet
       .mockResolvedValueOnce(makeSnap({
         timer_ends_at: makeTimestamp(existingTimerMs),
@@ -469,7 +469,7 @@ describe('pauseAuction/resumeAuction', () => {
 
   beforeEach(resetMocks)
 
-  it('pause 시 남은 시간을 기록하고 resume 시 8초로 줄이지 않는다', async () => {
+  it('pause 시 남은 시간을 기록하고 resume 시 5초로 줄이지 않는다', async () => {
     const pausedAt = Date.now()
     mockDocGet.mockResolvedValueOnce(
       makeSnap({
@@ -492,7 +492,7 @@ describe('pauseAuction/resumeAuction', () => {
     expect(resumeResult.error).toBeUndefined()
     expect(resumeResult.timerEndsAt).toBeDefined()
     const remainingMs = new Date(resumeResult.timerEndsAt as string).getTime() - Date.now()
-    expect(remainingMs).toBeGreaterThan(8000)
+    expect(remainingMs).toBeGreaterThan(5000)
   })
 })
 

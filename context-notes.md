@@ -759,3 +759,48 @@
 - shadow 결과는 `window.__socketShadowBidResults__`에 최대 50개까지 남긴다. 기록 항목은 latency, accepted/rejected type, error, mismatch 여부이며 primary Firebase UI 상태는 변경하지 않는다.
 - 실제 사용 표면 검증은 `npm run smoke:socket-shadow`로 수행했다. 이 스크립트는 ephemeral port에서 Socket.IO server를 띄우고 leader ping/sync/bid accepted, viewer bid rejected, invalid token connect_error, cleanup을 확인한다.
 - 최종 검증은 대상 Vitest, smoke, port LISTEN cleanup 확인, 타입 검사, 변경 파일 ESLint, 전체 lint, 전체 Vitest, production build를 통과했다.
+
+## 2026-07-06 실시간 경매 입찰 입력 10P 단위 제한
+
+- 요청은 공개 실시간 경매 숫자 입력에서 1P 단위 금액이 입력되지 않게 하고, 최소 10P 단위만 허용하는 것이다.
+- 현재 `BiddingControl` input은 `step={10}`을 갖고 있지만 직접 타이핑으로 11P 같은 값이 hook state에 들어갈 수 있다. 서버와 Socket engine은 이미 10P 단위 검증을 갖고 있으므로 UI/hook 레벨에서 같은 제약을 적용한다.
+- 정책은 빈 문자열은 편집 중 상태로 잠깐 허용하고, 숫자가 들어오면 `BID_INCREMENT` 배수로 내림한 뒤 최소 입찰가 이상으로 보정하는 것이다. 제출 경로도 같은 정규화 함수를 사용해 비정상 state가 남아도 10P 단위로만 전송한다.
+- 구현은 `useBiddingControl`의 반환 setter를 정규화 setter로 감싸고, `handleBid`, `incrementBid`, `decrementBid`도 같은 정규화 함수를 사용하게 했다.
+- 검증은 `npm run test -- __tests__/useBiddingControl.test.tsx`, `npx tsc --noEmit --pretty false`, 변경 파일 ESLint, `npm run build`를 통과했다.
+
+## 2026-07-06 단일 서버 Socket.IO authoritative 입찰 시작
+
+- 요청은 서버가 하나인 전제에서 추천 구조대로 Socket.IO authoritative 입찰 구현을 시작하는 것이다.
+- 이번 단계는 `SOCKET_CANARY`와 `SOCKET` transport에서만 동작한다. `FIREBASE`와 `SOCKET_SHADOW`는 기존 흐름을 유지한다.
+- Socket 서버는 `bid:submit` primary 이벤트를 추가로 처리한다. accepted 결과는 같은 room에 `auction:state`로 broadcast하고, `onAcceptedBid` callback으로 확정 이벤트 저장 경계를 제공한다.
+- 클라이언트는 `placeBidSocketPrimary()`를 통해 bid command만 전송하고, 서버 accepted state를 받은 뒤 `liveBid`, `timerEndsAt`, `auctionEventRevision`, 팀 포인트를 store에 적용한다.
+- `useBiddingControl`은 Socket primary transport에서 Firebase direct bid, 서버 액션 fallback, RTDB broadcast, 낙관 타이머 연장을 실행하지 않는다. 타이머는 서버가 확정한 `timerEndsAt`만 반영한다.
+- `RoomClient`는 Socket primary transport일 때 `auction:state`를 구독해 입찰자가 아닌 클라이언트도 같은 server sequence snapshot으로 수렴한다.
+- 실제 Firestore 저장은 아직 `onAcceptedBid` callback 경계까지만 구현했다. 단일 서버 환경에서는 이 callback에 Admin SDK 저장을 연결하면 Redis 없이 운영 canary를 시작할 수 있다.
+- 검증은 Socket primary RED/GREEN 테스트, `npm run smoke:socket-shadow`, port cleanup 확인, 타입 검사, 변경 파일 lint, 대상 테스트, `npm run build`, `npm run lint`, `npm run test`를 통과했다.
+
+## 2026-07-06 Socket primary 타이머 만료 낙찰 확정 보정
+
+- 문제는 `SOCKET_CANARY` primary bid가 Socket engine state와 client store에는 반영되지만 Firestore room hot state에는 저장되지 않아, 타이머 만료 후 기존 `awardPlayer()`와 `recoverExpiredAuction()`이 `active_bid`를 읽지 못하는 구조였다.
+- 해결은 Socket 서버가 `bid:submit` accepted 결과를 받은 즉시 Firestore `rooms/{roomId}`에 `active_bid`, `timer_ends_at`, `auction_revision`, `last_auction_event`를 저장하고 `rooms/{roomId}/bids/{eventId}` 기록도 남기는 것이다.
+- 저장은 새 `persistSocketAcceptedBid()`에 분리했다. Socket 서버는 `onAcceptedBid`가 주입되면 그 callback을 사용하고, 없으면 기본 Firestore persistence를 동적 import로 호출한다.
+- 이 저장은 팀 포인트를 즉시 확정 차감하지 않는다. 기존 경매 계약처럼 입찰 중에는 최고 입찰 예약 상태를 `active_bid`로 보존하고, 타이머 만료 후 `awardPlayer()`가 최종 SOLD 처리와 팀 포인트 차감을 확정한다.
+- persistence 실패는 입찰 ack와 Socket broadcast를 막지 않되, 서버 로그에 roomId, requestId, error message를 남긴다. 운영에서는 이 로그가 보이면 해당 입찰은 화면에는 반영됐지만 만료 확정 복구가 실패할 수 있으므로 알림 대상이다.
+- 검증은 persistence 단위 테스트, socket server/client/hook/award 대상 테스트, Socket.IO smoke, 포트 cleanup 확인, 타입 검사, 변경 파일 lint, production build를 통과했다.
+
+## 2026-07-06 Socket primary 데이터 보존 보완
+
+- 후속 분석 결과, accepted bid를 먼저 broadcast하고 persistence를 fire-and-forget으로 실행하면 화면 확정 상태와 Firestore 정본 상태가 갈라질 수 있었다.
+- 정책을 `Socket accepted == durable persistence confirmed`로 바꿨다. `bid:submit` primary 경로는 Socket engine이 accepted event를 계산한 뒤 Firestore persistence가 성공해야만 `auction:state` broadcast와 ack를 반환한다.
+- persistence 실패 시 Socket engine state를 이전 snapshot으로 되돌린다. 이 rollback이 없으면 ack error를 반환하더라도 이후 sync가 실패한 입찰 state를 보여줄 수 있기 때문이다.
+- Socket initial state는 Firestore snapshot에서 `sequence`, `currentBid`, `lastEventId`, `serverTime`을 받을 수 있게 확장했다. 운영 서버의 `getRoomState()`가 Firestore `auction_revision`, `active_bid`, `timer_ends_at`, 팀 point reservation을 변환해 넣어야 재시작 후에도 sequence가 0으로 되돌아가지 않는다.
+- 서버 재시작 후 브라우저가 같은 `requestId`를 재전송할 수 있으므로, hydrated `currentBid.requestId`와 같은 command는 현재 highest team 재입찰 거부가 아니라 같은 accepted snapshot으로 반환한다.
+- Admin SDK persistence는 Firestore rules를 거치지 않으므로 transaction 안에서 최소 정본 검증을 수행한다. 현재 선수 mismatch, 만료된 타이머, 기존 최고가 이상인 stale bid, Socket sequence보다 최신 Firestore revision은 저장하지 않고 error로 반환한다.
+- 아직 Redis durable state는 추가하지 않았다. 단일 서버 운영 전제에서는 Firestore hydrate와 persistence-before-broadcast가 우선이고, 서버 이중화 시점에는 requestId 멱등성 cache와 timer scheduler를 Redis 또는 Firestore 기반 durable queue로 분리해야 한다.
+
+## 2026-07-06 공개 입찰 타이머 5초 갱신 전환
+
+- 요청은 경매 입찰 시 타이머가 5초로 갱신되도록 하는 것이다.
+- duration만 5초로 낮추고 threshold를 8초로 유지하면 남은 시간이 6~8초인 입찰에서 타이머가 오히려 줄어들 수 있으므로, 공개 입찰 연장 threshold와 duration을 모두 5초로 맞춘다.
+- 적용 범위는 공개 입찰 shared timing 상수, direct bid Firestore rules, server action/direct client/socket engine, E2E fixture, timer lab이다. 비공개 입찰 20초 진행 시간과 일반 경매 시작 10초는 변경하지 않는다.
+- Firestore rules는 direct bid 클라이언트 transaction의 최종 방어선이므로 남은 시간 5초 이하에서만 갱신을 허용하고, 새 종료 시각은 request time 기준 3~8초 범위로 허용한다.

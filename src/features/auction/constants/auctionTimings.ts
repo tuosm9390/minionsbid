@@ -2,8 +2,8 @@
 export const AUCTION_DURATION_MS = 10_000;
 export const SEALED_BID_DURATION_MS = 20_000;
 export const RE_AUCTION_DURATION_MS = 10_000;
-export const EXTEND_THRESHOLD_MS = 8_000;
-export const EXTEND_DURATION_MS = 8_000;
+export const EXTEND_THRESHOLD_MS = 5_000;
+export const EXTEND_DURATION_MS = 5_000;
 
 /** 입찰 관련 상수 */
 export const BID_INCREMENT = 10;

@@ -87,7 +87,7 @@ test('extends timer and syncs min bid across organizer and leaders', async ({
   expect(response.ok()).toBeTruthy()
   const fixture = (await response.json()) as AuctionFixtureResetResponse
 
-  // 첫 페이지 로드(dev 콜드 컴파일 포함)가 8초 타이머와 경쟁하지 않도록 보류 시간으로 재무장
+  // 첫 페이지 로드(dev 콜드 컴파일 포함)가 짧은 경매 타이머와 경쟁하지 않도록 보류 시간으로 재무장
   await sendFixtureCommand(request, {
     roomId: fixture.roomId,
     action: 'startAuction',

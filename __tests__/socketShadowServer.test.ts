@@ -1,7 +1,7 @@
 // SOCKET_SHADOW Socket.IO 서버의 fixture 인증과 경매 이벤트를 검증한다.
 import { createServer, type Server as HttpServer } from 'node:http'
 import { AddressInfo } from 'node:net'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { io as createClient, type Socket as ClientSocket } from 'socket.io-client'
 import {
   attachSocketShadowServer,
@@ -169,5 +169,139 @@ describe('attachSocketShadowServer', () => {
       ok: false,
       error: '팀장만 shadow 입찰을 전송할 수 있습니다.',
     })
+  })
+
+  it('leader primary bid는 persistence 완료 후 bid:submit ack와 broadcast를 반환한다', async () => {
+    const persistGate: { resolve: (() => void) | null } = { resolve: null }
+    const onAcceptedBid = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          persistGate.resolve = resolve
+        }),
+    )
+    await new Promise<void>((resolve) => shadowServer.close(resolve))
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()))
+    httpServer = createServer()
+    shadowServer = attachSocketShadowServer(httpServer, {
+      getRoomState: (roomId) => (roomId === roomState.roomId ? roomState : null),
+      validateAuth: () => true,
+      onAcceptedBid,
+    })
+    await new Promise<void>((resolve) => httpServer.listen(0, resolve))
+    const address = httpServer.address() as AddressInfo
+    baseUrl = `http://127.0.0.1:${address.port}`
+    const leader = await connectClient({
+      roomId: 'room-1',
+      role: 'LEADER',
+      teamId: 'team-blue',
+      authToken: 'fixture-blue-token',
+    })
+    const viewer = await connectClient({
+      roomId: 'room-1',
+      role: 'VIEWER',
+      authToken: 'fixture-viewer-token',
+    })
+    const stateEvents: unknown[] = []
+    viewer.on('auction:state', (state) => stateEvents.push(state))
+    const stateEventPromise = new Promise<unknown>((resolve) => {
+      viewer.once('auction:state', resolve)
+    })
+
+    let ackSettled = false
+    const ackPromise = leader.timeout(1000).emitWithAck('bid:submit', {
+      roomId: 'room-1',
+      requestId: 'request-primary-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10,
+      sentAt: Date.now(),
+    }).then((value) => {
+      ackSettled = true
+      return value
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 25))
+
+    expect(onAcceptedBid).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'bid:accepted',
+      requestId: 'request-primary-1',
+    }))
+    expect(ackSettled).toBe(false)
+    expect(stateEvents).toEqual([])
+
+    const releasePersist = persistGate.resolve
+    if (!releasePersist) throw new Error('persistence gate was not opened by onAcceptedBid')
+    releasePersist()
+    const accepted = await ackPromise
+    await stateEventPromise
+
+    expect(accepted).toMatchObject({
+      type: 'bid:accepted',
+      requestId: 'request-primary-1',
+      state: {
+        sequence: 1,
+        currentBid: {
+          teamId: 'team-blue',
+          amount: 10,
+        },
+      },
+    })
+    expect(stateEvents).toHaveLength(1)
+    expect(stateEvents[0]).toMatchObject({
+      sequence: 1,
+      currentBid: {
+        teamId: 'team-blue',
+        amount: 10,
+      },
+    })
+  })
+
+  it('leader primary bid persistence 실패는 accepted broadcast 없이 ack error로 반환한다', async () => {
+    const onAcceptedBid = vi.fn().mockRejectedValue(new Error('firestore down'))
+    await new Promise<void>((resolve) => shadowServer.close(resolve))
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()))
+    httpServer = createServer()
+    shadowServer = attachSocketShadowServer(httpServer, {
+      getRoomState: (roomId) => (roomId === roomState.roomId ? roomState : null),
+      validateAuth: () => true,
+      onAcceptedBid,
+    })
+    await new Promise<void>((resolve) => httpServer.listen(0, resolve))
+    const address = httpServer.address() as AddressInfo
+    baseUrl = `http://127.0.0.1:${address.port}`
+    const leader = await connectClient({
+      roomId: 'room-1',
+      role: 'LEADER',
+      teamId: 'team-blue',
+      authToken: 'fixture-blue-token',
+    })
+    const viewer = await connectClient({
+      roomId: 'room-1',
+      role: 'VIEWER',
+      authToken: 'fixture-viewer-token',
+    })
+    const stateEvents: unknown[] = []
+    viewer.on('auction:state', (state) => stateEvents.push(state))
+
+    const rejected = await leader.timeout(1000).emitWithAck('bid:submit', {
+      roomId: 'room-1',
+      requestId: 'request-primary-1',
+      playerId: 'player-1',
+      teamId: 'team-blue',
+      amount: 10,
+      sentAt: Date.now(),
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 25))
+
+    expect(rejected).toEqual({
+      ok: false,
+      error: '입찰 저장에 실패했습니다.',
+    })
+    expect(onAcceptedBid).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'bid:accepted',
+      requestId: 'request-primary-1',
+    }))
+    expect(stateEvents).toEqual([])
   })
 })

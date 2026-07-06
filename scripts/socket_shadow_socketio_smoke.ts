@@ -81,7 +81,9 @@ async function main() {
       if (auth.roomId !== roomState.roomId) return { ok: false, reason: 'unknown room' }
       if (auth.role === 'LEADER') {
         return {
-          ok: auth.teamId === 'team-blue' && auth.authToken === 'fixture-blue-token',
+          ok:
+            (auth.teamId === 'team-blue' && auth.authToken === 'fixture-blue-token') ||
+            (auth.teamId === 'team-red' && auth.authToken === 'fixture-red-token'),
           reason: 'invalid leader token',
         }
       }
@@ -90,7 +92,11 @@ async function main() {
       }
       return { ok: false, reason: 'unsupported role' }
     },
+    onAcceptedBid: (event) => {
+      acceptedBidEvents.push(event.requestId)
+    },
   })
+  const acceptedBidEvents: string[] = []
   const sockets: ClientSocket[] = []
   try {
     await new Promise<void>((resolve) => httpServer.listen(0, resolve))
@@ -108,16 +114,30 @@ async function main() {
       role: 'VIEWER',
       authToken: 'fixture-viewer-token',
     })
-    sockets.push(leader, viewer)
+    const redLeader = await connectClient(baseUrl, {
+      roomId: roomState.roomId,
+      role: 'LEADER',
+      teamId: 'team-red',
+      authToken: 'fixture-red-token',
+    })
+    sockets.push(leader, viewer, redLeader)
 
     const ping = await leader.timeout(2000).emitWithAck('auction:ping')
     const sync = await leader.timeout(2000).emitWithAck('auction:sync', { reason: 'MANUAL' })
-    const accepted = await leader.timeout(2000).emitWithAck('bid:shadowSubmit', {
+    const primaryAccepted = await leader.timeout(2000).emitWithAck('bid:submit', {
       roomId: roomState.roomId,
-      requestId: 'smoke-request-1',
+      requestId: 'smoke-primary-request-1',
       playerId: roomState.currentPlayerId,
       teamId: 'team-blue',
       amount: 10,
+      sentAt: Date.now(),
+    })
+    const shadowAccepted = await redLeader.timeout(2000).emitWithAck('bid:shadowSubmit', {
+      roomId: roomState.roomId,
+      requestId: 'smoke-shadow-request-1',
+      playerId: roomState.currentPlayerId,
+      teamId: 'team-red',
+      amount: 20,
       sentAt: Date.now(),
     })
     const viewerReject = await viewer.timeout(2000).emitWithAck('bid:shadowSubmit', {
@@ -133,8 +153,14 @@ async function main() {
     assertCondition(ping.ok === true && ping.roomId === roomState.roomId, 'ping ack mismatch')
     assertCondition(sync.type === 'auction:sync', 'sync type mismatch')
     assertCondition(sync.state.sequence === 0, 'initial sync sequence mismatch')
-    assertCondition(accepted.type === 'bid:accepted', 'shadow bid was not accepted')
-    assertCondition(accepted.state.sequence === 1, 'accepted sequence mismatch')
+    assertCondition(primaryAccepted.type === 'bid:accepted', 'primary bid was not accepted')
+    assertCondition(primaryAccepted.state.sequence === 1, 'primary accepted sequence mismatch')
+    assertCondition(shadowAccepted.type === 'bid:accepted', 'shadow bid was not accepted')
+    assertCondition(shadowAccepted.state.sequence === 2, 'shadow accepted sequence mismatch')
+    assertCondition(
+      acceptedBidEvents.includes('smoke-primary-request-1'),
+      'primary accepted event was not persisted through callback',
+    )
     assertCondition(
       viewerReject.error === '팀장만 shadow 입찰을 전송할 수 있습니다.',
       'viewer reject mismatch',
@@ -151,12 +177,19 @@ async function main() {
             sequence: sync.state.sequence,
             roomId: sync.state.roomId,
           },
-          accepted: {
-            type: accepted.type,
-            sequence: accepted.state.sequence,
-            teamId: accepted.state.currentBid?.teamId,
-            amount: accepted.state.currentBid?.amount,
+          primaryAccepted: {
+            type: primaryAccepted.type,
+            sequence: primaryAccepted.state.sequence,
+            teamId: primaryAccepted.state.currentBid?.teamId,
+            amount: primaryAccepted.state.currentBid?.amount,
           },
+          shadowAccepted: {
+            type: shadowAccepted.type,
+            sequence: shadowAccepted.state.sequence,
+            teamId: shadowAccepted.state.currentBid?.teamId,
+            amount: shadowAccepted.state.currentBid?.amount,
+          },
+          acceptedBidEvents,
           viewerReject,
           cleanup: 'socket clients disconnected; Socket.IO server and HTTP server closed',
         },

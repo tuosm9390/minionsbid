@@ -12,8 +12,10 @@ import {
   placeBid,
 } from '@/features/auction/api/auctionActions'
 import { placeBidDirect } from '@/features/auction/api/placeBidClient'
+import { placeBidSocketPrimary } from '@/features/auction/socket/socketAuctionClient'
 import { mirrorShadowBid } from '@/features/auction/socket/socketShadowClient'
 import { getAuctionBidEligibility } from '@/features/auction/utils/auctionRealtime'
+import { isSocketPrimaryTransport } from '@/features/auction/utils/auctionTransport'
 import {
   recordAuctionLatencyMarker,
   recordBidFallback,
@@ -46,6 +48,14 @@ function isRealtimeDebugEnabled() {
     new URLSearchParams(window.location.search).has('debugRealtime') ||
     window.localStorage.getItem('debugRealtime') === '1'
   )
+}
+
+function normalizeBidAmountInput(value: number | string, minBid: number): number | '' {
+  if (value === '') return ''
+  const numericValue = typeof value === 'string' ? parseInt(value) : value
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return ''
+  const steppedValue = Math.floor(numericValue / BID_INCREMENT) * BID_INCREMENT
+  return Math.max(steppedValue, minBid)
 }
 
 /**
@@ -104,8 +114,8 @@ export function useBiddingControl({
   // ── Effects ──
   useEffect(() => {
     setBidAmount((prev) => {
-      const val = typeof prev === 'string' ? parseInt(prev) || 0 : prev
-      return Math.max(val, minBid)
+      const normalized = normalizeBidAmountInput(prev, minBid)
+      return normalized === '' ? minBid : normalized
     })
   }, [minBid])
 
@@ -155,13 +165,48 @@ export function useBiddingControl({
   // ── 핸들러 ──
   const handleBid = async () => {
     if (!currentPlayer || !roomId || !teamId) return
-    const numericAmount =
-      typeof bidAmount === 'string' ? parseInt(bidAmount) || 0 : bidAmount
-    const finalAmount = Math.max(numericAmount, minBid)
+    const normalizedAmount = normalizeBidAmountInput(bidAmount, minBid)
+    const finalAmount = normalizedAmount === '' ? minBid : normalizedAmount
     const previousTimerEndsAt = timerEndsAt
     const previousLiveBid = activeLiveBid
     const localNow = Date.now()
     const estimatedServerNow = localNow + serverTimeOffset
+
+    if (isSocketPrimaryTransport(auctionTransport)) {
+      setBidError(null)
+      setIsBidding(true)
+      try {
+        const socketResult = await placeBidSocketPrimary({
+          roomId,
+          playerId: currentPlayer.id,
+          teamId,
+          amount: finalAmount,
+          authToken: leaderToken,
+          requestId: `socket-${roomId}-${currentPlayer.id}-${teamId}-${finalAmount}-${localNow}`,
+        })
+        if (socketResult.error) {
+          setBidError(socketResult.error)
+          return
+        }
+        setBidAmount(finalAmount + BID_INCREMENT)
+        if (socketResult.eventId) {
+          recordAuctionLatencyMarker({
+            eventId: socketResult.eventId,
+            roomId,
+            playerId: currentPlayer.id,
+            teamId,
+            amount: finalAmount,
+            revision: socketResult.revision ?? null,
+            source: 'client-response',
+            clickedAt: localNow,
+            respondedAt: Date.now(),
+          })
+        }
+      } finally {
+        setIsBidding(false)
+      }
+      return
+    }
     
     // 남은 시간이 연장 기준 이하일 때만 타이머를 갱신함
     const shouldOptimisticallyResetTimer =
@@ -307,19 +352,35 @@ export function useBiddingControl({
   }
 
   const incrementBid = () => {
-    setBidAmount((v) => (typeof v === 'string' ? parseInt(v) || 0 : v) + BID_INCREMENT)
+    setBidAmount((v) => {
+      const normalized = normalizeBidAmountInput(v, minBid)
+      return (normalized === '' ? minBid : normalized) + BID_INCREMENT
+    })
   }
 
   const decrementBid = () => {
     setBidAmount((v) =>
-      Math.max(minBid, (typeof v === 'string' ? parseInt(v) || 0 : v) - BID_INCREMENT),
+      Math.max(
+        minBid,
+        (normalizeBidAmountInput(v, minBid) || minBid) - BID_INCREMENT,
+      ),
     )
+  }
+
+  const setNormalizedBidAmount = (
+    nextValue: number | string | ((previousValue: number | string) => number | string),
+  ) => {
+    setBidAmount((previousValue) => {
+      const value =
+        typeof nextValue === 'function' ? nextValue(previousValue) : nextValue
+      return normalizeBidAmountInput(value, minBid)
+    })
   }
 
   return {
     // 상태
     bidAmount,
-    setBidAmount,
+    setBidAmount: setNormalizedBidAmount,
     isBidding,
     bidError,
 

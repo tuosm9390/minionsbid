@@ -57,8 +57,8 @@ type TimerLabActionResult = {
 };
 
 const START_DURATION_MS = 10_000;
-const EXTEND_THRESHOLD_MS = 8_000;
-const EXTEND_DURATION_MS = 8_000;
+const EXTEND_THRESHOLD_MS = 5_000;
+const EXTEND_DURATION_MS = 5_000;
 const BID_STEP = 10;
 const INITIAL_BID_AMOUNT = 10;
 const LAB_TTL_MS = 24 * 60 * 60 * 1000;
