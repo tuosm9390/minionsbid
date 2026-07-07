@@ -814,3 +814,12 @@
 - 오래된 문서 문구는 실제 Socket.IO server/client adapter 미구현, 8초 연장 정책, 오래된 커밋 상태, HTTP fixture 부하 테스트를 운영 Socket.IO 부하 테스트처럼 읽을 수 있는 표현이다.
 - 향후 구현은 Redis, 다중 서버, Kafka/NATS, Supabase 재작성, 비공개 입찰 Socket 전환을 기본 계획으로 두지 않는다. 10~16명 단일 서버 운영에서 문제가 관측될 때만 별도 결정한다.
 - 검증은 Socket 관련 Vitest 5개 파일 14개 테스트, `npx tsc --noEmit --pretty false`, `npm run lint`, `npm run smoke:socket-shadow`를 실행해 통과했다.
+
+## 2026-07-07 Firebase 운영 문제와 Socket.IO 해결 기록
+
+- 사용자는 Firebase 단독 실시간 경매에서 실제 운영 중 실시간 수렴, 팀장 참여 상태, 타이머 확정과 낙찰 처리 문제가 자주 발생했기 때문에 Socket.IO hybrid 문제를 제기했다.
+- 이번 문서화의 목적은 Socket.IO 도입을 사후 합리화하는 것이 아니라, 사용자가 가졌던 의문과 실제로 해결한 문제를 기술적으로 추적 가능한 기록으로 남기는 것이다.
+- 결론은 Firebase 전체 대체가 아니라 공개 입찰 hot path만 Socket.IO server sequence와 persistence-before-broadcast로 보강한 것이다.
+- 비공개 입찰, 팀 배정, 일정, 명예의 전당은 Firestore Server Action 계약을 유지한다.
+- 산출물은 `doc/results/260707_FirebaseOpsIssuesSocketHybridResolution.md`와 `DESCRIPTION.md`의 프로젝트 설명 섹션이다.
+- 검증은 `git diff --check`, `npm run lint`, `npx tsc --noEmit --pretty false`를 실행해 통과했다.

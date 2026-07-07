@@ -125,6 +125,35 @@ direct bid는 bid id를 `eventId`로 반환하고, 브라우저 latency marker�
 
 Socket.IO hybrid 경로는 공개 입찰 hot path의 제한적 개선 수단입니다. 기본 transport는 `FIREBASE`이며, `SOCKET_SHADOW`는 Firebase 동작을 유지한 채 Socket engine 결과를 관측합니다. `SOCKET_CANARY`와 `SOCKET`은 단일 서버 10~16명 규모의 공개 입찰 방에서만 primary bid 경로로 사용하는 것을 전제로 합니다. Redis, 다중 Socket 서버, 비공개 입찰 Socket 전환은 현재 기본 범위가 아닙니다.
 
+### 3-1. Firebase 운영 문제와 Socket.IO 보강
+
+초기 설계는 Firebase 단독으로 실시간 경매를 운영하는 것이었습니다. Firestore transaction, Firestore rules, RTDB fanout, presence, `auction_revision`을 조합하면 10명 안팎의 커뮤니티 경매에는 충분하다고 판단했습니다.
+
+하지만 실제 리허설과 운영에서는 공개 입찰 구간에서 문제가 반복됐습니다. 일부 화면은 입찰과 타이머를 즉시 반영하지만 다른 화면은 늦게 따라왔고, 팀장 접속 상태나 custom token 흐름이 경매 진행 판단에 영향을 주는 일이 있었습니다. 입찰 시 Firestore snapshot과 후속 RTDB 이벤트가 모두 도착하면서 타이머가 두 번 갱신되는 것처럼 보이기도 했고, Socket primary 실험 초반에는 화면 상태와 Firestore `active_bid` 정본이 갈라져 타이머 만료 후 낙찰 확정이 진행되지 않는 경로도 확인했습니다.
+
+이 문제의 핵심은 Firebase가 부적합하다는 것이 아니라, 공개 입찰 hot path에서 상태 결정과 화면 전파가 여러 경로에 분산되어 있다는 점이었습니다. 그래서 전체 데이터베이스를 바꾸지 않고, 가장 민감한 공개 입찰 command만 Socket.IO server sequence로 분리했습니다.
+
+현재 해결 구조는 다음과 같습니다.
+
+```text
+FIREBASE
+  -> 기존 Firestore transaction + RTDB fanout 경로
+
+SOCKET_SHADOW
+  -> Firebase 입찰 성공 후 Socket engine에 mirror
+  -> UI 정본은 Firebase 유지
+  -> latency와 mismatch 관측
+
+SOCKET_CANARY / SOCKET
+  -> bid:submit을 Socket.IO로 전송
+  -> server engine이 sequence, currentBid, timerEndsAt 결정
+  -> Firestore persistence 성공 후에만 auction:state broadcast
+```
+
+이 보강으로 공개 입찰에서는 서버가 확정한 하나의 state payload를 모든 클라이언트에 보낼 수 있게 됐습니다. accepted bid는 `persistSocketAcceptedBid()`가 Firestore room hot state와 `bids` history에 먼저 저장하고, 저장 실패 시 engine snapshot을 rollback해 화면 확정 상태와 Firestore 정본이 갈라지지 않게 합니다.
+
+자세한 문제 제기 배경과 해결 기록은 `doc/results/260707_FirebaseOpsIssuesSocketHybridResolution.md`에 정리되어 있습니다.
+
 ### 4. 비공개 입찰
 
 비공개 입찰은 `auction_mode === "SEALED_BID"`일 때 활성화됩니다. 공개 입찰의 `active_bid`, `BID_PLACED`, `placeBidDirect()`를 사용하지 않고 서버 액션 중심으로 동작합니다.
