@@ -4,6 +4,8 @@
 
 Firebase 기반 앱 구조는 유지하면서 공개 입찰 hot path를 Socket.IO 기반 authoritative auction engine으로 단계 전환한다. 목표는 더 빠른 화면이 아니라, 모든 클라이언트가 server sequence 기준으로 같은 경매 상태를 즉시 보고 재연결 후에도 회복하는 것이다.
 
+2026-07-07 현재 이 계획의 운영 전제는 10~16명 규모의 단일 서버 경매다. Socket.IO는 Firebase를 대체하는 전면 전환이 아니라 공개 입찰 체감 개선과 상태 순서 제어를 위한 제한적 canary 경로로 둔다. Redis, 다중 Socket 서버, Kafka, NATS, Supabase 재작성은 현재 기본 구현 범위가 아니다.
+
 ## 문제 정의
 
 현재 구조는 Firestore transaction과 RTDB fanout으로 안정적인 수렴을 제공한다. 다만 경매 hot path가 Firestore room 문서, Firestore snapshot, RTDB fanout, Server Action fallback에 걸쳐 있어 다음 문제가 커질 수 있다.
@@ -63,7 +65,7 @@ auction_transport: "FIREBASE" | "SOCKET_SHADOW" | "SOCKET_CANARY" | "SOCKET"
 
 ### Redis 정책
 
-첫 canary는 단일 Socket 서버와 메모리 state로 시작할 수 있다. 단, 운영 production 전환에는 Redis 또는 동등한 durable active state 저장소 도입 여부를 반드시 다시 결정한다.
+첫 canary와 현재 운영 목표는 단일 Socket 서버와 Firestore persistence-before-broadcast를 기준으로 한다. Redis 또는 동등한 durable active state 저장소는 서버 2대 이상, 16명 초과 운영, 또는 재시작 중 active state 보존 요구가 실제로 생길 때만 다시 결정한다.
 
 ## 사용자 흐름
 
@@ -98,7 +100,7 @@ auction_transport: "FIREBASE" | "SOCKET_SHADOW" | "SOCKET_CANARY" | "SOCKET"
 | 1 | Shadow | Socket 연결과 인증만 검증 | 경매 진행 영향 없이 모든 역할 join/reconnect 성공 |
 | 2 | Fixture Canary | 테스트 방에서 Socket state 적용 | Playwright fixture 경매 통과 |
 | 3 | 운영 Canary | 선택한 공개 입찰 방에 적용 | archive와 schedule 계약 유지, p95 기준 통과 |
-| 4 | Redis | state durability와 scale-out | 서버 재시작 후 sync 복구 |
+| 4 | Durable state 재검토 | 서버 이중화 또는 active state 보존 요구 대응 | Firestore hydrate로 부족한 문제가 확인될 때만 Redis 등 검토 |
 | 5 | RTDB 축소 | fanout 경로 단순화 | Socket mode에서 RTDB primary 의존 제거 |
 
 ## 성공 지표
@@ -112,7 +114,7 @@ auction_transport: "FIREBASE" | "SOCKET_SHADOW" | "SOCKET_CANARY" | "SOCKET"
 ## 의사결정 필요 항목
 
 1. 운영 canary 기준 p95 값을 몇 ms로 둘지 결정해야 한다.
-2. Redis 도입을 production 전 필수로 볼지, 동접 기준 초과 시 도입할지 결정해야 한다.
+2. Redis 도입은 현재 기본 범위에서 제외하고, 16명 초과 운영이나 서버 이중화가 필요해질 때 결정한다.
 3. Socket 서버 배포 대상과 로그 수집 방식을 결정해야 한다.
 4. Socket mode에서 RTDB `auctionEvent`를 fallback으로 유지할 기간을 결정해야 한다.
 5. 공개 입찰 안정화 후 비공개 입찰까지 Socket mode로 옮길지 별도 판단해야 한다.

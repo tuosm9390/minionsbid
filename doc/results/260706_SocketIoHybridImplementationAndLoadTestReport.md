@@ -1,6 +1,15 @@
 # Socket.IO Hybrid 구현 및 네트워크 부하 검증 보고서
 
 작성일: 2026-07-06.
+현재화: 2026-07-07.
+
+## 2026-07-07 현재화 메모
+
+이 보고서는 최초 1단계 구현과 HTTP fixture 부하 검증을 기록한 문서다. 이후 `SOCKET_SHADOW`, `SOCKET_CANARY` primary bid, Socket.IO accepted bid Firestore persistence, persistence-before-broadcast 보강, 공개 입찰 5초 타이머 갱신이 추가됐다.
+
+따라서 아래의 네트워크 부하 결과는 실제 운영 Socket.IO 서버 전체 부하 검증이 아니라, production build에서 fixture HTTP route와 in-process engine 계약을 검증한 결과로 해석해야 한다. 실제 Socket.IO server/client smoke는 이후 `npm run smoke:socket-shadow`로 별도 검증한다.
+
+현재 운영 방향은 Firebase를 제거하는 전면 전환이 아니다. 기본 운영은 `FIREBASE`를 유지하고, 10~16명 규모의 단일 서버 공개 입찰 hot path에서 체감 개선이 필요한 방에 한해 `SOCKET_SHADOW`와 `SOCKET_CANARY`를 제한적으로 사용한다. Redis, 다중 서버, Kafka, NATS, Supabase 재작성은 현재 규모의 기본 구현 범위가 아니다.
 
 ## 요약
 
@@ -71,7 +80,7 @@ Socket hybrid engine과 향후 클라이언트 adapter가 공유할 상태, comm
 - `requestId` 기준 accepted event 멱등성.
 - accepted bid 발생 시 `sequence` 증가.
 - 이전 최고 입찰 팀 포인트 복구와 새 최고 입찰 팀 포인트 예약.
-- 종료 임박 시 기존 8초 연장 정책 적용.
+- 종료 임박 시 현재 공개 입찰 5초 연장 정책 적용.
 
 주요 파일이다.
 
@@ -225,14 +234,14 @@ Evidence 파일이다.
 
 ## 남은 범위
 
-이번 작업에서 의도적으로 제외한 범위다.
+이 보고서 작성 시점의 1단계 작업에서 의도적으로 제외했던 범위다. 2026-07-07 현재 일부는 이후 작업에서 구현됐다.
 
-- 실제 Socket.IO server process 도입.
-- Firebase Auth token을 Socket.IO handshake에서 검증하는 경로.
-- Redis 기반 durable active state.
-- 클라이언트 Socket adapter와 reconnect gap recovery.
-- Firestore persistence worker 또는 bid history outbox.
+- 실제 Socket.IO attach 경계와 smoke script는 구현됐다. 별도 상시 운영 process 배포는 아직 문서화된 운영 전제가 아니다.
+- Socket handshake 검증은 `validateAuth` 주입 경계와 fixture auth로 구현됐다. 운영 Firebase Auth ID token 검증 연결은 아직 별도 결정 항목이다.
+- Redis 기반 durable active state는 현재 10~16명 단일 서버 운영 범위에서 제외한다.
+- 클라이언트 Socket adapter는 `SOCKET_SHADOW`와 `SOCKET_CANARY` 경로로 구현됐다. 장시간 reconnect gap recovery는 추가 검증 대상이다.
+- Socket primary accepted bid Firestore persistence는 구현됐다. retry queue 또는 outbox는 아직 없다.
 - 운영 부하 기준의 장시간 soak test.
 - 다중 Node process 또는 multi-instance 환경에서의 sequence 일관성 검증.
 
-다음 단계는 `SOCKET_SHADOW` 상태에서 실제 Socket.IO server를 별도 process로 추가하고, 기존 Firestore direct bid 결과와 Socket engine 결과를 병렬 비교하는 것이다.
+다음 단계는 별도 대규모 확장이 아니라, 현재 단일 서버 `SOCKET_SHADOW`와 `SOCKET_CANARY` 범위에서 8~16명 리허설을 반복하고 Firebase 기본 경로와 비교한 체감 및 latency evidence를 남기는 것이다.

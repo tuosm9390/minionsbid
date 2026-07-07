@@ -120,8 +120,10 @@ direct bid는 bid id를 `eventId`로 반환하고, 브라우저 latency marker�
 
 - 일반 경매 시작은 10초입니다.
 - 입찰 단위와 최초 최소 입찰가는 10P입니다.
-- 남은 시간이 8초 이하일 때 성공한 입찰은 타이머를 8초 기준으로 연장합니다.
+- 남은 시간이 5초 이하일 때 성공한 입찰은 타이머를 5초 기준으로 연장합니다.
 - `auction_revision`은 timestamp가 아니라 room 단위 단조 증가 counter입니다.
+
+Socket.IO hybrid 경로는 공개 입찰 hot path의 제한적 개선 수단입니다. 기본 transport는 `FIREBASE`이며, `SOCKET_SHADOW`는 Firebase 동작을 유지한 채 Socket engine 결과를 관측합니다. `SOCKET_CANARY`와 `SOCKET`은 단일 서버 10~16명 규모의 공개 입찰 방에서만 primary bid 경로로 사용하는 것을 전제로 합니다. Redis, 다중 Socket 서버, 비공개 입찰 Socket 전환은 현재 기본 범위가 아닙니다.
 
 ### 4. 비공개 입찰
 

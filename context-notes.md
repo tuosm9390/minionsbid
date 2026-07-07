@@ -137,6 +137,7 @@
 ## 입찰 타이머 8초 연장 기준 전환
 
 - 사용자 요청은 경매 시작 시간은 10초로 유지하고, 입찰 시 타이머 갱신 가능 시간과 갱신 시간을 기존 5초 기준에서 8초 기준으로 바꾸는 것이다.
+- 이 기록은 당시 작업 이력이다. 2026-07-06 공개 입찰 타이머 5초 갱신 전환으로 현재 운영 정책은 다시 5초 기준이 됐다.
 - 실제 경매의 연장 기준은 `src/features/auction/constants/auctionTimings.ts`의 `EXTEND_THRESHOLD_MS`, `EXTEND_DURATION_MS`를 서버 액션, direct bid, 낙관 UI, E2E fixture가 공유한다.
 - direct bid는 Firestore Rules의 `isValidDirectBidTimerUpdate()`가 최종 검증하므로, 상수 변경과 함께 rules의 남은 시간 기준과 새 종료 시각 허용 범위도 8초 기준으로 맞춰야 한다.
 - 재경매 시작 시간 `RE_AUCTION_DURATION_MS`는 별도 정책이므로 이번 요청에서는 5초 유지한다.
@@ -804,3 +805,12 @@
 - duration만 5초로 낮추고 threshold를 8초로 유지하면 남은 시간이 6~8초인 입찰에서 타이머가 오히려 줄어들 수 있으므로, 공개 입찰 연장 threshold와 duration을 모두 5초로 맞춘다.
 - 적용 범위는 공개 입찰 shared timing 상수, direct bid Firestore rules, server action/direct client/socket engine, E2E fixture, timer lab이다. 비공개 입찰 20초 진행 시간과 일반 경매 시작 10초는 변경하지 않는다.
 - Firestore rules는 direct bid 클라이언트 transaction의 최종 방어선이므로 남은 시간 5초 이하에서만 갱신을 허용하고, 새 종료 시각은 request time 기준 3~8초 범위로 허용한다.
+
+## 2026-07-07 Socket.IO hybrid 문서와 코드 정리
+
+- 사용자는 Socket.IO 추가 후 실제 테스트 체감이 Firebase 단독보다 더 매끄러웠고, 현재 방식이 괜찮다고 판단했다.
+- 이번 정리의 판단은 이전 답변처럼 Socket.IO를 되돌리는 방향이 아니다. Firebase 기본 계약을 유지하되 `SOCKET_SHADOW`와 `SOCKET_CANARY`를 10~16명 규모 공개 입찰 hot path 개선 수단으로 제한해 문서화한다.
+- 현재 Socket.IO 관련 코드인 `socketAuctionEngine`, `socketShadowServer`, `socketShadowClient`, `socketAuctionClient`, `socketBidPersistence`, fixture HTTP route, smoke script는 테스트와 실제 transport 분기에서 참조된다. 삭제하면 shadow/canary 검증과 primary persistence 테스트가 깨지므로 제거 대상이 아니다.
+- 오래된 문서 문구는 실제 Socket.IO server/client adapter 미구현, 8초 연장 정책, 오래된 커밋 상태, HTTP fixture 부하 테스트를 운영 Socket.IO 부하 테스트처럼 읽을 수 있는 표현이다.
+- 향후 구현은 Redis, 다중 서버, Kafka/NATS, Supabase 재작성, 비공개 입찰 Socket 전환을 기본 계획으로 두지 않는다. 10~16명 단일 서버 운영에서 문제가 관측될 때만 별도 결정한다.
+- 검증은 Socket 관련 Vitest 5개 파일 14개 테스트, `npx tsc --noEmit --pretty false`, `npm run lint`, `npm run smoke:socket-shadow`를 실행해 통과했다.

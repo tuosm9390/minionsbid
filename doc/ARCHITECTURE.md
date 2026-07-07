@@ -1,13 +1,15 @@
 # 아키텍처 가이드 — Minions Bid
 
 작성일: 2026-03-24
-최근 갱신: 2026-05-13
-대상: Firebase 기반 실시간 경매 툴
+최근 갱신: 2026-07-07
+대상: Firebase 기본 정본 상태와 Socket.IO 공개 입찰 canary를 함께 쓰는 실시간 경매 툴
 
 ---
 
 ## 1. 개요
-Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케이션입니다. **Firestore room 문서가 현재 경매 hot state의 정본**이고, **Firebase Realtime Database**는 그 정본을 빠르게 fanout하는 저지연 채널입니다. 대부분의 상태 변경은 **Next.js Server Actions**와 Firebase Admin SDK가 처리하되, 입찰 hot path는 2026-05-06부터 Firestore 클라이언트 SDK 직접 transaction을 1차 경로로 사용합니다.
+Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케이션입니다. 기본 transport에서는 **Firestore room 문서가 현재 경매 hot state의 정본**이고, **Firebase Realtime Database**는 그 정본을 빠르게 fanout하는 저지연 채널입니다. 대부분의 상태 변경은 **Next.js Server Actions**와 Firebase Admin SDK가 처리하되, 입찰 hot path는 2026-05-06부터 Firestore 클라이언트 SDK 직접 transaction을 1차 경로로 사용합니다.
+
+2026-07-07 현재 공개 입찰에는 Socket.IO hybrid 경로가 추가되어 있습니다. `FIREBASE`가 기본값이고, `SOCKET_SHADOW`는 Firebase 입찰 결과를 유지하면서 Socket engine 결과를 병렬 관측합니다. `SOCKET_CANARY`와 `SOCKET`은 공개 입찰 hot path에서 Socket.IO server sequence를 적용하는 제한 모드입니다. 이 경로는 10~16명 규모의 단일 서버 운영을 전제로 하며, Redis와 다중 Socket 서버는 현재 기본 아키텍처가 아닙니다.
 
 ---
 
@@ -18,10 +20,10 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - **Realtime Database (RTDB)**: 최신 경매 이벤트와 실시간 메시지를 모든 클라이언트에 빠르게 fanout.
 
 ### 데이터 흐름
-1. **Mutation**: 실시간 공개 입찰은 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction으로 먼저 시도하고, 실패하면 기존 Server Action `placeBid`로 fallback한다. 비공개 입찰은 direct bid 예외를 사용하지 않고 전용 Server Action으로 제출/잠금/공개/확정을 처리한다. 추첨/시작/일시정지/낙찰/유찰/재경매 등 운영 액션은 Server Action을 경유한다.
+1. **Mutation**: 기본 실시간 공개 입찰은 `placeBidDirect()`가 Firestore 클라이언트 SDK transaction으로 먼저 시도하고, 실패하면 기존 Server Action `placeBid`로 fallback한다. `SOCKET_SHADOW`는 이 흐름을 유지한 뒤 Socket 경로로 mirror만 보낸다. `SOCKET_CANARY`와 `SOCKET`은 `bid:submit`을 Socket.IO로 전송하고, 서버 persistence가 성공한 accepted state만 broadcast한다. 비공개 입찰은 direct bid와 Socket primary를 사용하지 않고 전용 Server Action으로 제출/잠금/공개/확정을 처리한다. 추첨/시작/일시정지/낙찰/유찰/재경매 등 운영 액션은 Server Action을 경유한다.
 2. **Validation**: direct bid는 Firebase custom token claim과 `firestore.rules`의 `isBidUpdate()` / `isBidHistoryCreate()`가 최종 검증한다. Server Action 경로는 서버 transaction 안에서 권한, 포인트 잔액, 타이머 유효성, 현재 선두 상태를 검증한다.
 3. **Write**: Firestore room canonical state와 필요한 하위 문서를 업데이트한다.
-4. **Broadcast**: 서버 액션 경로는 RTDB `auctionEvent`를 동기 발행한다. direct bid 경로는 Firestore snapshot을 1차 전파로 사용하고, 비동기 `broadcastBidEvent` Server Action이 RTDB 이벤트 + `last_auction_event` 저장 + 시스템 메시지를 뒤따라 전파한다.
+4. **Broadcast**: 서버 액션 경로는 RTDB `auctionEvent`를 동기 발행한다. direct bid 경로는 Firestore snapshot을 1차 전파로 사용하고, 비동기 `broadcastBidEvent` Server Action이 RTDB 이벤트 + `last_auction_event` 저장 + 시스템 메시지를 뒤따라 전파한다. Socket primary 경로는 Firestore persistence 성공 후 Socket.IO `auction:state`를 broadcast한다.
 5. **Heal**: RTDB 이벤트를 놓친 화면은 Firestore room snapshot의 `last_auction_event`와 `auction_revision`으로 빠르게 복구한다.
 6. **UI Update**: `useAuctionRealtime` 훅이 새로운 상태를 감지하고 Zustand 스토어 업데이트 → UI 리렌더링.
 
@@ -64,6 +66,14 @@ Minions Bid는 초저지연 실시간 동기화가 핵심인 경매 애플리케
 - direct bid 실패 시 기존 Server Action `placeBid`로 fallback하여 호환성과 복구 경로를 유지합니다.
 - `bids` 컬렉션은 현재 선두 판정이 아니라 history / audit 용도로 사용합니다.
 - 디버그/검증 계층에서는 `eventId` 기반 latency marker를 사용해 `client-response`, `rtdb`, `room-fallback` 적용 시점을 추적합니다.
+
+### Socket.IO 공개 입찰 canary
+- `auction_transport`는 `FIREBASE`, `SOCKET_SHADOW`, `SOCKET_CANARY`, `SOCKET` 네 값을 사용한다.
+- `FIREBASE`가 기본값이며 모든 운영 방에서 가장 단순하고 안정적인 경로다.
+- `SOCKET_SHADOW`는 기존 Firebase UI 상태를 덮어쓰지 않고 Socket engine 결과와 latency만 관측한다.
+- `SOCKET_CANARY`와 `SOCKET`은 공개 입찰 `bid:submit`만 Socket.IO primary로 처리한다.
+- Socket primary accepted bid는 Firestore persistence가 성공해야만 ack와 `auction:state` broadcast를 반환한다.
+- 현재 목표 규모는 10~16명 단일 서버다. Redis, 다중 서버, 비공개 입찰 Socket 전환은 실제 운영 요구가 생길 때 별도 결정한다.
 
 ### 비공개 입찰 (Sealed Bid)
 - 방 메타의 `auction_mode`가 `SEALED_BID`일 때만 활성화된다. 값이 없으면 기존 공개 입찰인 `OPEN_ASCENDING`으로 취급한다.

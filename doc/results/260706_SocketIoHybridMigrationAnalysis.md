@@ -1,6 +1,15 @@
 # Socket.IO Hybrid 전환 분석 보고서
 
 작성일: 2026-07-06.
+현재화: 2026-07-07.
+
+## 2026-07-07 현재 판단
+
+이 문서는 전환 전 분석으로 작성됐지만, 현재 코드는 이미 `SOCKET_SHADOW`와 `SOCKET_CANARY` 일부를 구현한 상태다. 사용자는 실제 테스트에서 Firebase 단독보다 Socket.IO 추가 경로가 더 매끄럽게 동작하는 것을 확인했다.
+
+따라서 현재 판단은 “Socket.IO 도입을 중단하거나 되돌린다”가 아니다. 기본 운영은 Firebase 정본 상태와 RTDB fanout을 유지하되, 10~16명 규모의 단일 서버 공개 입찰 hot path에서 Socket.IO를 체감 개선과 상태 순서 제어 수단으로 제한 적용한다.
+
+향후 구현은 규모에 맞게 제한한다. Redis, 다중 Socket 서버, Kafka, NATS, Supabase 재작성, 비공개 입찰 Socket 전환은 현재 프로젝트의 기본 방향이 아니다. 실제로 16명을 넘는 운영 규모, 서버 이중화, 재시작 중 active state 보존 요구, 또는 계측된 장애가 생길 때만 별도 결정한다.
 
 ## 목적
 
@@ -33,7 +42,7 @@ Socket.IO를 붙인다는 것은 전송 수단을 바꾸는 수준이 아니다.
 | 순서 | `auction_revision` | `sequence` |
 | broadcast | RTDB + Firestore snapshot | Socket.IO room |
 | reconnect | Firestore snapshot + RTDB history | `auction:sync` snapshot + event gap detection |
-| persistence | hot state와 history를 Firestore에 즉시 저장 | active state는 server 또는 Redis, Firestore는 history와 결과 |
+| persistence | hot state와 history를 Firestore에 즉시 저장 | 단일 서버 canary에서는 accepted bid를 Firestore에 먼저 저장한 뒤 broadcast, Firestore는 history와 결과 정본 유지 |
 | 보안 | Firebase custom token + Firestore rules | Firebase token handshake + server role validation |
 
 핵심은 클라이언트가 경매 진행 중 `currentBid`, `timerEndsAt`, `participantPoints`, `currentPlayerId`를 Firestore snapshot으로 계속 덮어쓰지 않게 만드는 것이다. 이 경계를 잘못 나누면 Socket.IO가 보낸 최신 상태를 Firestore listener의 늦은 snapshot이 되돌릴 수 있다.
@@ -61,7 +70,7 @@ Hybrid 구조에서 데이터 소유권은 다음처럼 나눠야 한다.
 | room metadata | Firestore | 방 이름, 팀 수, 경매 방식, 생성 정보 |
 | players, teams initial data | Firestore | 경매 시작 전 기준 데이터 |
 | open auction hot state | Auction Server | 공개 입찰 중 현재 선수, 최고 입찰, 타이머, sequence |
-| participant available points | Auction Server, Redis 도입 후 Redis | 경매 중 즉시 검증과 표시용 |
+| participant available points | Auction Server, Firestore hydrate | 현재 10~16명 단일 서버 범위에서는 Redis를 기본값으로 두지 않는다 |
 | bid accepted event | Auction Server | Socket.IO broadcast의 단일 출처 |
 | bid history | Firestore | audit와 archive용 append |
 | final player/team result | Firestore | 낙찰 확정 시 persistence |
@@ -97,7 +106,7 @@ Hybrid 구조에서 데이터 소유권은 다음처럼 나눠야 한다.
 | 리스크 | 영향 | 대응 |
 | --- | --- | --- |
 | Firestore snapshot과 Socket.IO state 충돌 | 화면이 과거 상태로 되돌아갈 수 있다. | 진행 중 hot state는 Socket adapter가 소유하고 Firestore listener는 metadata와 persistence reconcile로 제한한다. |
-| Socket 서버 장애 시 active state 유실 | 진행 중 경매가 멈추거나 상태가 손실된다. | phase 1은 fixture/canary 한정, phase 2부터 Redis snapshot 또는 Firestore checkpoint 도입. |
+| Socket 서버 장애 시 active state 유실 | 진행 중 경매가 멈추거나 상태가 손실된다. | 현재 단일 서버 canary는 Firestore persistence-before-broadcast와 hydrate로 우선 대응한다. Redis는 서버 이중화나 재시작 복구 요구가 명확해질 때 도입한다. |
 | 인증 경계 중복 | rules와 socket server validation이 불일치할 수 있다. | room role validation helper를 shared server module로 분리하고 테스트를 공유한다. |
 | persistence 실패 | 화면은 낙찰됐지만 Firestore result가 누락될 수 있다. | accepted event와 persistence status를 분리하고 retry queue, reconciliation job을 둔다. |
 | 인프라 복잡도 증가 | 배포와 모니터링 표면이 늘어난다. | 별도 `auction-server`를 canary로 운영하고 feature flag로 비활성화 가능하게 한다. |
@@ -129,11 +138,11 @@ Socket.IO 서버와 클라이언트 연결을 추가하되 경매 상태를 바�
 
 완료 기준은 동일 방에서 Firebase mode와 Socket mode를 각각 선택할 수 있고, archive와 schedule 계약이 깨지지 않는 것이다.
 
-### Phase 4. Redis durable state
+### Phase 4. Durable state 재검토
 
-Socket 서버를 2대 이상 운영하거나 장애 복구 요구가 생기면 Redis를 도입한다. Redis에는 active room snapshot, sequence, timer, recent event log를 저장한다.
+Socket 서버를 2대 이상 운영하거나 재시작 중 active state 보존 요구가 실제로 생기면 Redis 또는 동등한 durable state 저장소를 검토한다. 현재 10~16명 단일 서버 운영에서는 Redis를 선행 구현하지 않는다.
 
-완료 기준은 Socket 서버 재시작 후 `auction:sync`로 경매 state가 복구되는 것이다.
+완료 기준은 Socket 서버 재시작 후 Firestore hydrate 또는 durable state를 통해 `auction:sync`로 경매 state가 복구되는 것이다.
 
 ### Phase 5. RTDB fanout 축소
 

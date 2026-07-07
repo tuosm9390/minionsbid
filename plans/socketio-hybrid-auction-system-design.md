@@ -7,7 +7,7 @@
 3. Firestore는 persistence와 audit의 정본으로 유지한다.
 4. Socket event는 항상 idempotency key와 sequence를 포함한다.
 5. reconnect는 이벤트 재생보다 snapshot sync를 우선한다.
-6. Redis는 첫 canary의 필수 조건이 아니지만 production scale-out의 기본 후보로 둔다.
+6. 현재 목표는 10~16명 단일 서버 운영이며, Redis는 production 기본 후보가 아니라 서버 이중화나 active state 보존 요구가 생길 때의 재검토 항목으로 둔다.
 
 ## 제안 디렉터리 구조
 
@@ -28,7 +28,6 @@ auction-server/
       idempotency.ts
     state/
       InMemoryAuctionStateStore.ts
-      RedisAuctionStateStore.ts
       FirestoreAuctionPersistence.ts
     contracts/
       events.ts
@@ -221,9 +220,9 @@ interface AuctionStateStore {
 }
 ```
 
-### Redis store
+### Durable state 재검토
 
-Production scale-out 후보로 둔다.
+현재 10~16명 단일 서버 운영에서는 Redis store를 선행 구현하지 않는다. Socket accepted bid는 Firestore persistence-before-broadcast와 Firestore hydrate로 우선 보존한다. 아래 구조는 서버 2대 이상 운영이나 재시작 중 active state 보존 요구가 생겼을 때의 후보로만 둔다.
 
 ```text
 auction:{roomId}:state
@@ -246,7 +245,7 @@ Socket mode에서도 Firestore 저장 계약은 유지한다.
 | unsold | players, room state transaction |
 | final finish | archive 생성 기존 경로 유지 |
 
-Canary 단계에서는 운영 안정성을 위해 award, unsold, finish 같은 terminal transition은 Firestore transaction 성공 후 broadcast하는 방식을 우선한다. bid accepted는 latency를 위해 broadcast 후 async persistence를 허용하되, retry와 reconciliation job을 반드시 둔다.
+Canary 단계에서는 운영 안정성을 위해 bid accepted, award, unsold, finish 모두 Firestore persistence 또는 transaction 성공 후 broadcast하는 방식을 우선한다. 특히 현재 구현은 Socket accepted bid를 Firestore에 저장한 뒤 ack와 `auction:state` broadcast를 반환한다.
 
 ## 클라이언트 Adapter
 
@@ -281,7 +280,7 @@ interface AuctionTransportAdapter {
 | 상황 | 처리 |
 | --- | --- |
 | Socket 연결 실패 | `SOCKET_SHADOW`는 무시, `SOCKET_CANARY`는 Firebase fallback 또는 경매 pause 중 하나를 방 정책으로 선택 |
-| 서버 재시작 | Redis 이전 단계는 canary 방만 허용, 운영 production에서는 Redis snapshot으로 복구 |
+| 서버 재시작 | 현재 단일 서버 canary는 Firestore hydrate로 우선 복구, Redis는 이 방식으로 부족한 문제가 확인될 때 검토 |
 | Firestore persistence 실패 | retry queue와 reconciliation 상태 표시, terminal transition은 broadcast 전 Firestore 성공 우선 |
 | sequence gap | `auction:sync` snapshot 요청 |
 | 중복 bid request | request id 캐시 결과 재전송 |
@@ -322,8 +321,8 @@ interface AuctionTransportAdapter {
 6. Socket mode E2E를 추가한다.
 7. Firestore persistence와 reconciliation을 붙인다.
 8. 운영 canary flag를 추가한다.
-9. Redis store를 추가한다.
-10. RTDB fanout 축소 여부를 결정한다.
+9. 10~16명 리허설과 운영 canary evidence를 수집한다.
+10. Redis와 RTDB fanout 축소는 실제 장애나 확장 요구가 생길 때 별도 결정한다.
 
 ## 문서 갱신 대상
 
@@ -338,7 +337,7 @@ interface AuctionTransportAdapter {
 ## 남은 결정
 
 - Socket 서버 배포 위치.
-- production 전 Redis 필수 여부.
+- 16명 초과 운영 또는 서버 이중화 시 Redis 도입 여부.
 - Socket 장애 시 Firebase fallback과 forced pause 중 어느 정책을 쓸지.
 - Socket mode에서 bid accepted persistence를 broadcast 전후 어디에 둘지.
 - 비공개 입찰을 별도 Socket engine으로 옮길지 여부.

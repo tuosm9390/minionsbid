@@ -1,6 +1,7 @@
 # 실시간 경매 리서치 문서 코드베이스 대조 보고서
 
 작성일: 2026-07-06.
+현재화: 2026-07-07.
 
 ## 검토 자료와 접근 제한
 
@@ -17,9 +18,9 @@
 
 현재 Minions Bid는 로컬 리서치 문서가 권장하는 핵심 구조와 이미 상당히 잘 맞는다. Firestore가 정본 상태를 갖고, RTDB가 저지연 fanout과 presence를 담당하며, 공개 입찰 hot path는 Firestore transaction과 rules로 원자성과 권한을 확보한다. 서버 기준 타이머, revision 기반 수렴, 만료 복구, custom token, latency report까지 구현되어 있다.
 
-첨부된 ChatGPT 본문은 Firebase를 버리지 말고 Socket.IO를 경매 전용 authoritative server 계층으로 추가하자는 결론이다. 이 권고는 장기 방향으로 타당하지만, 현재 코드베이스에 바로 적용하면 direct bid, Firestore rules, RTDB fanout, presence, archive 저장 계약을 함께 바꾸는 큰 작업이 된다. 따라서 즉시 전환보다 먼저 운영 부하와 지연 기준을 숫자로 확인하고, 기준 초과 시 Socket.IO hybrid로 단계 전환하는 것이 현실적이다.
+첨부된 ChatGPT 본문은 Firebase를 버리지 말고 Socket.IO를 경매 전용 authoritative server 계층으로 추가하자는 결론이다. 이 권고는 장기 방향으로 타당하며, 이후 코드에는 `SOCKET_SHADOW`와 `SOCKET_CANARY` 일부가 구현됐다. 사용자는 실제 테스트에서 Firebase 단독보다 Socket.IO 추가 경로가 더 매끄럽게 동작하는 것을 확인했다.
 
-보완이 필요한 영역은 두 층으로 나뉜다. 당장 필요한 것은 운영 신뢰성 보강이다. 이후 경매 규모나 지연 기준이 현재 Firebase 모델의 한계에 닿으면 Socket.IO authoritative engine을 별도 phase로 도입한다.
+따라서 현재 판단은 Socket.IO 도입을 되돌리는 것이 아니라, 기본 Firebase 정본 구조를 유지하면서 10~16명 규모의 단일 서버 공개 입찰 hot path에 한정해 Socket.IO shadow/canary를 제한 운용하는 것이다. Redis, 다중 서버, Kafka, NATS, Supabase 재작성은 현재 규모의 기본 보완책이 아니다.
 
 ## 현재 구현이 잘 맞는 부분
 
@@ -53,7 +54,7 @@ Redis = 다중 Socket 서버와 active room state 저장
 | 선택지               | 상태 결정 주체                                  | 현재 코드 영향 | 판단                                                  |
 | -------------------- | ----------------------------------------------- | -------------- | ----------------------------------------------------- |
 | Firebase 유지        | Firestore transaction, rules, Server Action     | 최소           | 현재 운영 규모에서는 우선 유지 가능                   |
-| Firebase + Socket.IO | Node Auction Server, Socket.IO sequence         | 큼             | 지연과 동시성 한계가 관측되면 가장 현실적인 전환안    |
+| Firebase + Socket.IO | 단일 Node Socket 경계, Socket.IO sequence       | 중간           | 현재 체감 개선이 확인된 공개 입찰 canary 후보         |
 | Supabase 재작성      | PostgreSQL transaction, Realtime 또는 별도 서버 | 매우 큼        | 신규 프로젝트라면 검토 가치가 있지만 현재는 비용이 큼 |
 
 ## Socket.IO 도입 시 예상 수정 범위
@@ -66,7 +67,7 @@ Socket.IO hybrid를 도입하면 새 서버를 추가하는 것보다 기존 경
 | 권한 검증       | Firebase custom token claim과 Firestore rules                     | Socket handshake에서 Firebase token 검증, 서버 내부 room role 검증        |
 | 상태 순서       | `auction_revision`, `event_id`, RTDB event                        | server sequence 중심, 누락 감지 시 `auction:sync`                         |
 | 타이머          | Firestore `timer_ends_at`, client wake-up, recover action         | Auction Server timer wheel 또는 per-room timer, snapshot sync             |
-| 포인트와 roster | Firestore transaction과 rules                                     | 서버 메모리 또는 Redis state에서 즉시 차감, Firestore는 persistence       |
+| 포인트와 roster | Firestore transaction과 rules                                     | 단일 서버 engine state와 Firestore hydrate를 우선 사용, Redis는 확장 시점 |
 | fanout          | RTDB `auctionEvent`, `auctionEvents`, Firestore snapshot fallback | Socket.IO room broadcast, Redis adapter는 scale-out 시점                  |
 | archive와 일정  | Firestore room/archive 정본                                       | Auction 종료 시 Firestore persistence contract 유지                       |
 | 테스트          | Vitest, Playwright fixture, Firebase Emulator                     | Socket server integration, disconnect/reconnect, sequence gap 테스트 추가 |
@@ -158,7 +159,7 @@ Socket.IO를 추가하면 운영 서버, 배포, 인증, 장애 복구, 관측, 
 1. Socket.IO 서버를 먼저 읽기 전용 shadow mode로 붙여 bid latency와 sequence 설계를 검증한다.
 2. fixture 방 또는 운영과 분리된 테스트 방에서만 `bid:submit`을 Socket.IO로 처리한다.
 3. Firestore는 persistence만 담당하고 클라이언트는 진행 중 hot state를 Socket.IO state로만 교체한다.
-4. Redis는 서버 2대 이상 또는 active room state 유실 복구 요구가 생긴 시점에 추가한다.
+4. Redis는 서버 2대 이상, 16명 초과 운영, active room state 유실 복구 요구가 생긴 시점에만 추가 검토한다.
 5. 안정화 후 RTDB `auctionEvent` fanout을 제거하거나 fallback 전용으로 격하시킨다.
 
 관련 위치는 새 패키지 또는 `auction-server/`, `src/features/auction/api/placeBidClient.ts`, `src/features/auction/hooks/useAuctionRealtime.ts`, `doc/AUCTION_REALTIME_CONTRACT.md`다.
@@ -170,7 +171,7 @@ Socket.IO를 추가하면 운영 서버, 배포, 인증, 장애 복구, 관측, 
 따라서 판단은 다음과 같다.
 
 - 지금 당장 전체 경매를 Socket.IO로 옮기는 것은 비용이 크다.
-- Redis, Kafka, NATS는 현재 9명 이상 경매 기준에서는 과하다.
+- Redis, Kafka, NATS는 현재 10~16명 경매 기준에서는 과하다.
 - Socket.IO는 단순 속도 개선책이 아니라 경매 엔진을 중앙화하는 구조 변경으로 봐야 한다.
 - 실제 지연, transaction abort, fanout 누락이 기준을 넘는다면 Firebase + Socket.IO hybrid가 Supabase 재작성보다 현실적인 다음 단계다.
 
@@ -193,9 +194,9 @@ Socket.IO를 추가하면 운영 서버, 배포, 인증, 장애 복구, 관측, 
 | 운영 인프라 단순성      |             5 |                    3 |               3 |
 | 장기 데이터 모델 적합성 |             3 |                    3 |               5 |
 | 장애 복구 설계 자유도   |             3 |                    5 |               4 |
-| 현재 추천도             |             4 |                    3 |               1 |
+| 현재 추천도             |             4 |                    4 |               1 |
 
-점수만 보면 Firebase 유지가 현재는 우세하다. 다만 경매가 더 커지고 hot path 문제가 실제로 관측되면 Firebase + Socket.IO의 추천도가 올라간다.
+점수만 보면 Firebase 유지와 Firebase + Socket.IO 제한 운용이 모두 유효하다. 기본값은 Firebase가 단순하지만, 사용자가 확인한 체감 개선을 고려하면 공개 입찰 canary 범위의 Socket.IO는 현재 상태에서 유지할 가치가 있다.
 
 ## 권장 실행 순서
 
@@ -204,11 +205,11 @@ Socket.IO를 추가하면 운영 서버, 배포, 인증, 장애 복구, 관측, 
 3. direct bid idempotency key를 도입하고 fallback server action까지 같은 request id를 공유한다.
 4. `latency-report`에 room auth 또는 짧은 수명 report token 검증을 추가한다.
 5. private room read tightening 정책을 설계하고 rules smoke를 추가한다.
-6. Firebase 유지 기준과 Socket.IO hybrid 전환 기준을 숫자로 문서화한다.
-7. 기준 초과 시 Socket.IO shadow mode와 fixture canary 계획을 별도 구현 계획서로 작성한다.
+6. Firebase 유지 기준과 Socket.IO canary 사용 기준을 숫자로 문서화한다.
+7. Socket.IO는 10~16명 단일 서버 공개 입찰 범위를 넘기지 않도록 운영 제한을 문서화한다.
 
 ## 최종 판단
 
-현재 코드베이스의 방향은 로컬 리서치 문서와 충돌하지 않는다. 첨부 ChatGPT 본문의 Firebase + Socket.IO 권고도 장기 전환 후보로 타당하다. 다만 지금 바로 도입할 근거는 성능 문제가 실제로 계측됐는지에 달려 있다.
+현재 코드베이스의 방향은 로컬 리서치 문서와 충돌하지 않는다. 첨부 ChatGPT 본문의 Firebase + Socket.IO 권고도 현재 공개 입찰 canary 구현과 잘 맞는다. 다만 이 선택은 전면 전환이 아니라, 작은 규모에서 체감 개선이 확인된 hot path 보완으로 해석해야 한다.
 
-따라서 단기 결론은 Firebase 기반 구조를 유지하면서 운영 기준을 강화하는 것이다. 중기 결론은 p95 지연, transaction abort, fanout 복구 실패가 기준을 넘을 경우 Firebase + Socket.IO hybrid로 경매 hot path만 분리하는 것이다. Supabase 재작성은 신규 프로젝트라면 강한 후보지만, 현재 코드베이스에서는 마지막 선택지에 가깝다.
+따라서 단기 결론은 Firebase 기반 구조를 기본값으로 유지하면서 `SOCKET_SHADOW`와 `SOCKET_CANARY`를 공개 입찰 hot path 개선 수단으로 제한 운용하는 것이다. 중기 결론은 10~16명 단일 서버 범위에서 충분한 리허설 evidence를 쌓고, 그 범위를 넘는 확장 기능은 실제 요구가 생길 때만 별도 설계하는 것이다. Supabase 재작성은 신규 프로젝트라면 후보지만, 현재 코드베이스에서는 마지막 선택지에 가깝다.

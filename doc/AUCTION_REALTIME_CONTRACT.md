@@ -4,7 +4,7 @@
 
 ## Canonical Sources
 
-- Firestore는 정본이다.
+- 기본 `FIREBASE` transport에서 Firestore는 정본이다.
   - `rooms/{roomId}`: 현재 경매 hot state, 타이머, 방 메타데이터
     - `current_player_id`
     - `active_bid`
@@ -18,6 +18,10 @@
 - RTDB는 서버가 발행하는 저지연 fanout 버스다.
   - `signals/{roomId}/auctionEvent`: 경매 상태 이벤트 envelope
   - `signals/{roomId}/latestMessage`: 채팅/시스템 메시지 저지연 fanout
+- Socket.IO는 공개 입찰 canary transport다.
+  - `SOCKET_SHADOW`: Firebase direct bid를 유지하고 Socket engine 결과만 관측
+  - `SOCKET_CANARY` / `SOCKET`: 공개 입찰 `bid:submit`을 Socket.IO server sequence로 처리
+  - accepted bid는 Firestore persistence 성공 후에만 ack와 `auction:state` broadcast를 반환
 
 ## Non-Negotiable Rules
 
@@ -25,10 +29,11 @@
 2. 클라이언트는 local optimistic UI를 수행할 수 있다.
 3. 입찰 hot path는 예외적으로 Firestore 클라이언트 SDK direct transaction을 1차 경로로 허용한다.
 4. direct bid는 custom token claim과 Firestore rules 검증을 통과한 제한된 room field update 및 bid history create만 허용한다.
-5. Firestore snapshot은 항상 최종 수렴 지점이다.
-6. organizer는 항상 경매에 참여하며, 팀장 연결이 끊기면 organizer presence guard가 즉시 경매를 일시정지한다.
-7. 파생 상태(`highestBid`, `topBid`, `minBid`, `leadingTeam`, `canBid`)는 공통 helper로만 계산한다.
-8. `auction_revision`은 timestamp가 아니라 방 단위 단조 증가 counter다.
+5. `FIREBASE`와 `SOCKET_SHADOW`에서는 Firestore snapshot이 최종 수렴 지점이다.
+6. `SOCKET_CANARY`와 `SOCKET`의 공개 입찰 중 hot state는 Socket.IO `auction:state`가 소유하며, Firestore는 persistence와 낙찰 복구 정본으로 유지된다.
+7. organizer는 항상 경매에 참여하며, 팀장 연결이 끊기면 organizer presence guard가 즉시 경매를 일시정지한다.
+8. 파생 상태(`highestBid`, `topBid`, `minBid`, `leadingTeam`, `canBid`)는 공통 helper로만 계산한다.
+9. `auction_revision`은 timestamp가 아니라 방 단위 단조 증가 counter다.
 
 ## Auction Event Envelope
 
@@ -186,6 +191,36 @@ leader click bid
 - Firestore snapshot은 나중에 와도 같은 결과로 수렴해야 한다.
 - direct bid의 room snapshot fallback은 `current_player_id`, `timer_ends_at`, `active_bid`, `auction_revision`이 모두 bid 상태를 표현할 때만 `liveBid`와 `timerEndsAt`을 투영한다.
 - event 없는 room snapshot은 같은 revision의 RTDB 낙찰/유찰 이벤트를 막지 않도록 `auctionEventRevision`을 올리지 않는다.
+
+## Socket.IO Public Bid Flow
+
+Socket.IO 경로는 공개 입찰 `OPEN_ASCENDING`에만 적용한다. 비공개 입찰, 팀 배정, 일정, 명예의 전당은 기존 Firestore Server Action 계약을 유지한다.
+
+```text
+SOCKET_SHADOW
+  -> Firebase direct bid 성공
+  -> mirrorShadowBid()가 Socket.IO 또는 HTTP fixture fallback으로 같은 bid command 전송
+  -> shadow 결과와 latency를 관측
+  -> UI hot state는 Firebase 결과 유지
+
+SOCKET_CANARY / SOCKET
+  -> leader placeBidSocketPrimary()
+  -> Socket.IO bid:submit
+  -> server engine validates amount, team, point, roster, timer
+  -> Firestore persistSocketAcceptedBid() transaction
+  -> persistence success
+  -> Socket.IO auction:state broadcast + ack
+  -> persistence failure
+  -> engine rollback + ack error, no accepted broadcast
+```
+
+Socket.IO 경로의 제한:
+
+- 현재 목표 운영 규모는 10~16명 단일 서버다.
+- Redis, 다중 Socket 서버, Kafka, NATS는 기본 범위가 아니다.
+- Socket primary accepted bid는 Firestore persistence 전에 화면에 확정 표시하지 않는다.
+- Socket 서버 재시작 복구는 Firestore hydrate를 우선한다.
+- 서버 이중화나 active state 유실 복구 요구가 실제로 생기면 Redis 또는 동등한 durable state 저장소를 별도 설계한다.
 
 ## Direct Bid Rules
 
