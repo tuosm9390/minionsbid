@@ -137,6 +137,14 @@ function mapScheduleDoc(
     status: data.status === 'COMPLETED' ? 'COMPLETED' : 'ACTIVE',
     completedAt: toIsoString(data.completed_at),
     championTeamName: normalizeLeagueName(data.champion_team_name),
+    deeplolTournamentName: normalizeLeagueName(data.deeplol_tournament_name),
+    deeplolMemberPuuIds: Array.isArray(data.deeplol_member_puu_ids)
+      ? data.deeplol_member_puu_ids.filter((value: unknown): value is string => typeof value === 'string')
+      : [],
+    deeplolPlatformId: normalizeText(data.deeplol_platform_id) || null,
+    deeplolPageSize: typeof data.deeplol_page_size === 'number' ? data.deeplol_page_size : 20,
+    deeplolMaxAttempts: typeof data.deeplol_max_attempts === 'number' ? data.deeplol_max_attempts : 3,
+    deeplolLockLeaseSeconds: typeof data.deeplol_lock_lease_seconds === 'number' ? data.deeplol_lock_lease_seconds : 120,
   }
 }
 
@@ -574,6 +582,14 @@ export async function createLeagueSchedule(
   const rosterSourceId = payload.rosterSourceId?.trim() || linkedAuctionId
   const name = payload.name.trim()
   const notes = payload.notes?.trim() || ''
+  const deeplolTournamentName = payload.deeplolTournamentName?.trim() || null
+  const deeplolMemberPuuIds = Array.from(
+    new Set((payload.deeplolMemberPuuIds ?? []).map((value) => value.trim()).filter(Boolean)),
+  )
+  const deeplolPlatformId = payload.deeplolPlatformId?.trim().toUpperCase() || null
+  const deeplolPageSize = Math.min(Math.max(Math.floor(payload.deeplolPageSize ?? 20), 1), 100)
+  const deeplolMaxAttempts = Math.min(Math.max(Math.floor(payload.deeplolMaxAttempts ?? 3), 1), 5)
+  const deeplolLockLeaseSeconds = Math.min(Math.max(Math.floor(payload.deeplolLockLeaseSeconds ?? 120), 30), 900)
 
   if (!name) return { error: '일정 이름을 입력해주세요.' }
 
@@ -616,6 +632,12 @@ export async function createLeagueSchedule(
       status: 'ACTIVE',
       completed_at: null,
       champion_team_name: null,
+      deeplol_tournament_name: deeplolTournamentName,
+      deeplol_member_puu_ids: deeplolMemberPuuIds,
+      deeplol_platform_id: deeplolPlatformId,
+      deeplol_page_size: deeplolPageSize,
+      deeplol_max_attempts: deeplolMaxAttempts,
+      deeplol_lock_lease_seconds: deeplolLockLeaseSeconds,
       created_at: FieldValue.serverTimestamp(),
     })
 
@@ -634,6 +656,12 @@ export async function createLeagueSchedule(
         status: 'ACTIVE',
         completedAt: null,
         championTeamName: null,
+        deeplolTournamentName,
+        deeplolMemberPuuIds,
+        deeplolPlatformId,
+        deeplolPageSize,
+        deeplolMaxAttempts,
+        deeplolLockLeaseSeconds,
       },
     }
   } catch (err) {

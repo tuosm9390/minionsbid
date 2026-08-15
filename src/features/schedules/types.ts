@@ -14,6 +14,12 @@ export interface LeagueScheduleItem {
   status: "ACTIVE" | "COMPLETED";
   completedAt: string | null;
   championTeamName: string | null;
+  deeplolTournamentName?: string | null;
+  deeplolMemberPuuIds?: string[];
+  deeplolPlatformId?: string | null;
+  deeplolPageSize?: number;
+  deeplolMaxAttempts?: number;
+  deeplolLockLeaseSeconds?: number;
 }
 
 export interface LeagueScheduleCatalog {
@@ -34,6 +40,12 @@ export interface CreateLeagueSchedulePayload {
   startsAt: string;
   endsAt?: string | null;
   notes?: string;
+  deeplolTournamentName?: string | null;
+  deeplolMemberPuuIds?: string[];
+  deeplolPlatformId?: string | null;
+  deeplolPageSize?: number;
+  deeplolMaxAttempts?: number;
+  deeplolLockLeaseSeconds?: number;
 }
 
 export type LeagueMatchWinner = 'HOME' | 'AWAY' | 'PENDING';

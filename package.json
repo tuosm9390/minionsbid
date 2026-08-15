@@ -30,7 +30,8 @@
     "migrate:room-auth-secrets": "node scripts/migrate_room_auth_secrets.js --write",
     "seed:archive-json": "node scripts/seed_archive_from_json.js",
     "seed:hof-json": "node scripts/seed_hall_of_fame_from_json.js",
-    "delete:hof-entry": "node scripts/delete_hall_of_fame_entry.js"
+    "delete:hof-entry": "node scripts/delete_hall_of_fame_entry.js",
+    "sync:deeplol": "tsx scripts/sync_deeplol_league.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -70,7 +71,7 @@
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.23.0",
+    "tsx": "^4.23.12",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^2.0.0"

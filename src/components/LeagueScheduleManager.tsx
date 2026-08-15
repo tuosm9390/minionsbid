@@ -206,6 +206,7 @@ export function LeagueScheduleManager() {
   const [timeline, setTimeline] = useState<LeagueScheduleTimeline | null>(null);
   const [selectedLinkedAuctionId, setSelectedLinkedAuctionId] = useState("");
   const [customName, setCustomName] = useState("");
+  const [deeplolTournamentName, setDeeplolTournamentName] = useState("");
   const [notes, setNotes] = useState("");
   const [startDate, setStartDate] = useState(() => new Date());
   const [endDate, setEndDate] = useState(() => new Date());
@@ -402,8 +403,13 @@ export function LeagueScheduleManager() {
       null;
     const linkedLeagueName = linkedAuction?.name ?? null;
     const name = customName.trim() || linkedLeagueName?.trim() || "";
+    const tournamentName = deeplolTournamentName.trim();
     if (!name) {
       setError("기존 리그를 선택하거나 새 일정 이름을 입력해주세요.");
+      return;
+    }
+    if (!tournamentName) {
+      setError("Deeplol 토너먼트 키워드를 입력해주세요.");
       return;
     }
     setIsSaving(true);
@@ -419,6 +425,9 @@ export function LeagueScheduleManager() {
           startsAt: startOfSelectedDay(startDate).toISOString(),
           endsAt: startOfSelectedDay(endDate).toISOString(),
           notes,
+          deeplolTournamentName: tournamentName,
+          deeplolPlatformId: "KR",
+          deeplolPageSize: 20,
         },
         adminCode.trim() || undefined,
       );
@@ -431,6 +440,7 @@ export function LeagueScheduleManager() {
       setIsOpen(false);
       setSelectedLinkedAuctionId("");
       setCustomName("");
+      setDeeplolTournamentName("");
       setNotes("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
@@ -685,6 +695,11 @@ export function LeagueScheduleManager() {
                           timeline.schedule.endsAt,
                         )}
                       </p>
+                      {timeline.schedule.deeplolTournamentName && (
+                        <p className="mt-3 border-2 border-black bg-[#fff8d7] px-3 py-2 text-fluid-xs font-black text-gray-800">
+                          Deeplol 필터 키워드: {timeline.schedule.deeplolTournamentName}
+                        </p>
+                      )}
                       {timeline.schedule.status === "COMPLETED" &&
                         !isAdminVerified && (
                           <div className="mt-4 border-4 border-black bg-red-50 px-4 py-3">
@@ -986,15 +1001,32 @@ export function LeagueScheduleManager() {
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="text"
-                    data-testid="schedule-create-name"
-                    value={customName}
-                    onChange={(event) => setCustomName(event.target.value)}
-                    placeholder="새 일정 이름"
-                    className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
-                  />
-                  <textarea
+                   <input
+                     type="text"
+                     data-testid="schedule-create-name"
+                     value={customName}
+                     onChange={(event) => setCustomName(event.target.value)}
+                     placeholder="새 일정 이름"
+                     className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
+                   />
+                   <div className="border-2 border-black bg-[#fff8d7] px-4 py-3 space-y-2">
+                     <label htmlFor="schedule-create-deeplol-tournament" className="block text-sm font-black text-black">
+                       Deeplol 토너먼트 키워드
+                     </label>
+                     <input
+                       id="schedule-create-deeplol-tournament"
+                       type="text"
+                       data-testid="schedule-create-deeplol-tournament"
+                       value={deeplolTournamentName}
+                       onChange={(event) => setDeeplolTournamentName(event.target.value)}
+                       placeholder="예: 2026-S2 리그전"
+                       className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
+                     />
+                     <p className="text-xs font-bold text-gray-700">
+                       경기 상세의 tournament_name과 일치하는 경기만 전적 집계에 반영됩니다.
+                     </p>
+                   </div>
+                   <textarea
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                     placeholder="메모"
