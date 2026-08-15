@@ -1,0 +1,77 @@
+name: Deeplol League Sync
+
+on:
+  schedule:
+    # GitHub Actions cron은 UTC 기준. 매 30분마다 실행.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      schedule_id:
+        description: '선택: 특정 league_schedules 문서 ID만 실행'
+        required: false
+        type: string
+      limit:
+        description: '처리할 최대 일정 수'
+        required: false
+        default: '50'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deeplol-league-sync-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+      FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+      FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+      FIRESTORE_DATABASE_ID: ${{ secrets.FIRESTORE_DATABASE_ID }}
+      DISCORD_DEEPLOL_WEBHOOK_URL: ${{ secrets.DISCORD_DEEPLOL_WEBHOOK_URL }}
+      NODE_ENV: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run Deeplol sync
+        shell: bash
+        run: |
+          set -o pipefail
+          args=(--write --limit "${{ inputs.limit || '50' }}")
+          if [[ -n "${{ inputs.schedule_id }}" ]]; then
+            args+=(--schedule-id "${{ inputs.schedule_id }}")
+          fi
+          mkdir -p logs
+          pnpm sync:deeplol -- "${args[@]}" | tee "logs/deeplol-sync-${GITHUB_RUN_ID}.json"
+
+      - name: Upload sync summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deeplol-sync-${{ github.run_id }}
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 14
