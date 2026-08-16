@@ -70,6 +70,32 @@ describe('DeeplolMemberImportPanel', () => {
     expect(user).toBeDefined()
   })
 
+  it('shows a friendly error and retries after Deeplol member loading fails', async () => {
+    const user = userEvent.setup()
+    mockGetDeeplolMemberCatalog
+      .mockRejectedValueOnce(new Error('Deeplol HTTP 503: service unavailable'))
+      .mockResolvedValueOnce({ members })
+
+    render(
+      <DeeplolMemberImportPanel
+        scheduleId="schedule-1"
+        rosterTeams={rosterTeams}
+        existingParticipants={[]}
+        adminCode="secret"
+        isAdminVerified
+        onSaved={vi.fn(async () => undefined)}
+      />,
+    )
+
+    await user.click(screen.getByTestId('deeplol-member-import-open'))
+    await waitFor(() => expect(screen.getByTestId('deeplol-member-import-error')).toHaveTextContent('Deeplol 서버에서 오류가 발생했습니다.'))
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: '다시 시도' }))
+    await waitFor(() => expect(screen.getByText(/2명의 Deeplol 구성원을 불러왔습니다/)).toBeInTheDocument())
+    expect(mockGetDeeplolMemberCatalog).toHaveBeenCalledTimes(2)
+  })
+
   it('loads members, auto-maps a unique roster match, and saves reviewed teams', async () => {
     const user = userEvent.setup()
     const onSaved = vi.fn(async () => undefined)

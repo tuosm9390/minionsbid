@@ -13,6 +13,17 @@ function key(value: string | null | undefined) {
   return (value ?? "").normalize("NFC").trim().replace(/\s+/g, " ").toLocaleLowerCase("ko-KR");
 }
 
+function toMemberImportError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (/AbortError|timeout|timed out/i.test(message)) return "Deeplol 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.";
+  if (/HTTP 401|HTTP 403|unauthorized|forbidden/i.test(message)) return "Deeplol 구성원 조회 권한이 없습니다. 연결 상태를 확인해주세요.";
+  if (/HTTP 404|not found/i.test(message)) return "Deeplol 모임 구성원 정보를 찾지 못했습니다. Connect ID를 확인해주세요.";
+  if (/HTTP 429|too many/i.test(message)) return "Deeplol 요청이 일시적으로 제한되었습니다. 잠시 후 다시 시도해주세요.";
+  if (/HTTP 5\d\d|server error/i.test(message)) return "Deeplol 서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+  if (/Failed to fetch|network|fetch/i.test(message)) return "Deeplol 서버에 연결하지 못했습니다. 네트워크 상태를 확인해주세요.";
+  return message || "Deeplol 구성원을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 type DraftMember = DeeplolMember & {
   teamId: string;
   teamName: string;
@@ -82,7 +93,7 @@ export function DeeplolMemberImportPanel({
       setMembers(next);
       setNotice(`${next.length}명의 Deeplol 구성원을 불러왔습니다. 팀 매칭을 확인한 뒤 저장해주세요.`);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "구성원 목록을 불러오지 못했습니다.");
+      setError(toMemberImportError(loadError));
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +166,24 @@ export function DeeplolMemberImportPanel({
           </div>
 
           {notice && <p className="mt-3 border-2 border-green-700 bg-green-50 px-3 py-2 text-fluid-xs font-black text-green-800">{notice}</p>}
-          {error && <p className="mt-3 border-2 border-minion-red bg-red-50 px-3 py-2 text-fluid-xs font-black text-minion-red">{error}</p>}
+          {error && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              data-testid="deeplol-member-import-error"
+              className="mt-3 border-2 border-minion-red bg-red-50 px-3 py-3 text-fluid-xs font-black text-minion-red"
+            >
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={() => void openAndLoad()}
+                disabled={isLoading || !isAdminVerified}
+                className="mt-2 border-2 border-black bg-white px-3 py-2 text-fluid-xs font-black text-black disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
 
           {members.length > 0 && (
             <div className="mt-3 space-y-2">
