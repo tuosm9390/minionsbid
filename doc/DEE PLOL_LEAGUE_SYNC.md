@@ -255,7 +255,7 @@ Beta 1승 2패 (33.3%, KDA 1.41)
 
 ## Vercel Cron API
 
-Vercel Cron용 엔드포인트는 `GET /api/cron/deeplol-sync`이며 `Authorization: Bearer <CRON_SECRET>` 헤더가 없거나 일치하지 않으면 401을 반환한다. `vercel.json`은 UTC 기준 매 30분마다 이 Route를 호출하도록 설정되어 있다.
+Vercel Cron용 엔드포인트는 `GET /api/cron/deeplol-sync`이며 `Authorization: Bearer <CRON_SECRET>` 헤더가 없거나 일치하지 않으면 401을 반환한다. 현재 `vercel.json`은 Hobby 플랜에서도 등록 가능한 UTC 기준 매일 00:00 실행으로 설정되어 있다. 30분 주기 실행이 필요하면 Vercel Pro 이상 플랜에서 `*/30 * * * *`로 변경해야 한다.
 
 Vercel Production 환경변수에는 기존 Firebase·Discord 변수와 함께 다음 값을 추가해야 한다.
 
