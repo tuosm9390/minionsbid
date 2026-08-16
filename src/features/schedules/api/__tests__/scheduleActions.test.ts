@@ -293,6 +293,7 @@ const mockRecursiveDelete = vi.fn(async (ref: { id: string }) => {
   dbState.recursiveDeleteCalls.push(ref.id)
   dbState.leagueSchedules.delete(ref.id)
   dbState.matchDays.delete(ref.id)
+  dbState.deeplolParticipants.delete(ref.id)
 })
 
 vi.mock('@/lib/firebaseAdmin', () => ({
@@ -838,7 +839,7 @@ describe('scheduleActions', () => {
     ])
   })
 
-  it('deleteLeagueSchedule removes schedule tree and linked hall of fame entry', async () => {
+  it('deleteLeagueSchedule removes schedule tree including Deeplol participants and linked hall of fame entry', async () => {
     dbState.leagueSchedules.set('schedule-1', {
       name: 'Spring Split',
       starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
@@ -846,6 +847,11 @@ describe('scheduleActions', () => {
     })
     dbState.hallOfFame.set('schedule:schedule-1', {
       archive_id: 'schedule:schedule-1',
+    })
+    getDeeplolParticipantMap('schedule-1').set('puu-1', {
+      puu_id: 'puu-1',
+      team_id: 'team-blue',
+      status: 'ACTIVE',
     })
 
     const { deleteLeagueSchedule } = await import('../scheduleActions')
@@ -855,6 +861,31 @@ describe('scheduleActions', () => {
     expect(result.error).toBeUndefined()
     expect(mockRecursiveDelete).toHaveBeenCalled()
     expect(dbState.recursiveDeleteCalls).toContain('schedule-1')
+    expect(dbState.leagueSchedules.has('schedule-1')).toBe(false)
+    expect(dbState.deeplolParticipants.has('schedule-1')).toBe(false)
     expect(dbState.hallOfFame.has('schedule:schedule-1')).toBe(false)
+  })
+
+  it('deleteLeagueSchedule preserves data when recursive deletion fails', async () => {
+    dbState.leagueSchedules.set('schedule-failed', {
+      name: 'Failed Delete League',
+      status: 'ACTIVE',
+    })
+    getDeeplolParticipantMap('schedule-failed').set('puu-1', {
+      puu_id: 'puu-1',
+      status: 'ACTIVE',
+    })
+    dbState.hallOfFame.set('schedule:schedule-failed', {
+      archive_id: 'schedule:schedule-failed',
+    })
+    mockRecursiveDelete.mockRejectedValueOnce(new Error('recursive delete failed'))
+
+    const { deleteLeagueSchedule } = await import('../scheduleActions')
+    const result = await deleteLeagueSchedule('schedule-failed', 'secret-code')
+
+    expect(result.error).toBe('recursive delete failed')
+    expect(dbState.leagueSchedules.has('schedule-failed')).toBe(true)
+    expect(dbState.deeplolParticipants.get('schedule-failed')?.has('puu-1')).toBe(true)
+    expect(dbState.hallOfFame.has('schedule:schedule-failed')).toBe(true)
   })
 })
