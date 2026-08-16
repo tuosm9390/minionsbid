@@ -4,6 +4,7 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore'
 import { adminDb } from '@/lib/firebaseAdmin'
 import type {
   CreateLeagueSchedulePayload,
+  LeagueDeeplolParticipant,
   LeagueRosterPlayer,
   LeagueRosterSourceType,
   LeagueRosterTeam,
@@ -720,20 +721,35 @@ export async function getLeagueScheduleTimeline(
         schedule: null,
         days: [],
         rosterTeams: [],
+        deeplolParticipants: [],
         availableTeamNames: [],
         nextMatches: [],
       }
     }
 
-    const [daysSnapshot, rosterTeams] = await Promise.all([
-      adminDb
-        .collection('league_schedules')
-        .doc(scheduleId)
-        .collection('match_days')
-        .orderBy('date_key', 'asc')
-        .get(),
+    const scheduleRef = adminDb.collection('league_schedules').doc(scheduleId)
+    const [daysSnapshot, rosterTeams, participantsSnapshot] = await Promise.all([
+      scheduleRef.collection('match_days').orderBy('date_key', 'asc').get(),
       loadRosterTeams(schedule),
+      scheduleRef.collection('deeplol_participants').get(),
     ])
+
+    const deeplolParticipants: LeagueDeeplolParticipant[] = participantsSnapshot.docs
+      .map((doc) => {
+        const data = doc.data()
+        const puuId = normalizeText(data.puu_id ?? data.puuId ?? doc.id)
+        if (!puuId) return null
+        return {
+          puuId,
+          riotName: normalizeText(data.riot_name ?? data.riotName) || null,
+          riotTag: normalizeText(data.riot_tag ?? data.riotTag) || null,
+          teamId: normalizeText(data.team_id ?? data.teamId) || null,
+          teamName: normalizeText(data.team_name ?? data.teamName) || null,
+          position: normalizeText(data.position) || null,
+          status: data.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+        } satisfies LeagueDeeplolParticipant
+      })
+      .filter((participant): participant is LeagueDeeplolParticipant => participant !== null)
 
     const days: LeagueScheduleDay[] = daysSnapshot.docs.map((doc) => {
       const data = doc.data()
@@ -756,6 +772,7 @@ export async function getLeagueScheduleTimeline(
       schedule,
       days,
       rosterTeams,
+      deeplolParticipants,
       availableTeamNames,
       nextMatches: buildNextMatches(days),
     }
@@ -765,6 +782,7 @@ export async function getLeagueScheduleTimeline(
       schedule: null,
       days: [],
       rosterTeams: [],
+      deeplolParticipants: [],
       availableTeamNames: [],
       nextMatches: [],
     }

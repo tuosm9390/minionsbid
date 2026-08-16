@@ -242,6 +242,7 @@ export async function getFixtureLeagueScheduleTimeline(
       schedule: null,
       days: [],
       rosterTeams: [],
+      deeplolParticipants: [],
       availableTeamNames: [],
       nextMatches: [],
     }
@@ -254,6 +255,7 @@ export async function getFixtureLeagueScheduleTimeline(
     schedule: clone(schedule),
     days,
     rosterTeams,
+    deeplolParticipants: [],
     availableTeamNames: rosterTeams.map((team) => team.name),
     nextMatches: buildNextMatches(days),
   }

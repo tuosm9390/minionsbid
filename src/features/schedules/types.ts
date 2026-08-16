@@ -94,6 +94,16 @@ export interface LeagueRosterPlayer {
   soldPrice: number | null;
 }
 
+export interface LeagueDeeplolParticipant {
+  puuId: string;
+  riotName: string | null;
+  riotTag: string | null;
+  teamId: string | null;
+  teamName: string | null;
+  position: string | null;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
 export interface LeagueRosterTeam {
   id: string;
   name: string;
@@ -110,6 +120,7 @@ export interface LeagueScheduleTimeline {
   schedule: LeagueScheduleItem | null;
   days: LeagueScheduleDay[];
   rosterTeams: LeagueRosterTeam[];
+  deeplolParticipants: LeagueDeeplolParticipant[];
   availableTeamNames: string[];
   nextMatches: LeagueScheduleMatch[];
 }

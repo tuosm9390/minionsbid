@@ -23,6 +23,7 @@ import {
   verifyScheduleAdminCode,
 } from "@/features/schedules/api/scheduleActions";
 import type {
+  LeagueDeeplolParticipant,
   LeagueMatchWinner,
   LeagueRosterTeam,
   LeagueScheduleDay,
@@ -80,6 +81,10 @@ function formatTimelineDate(dateKey: string) {
     day: "numeric",
     weekday: "long",
   });
+}
+
+function normalizeRosterLookupKey(value: string | null | undefined) {
+  return (value ?? '').normalize('NFC').trim().replace(/\\s+/g, ' ').toLocaleLowerCase('ko-KR');
 }
 
 function isScheduleInProgress(startIso: string, endIso: string | null) {
@@ -282,6 +287,18 @@ export function LeagueScheduleManager() {
     () => timeline?.days.find((day) => day.dateKey === selectedDateKey) ?? null,
     [selectedDateKey, timeline],
   );
+
+  const deeplolParticipantLookup = useMemo(() => {
+    const lookup = new Map<string, LeagueDeeplolParticipant>();
+    timeline?.deeplolParticipants
+      .filter((participant) => participant.status === 'ACTIVE')
+      .forEach((participant) => {
+        const teamKey = normalizeRosterLookupKey(participant.teamName);
+        const playerKey = normalizeRosterLookupKey(participant.riotName);
+        if (teamKey && playerKey) lookup.set(`${teamKey}::${playerKey}`, participant);
+      });
+    return lookup;
+  }, [timeline?.deeplolParticipants]);
 
   useEffect(() => {
     setMatchRows(buildEditorRows(selectedDay));
@@ -691,6 +708,88 @@ export function LeagueScheduleManager() {
                       </div>
                     </div>
                   )}
+                  <div className="border-4 border-black bg-[#fffdf6] p-5 shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
+                          League Participants
+                        </p>
+                        <h3 className="mt-1 text-fluid-lg font-black">참여 팀 및 Deeplol PUUID 현황</h3>
+                      </div>
+                      <p className="text-fluid-xs font-black text-gray-600">
+                        {timeline.rosterTeams.length}개 팀 · {timeline.deeplolParticipants.filter((participant) => participant.status === 'ACTIVE').length}명 PUUID 등록
+                      </p>
+                    </div>
+                    <p className="mt-2 text-fluid-xs font-bold text-gray-700">
+                      리그에 배정된 팀 로스터와 Deeplol 참가자 매핑을 먼저 확인합니다. 팀별 5~6명과 활성 PUUID가 모두 확보된 팀만 자동 집계 대상이 됩니다.
+                    </p>
+                    {timeline.rosterTeams.length === 0 ? (
+                      <div className="mt-4 border-2 border-dashed border-black/40 bg-gray-50 px-4 py-5 text-center text-fluid-sm font-black text-gray-500">
+                        연결된 리그 로스터가 없습니다. 리그 생성 시 확정된 팀 배정을 확인해주세요.
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                        {timeline.rosterTeams.map((team) => {
+                          const activeParticipants = timeline.deeplolParticipants.filter(
+                            (participant) =>
+                              participant.status === 'ACTIVE' &&
+                              (participant.teamId === team.id || normalizeRosterLookupKey(participant.teamName) === normalizeRosterLookupKey(team.name)),
+                          );
+                          const mappedPlayers = team.players.map((player) =>
+                            deeplolParticipantLookup.get(`${normalizeRosterLookupKey(team.name)}::${normalizeRosterLookupKey(player.name)}`) ??
+                            activeParticipants.find((participant) => normalizeRosterLookupKey(participant.riotName) === normalizeRosterLookupKey(player.name)) ??
+                            null,
+                          );
+                          const mappedCount = mappedPlayers.filter(Boolean).length;
+                          const rosterCountValid = team.players.length >= 5 && team.players.length <= 6;
+                          const ready = rosterCountValid && mappedCount === team.players.length;
+
+                          return (
+                            <div key={team.id} className="border-2 border-black bg-white p-4">
+                              <div className="flex items-start justify-between gap-3 border-b-2 border-black pb-3">
+                                <div>
+                                  <p className="text-fluid-lg font-black">{team.name}</p>
+                                  <p className="mt-1 text-fluid-xs font-bold text-gray-600">
+                                    팀장: {team.leaderName || '미등록'} · 로스터 {team.players.length}명
+                                  </p>
+                                </div>
+                                <span className={`border-2 border-black px-2 py-1 text-fluid-xs font-black ${ready ? 'bg-green-600 text-white' : 'bg-minion-yellow text-black'}`}>
+                                  {ready ? '처리 가능' : '확인 필요'}
+                                </span>
+                              </div>
+                              <div className="mt-3 space-y-2">
+                                {team.players.length === 0 ? (
+                                  <p className="border-2 border-dashed border-black/40 px-3 py-3 text-fluid-xs font-black text-gray-500">등록된 선수가 없습니다.</p>
+                                ) : team.players.map((player, index) => {
+                                  const participant = mappedPlayers[index];
+                                  return (
+                                    <div key={`${team.id}-${player.name}`} className="border-2 border-black bg-[#fffdf8] px-3 py-2">
+                                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                        <p className="text-fluid-sm font-black">{player.name}</p>
+                                        <span className={`text-fluid-xs font-black ${participant ? 'text-green-700' : 'text-minion-red'}`}>
+                                          {participant ? 'PUUID 확보' : 'PUUID 미확보'}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 break-all font-mono text-[10px] font-bold text-gray-600">
+                                        {participant?.puuId ?? 'Deeplol 참가자 매핑 대기'}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {!rosterCountValid && (
+                                <p className="mt-3 text-fluid-xs font-black text-minion-red">팀 등록 인원은 5명 또는 6명이어야 합니다.</p>
+                              )}
+                              {rosterCountValid && mappedCount < team.players.length && (
+                                <p className="mt-3 text-fluid-xs font-black text-minion-red">{team.players.length - mappedCount}명의 PUUID가 없어 Deeplol 집계를 처리할 수 없습니다.</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="bg-[linear-gradient(180deg,#fffef8_0%,#fff5c5_100%)] border-4 border-black p-5 shadow-[10px_10px_0px_rgba(0,0,0,1)] lg:col-span-2">
                       <p className="text-fluid-xs font-black uppercase tracking-[0.18em] text-minion-blue">
