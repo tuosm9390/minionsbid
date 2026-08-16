@@ -7,6 +7,7 @@ const serverTimestampValue = { _methodName: 'serverTimestamp' }
 const dbState = vi.hoisted(() => ({
   leagueSchedules: new Map<string, DocData>(),
   matchDays: new Map<string, Map<string, DocData>>(),
+  deeplolParticipants: new Map<string, Map<string, DocData>>(),
   auctionArchives: new Map<string, DocData>(),
   hallOfFame: new Map<string, DocData>(),
   recursiveDeleteCalls: [] as string[],
@@ -16,6 +17,7 @@ const dbState = vi.hoisted(() => ({
 const resetState = () => {
   dbState.leagueSchedules.clear()
   dbState.matchDays.clear()
+  dbState.deeplolParticipants.clear()
   dbState.auctionArchives.clear()
   dbState.hallOfFame.clear()
   dbState.recursiveDeleteCalls.length = 0
@@ -64,6 +66,15 @@ const createQuerySnapshot = (docs: Array<{ id: string; data: DocData }>) => ({
   })),
 })
 
+const getDeeplolParticipantMap = (scheduleId: string) => {
+  let map = dbState.deeplolParticipants.get(scheduleId)
+  if (!map) {
+    map = new Map<string, DocData>()
+    dbState.deeplolParticipants.set(scheduleId, map)
+  }
+  return map
+}
+
 const getMatchDayMap = (scheduleId: string) => {
   let map = dbState.matchDays.get(scheduleId)
   if (!map) {
@@ -98,6 +109,9 @@ function buildDocRef(
       if (collectionName === 'match_days' && parentId) {
         return createDocSnapshot(docId, getMatchDayMap(parentId).get(docId))
       }
+      if (collectionName === 'deeplol_participants' && parentId) {
+        return createDocSnapshot(docId, getDeeplolParticipantMap(parentId).get(docId))
+      }
       return createDocSnapshot(docId, null)
     },
     async set(data: DocData, options?: { merge?: boolean }) {
@@ -123,6 +137,14 @@ function buildDocRef(
           options?.merge ? mergeDocData(current, data) : (materialize(data) as DocData),
         )
       }
+      if (collectionName === 'deeplol_participants' && parentId) {
+        const map = getDeeplolParticipantMap(parentId)
+        const current = map.get(docId)
+        map.set(
+          docId,
+          options?.merge ? mergeDocData(current, data) : (materialize(data) as DocData),
+        )
+      }
     },
     async update(data: DocData) {
       await docRef.set(data, { merge: true })
@@ -133,10 +155,16 @@ function buildDocRef(
       if (collectionName === 'match_days' && parentId) {
         getMatchDayMap(parentId).delete(docId)
       }
+      if (collectionName === 'deeplol_participants' && parentId) {
+        getDeeplolParticipantMap(parentId).delete(docId)
+      }
     },
     collection(subCollectionName: string) {
       if (collectionName === 'league_schedules' && subCollectionName === 'match_days') {
         return buildCollectionRef('match_days', docId)
+      }
+      if (collectionName === 'league_schedules' && subCollectionName === 'deeplol_participants') {
+        return buildCollectionRef('deeplol_participants', docId)
       }
       return buildCollectionRef(subCollectionName, docId)
     },
@@ -206,6 +234,14 @@ function buildCollectionRef(collectionName: string, parentId?: string) {
           })),
         )
       }
+      if (collectionName === 'deeplol_participants' && parentId) {
+        return createQuerySnapshot(
+          Array.from(getDeeplolParticipantMap(parentId).entries()).map(([id, data]) => ({
+            id,
+            data,
+          })),
+        )
+      }
       return createQuerySnapshot([])
     },
   }
@@ -222,6 +258,23 @@ type MockTransaction = {
     ref: { update: (data: DocData) => Promise<void> },
     data: DocData,
   ) => Promise<void>
+}
+
+const mockBatch = () => {
+  const operations: Array<{
+    ref: { set: (data: DocData, options?: { merge?: boolean }) => Promise<void> }
+    data: DocData
+    options?: { merge?: boolean }
+  }> = []
+  return {
+    set(ref: { set: (data: DocData, options?: { merge?: boolean }) => Promise<void> }, data: DocData, options?: { merge?: boolean }) {
+      operations.push({ ref, data, options })
+      return this
+    },
+    async commit() {
+      for (const operation of operations) await operation.ref.set(operation.data, operation.options)
+    },
+  }
 }
 
 const mockRunTransaction = vi.fn(async (fn: (tx: MockTransaction) => Promise<unknown>) => {
@@ -247,6 +300,7 @@ vi.mock('@/lib/firebaseAdmin', () => ({
     collection: (name: string) => buildCollectionRef(name),
     runTransaction: mockRunTransaction,
     recursiveDelete: mockRecursiveDelete,
+    batch: mockBatch,
   },
 }))
 
@@ -390,6 +444,60 @@ describe('scheduleActions', () => {
 
     expect(result.error).toBe('일정 생성 전 최종 팀 배정을 확정해주세요.')
     expect(dbState.leagueSchedules.size).toBe(0)
+  })
+
+  it('saveDeeplolParticipants rejects requests without admin code', async () => {
+    const { saveDeeplolParticipants } = await import('../scheduleActions')
+
+    const result = await saveDeeplolParticipants('schedule-1', [
+      { puuId: 'puu-1', riotName: 'player', teamId: 'team-blue', teamName: 'Blue' },
+    ])
+
+    expect(result.error).toBe('Deeplol 구성원을 저장하려면 관리자 코드가 필요합니다.')
+  })
+
+  it('saveDeeplolParticipants stores normalized team mappings and member puuids', async () => {
+    dbState.leagueSchedules.set('schedule-1', {
+      name: 'Spring Split',
+      roster_source_type: 'archive',
+      roster_source_id: 'archive-1',
+      starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      ends_at: createTimestamp('2026-04-10T00:00:00.000Z'),
+      status: 'ACTIVE',
+    })
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      result_snapshot: [
+        { id: 'team-blue', name: 'Blue', leader_name: 'Blue Captain', players: [] },
+      ],
+    })
+
+    const { saveDeeplolParticipants } = await import('../scheduleActions')
+    const result = await saveDeeplolParticipants(
+      'schedule-1',
+      [
+        {
+          puuId: ' puu-1 ',
+          riotName: 'player',
+          riotTag: 'KR1',
+          teamId: 'team-blue',
+          teamName: '잘못된 표시 이름',
+          position: 'Jungle',
+        },
+      ],
+      'secret-code',
+    )
+
+    expect(result).toEqual({ savedCount: 1 })
+    expect(dbState.leagueSchedules.get('schedule-1')?.deeplol_member_puu_ids).toEqual(['puu-1'])
+    const saved = dbState.deeplolParticipants.get('schedule-1')
+    expect(saved).toHaveLength(1)
+    expect(Array.from(saved?.values() ?? [])[0]).toMatchObject({
+      puu_id: 'puu-1',
+      team_id: 'team-blue',
+      team_name: 'Blue',
+      status: 'ACTIVE',
+    })
   })
 
   it('saveLeagueScheduleDay requires admin code and persists through a transaction', async () => {

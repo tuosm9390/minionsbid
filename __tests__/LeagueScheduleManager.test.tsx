@@ -11,6 +11,8 @@ const mockSaveLeagueScheduleDay = vi.fn()
 const mockRegisterLeagueMatchResult = vi.fn()
 const mockDeleteLeagueSchedule = vi.fn()
 const mockCompleteLeagueSchedule = vi.fn()
+const mockGetDeeplolMemberCatalog = vi.fn()
+const mockSaveDeeplolParticipants = vi.fn()
 
 vi.mock('@/features/schedules/api/scheduleActions', () => ({
   getLeagueScheduleCatalog: (...args: unknown[]) => mockGetLeagueScheduleCatalog(...args),
@@ -21,6 +23,8 @@ vi.mock('@/features/schedules/api/scheduleActions', () => ({
   registerLeagueMatchResult: (...args: unknown[]) => mockRegisterLeagueMatchResult(...args),
   deleteLeagueSchedule: (...args: unknown[]) => mockDeleteLeagueSchedule(...args),
   completeLeagueSchedule: (...args: unknown[]) => mockCompleteLeagueSchedule(...args),
+  getDeeplolMemberCatalog: (...args: unknown[]) => mockGetDeeplolMemberCatalog(...args),
+  saveDeeplolParticipants: (...args: unknown[]) => mockSaveDeeplolParticipants(...args),
 }))
 
 vi.mock('@/components/ScheduleCalendar', () => ({
@@ -114,6 +118,7 @@ const baseTimeline = {
     championTeamName: null,
   },
   days: [],
+  deeplolParticipants: [],
   rosterTeams: [
     {
       id: 'team-1',
@@ -167,6 +172,8 @@ describe('LeagueScheduleManager', () => {
     mockRegisterLeagueMatchResult.mockResolvedValue({})
     mockDeleteLeagueSchedule.mockResolvedValue({})
     mockCompleteLeagueSchedule.mockResolvedValue({})
+    mockGetDeeplolMemberCatalog.mockResolvedValue({ members: [] })
+    mockSaveDeeplolParticipants.mockResolvedValue({ savedCount: 0 })
   })
 
   afterEach(() => {
