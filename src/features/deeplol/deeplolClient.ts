@@ -1,6 +1,7 @@
 import type {
   DeeplolMatch,
   DeeplolMatchParticipant,
+  DeeplolMember,
   DeeplolSyncConfig,
 } from './types'
 
@@ -57,6 +58,33 @@ function findArray(record: Record<string, unknown>, keys: string[]): unknown[] {
 
 function normalizeId(value: unknown) {
   return text(value)?.replace(/^\"|\"$/g, '') ?? null
+}
+
+function normalizeMember(value: unknown): DeeplolMember | null {
+  const member = asRecord(value)
+  const basic = asRecord(member.member_basic_dict ?? member.member_basic_info ?? member.player ?? member)
+  const puuId = firstText(member, ['puu_id', 'puuid', 'puuId']) ?? firstText(basic, ['puu_id', 'puuid', 'puuId'])
+  if (!puuId) return null
+  return {
+    puuId,
+    riotName: firstText(member, ['riot_id_name', 'riot_name', 'game_name', 'summoner_name']) ?? firstText(basic, ['riot_id_name', 'riot_name', 'game_name', 'summoner_name']),
+    riotTag: firstText(member, ['riot_id_tag_line', 'riot_tag', 'tag_line', 'tagline']) ?? firstText(basic, ['riot_id_tag_line', 'riot_tag', 'tag_line', 'tagline']),
+    teamId: firstText(member, ['team_id', 'teamId']) ?? firstText(basic, ['team_id', 'teamId']),
+    teamName: firstText(member, ['team_name', 'teamName']) ?? firstText(basic, ['team_name', 'teamName']),
+    position: firstText(member, ['position', 'lane', 'role']) ?? firstText(basic, ['position', 'lane', 'role']),
+  }
+}
+
+export function extractDeeplolMembers(payload: unknown): DeeplolMember[] {
+  const root = asRecord(payload)
+  const containers = [root, asRecord(root.data), asRecord(root.server_info), asRecord(root.tournament_server_info)]
+  const rows = containers.flatMap((container) => findArray(container, ['member_list', 'members', 'memberList', 'member_info_list', 'players']))
+  const unique = new Map<string, DeeplolMember>()
+  rows.forEach((row) => {
+    const member = normalizeMember(row)
+    if (member && !unique.has(member.puuId)) unique.set(member.puuId, member)
+  })
+  return Array.from(unique.values())
 }
 
 function normalizeParticipant(value: unknown): DeeplolMatchParticipant {
@@ -188,6 +216,17 @@ export function extractMemberMatchIds(payload: unknown): string[] {
     if (matchId) ids.push(matchId)
   }
   return Array.from(new Set(ids))
+}
+
+export async function fetchDeeplolMembers(
+  serverId: string,
+  maxAttempts = 3,
+  onRetry?: (attempt: number, error: unknown) => void,
+): Promise<DeeplolMember[]> {
+  const url = new URL(`${DEEPLOL_API_BASE}/tournament/server_info`)
+  url.searchParams.set('server_id', serverId)
+  const payload = await fetchJson(url.toString(), DEFAULT_TIMEOUT_MS, maxAttempts, onRetry)
+  return extractDeeplolMembers(payload)
 }
 
 export async function fetchMemberMatchIds(

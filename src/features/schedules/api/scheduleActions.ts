@@ -2,6 +2,8 @@
 
 import { Timestamp, FieldValue } from 'firebase-admin/firestore'
 import { adminDb } from '@/lib/firebaseAdmin'
+import { fetchDeeplolMembers } from '@/features/deeplol/deeplolClient'
+import type { DeeplolMember } from '@/features/deeplol/types'
 import type {
   CreateLeagueSchedulePayload,
   LeagueDeeplolParticipant,
@@ -668,6 +670,106 @@ export async function createLeagueSchedule(
   } catch (err) {
     const message = err instanceof Error ? err.message : '알 수 없는 오류'
     return { error: message }
+  }
+}
+
+export async function getDeeplolMemberCatalog(
+  scheduleId: string,
+  adminCode?: string,
+  serverId = '351',
+): Promise<{ error?: string; members?: DeeplolMember[] }> {
+  const { error: adminError } = requireScheduleAdmin(
+    adminCode,
+    'Deeplol 구성원을 불러오려면 관리자 코드가 필요합니다.',
+  )
+  if (adminError) return { error: adminError }
+  if (!scheduleId.trim()) return { error: '일정 ID가 필요합니다.' }
+
+  try {
+    const schedule = await getScheduleById(scheduleId.trim())
+    if (!schedule) return { error: '일정을 찾을 수 없습니다.' }
+    const members = await fetchDeeplolMembers(serverId.trim() || '351')
+    if (members.length === 0) {
+      return { error: 'Deeplol 구성원 응답에서 PUUID를 찾지 못했습니다.' }
+    }
+    return { members }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Deeplol 구성원을 불러오지 못했습니다.' }
+  }
+}
+
+export interface DeeplolParticipantRegistration {
+  puuId: string
+  riotName?: string | null
+  riotTag?: string | null
+  teamId: string
+  teamName: string
+  position?: string | null
+}
+
+export async function saveDeeplolParticipants(
+  scheduleId: string,
+  members: DeeplolParticipantRegistration[],
+  adminCode?: string,
+): Promise<{ error?: string; savedCount?: number }> {
+  const { error: adminError } = requireScheduleAdmin(
+    adminCode,
+    'Deeplol 구성원을 저장하려면 관리자 코드가 필요합니다.',
+  )
+  if (adminError) return { error: adminError }
+
+  const normalizedScheduleId = scheduleId.trim()
+  if (!normalizedScheduleId) return { error: '일정 ID가 필요합니다.' }
+  if (!Array.isArray(members) || members.length === 0) return { error: '저장할 Deeplol 구성원이 없습니다.' }
+
+  try {
+    const schedule = await getScheduleById(normalizedScheduleId)
+    if (!schedule) return { error: '일정을 찾을 수 없습니다.' }
+    const rosterTeams = await loadRosterTeams(schedule)
+    const rosterById = new Map(rosterTeams.map((team) => [team.id, team]))
+    const rosterByName = new Map(rosterTeams.map((team) => [normalizeText(team.name), team]))
+    const seenPuuIds = new Set<string>()
+    const normalizedMembers = members.map((member) => {
+      const puuId = normalizeText(member.puuId)
+      const teamId = normalizeText(member.teamId)
+      const teamName = normalizeText(member.teamName)
+      const team = rosterById.get(teamId) ?? rosterByName.get(teamName)
+      if (!puuId) throw new Error('PUUID가 비어 있는 구성원이 있습니다.')
+      if (seenPuuIds.has(puuId)) throw new Error(`중복된 PUUID가 있습니다: ${puuId}`)
+      seenPuuIds.add(puuId)
+      if (!team) throw new Error(`리그 로스터에 없는 팀입니다: ${teamName || teamId}`)
+      return {
+        puuId,
+        riotName: normalizeText(member.riotName) || null,
+        riotTag: normalizeText(member.riotTag) || null,
+        teamId: team.id,
+        teamName: team.name,
+        position: normalizeText(member.position) || null,
+      }
+    })
+
+    const batch = adminDb.batch()
+    const participantsRef = adminDb.collection('league_schedules').doc(normalizedScheduleId).collection('deeplol_participants')
+    normalizedMembers.forEach((member) => {
+      batch.set(participantsRef.doc(encodeURIComponent(member.puuId)), {
+        puu_id: member.puuId,
+        riot_name: member.riotName,
+        riot_tag: member.riotTag,
+        team_id: member.teamId,
+        team_name: member.teamName,
+        position: member.position,
+        status: 'ACTIVE',
+        updated_at: FieldValue.serverTimestamp(),
+      }, { merge: true })
+    })
+    batch.set(adminDb.collection('league_schedules').doc(normalizedScheduleId), {
+      deeplol_member_puu_ids: normalizedMembers.map((member) => member.puuId),
+      updated_at: FieldValue.serverTimestamp(),
+    }, { merge: true })
+    await batch.commit()
+    return { savedCount: normalizedMembers.length }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Deeplol 구성원 저장에 실패했습니다.' }
   }
 }
 

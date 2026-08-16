@@ -1,8 +1,38 @@
 import { describe, expect, it, vi } from 'vitest'
-import { extractMemberMatchIds, fetchMemberMatchIds, parseDeeplolMatch } from './deeplolClient'
+import { extractDeeplolMembers, extractMemberMatchIds, fetchMemberMatchIds, parseDeeplolMatch } from './deeplolClient'
 import { matchesTournamentKeyword } from './deeplolSync'
 
 describe('Deeplol client parser', () => {
+  it('extracts unique members and PUUIDs from server info response', () => {
+    const members = extractDeeplolMembers({
+      data: {
+        member_list: [
+          { puu_id: 'puu-1', riot_id_name: 'player-one', riot_id_tag_line: 'KR1', position: 'Jungle' },
+          { puu_id: 'puu-1', riot_id_name: 'player-one', riot_id_tag_line: 'KR1' },
+          { puuid: 'puu-2', riot_name: 'player-two', riot_tag: 'KR2' },
+        ],
+      },
+    })
+    expect(members).toEqual([
+      {
+        puuId: 'puu-1',
+        riotName: 'player-one',
+        riotTag: 'KR1',
+        teamId: null,
+        teamName: null,
+        position: 'Jungle',
+      },
+      {
+        puuId: 'puu-2',
+        riotName: 'player-two',
+        riotTag: 'KR2',
+        teamId: null,
+        teamName: null,
+        position: null,
+      },
+    ])
+  })
+
   it('extracts unique match ids from member match list response', () => {
     const payload = {
       match_id_list: [

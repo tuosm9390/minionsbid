@@ -43,6 +43,7 @@ import {
   type MatchEditorRow,
 } from "@/components/ScheduleMatchDayEditor";
 import { ScheduleRosterPanel } from "@/components/ScheduleRosterPanel";
+import { DeeplolMemberImportPanel } from "@/components/DeeplolMemberImportPanel";
 import { LeagueRecordSummaryPanel } from "@/components/LeagueRecordSummaryPanel";
 
 function startOfSelectedDay(date: Date) {
@@ -789,6 +790,17 @@ export function LeagueScheduleManager() {
                       </div>
                     )}
                   </div>
+
+                  <DeeplolMemberImportPanel
+                    scheduleId={timeline.schedule.id}
+                    rosterTeams={timeline.rosterTeams}
+                    existingParticipants={timeline.deeplolParticipants}
+                    adminCode={adminCode}
+                    isAdminVerified={isAdminVerified}
+                    onSaved={async () => {
+                      await loadTimeline(timeline.schedule?.id ?? selectedScheduleId);
+                    }}
+                  />
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="bg-[linear-gradient(180deg,#fffef8_0%,#fff5c5_100%)] border-4 border-black p-5 shadow-[10px_10px_0px_rgba(0,0,0,1)] lg:col-span-2">

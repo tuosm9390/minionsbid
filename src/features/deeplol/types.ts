@@ -6,6 +6,15 @@ export type DeeplolSyncStatus =
   | 'PENDING_REVIEW'
   | 'ERROR'
 
+export interface DeeplolMember {
+  puuId: string;
+  riotName: string | null;
+  riotTag: string | null;
+  teamId: string | null;
+  teamName: string | null;
+  position: string | null;
+}
+
 export interface DeeplolMatchParticipant {
   puuId: string | null
   riotName: string | null
