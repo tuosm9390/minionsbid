@@ -252,3 +252,18 @@ Beta 1승 2패 (33.3%, KDA 1.41)
 ```
 
 `발견`은 구성원 경기 목록에서 찾은 고유 경기 수, `신규`는 처음 `IMPORTED`된 경기 수, `중복`은 이미 저장된 원본 경기 수, `제외`는 토너먼트명·기간·팀 매핑 검증에서 제외된 경기 수, `재시도`는 일시적 네트워크 오류 뒤 재요청한 횟수다. 팀 행에는 팀명, 승패, 승률, KDA가 표시된다. Discord Embed의 필드·문자열 길이 제한을 초과하지 않도록 일정은 최대 8개, 팀은 일정당 최대 6개까지 메시지에 표시하며 원본 전체 결과는 Firestore의 sync run과 team stats에 보존한다.
+
+## Vercel Cron API
+
+Vercel Cron용 엔드포인트는 `GET /api/cron/deeplol-sync`이며 `Authorization: Bearer <CRON_SECRET>` 헤더가 없거나 일치하지 않으면 401을 반환한다. `vercel.json`은 UTC 기준 매 30분마다 이 Route를 호출하도록 설정되어 있다.
+
+Vercel Production 환경변수에는 기존 Firebase·Discord 변수와 함께 다음 값을 추가해야 한다.
+
+```text
+CRON_SECRET=<긴 랜덤 문자열>
+DEEPLOL_CRON_MAX_SCHEDULES=10
+```
+
+`DEEPLOL_CRON_MAX_SCHEDULES`는 한 번의 Cron 요청에서 처리할 최대 리그 일정 수이며 기본값은 10, 최대값은 50이다. Route는 `COMPLETED`가 아니고 `deeplol_tournament_name`이 설정된 일정만 처리한다. 일정이 없으면 Discord 알림을 보내지 않아 빈 실행 알림이 반복되지 않는다.
+
+배포 후 Vercel의 **Deployments → Functions** 로그에서 `/api/cron/deeplol-sync` 응답을 확인한다. 정상 응답은 `200`, 일부 일정 실패는 `500`이며, Cron 호출 인증 실패는 `401`이다. 실제 동기화 결과와 팀별 통계는 기존 Firestore sync run·match·team stats 컬렉션에 저장되고, 처리된 일정이 있으면 Discord 요약 Embed가 전송된다.
