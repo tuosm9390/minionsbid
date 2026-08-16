@@ -15,6 +15,7 @@ import {
   completeLeagueSchedule,
   createLeagueSchedule,
   deleteLeagueSchedule,
+  updateLeagueScheduleDeeplolTournamentName,
   getLeagueScheduleCatalog,
   getLeagueScheduleTimeline,
   registerLeagueMatchResult,
@@ -190,6 +191,7 @@ export function LeagueScheduleManager() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingTournamentName, setIsSavingTournamentName] = useState(false);
   const [isSavingTimeline, setIsSavingTimeline] = useState(false);
   const [isSubmittingResultId, setIsSubmittingResultId] = useState<
     string | null
@@ -273,6 +275,7 @@ export function LeagueScheduleManager() {
 
     previousScheduleIdRef.current = schedule.id;
     setSelectedDateKey(formatDateKey(new Date()));
+    setDeeplolTournamentName(schedule.deeplolTournamentName ?? '');
   }, [schedule]);
 
   const selectedDay = useMemo(
@@ -446,6 +449,28 @@ export function LeagueScheduleManager() {
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUpdateTournamentName = async () => {
+    if (!selectedScheduleId) return;
+    setIsSavingTournamentName(true);
+    setError('');
+    try {
+      const result = await updateLeagueScheduleDeeplolTournamentName(
+        selectedScheduleId,
+        deeplolTournamentName,
+        adminCode.trim() || undefined,
+      );
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      await Promise.all([loadCatalog(), loadTimeline(selectedScheduleId)]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '토너먼트명 수정에 실패했습니다.');
+    } finally {
+      setIsSavingTournamentName(false);
     }
   };
 
@@ -695,11 +720,34 @@ export function LeagueScheduleManager() {
                           timeline.schedule.endsAt,
                         )}
                       </p>
-                      {timeline.schedule.deeplolTournamentName && (
-                        <p className="mt-3 border-2 border-black bg-[#fff8d7] px-3 py-2 text-fluid-xs font-black text-gray-800">
-                          Deeplol 필터 키워드: {timeline.schedule.deeplolTournamentName}
+                      <div className="mt-3 border-2 border-black bg-[#fff8d7] px-3 py-3 space-y-2">
+                        <label htmlFor="schedule-current-deeplol-tournament" className="block text-fluid-xs font-black text-gray-800">
+                          Deeplol tournament_name 필터
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            id="schedule-current-deeplol-tournament"
+                            type="text"
+                            data-testid="schedule-current-deeplol-tournament"
+                            value={deeplolTournamentName}
+                            onChange={(event) => setDeeplolTournamentName(event.target.value)}
+                            placeholder="예: 2026-S2 리그전"
+                            className="min-w-0 flex-1 border-2 border-black px-3 py-2 bg-white text-fluid-xs font-bold"
+                          />
+                          <button
+                            type="button"
+                            data-testid="schedule-current-deeplol-tournament-save"
+                            onClick={() => void handleUpdateTournamentName()}
+                            disabled={isSavingTournamentName || !isAdminVerified || !deeplolTournamentName.trim()}
+                            className="border-2 border-black bg-minion-blue text-white px-3 py-2 text-fluid-xs font-black disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSavingTournamentName ? "저장 중..." : "필터 저장"}
+                          </button>
+                        </div>
+                        <p className="text-fluid-xs font-bold text-gray-700">
+                          Deeplol 경기의 tournament_name과 정확히 일치하는 경기만 집계합니다. 저장하려면 아래 일정 편집 영역에서 관리자 코드를 먼저 확인해주세요.
                         </p>
-                      )}
+                      </div>
                       {timeline.schedule.status === "COMPLETED" &&
                         !isAdminVerified && (
                           <div className="mt-4 border-4 border-black bg-red-50 px-4 py-3">

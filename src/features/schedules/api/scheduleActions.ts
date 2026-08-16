@@ -670,6 +670,43 @@ export async function createLeagueSchedule(
   }
 }
 
+export async function updateLeagueScheduleDeeplolTournamentName(
+  scheduleId: string,
+  tournamentName: string,
+  adminCode?: string,
+): Promise<{ error?: string; schedule?: LeagueScheduleItem }> {
+  if (isE2EScheduleFixtureEnabled()) {
+    return { error: 'E2E 일정에서는 Deeplol 토너먼트명 수정을 지원하지 않습니다.' }
+  }
+
+  const { error: adminError } = requireScheduleAdmin(
+    adminCode,
+    '토너먼트명을 수정하려면 관리자 코드가 필요합니다.',
+  )
+  if (adminError) return { error: adminError }
+
+  const normalizedScheduleId = scheduleId.trim()
+  const normalizedTournamentName = tournamentName.trim()
+  if (!normalizedScheduleId) return { error: '일정 ID가 필요합니다.' }
+  if (!normalizedTournamentName) return { error: 'Deeplol 토너먼트명을 입력해주세요.' }
+
+  try {
+    const scheduleRef = adminDb.collection('league_schedules').doc(normalizedScheduleId)
+    const scheduleSnap = await scheduleRef.get()
+    if (!scheduleSnap.exists) return { error: '일정을 찾을 수 없습니다.' }
+
+    await scheduleRef.update({
+      deeplol_tournament_name: normalizedTournamentName,
+      updated_at: FieldValue.serverTimestamp(),
+    })
+
+    const schedule = await getScheduleById(normalizedScheduleId)
+    return schedule ? { schedule } : { error: '수정된 일정을 다시 불러오지 못했습니다.' }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : '토너먼트명 수정에 실패했습니다.' }
+  }
+}
+
 export async function getLeagueScheduleTimeline(
   scheduleId: string
 ): Promise<LeagueScheduleTimeline> {
