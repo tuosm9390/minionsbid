@@ -22,6 +22,12 @@ service cloud.firestore {
         allow read: if true;
         allow create, update, delete: if isAdmin() || isServerWrite();
       }
+
+      // Deeplol PUUID 매핑은 관리자 UI와 서버 작업에서만 접근합니다.
+      // Admin SDK는 Rules를 우회하므로, 클라이언트 직접 접근은 admin claim으로 제한합니다.
+      match /deeplol_participants/{participantId} {
+        allow read, create, update, delete: if isAdmin() || isServerWrite();
+      }
     }
 
     // ── 입찰 검증 함수 ──
