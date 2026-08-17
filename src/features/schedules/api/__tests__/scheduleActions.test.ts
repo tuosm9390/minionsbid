@@ -501,6 +501,50 @@ describe('scheduleActions', () => {
     })
   })
 
+  it('saveDeeplolParticipants preserves previously saved PUUIDs during partial saves', async () => {
+    dbState.leagueSchedules.set('schedule-1', {
+      name: 'Spring Split',
+      roster_source_type: 'archive',
+      roster_source_id: 'archive-1',
+      starts_at: createTimestamp('2026-04-01T00:00:00.000Z'),
+      ends_at: createTimestamp('2026-04-10T00:00:00.000Z'),
+      status: 'ACTIVE',
+      deeplol_member_puu_ids: ['puu-existing'],
+    })
+    dbState.auctionArchives.set('archive-1', {
+      room_name: '2026 스프링 경매',
+      result_snapshot: [
+        { id: 'team-blue', name: 'Blue', leader_name: 'Blue Captain', players: [] },
+      ],
+    })
+    getDeeplolParticipantMap('schedule-1').set('puu%2Fexisting', {
+      puu_id: 'puu-existing',
+      team_id: 'team-blue',
+      team_name: 'Blue',
+      status: 'ACTIVE',
+    })
+
+    const { saveDeeplolParticipants } = await import('../scheduleActions')
+    const result = await saveDeeplolParticipants(
+      'schedule-1',
+      [{ puuId: 'puu-new', riotName: 'new-player', teamId: 'team-blue', teamName: 'Blue' }],
+      'secret-code',
+    )
+
+    expect(result).toEqual({ savedCount: 1 })
+    expect(dbState.leagueSchedules.get('schedule-1')?.deeplol_member_puu_ids).toEqual([
+      'puu-existing',
+      'puu-new',
+    ])
+    expect(getDeeplolParticipantMap('schedule-1').has('puu%2Fexisting')).toBe(true)
+    expect(Array.from(getDeeplolParticipantMap('schedule-1').values())).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ puu_id: 'puu-existing' }),
+        expect.objectContaining({ puu_id: 'puu-new' }),
+      ]),
+    )
+  })
+
   it('saveLeagueScheduleDay requires admin code and persists through a transaction', async () => {
     dbState.leagueSchedules.set('schedule-1', {
       name: 'Spring Split',

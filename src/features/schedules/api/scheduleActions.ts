@@ -749,7 +749,20 @@ export async function saveDeeplolParticipants(
     })
 
     const batch = adminDb.batch()
-    const participantsRef = adminDb.collection('league_schedules').doc(normalizedScheduleId).collection('deeplol_participants')
+    const scheduleRef = adminDb.collection('league_schedules').doc(normalizedScheduleId)
+    const participantsRef = scheduleRef.collection('deeplol_participants')
+    const existingParticipantSnapshot = await participantsRef.get()
+    const existingPuuIds = existingParticipantSnapshot.docs
+      .map((doc) => {
+        const data = doc.data() as Record<string, unknown>
+        return normalizeText(data.puu_id)
+      })
+      .filter(Boolean)
+    const mergedPuuIds = Array.from(new Set([
+      ...(schedule.deeplolMemberPuuIds ?? []),
+      ...existingPuuIds,
+      ...normalizedMembers.map((member) => member.puuId),
+    ]))
     normalizedMembers.forEach((member) => {
       batch.set(participantsRef.doc(encodeURIComponent(member.puuId)), {
         puu_id: member.puuId,
@@ -762,8 +775,8 @@ export async function saveDeeplolParticipants(
         updated_at: FieldValue.serverTimestamp(),
       }, { merge: true })
     })
-    batch.set(adminDb.collection('league_schedules').doc(normalizedScheduleId), {
-      deeplol_member_puu_ids: normalizedMembers.map((member) => member.puuId),
+    batch.set(scheduleRef, {
+      deeplol_member_puu_ids: mergedPuuIds,
       updated_at: FieldValue.serverTimestamp(),
     }, { merge: true })
     await batch.commit()
