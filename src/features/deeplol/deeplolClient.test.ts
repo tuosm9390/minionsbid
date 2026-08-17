@@ -110,6 +110,52 @@ describe('Deeplol client parser', () => {
     }
   })
 
+  it('retries a rate-limited request and respects the retry callback', async () => {
+    const originalFetch = globalThis.fetch
+    let attempts = 0
+    const retryAttempts: number[] = []
+    globalThis.fetch = vi.fn(async () => {
+      attempts += 1
+      if (attempts === 1) {
+        return {
+          ok: false,
+          status: 429,
+          headers: { get: (name: string) => (name === 'retry-after' ? '0' : null) },
+        } as unknown as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({ match_id_list: [{ match_id: 'KR_RATE_LIMITED' }] }),
+      } as Response
+    })
+    try {
+      await expect(fetchMemberMatchIds('puu-1', 'KR', 20, 2, (attempt) => retryAttempts.push(attempt)))
+        .resolves.toEqual(['KR_RATE_LIMITED'])
+      expect(attempts).toBe(2)
+      expect(retryAttempts).toEqual([1])
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('does not retry a non-transient Deeplol application error', async () => {
+    const originalFetch = globalThis.fetch
+    let attempts = 0
+    globalThis.fetch = vi.fn(async () => {
+      attempts += 1
+      return {
+        ok: true,
+        json: async () => ({ msg: 'invalid member' }),
+      } as Response
+    })
+    try {
+      await expect(fetchMemberMatchIds('puu-1', 'KR', 20, 3)).rejects.toThrow('invalid member')
+      expect(attempts).toBe(1)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
   it('matches tournament keyword after whitespace and case normalization', () => {
     expect(matchesTournamentKeyword('  2026-S2  리그전 ', '2026-s2 리그전')).toBe(true)
     expect(matchesTournamentKeyword('2026-S2 리그전 결승', '2026-S2 리그전')).toBe(false)

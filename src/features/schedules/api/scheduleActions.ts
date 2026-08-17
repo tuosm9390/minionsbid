@@ -41,6 +41,44 @@ import {
   verifyFixtureScheduleAdminCode,
 } from './e2eScheduleFixture'
 import { inferCaptainModeFromRoster, normalizeCaptainMode } from '@/features/auction/utils/roster'
+import {
+  findRosterParticipant,
+  normalizeRosterPlayerKey,
+} from '@/features/schedules/utils/deeplolRosterMatching'
+
+function logDeeplolRosterMapping(
+  scheduleId: string,
+  rosterTeams: LeagueRosterTeam[],
+  participants: LeagueDeeplolParticipant[],
+) {
+  const details = rosterTeams.flatMap((team) =>
+    team.players.map((player) => {
+      const participant = findRosterParticipant(team, player.name, participants)
+      const normalizedPlayerKey = normalizeRosterPlayerKey(player.name)
+      const specialCharacter = /[^\p{L}\p{N}\s#_-]/u.test(player.name)
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        playerName: player.name,
+        normalizedPlayerKey,
+        matched: Boolean(participant),
+        matchedPuuIdSuffix: participant?.puuId ? participant.puuId.slice(-8) : null,
+        matchedRiotName: participant?.riotName ?? null,
+        specialCharacter,
+      }
+    }),
+  )
+  const secured = details.filter((detail) => detail.matched).length
+  const missing = details.filter((detail) => !detail.matched)
+  const noteworthy = details.filter((detail) => detail.specialCharacter || !detail.matched)
+  console.info('[deeplol-roster-mapping]', JSON.stringify({
+    scheduleId,
+    rosterPlayers: details.length,
+    secured,
+    missing: missing.length,
+    noteworthy,
+  }))
+}
 
 function toIsoString(value: unknown): string | null {
   if (!value) return null
@@ -780,6 +818,19 @@ export async function saveDeeplolParticipants(
       updated_at: FieldValue.serverTimestamp(),
     }, { merge: true })
     await batch.commit()
+    console.info('[deeplol-roster-save]', JSON.stringify({
+      scheduleId: normalizedScheduleId,
+      savedCount: normalizedMembers.length,
+      mappings: normalizedMembers.map((member) => ({
+        teamId: member.teamId,
+        teamName: member.teamName,
+        riotName: member.riotName,
+        riotTag: member.riotTag,
+        normalizedPlayerKey: normalizeRosterPlayerKey(member.riotName),
+        puuIdSuffix: member.puuId.slice(-8),
+        specialCharacter: /[^\p{L}\p{N}\s#_-]/u.test(member.riotName ?? ''),
+      })),
+    }))
     return { savedCount: normalizedMembers.length }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Deeplol 구성원 저장에 실패했습니다.' }
@@ -882,6 +933,7 @@ export async function getLeagueScheduleTimeline(
     })
 
     const availableTeamNames = rosterTeams.map((team) => team.name)
+    logDeeplolRosterMapping(scheduleId, rosterTeams, deeplolParticipants)
 
     return {
       schedule,

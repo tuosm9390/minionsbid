@@ -206,6 +206,11 @@ async function fetchJson(
         if (!isRetryableStatus(response.status) || attempt >= maxAttempts) throw error
         lastError = error
         onRetry?.(attempt, error)
+        const retryAfterSeconds = Number(response.headers.get('retry-after'))
+        if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+          await sleep(Math.min(10_000, retryAfterSeconds * 1000))
+          continue
+        }
       } else {
         const body = (await response.json()) as unknown
         const message = text(asRecord(body).msg)
@@ -214,7 +219,10 @@ async function fetchJson(
       }
     } catch (error) {
       lastError = error
-      const retryable = !(error instanceof Error && error.message.startsWith('Deeplol HTTP 4'))
+      const retryable = !(
+        error instanceof Error &&
+        (error.message.startsWith('Deeplol HTTP 4') || error.message.startsWith('Deeplol 응답 오류'))
+      )
       if (!retryable || attempt >= maxAttempts) throw error
       onRetry?.(attempt, error)
     }
@@ -254,7 +262,13 @@ export async function fetchMemberMatchIds(
 ): Promise<string[]> {
   const ids: string[] = []
   let offset = 0
+  let pageCount = 0
+  const maxPages = 100
   while (true) {
+    pageCount += 1
+    if (pageCount > maxPages) {
+      throw new Error(`Deeplol 경기 목록 페이지 수가 ${maxPages}개를 초과했습니다.`)
+    }
     const url = new URL(`${DEEPLOL_API_BASE}/match/matches`)
     url.searchParams.set('puu_id', puuId)
     url.searchParams.set('platform_id', platformId)

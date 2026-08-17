@@ -43,6 +43,28 @@ function endOfDay(date: Date | null) {
   return result
 }
 
+const DEEPLOL_FETCH_CONCURRENCY = 4
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let nextIndex = 0
+  const workerLoop = async () => {
+    while (true) {
+      const index = nextIndex
+      nextIndex += 1
+      if (index >= items.length) return
+      results[index] = await worker(items[index], index)
+    }
+  }
+  const workerCount = Math.min(Math.max(1, concurrency), Math.max(1, items.length))
+  await Promise.all(Array.from({ length: workerCount }, () => workerLoop()))
+  return results
+}
+
 function isInScheduleRange(createdAt: string | null, startsAt: unknown, endsAt: unknown) {
   const created = toDate(createdAt)
   const start = toDate(startsAt)
@@ -179,6 +201,15 @@ export async function syncLeagueDeeplolSchedule(
 
   const syncRef = scheduleRef.collection('deeplol_sync_runs').doc()
   const startedAt = new Date()
+  const startedAtMs = startedAt.getTime()
+  console.info('[deeplol-sync-start]', JSON.stringify({
+    scheduleId,
+    tournamentName: config.tournamentName,
+    memberCount: config.memberPuuIds.length,
+    pageSize: config.pageSize,
+    maxAttempts: config.maxAttempts,
+    concurrency: DEEPLOL_FETCH_CONCURRENCY,
+  }))
   await syncRef.set({
     status: 'RUNNING',
     tournament_name: config.tournamentName,
@@ -202,17 +233,29 @@ export async function syncLeagueDeeplolSchedule(
 
   try {
     const matchIds = new Set<string>()
-    for (const puuId of config.memberPuuIds) {
-      const memberMatchIds = await fetchMemberMatchIds(
-        puuId,
-        config.platformId,
-        config.pageSize,
-        config.maxAttempts,
-        () => { result.retriedRequests += 1 },
-      )
-      for (const matchId of memberMatchIds) matchIds.add(matchId)
-    }
+    await mapWithConcurrency(config.memberPuuIds, DEEPLOL_FETCH_CONCURRENCY, async (puuId) => {
+      try {
+        const memberMatchIds = await fetchMemberMatchIds(
+          puuId,
+          config.platformId,
+          config.pageSize,
+          config.maxAttempts,
+          () => { result.retriedRequests += 1 },
+        )
+        for (const matchId of memberMatchIds) matchIds.add(matchId)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        result.errors.push(`member:${puuId}: ${message}`)
+        console.warn('[deeplol-sync-member-error]', JSON.stringify({ scheduleId, puuIdSuffix: puuId.slice(-8), message }))
+      }
+    })
     result.discoveredMatchIds = matchIds.size
+    console.info('[deeplol-sync-discovery]', JSON.stringify({
+      scheduleId,
+      memberCount: config.memberPuuIds.length,
+      discoveredMatchIds: result.discoveredMatchIds,
+      errors: result.errors.length,
+    }))
 
     const membership = await loadTeamMembership(scheduleId)
     if (membership.byPuuId.size === 0) throw new Error('활성 Deeplol 참가자와 팀 매핑이 필요합니다.')
@@ -222,7 +265,7 @@ export async function syncLeagueDeeplolSchedule(
     const aggregates = new Map<string, DeeplolTeamAggregate>()
     const matchesCollection = scheduleRef.collection('deeplol_matches')
 
-    for (const matchId of matchIds) {
+    await mapWithConcurrency(Array.from(matchIds), DEEPLOL_FETCH_CONCURRENCY, async (matchId) => {
       try {
         const match = await fetchDeeplolMatch(
           matchId,
@@ -234,7 +277,7 @@ export async function syncLeagueDeeplolSchedule(
         const existing = await matchRef.get()
         if (existing.exists && existing.data()?.import_status === 'IMPORTED') {
           result.duplicateMatches += 1
-          continue
+          return
         }
         if (!matchesTournamentKeyword(match.tournamentName, config.tournamentName)) {
           result.skippedMatches += 1
@@ -244,7 +287,7 @@ export async function syncLeagueDeeplolSchedule(
             import_status: 'SKIPPED_TOURNAMENT',
             checked_at: FieldValue.serverTimestamp(),
           }, { merge: true })
-          continue
+          return
         }
         if (!isInScheduleRange(match.createdAt, schedule.starts_at, schedule.ends_at)) {
           result.skippedMatches += 1
@@ -255,7 +298,7 @@ export async function syncLeagueDeeplolSchedule(
             import_status: 'SKIPPED_OUT_OF_RANGE',
             checked_at: FieldValue.serverTimestamp(),
           }, { merge: true })
-          continue
+          return
         }
 
         const matchValidation = validateMatchTeamComposition(match.participants, membership.byPuuId)
@@ -272,7 +315,7 @@ export async function syncLeagueDeeplolSchedule(
             mapped_participant_count: Array.from(teamGroups.values()).reduce((sum, group) => sum + group.participants.length, 0),
             checked_at: FieldValue.serverTimestamp(),
           }, { merge: true })
-          continue
+          return
         }
 
         await matchRef.set({
@@ -295,10 +338,12 @@ export async function syncLeagueDeeplolSchedule(
         }
         result.importedMatches += 1
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
         result.failedMatchIds.push(matchId)
-        result.errors.push(`${matchId}: ${error instanceof Error ? error.message : String(error)}`)
+        result.errors.push(`${matchId}: ${message}`)
+        console.warn('[deeplol-sync-match-error]', JSON.stringify({ scheduleId, matchId, message }))
       }
-    }
+    })
 
     // 멱등성을 보장하기 위해 현재 실행분이 아니라 등록된 전체 원본 경기에서 팀 단위로 재계산한다.
     aggregates.clear()
@@ -331,7 +376,19 @@ export async function syncLeagueDeeplolSchedule(
       status: result.errors.length ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
       finished_at: FieldValue.serverTimestamp(),
       ...result,
+      duration_ms: Date.now() - startedAtMs,
     }, { merge: true })
+    console.info('[deeplol-sync-complete]', JSON.stringify({
+      scheduleId,
+      durationMs: Date.now() - startedAtMs,
+      discoveredMatchIds: result.discoveredMatchIds,
+      importedMatches: result.importedMatches,
+      duplicateMatches: result.duplicateMatches,
+      skippedMatches: result.skippedMatches,
+      failedMatches: result.failedMatchIds.length,
+      retriedRequests: result.retriedRequests,
+      errors: result.errors.length,
+    }))
     return result
   } catch (error) {
     await syncRef.set({
