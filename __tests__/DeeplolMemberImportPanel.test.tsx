@@ -99,7 +99,7 @@ describe('DeeplolMemberImportPanel', () => {
   it('uses the Riot name and tag for an exact automatic match', async () => {
     const user = userEvent.setup()
     const taggedRosterTeams = rosterTeams.map((team) => team.id === 'team-blue'
-      ? { ...team, players: [{ ...team.players[0], name: 'auto-player#KR1' }] }
+      ? { ...team, players: [{ ...team.players[0], name: ' auto player ＃ KR1 ' }] }
       : team)
     render(
       <DeeplolMemberImportPanel

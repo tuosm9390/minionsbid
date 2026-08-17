@@ -13,11 +13,24 @@ function key(value: string | null | undefined) {
   return (value ?? "").normalize("NFC").trim().replace(/\s+/g, " ").toLocaleLowerCase("ko-KR");
 }
 
+/**
+ * Riot ID 비교용 키입니다. 표시용 문자열은 보존하고, 비교할 때만
+ * NFKC·대소문자·공백·zero-width 문자·구분 문자를 정리합니다.
+ * 후보가 여러 팀이면 자동 배정하지 않으므로 특수문자 제거로 인한 충돌도 안전하게 처리됩니다.
+ */
+function riotMatchKey(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFKC")
+    .toLocaleLowerCase("ko-KR")
+    .replace(/[\u200B-\u200D\uFEFF]/gu, "")
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
 function splitRiotId(value: string | null | undefined) {
-  const normalized = (value ?? "").normalize("NFC").trim();
+  const normalized = (value ?? "").normalize("NFKC").trim();
   const separator = normalized.lastIndexOf("#");
   return separator > 0
-    ? { name: normalized.slice(0, separator), tag: normalized.slice(separator + 1) }
+    ? { name: normalized.slice(0, separator).trim(), tag: normalized.slice(separator + 1).trim() }
     : { name: normalized, tag: "" };
 }
 
@@ -49,11 +62,11 @@ function findTeam(rosterTeams: LeagueRosterTeam[], member: DeeplolMember, existi
 
   const exactCandidates = rosterTeams.filter((team) => team.players.some((player) => {
     const playerId = splitRiotId(player.name);
-    return key(playerId.name) === key(member.riotName) && Boolean(playerId.tag) && key(playerId.tag) === key(member.riotTag);
+    return riotMatchKey(playerId.name) === riotMatchKey(member.riotName) && Boolean(playerId.tag) && riotMatchKey(playerId.tag) === riotMatchKey(member.riotTag);
   }));
   if (exactCandidates.length === 1) return { team: exactCandidates[0], status: "EXACT" as const };
 
-  const nameCandidates = rosterTeams.filter((team) => team.players.some((player) => key(splitRiotId(player.name).name) === key(member.riotName)));
+  const nameCandidates = rosterTeams.filter((team) => team.players.some((player) => riotMatchKey(splitRiotId(player.name).name) === riotMatchKey(member.riotName)));
   if (nameCandidates.length === 1) return { team: nameCandidates[0], status: "NAME_ONLY" as const };
   return { team: null, status: "UNMATCHED" as const };
 }
