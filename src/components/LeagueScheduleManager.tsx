@@ -230,9 +230,7 @@ export function LeagueScheduleManager() {
   const [selectedDateKey, setSelectedDateKey] = useState(() =>
     formatDateKey(new Date()),
   );
-  const [matchRows, setMatchRows] = useState<MatchEditorRow[]>(
-    buildEditorRows(null),
-  );
+  const [matchRowsByKey, setMatchRowsByKey] = useState<Record<string, MatchEditorRow[]>>({});
   const [adminCode, setAdminCode] = useState("");
   const [isAdminVerified, setIsAdminVerified] = useState(false);
   const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
@@ -243,7 +241,7 @@ export function LeagueScheduleManager() {
   const createScheduleOverlayDismiss = useOverlayDismiss<HTMLDivElement>(() =>
     setIsOpen(false),
   );
-  const [selectedChampionName, setSelectedChampionName] = useState("");
+  const [championDraftsByScheduleId, setChampionDraftsByScheduleId] = useState<Record<string, string>>({});
   const schedule = timeline?.schedule;
   const previousScheduleIdRef = useRef<string | null>(null);
 
@@ -274,11 +272,11 @@ export function LeagueScheduleManager() {
   }, []);
 
   useEffect(() => {
-    void loadCatalog();
+    void Promise.resolve().then(loadCatalog);
   }, [loadCatalog]);
 
   useEffect(() => {
-    if (selectedScheduleId) void loadTimeline(selectedScheduleId);
+    if (selectedScheduleId) void Promise.resolve().then(() => loadTimeline(selectedScheduleId));
   }, [loadTimeline, selectedScheduleId]);
 
   useEffect(() => {
@@ -297,6 +295,27 @@ export function LeagueScheduleManager() {
     () => timeline?.days.find((day) => day.dateKey === selectedDateKey) ?? null,
     [selectedDateKey, timeline],
   );
+
+  const matchEditorKey = `${timeline?.schedule?.id ?? selectedScheduleId}:${selectedDateKey}`;
+  const matchRows = useMemo(
+    () => matchRowsByKey[matchEditorKey] ?? buildEditorRows(selectedDay),
+    [matchEditorKey, matchRowsByKey, selectedDay],
+  );
+
+  const updateMatchRows = useCallback(
+    (updater: MatchEditorRow[] | ((previous: MatchEditorRow[]) => MatchEditorRow[])) => {
+      setMatchRowsByKey((current) => {
+        const previous = current[matchEditorKey] ?? buildEditorRows(selectedDay);
+        const next = typeof updater === "function" ? updater(previous) : updater;
+        return { ...current, [matchEditorKey]: next };
+      });
+    },
+    [matchEditorKey, selectedDay],
+  );
+
+  const selectedChampionName = championDraftsByScheduleId[schedule?.id ?? selectedScheduleId]
+    ?? schedule?.championTeamName
+    ?? "";
 
   const deeplolParticipantLookup = useMemo(() => {
     const lookup = new Map<string, LeagueDeeplolParticipant>();
@@ -349,13 +368,6 @@ export function LeagueScheduleManager() {
     });
   }, [deeplolParticipantLookup, timeline]);
 
-  useEffect(() => {
-    setMatchRows(buildEditorRows(selectedDay));
-  }, [selectedDay]);
-
-  useEffect(() => {
-    setSelectedChampionName(timeline?.schedule?.championTeamName ?? "");
-  }, [timeline?.schedule?.championTeamName, selectedScheduleId]);
 
   const daySummaries = useMemo(() => {
     const map = new Map<
@@ -1049,7 +1061,7 @@ export function LeagueScheduleManager() {
                     onAdminCodeChange={handleAdminCodeChange}
                     onVerifyAdminCode={() => void handleVerifyAdminCode()}
                     onRowChange={(index, patch) =>
-                      setMatchRows((prev) =>
+                      updateMatchRows((prev) =>
                         prev.map((row, rowIndex) => {
                           if (rowIndex !== index) return row;
 
@@ -1095,13 +1107,13 @@ export function LeagueScheduleManager() {
                       )
                     }
                     onAddRow={() =>
-                      setMatchRows((prev) => [
+                      updateMatchRows((prev) => [
                         ...prev,
                         createEmptyMatchRow(),
                       ])
                     }
                     onRemoveRow={(index) =>
-                      setMatchRows((prev) =>
+                      updateMatchRows((prev) =>
                         prev.filter((_, rowIndex) => rowIndex !== index),
                       )
                     }
@@ -1336,7 +1348,7 @@ export function LeagueScheduleManager() {
                 data-testid="schedule-complete-champion"
                 value={selectedChampionName}
                 onChange={(event) =>
-                  setSelectedChampionName(event.target.value)
+                  setChampionDraftsByScheduleId((current) => ({ ...current, [schedule?.id ?? selectedScheduleId]: event.target.value }))
                 }
                 className="w-full border-2 border-black px-4 py-3 bg-white text-sm font-bold"
               >
