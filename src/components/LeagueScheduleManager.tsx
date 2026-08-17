@@ -88,7 +88,13 @@ function formatTimelineDate(dateKey: string) {
 }
 
 function normalizeRosterLookupKey(value: string | null | undefined) {
-  return (value ?? '').normalize('NFC').trim().replace(/\\s+/g, ' ').toLocaleLowerCase('ko-KR');
+  return (value ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ko-KR');
+}
+
+function normalizeRosterPlayerKey(value: string | null | undefined) {
+  const normalized = normalizeRosterLookupKey(value);
+  const separatorIndex = normalized.lastIndexOf('#');
+  return separatorIndex > 0 ? normalized.slice(0, separatorIndex).trim() : normalized;
 }
 
 function isScheduleInProgress(startIso: string, endIso: string | null) {
@@ -298,11 +304,16 @@ export function LeagueScheduleManager() {
       .filter((participant) => participant.status === 'ACTIVE')
       .forEach((participant) => {
         const teamKey = normalizeRosterLookupKey(participant.teamName);
-        const playerKey = normalizeRosterLookupKey(participant.riotName);
+        const playerKey = normalizeRosterPlayerKey(participant.riotName);
         if (teamKey && playerKey) lookup.set(`${teamKey}::${playerKey}`, participant);
       });
     return lookup;
   }, [timeline?.deeplolParticipants]);
+
+  const totalRosterPlayerCount = useMemo(
+    () => timeline?.rosterTeams.reduce((total, team) => total + team.players.length, 0) ?? 0,
+    [timeline?.rosterTeams],
+  );
 
   const rosterPuuidMappings = useMemo<RosterPuuidMapping[]>(() => {
     if (!timeline) return [];
@@ -318,12 +329,12 @@ export function LeagueScheduleManager() {
       return team.players.flatMap((player) => {
         const participant =
           deeplolParticipantLookup.get(
-            `${normalizeRosterLookupKey(team.name)}::${normalizeRosterLookupKey(player.name)}`,
+            `${normalizeRosterLookupKey(team.name)}::${normalizeRosterPlayerKey(player.name)}`,
           ) ??
           activeParticipants.find(
             (candidate) =>
-              normalizeRosterLookupKey(candidate.riotName) ===
-              normalizeRosterLookupKey(player.name),
+              normalizeRosterPlayerKey(candidate.riotName) ===
+              normalizeRosterPlayerKey(player.name),
           );
 
         return participant
@@ -755,7 +766,7 @@ export function LeagueScheduleManager() {
                         <h3 className="mt-1 text-fluid-lg font-black">참여 팀 및 Deeplol PUUID 현황</h3>
                       </div>
                       <p className="text-fluid-xs font-black text-gray-600">
-                        {timeline.rosterTeams.length}개 팀 · {timeline.deeplolParticipants.filter((participant) => participant.status === 'ACTIVE').length}명 PUUID 등록
+                        {timeline.rosterTeams.length}개 팀 · 로스터 PUUID {rosterPuuidMappings.length}/{totalRosterPlayerCount}명 확보
                       </p>
                     </div>
                     <p className="mt-2 text-fluid-xs font-bold text-gray-700">
@@ -774,8 +785,8 @@ export function LeagueScheduleManager() {
                               (participant.teamId === team.id || normalizeRosterLookupKey(participant.teamName) === normalizeRosterLookupKey(team.name)),
                           );
                           const mappedPlayers = team.players.map((player) =>
-                            deeplolParticipantLookup.get(`${normalizeRosterLookupKey(team.name)}::${normalizeRosterLookupKey(player.name)}`) ??
-                            activeParticipants.find((participant) => normalizeRosterLookupKey(participant.riotName) === normalizeRosterLookupKey(player.name)) ??
+                            deeplolParticipantLookup.get(`${normalizeRosterLookupKey(team.name)}::${normalizeRosterPlayerKey(player.name)}`) ??
+                            activeParticipants.find((participant) => normalizeRosterPlayerKey(participant.riotName) === normalizeRosterPlayerKey(player.name)) ??
                             null,
                           );
                           const mappedCount = mappedPlayers.filter(Boolean).length;
