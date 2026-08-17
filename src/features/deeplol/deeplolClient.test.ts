@@ -33,6 +33,50 @@ describe('Deeplol client parser', () => {
     ])
   })
 
+  it('extracts members and PUUIDs from the live tournament_stats response shape', () => {
+    const members = extractDeeplolMembers({
+      server_id: 351,
+      server_name: 'Minions LOL소모임',
+      tournament_stats: {
+        tournament_stats_all_list: [
+          { puu_id: 'live-puu-1', riot_name: '돼팔소', riot_tag: '우자이네', platform_id: 'KR' },
+          { puu_id: 'live-puu-2', riot_name: 'player-two', riot_tag: 'KR2', platform_id: 'KR' },
+        ],
+        tournament_stats_rift_list: [
+          { puu_id: 'live-puu-1', riot_name: '돼팔소', riot_tag: '우자이네', platform_id: 'KR' },
+          { puu_id: 'live-puu-3', riot_name: 'player-three', riot_tag: 'KR3', platform_id: 'KR' },
+        ],
+      },
+    })
+
+    expect(members).toEqual([
+      {
+        puuId: 'live-puu-1',
+        riotName: '돼팔소',
+        riotTag: '우자이네',
+        teamId: null,
+        teamName: null,
+        position: null,
+      },
+      {
+        puuId: 'live-puu-2',
+        riotName: 'player-two',
+        riotTag: 'KR2',
+        teamId: null,
+        teamName: null,
+        position: null,
+      },
+      {
+        puuId: 'live-puu-3',
+        riotName: 'player-three',
+        riotTag: 'KR3',
+        teamId: null,
+        teamName: null,
+        position: null,
+      },
+    ])
+  })
+
   it('extracts unique match ids from member match list response', () => {
     const payload = {
       match_id_list: [

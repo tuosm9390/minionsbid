@@ -77,10 +77,27 @@ function normalizeMember(value: unknown): DeeplolMember | null {
 
 export function extractDeeplolMembers(payload: unknown): DeeplolMember[] {
   const root = asRecord(payload)
-  const containers = [root, asRecord(root.data), asRecord(root.server_info), asRecord(root.tournament_server_info)]
-  const rows = containers.flatMap((container) => findArray(container, ['member_list', 'members', 'memberList', 'member_info_list', 'players']))
+  const tournamentStats = asRecord(root.tournament_stats)
+  const containers = [
+    root,
+    asRecord(root.data),
+    asRecord(root.server_info),
+    asRecord(root.tournament_server_info),
+    tournamentStats,
+  ]
+  const rows = containers.slice(0, -1).flatMap((container) => findArray(container, [
+    'member_list',
+    'members',
+    'memberList',
+    'member_info_list',
+    'players',
+  ]))
+  const tournamentRows = [
+    ...findArray(tournamentStats, ['tournament_stats_all_list']),
+    ...findArray(tournamentStats, ['tournament_stats_rift_list']),
+  ]
   const unique = new Map<string, DeeplolMember>()
-  rows.forEach((row) => {
+  ;[...rows, ...tournamentRows].forEach((row) => {
     const member = normalizeMember(row)
     if (member && !unique.has(member.puuId)) unique.set(member.puuId, member)
   })
