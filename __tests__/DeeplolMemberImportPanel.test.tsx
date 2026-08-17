@@ -96,6 +96,52 @@ describe('DeeplolMemberImportPanel', () => {
     expect(mockGetDeeplolMemberCatalog).toHaveBeenCalledTimes(2)
   })
 
+  it('uses the Riot name and tag for an exact automatic match', async () => {
+    const user = userEvent.setup()
+    const taggedRosterTeams = rosterTeams.map((team) => team.id === 'team-blue'
+      ? { ...team, players: [{ ...team.players[0], name: 'auto-player#KR1' }] }
+      : team)
+    render(
+      <DeeplolMemberImportPanel
+        scheduleId="schedule-1"
+        rosterTeams={taggedRosterTeams}
+        existingParticipants={[]}
+        adminCode="secret"
+        isAdminVerified
+        onSaved={vi.fn(async () => undefined)}
+      />,
+    )
+
+    await user.click(screen.getByTestId('deeplol-member-import-open'))
+    await waitFor(() => expect(screen.getByText('이름+태그 자동 매칭')).toBeInTheDocument())
+    expect(screen.getByLabelText('auto-player 팀')).toHaveValue('team-blue')
+  })
+
+  it('filters unmatched members and assigns selected rows to a team in bulk', async () => {
+    const user = userEvent.setup()
+    render(
+      <DeeplolMemberImportPanel
+        scheduleId="schedule-1"
+        rosterTeams={rosterTeams}
+        existingParticipants={[]}
+        adminCode="secret"
+        isAdminVerified
+        onSaved={vi.fn(async () => undefined)}
+      />,
+    )
+
+    await user.click(screen.getByTestId('deeplol-member-import-open'))
+    await waitFor(() => expect(screen.getByText(/2명의 Deeplol 구성원을 불러왔습니다/)).toBeInTheDocument())
+    await user.selectOptions(screen.getByLabelText('매핑 상태 필터'), 'UNMATCHED')
+    expect(screen.getByText('unmatched-player#KR2')).toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: /unmatched-player#KR2/ }))
+    await user.selectOptions(screen.getByLabelText('일괄 배정 팀'), 'team-red')
+    await user.click(screen.getByRole('button', { name: '선택 팀 일괄 배정' }))
+    await user.selectOptions(screen.getByLabelText('매핑 상태 필터'), 'ALL')
+    expect(screen.getByLabelText('unmatched-player 팀')).toHaveValue('team-red')
+    expect(screen.getByText(/선택된 구성원을 Red에 일괄 배정했습니다/)).toBeInTheDocument()
+  })
+
   it('loads members, auto-maps a unique roster match, and saves reviewed teams', async () => {
     const user = userEvent.setup()
     const onSaved = vi.fn(async () => undefined)
@@ -114,11 +160,12 @@ describe('DeeplolMemberImportPanel', () => {
     await waitFor(() => expect(mockGetDeeplolMemberCatalog).toHaveBeenCalledWith('schedule-1', 'secret'))
 
     expect(screen.getByText(/2명의 Deeplol 구성원을 불러왔습니다/)).toBeInTheDocument()
-    const selects = screen.getAllByRole('combobox')
-    expect(selects[0]).toHaveValue('team-blue')
-    expect(selects[1]).toHaveValue('')
+    const autoTeamSelect = screen.getByLabelText('auto-player 팀')
+    const manualTeamSelect = screen.getByLabelText('unmatched-player 팀')
+    expect(autoTeamSelect).toHaveValue('team-blue')
+    expect(manualTeamSelect).toHaveValue('')
 
-    await user.selectOptions(selects[1], 'team-red')
+    await user.selectOptions(manualTeamSelect, 'team-red')
     await user.click(screen.getByTestId('deeplol-member-import-save'))
 
     await waitFor(() => expect(mockSaveDeeplolParticipants).toHaveBeenCalledWith(
