@@ -43,9 +43,9 @@ function endOfDay(date: Date | null) {
   return result
 }
 
-const DEEPLOL_FETCH_CONCURRENCY = 4
+export const DEEPLOL_FETCH_CONCURRENCY = 4
 
-async function mapWithConcurrency<T, R>(
+export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
   worker: (item: T, index: number) => Promise<R>,
