@@ -11,13 +11,20 @@ export function normalizeRosterPlayerKey(value: string | null | undefined) {
 }
 
 export function buildDeeplolParticipantLookup(participants: LeagueDeeplolParticipant[]) {
-  const lookup = new Map<string, LeagueDeeplolParticipant>();
+  const lookup = new Map<string, LeagueDeeplolParticipant | null>();
   participants
     .filter((participant) => participant.status === "ACTIVE")
     .forEach((participant) => {
       const teamKey = normalizeRosterLookupKey(participant.teamName);
       const playerKey = normalizeRosterPlayerKey(participant.riotName);
-      if (teamKey && playerKey) lookup.set(`${teamKey}::${playerKey}`, participant);
+      if (!teamKey || !playerKey) return;
+
+      const key = `${teamKey}::${playerKey}`;
+      if (lookup.has(key)) {
+        lookup.set(key, null);
+      } else {
+        lookup.set(key, participant);
+      }
     });
   return lookup;
 }
@@ -28,20 +35,22 @@ export function findRosterParticipant(
   participants: LeagueDeeplolParticipant[],
   lookup = buildDeeplolParticipantLookup(participants),
 ) {
-  const activeParticipants = participants.filter(
-    (participant) =>
-      participant.status === "ACTIVE" &&
-      (participant.teamId === team.id ||
-        normalizeRosterLookupKey(participant.teamName) === normalizeRosterLookupKey(team.name)),
-  );
+  const playerKey = normalizeRosterPlayerKey(playerName);
+  const exactTeamNameMatch = lookup.get(`${normalizeRosterLookupKey(team.name)}::${playerKey}`);
+  if (exactTeamNameMatch) return exactTeamNameMatch;
 
-  return (
-    lookup.get(`${normalizeRosterLookupKey(team.name)}::${normalizeRosterPlayerKey(playerName)}`) ??
-    activeParticipants.find(
-      (participant) => normalizeRosterPlayerKey(participant.riotName) === normalizeRosterPlayerKey(playerName),
-    ) ??
-    null
+  const activeParticipants = participants.filter(
+    (participant) => participant.status === "ACTIVE" && normalizeRosterPlayerKey(participant.riotName) === playerKey,
   );
+  const teamIdMatches = activeParticipants.filter((participant) => participant.teamId === team.id);
+  if (teamIdMatches.length === 1) return teamIdMatches[0];
+  if (teamIdMatches.length > 1) return null;
+
+  const teamNameKey = normalizeRosterLookupKey(team.name);
+  const teamNameMatches = activeParticipants.filter(
+    (participant) => normalizeRosterLookupKey(participant.teamName) === teamNameKey,
+  );
+  return teamNameMatches.length === 1 ? teamNameMatches[0] : null;
 }
 
 export function mapRosterPlayersToParticipants(

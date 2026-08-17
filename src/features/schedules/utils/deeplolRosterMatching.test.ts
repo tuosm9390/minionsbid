@@ -96,4 +96,48 @@ describe("deeplol roster matching", () => {
     ]);
     expect(isRosterReady(team, participants)).toBe(true);
   });
+
+  it("preserves meaningful punctuation while normalizing Unicode and Riot ID tags", () => {
+    const team = makeTeam(["ＫＤＡ・王!!#KR1"]);
+    const participant = makeParticipant("puuid-special", " KDA・王!! ", {
+      riotTag: "KR1",
+      teamName: "Ａｌｐｈａ　Ｓｑｕａｄ",
+    });
+
+    expect(normalizeRosterPlayerKey("ＫＤＡ・王!!#KR1")).toBe("kda・王!!");
+    expect(findRosterParticipant(team, "ＫＤＡ・王!!#KR1", [participant])?.puuId).toBe("puuid-special");
+  });
+
+  it("resolves same-named players by team ID before falling back to team name", () => {
+    const alpha = makeTeam(["Shadow#KR1"]);
+    const beta = { ...makeTeam(["Shadow#KR1"]), id: "team-b", name: "Beta Squad" };
+    const participants = [
+      makeParticipant("puuid-alpha", "Shadow", { teamName: null }),
+      makeParticipant("puuid-beta", "Shadow", { teamId: "team-b", teamName: null }),
+    ];
+
+    expect(findRosterParticipant(alpha, "Shadow#KR1", participants)?.puuId).toBe("puuid-alpha");
+    expect(findRosterParticipant(beta, "Shadow#KR1", participants)?.puuId).toBe("puuid-beta");
+  });
+
+  it("does not guess when duplicate active candidates belong to the same team", () => {
+    const team = makeTeam(["Shadow#KR1"]);
+    const participants = [
+      makeParticipant("puuid-1", "Shadow"),
+      makeParticipant("puuid-2", "Shadow"),
+    ];
+
+    expect(findRosterParticipant(team, "Shadow#KR1", participants)).toBeNull();
+    expect(getMappedRosterPlayerCount([team], participants)).toBe(0);
+  });
+
+  it("does not match blank or missing Riot names even when the team matches", () => {
+    const team = makeTeam(["#KR1"]);
+    const participants = [
+      makeParticipant("puuid-blank", "", { riotTag: "KR1" }),
+      makeParticipant("puuid-null", "   ", { riotTag: null }),
+    ];
+
+    expect(findRosterParticipant(team, "#KR1", participants)).toBeNull();
+  });
 });
