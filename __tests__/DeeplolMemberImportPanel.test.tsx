@@ -133,13 +133,49 @@ describe('DeeplolMemberImportPanel', () => {
     await user.click(screen.getByTestId('deeplol-member-import-open'))
     await waitFor(() => expect(screen.getByText(/2명의 Deeplol 구성원을 불러왔습니다/)).toBeInTheDocument())
     await user.selectOptions(screen.getByLabelText('매핑 상태 필터'), 'UNMATCHED')
-    expect(screen.getByText('unmatched-player#KR2')).toBeInTheDocument()
+    expect(screen.getAllByText('unmatched-player#KR2').length).toBeGreaterThan(0)
     await user.click(screen.getByRole('checkbox', { name: /unmatched-player#KR2/ }))
     await user.selectOptions(screen.getByLabelText('일괄 배정 팀'), 'team-red')
     await user.click(screen.getByRole('button', { name: '선택 팀 일괄 배정' }))
     await user.selectOptions(screen.getByLabelText('매핑 상태 필터'), 'ALL')
     expect(screen.getByLabelText('unmatched-player 팀')).toHaveValue('team-red')
     expect(screen.getByText(/선택된 구성원을 Red에 일괄 배정했습니다/)).toBeInTheDocument()
+  })
+
+  it('syncs missing roster slots with automatic and manual PUUID assignments', async () => {
+    const user = userEvent.setup()
+    const onSaved = vi.fn(async () => undefined)
+    render(
+      <DeeplolMemberImportPanel
+        scheduleId="schedule-1"
+        rosterTeams={rosterTeams}
+        existingParticipants={[]}
+        adminCode="secret"
+        isAdminVerified
+        onSaved={onSaved}
+      />,
+    )
+
+    await user.click(screen.getByTestId('deeplol-member-import-open'))
+    await waitFor(() => expect(screen.getByTestId('deeplol-roster-sync-panel')).toBeInTheDocument())
+    expect(screen.getByText(/미확보 선수 2명/)).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('deeplol-roster-auto-assign'))
+    expect(screen.getByLabelText('auto-player Deeplol 구성원')).toHaveValue('puu-auto')
+
+    await user.selectOptions(screen.getByLabelText('manual-player Deeplol 구성원'), 'puu-manual')
+    await user.click(screen.getByTestId('deeplol-roster-sync'))
+
+    await waitFor(() => expect(mockSaveDeeplolParticipants).toHaveBeenCalledWith(
+      'schedule-1',
+      [
+        expect.objectContaining({ puuId: 'puu-auto', teamId: 'team-blue', teamName: 'Blue' }),
+        expect.objectContaining({ puuId: 'puu-manual', teamId: 'team-red', teamName: 'Red' }),
+      ],
+      'secret',
+    ))
+    expect(onSaved).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/2명의 로스터 PUUID 상태를 동기화했습니다/)).toBeInTheDocument()
   })
 
   it('loads members, auto-maps a unique roster match, and saves reviewed teams', async () => {

@@ -54,6 +54,21 @@ type DraftMember = DeeplolMember & {
   matchStatus: MatchStatus;
 };
 
+type RosterSlot = {
+  key: string;
+  teamId: string;
+  teamName: string;
+  playerName: string;
+};
+
+function memberMatchesRosterPlayer(member: DeeplolMember, playerName: string) {
+  const rosterId = splitRiotId(playerName);
+  const memberName = riotMatchKey(member.riotName);
+  const rosterName = riotMatchKey(rosterId.name);
+  if (!rosterName || rosterName !== memberName) return false;
+  return !rosterId.tag || !member.riotTag || riotMatchKey(rosterId.tag) === riotMatchKey(member.riotTag);
+}
+
 function findTeam(rosterTeams: LeagueRosterTeam[], member: DeeplolMember, existing?: LeagueDeeplolParticipant) {
   if (existing) {
     const savedTeam = rosterTeams.find((team) => team.id === existing.teamId || key(team.name) === key(existing.teamName));
@@ -95,6 +110,8 @@ export function DeeplolMemberImportPanel({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("ALL");
   const [bulkTeamId, setBulkTeamId] = useState("");
+  const [rosterAssignments, setRosterAssignments] = useState<Record<string, string>>({});
+  const [rosterQuery, setRosterQuery] = useState("");
 
   const existingByPuuId = useMemo(
     () => new Map(existingParticipants.map((participant) => [participant.puuId, participant])),
@@ -154,9 +171,106 @@ export function DeeplolMemberImportPanel({
     });
   }, [filter, members, query]);
 
+  const rosterSlots = useMemo<RosterSlot[]>(
+    () => rosterTeams.flatMap((team) => team.players.map((player, index) => ({
+      key: `${team.id}:${index}:${player.name}`,
+      teamId: team.id,
+      teamName: team.name,
+      playerName: player.name,
+    }))),
+    [rosterTeams],
+  );
+
+  const savedRosterSlotKeys = useMemo(() => new Set(rosterSlots.filter((slot) => existingParticipants.some((participant) => participant.teamId === slot.teamId && memberMatchesRosterPlayer(participant, slot.playerName))).map((slot) => slot.key)), [existingParticipants, rosterSlots]);
+  const missingRosterSlots = useMemo(() => rosterSlots.filter((slot) => !savedRosterSlotKeys.has(slot.key)), [rosterSlots, savedRosterSlotKeys]);
+  const filteredRosterSlots = useMemo(() => {
+    const normalizedQuery = key(rosterQuery);
+    return missingRosterSlots.filter((slot) => !normalizedQuery || key(`${slot.playerName} ${slot.teamName}`).includes(normalizedQuery));
+  }, [missingRosterSlots, rosterQuery]);
+
   const selectedCount = members.filter((member) => member.selected && member.teamId).length;
   const unresolvedCount = members.filter((member) => member.matchStatus === "UNMATCHED").length;
   const reviewCount = members.filter((member) => member.matchStatus === "NAME_ONLY").length;
+
+  const rosterCandidates = (slot: RosterSlot) => members.filter((member) => memberMatchesRosterPlayer(member, slot.playerName));
+
+  const assignRosterCandidate = (slot: RosterSlot, puuId: string) => {
+    setRosterAssignments((current) => ({ ...current, [slot.key]: puuId }));
+    const member = members.find((item) => item.puuId === puuId);
+    if (member) updateMember(puuId, { teamId: slot.teamId, teamName: slot.teamName, selected: true, matchStatus: "NAME_ONLY" });
+  };
+
+  const autoAssignRosterCandidates = () => {
+    const used = new Set<string>();
+    const assignments: Record<string, string> = {};
+    for (const slot of missingRosterSlots) {
+      const candidates = rosterCandidates(slot).filter((member) => !used.has(member.puuId));
+      if (candidates.length === 1) {
+        assignments[slot.key] = candidates[0].puuId;
+        used.add(candidates[0].puuId);
+      }
+    }
+    setRosterAssignments((current) => ({ ...current, ...assignments }));
+    setMembers((current) => current.map((member) => {
+      const entry = Object.entries(assignments).find(([, puuId]) => puuId === member.puuId);
+      if (!entry) return member;
+      const slot = rosterSlots.find((item) => item.key === entry[0]);
+      return slot ? { ...member, teamId: slot.teamId, teamName: slot.teamName, selected: true, matchStatus: "NAME_ONLY" } : member;
+    }));
+    setNotice(`${Object.keys(assignments).length}명의 로스터 후보를 자동 연결했습니다. 나머지는 수동으로 선택해주세요.`);
+  };
+
+  const handleRosterSync = async () => {
+    if (!isAdminVerified) {
+      setError("상태를 동기화하려면 관리자 코드를 먼저 확인해주세요.");
+      return;
+    }
+    const assigned = Object.entries(rosterAssignments).map(([slotKey, puuId]) => {
+      const slot = rosterSlots.find((item) => item.key === slotKey);
+      const member = members.find((item) => item.puuId === puuId);
+      return slot && member ? { slot, member } : null;
+    }).filter((item): item is { slot: RosterSlot; member: DraftMember } => Boolean(item));
+    if (assigned.length === 0) {
+      setError("동기화할 로스터 선수를 선택해주세요.");
+      return;
+    }
+    const duplicatePuuIds = new Set(assigned.map((item) => item.member.puuId));
+    if (duplicatePuuIds.size !== assigned.length) {
+      setError("하나의 Deeplol 구성원이 여러 로스터 선수에 중복 연결되었습니다.");
+      return;
+    }
+    const teamCounts = new Map<string, number>();
+    for (const item of assigned) teamCounts.set(item.slot.teamId, (teamCounts.get(item.slot.teamId) ?? 0) + 1);
+    const overfullTeam = [...teamCounts.entries()].find(([, count]) => count > 6);
+    if (overfullTeam) {
+      const team = rosterTeams.find((item) => item.id === overfullTeam[0]);
+      setError(`${team?.name ?? "선택한 팀"}에 ${overfullTeam[1]}명이 연결되어 팀 정원 6명을 초과합니다.`);
+      return;
+    }
+    setIsSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await saveDeeplolParticipants(scheduleId, assigned.map(({ slot, member }) => ({
+        puuId: member.puuId,
+        riotName: member.riotName,
+        riotTag: member.riotTag,
+        teamId: slot.teamId,
+        teamName: slot.teamName,
+        position: member.position,
+      })), adminCode);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setNotice(`${result.savedCount ?? assigned.length}명의 로스터 PUUID 상태를 동기화했습니다.`);
+      await onSaved();
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "로스터 PUUID 동기화에 실패했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const applyBulkTeam = () => {
     const team = rosterTeams.find((item) => item.id === bulkTeamId);
@@ -242,6 +356,46 @@ export function DeeplolMemberImportPanel({
 
           {notice && <p className="mt-3 border-2 border-green-700 bg-green-50 px-3 py-2 text-fluid-xs font-black text-green-800">{notice}</p>}
           {error && <div role="alert" aria-live="assertive" data-testid="deeplol-member-import-error" className="mt-3 border-2 border-minion-red bg-red-50 px-3 py-3 text-fluid-xs font-black text-minion-red"><p>{error}</p><button type="button" onClick={() => void openAndLoad()} disabled={isLoading || !isAdminVerified} className="mt-2 border-2 border-black bg-white px-3 py-2 text-fluid-xs font-black text-black disabled:cursor-not-allowed disabled:opacity-50">다시 시도</button></div>}
+
+          {members.length > 0 && missingRosterSlots.length > 0 && (
+            <section className="mt-4 border-2 border-black bg-[#fffdf8] p-3" data-testid="deeplol-roster-sync-panel">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-fluid-xs font-black text-minion-blue">현재 리그 PUUID 미확보 로스터</p>
+                  <p className="mt-1 text-fluid-xs font-bold text-gray-700">미확보 선수 {missingRosterSlots.length}명 · 연결 완료 {Object.keys(rosterAssignments).length}명</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" data-testid="deeplol-roster-auto-assign" onClick={autoAssignRosterCandidates} disabled={isSaving} className="border-2 border-black bg-white px-3 py-2 text-fluid-xs font-black disabled:cursor-not-allowed disabled:opacity-50">이름 후보 자동 연결</button>
+                  <button type="button" data-testid="deeplol-roster-sync" onClick={() => void handleRosterSync()} disabled={isSaving || Object.keys(rosterAssignments).length === 0} className="border-2 border-black bg-minion-yellow px-3 py-2 text-fluid-xs font-black disabled:cursor-not-allowed disabled:opacity-50">로스터 상태 동기화</button>
+                </div>
+              </div>
+              <input aria-label="미확보 로스터 선수 검색" value={rosterQuery} onChange={(event) => setRosterQuery(event.target.value)} placeholder="로스터 선수명·팀 검색" className="mt-3 w-full border-2 border-black px-3 py-2 text-fluid-xs font-bold" />
+              <p className="mt-2 text-fluid-xs font-bold text-gray-600">각 로스터 선수에 Deeplol 구성원을 하나씩 연결하세요. 이름 후보가 없으면 전체 구성원 목록에서 직접 선택할 수 있습니다.</p>
+              <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                {filteredRosterSlots.map((slot) => {
+                  const suggested = rosterCandidates(slot);
+                  const options = suggested.length > 0 ? suggested : members;
+                  return (
+                    <div key={slot.key} className="border-2 border-black bg-white p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-fluid-sm font-black">{slot.playerName}</p>
+                          <p className="text-fluid-xs font-bold text-gray-600">{slot.teamName}</p>
+                        </div>
+                        <span className="text-[10px] font-black text-minion-red">PUUID 미확보</span>
+                      </div>
+                      <select aria-label={`${slot.playerName} Deeplol 구성원`} value={rosterAssignments[slot.key] ?? ""} onChange={(event) => assignRosterCandidate(slot, event.target.value)} className="mt-2 w-full border-2 border-black bg-white px-2 py-2 text-fluid-xs font-black">
+                        <option value="">Deeplol 구성원 선택</option>
+                        {options.map((member) => <option key={member.puuId} value={member.puuId}>{member.riotName ?? "이름 미확인"}{member.riotTag ? `#${member.riotTag}` : ""}</option>)}
+                      </select>
+                      <p className="mt-1 text-[10px] font-bold text-gray-600">{suggested.length > 0 ? `이름 후보 ${suggested.length}명` : "이름 후보 없음 · 직접 선택"}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              {filteredRosterSlots.length === 0 && <p className="mt-3 border-2 border-dashed border-gray-500 px-3 py-4 text-center text-fluid-xs font-black text-gray-600">조건에 맞는 미확보 로스터 선수가 없습니다.</p>}
+            </section>
+          )}
 
           {members.length > 0 && (
             <>
