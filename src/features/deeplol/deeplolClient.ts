@@ -2,7 +2,6 @@ import type {
   DeeplolMatch,
   DeeplolMatchParticipant,
   DeeplolMember,
-  DeeplolSyncConfig,
 } from './types'
 
 const DEEPLOL_API_BASE = 'https://b2c-api-cdn.deeplol.gg'

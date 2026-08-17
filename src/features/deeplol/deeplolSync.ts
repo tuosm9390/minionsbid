@@ -3,7 +3,6 @@ import { adminDb } from '@/lib/firebaseAdmin'
 import { fetchDeeplolMatch, fetchMemberMatchIds } from './deeplolClient'
 import type {
   DeeplolMatch,
-  DeeplolPlayerAggregate,
   DeeplolTeamAggregate,
   DeeplolSyncConfig,
   DeeplolSyncResult,
@@ -54,78 +53,6 @@ function isInScheduleRange(createdAt: string | null, startsAt: unknown, endsAt: 
   return true
 }
 
-function playerKey(participant: DeeplolMatch['participants'][number]) {
-  if (participant.puuId) return `puu:${participant.puuId}`
-  const name = [participant.riotName, participant.riotTag].filter(Boolean).join('#')
-  return name ? `riot:${name.toLocaleLowerCase('ko-KR')}` : null
-}
-
-function toAggregate(
-  match: DeeplolMatch,
-  participant: DeeplolMatch['participants'][number],
-  updatedAt: string,
-): DeeplolPlayerAggregate | null {
-  const key = playerKey(participant)
-  if (!key) return null
-  const champion = participant.championName ?? participant.championId ?? 'UNKNOWN'
-  const position = participant.position ?? 'UNKNOWN'
-  const won = participant.win === true
-  return {
-    playerKey: key,
-    puuId: participant.puuId,
-    riotName: participant.riotName,
-    riotTag: participant.riotTag,
-    platformId: participant.platformId,
-    matches: 1,
-    wins: won ? 1 : 0,
-    losses: won ? 0 : 1,
-    kills: participant.kills,
-    deaths: participant.deaths,
-    assists: participant.assists,
-    kda:
-      participant.deaths > 0
-        ? (participant.kills + participant.assists) / participant.deaths
-        : participant.kills + participant.assists,
-    champions: { [champion]: { games: 1, wins: won ? 1 : 0 } },
-    positions: { [position]: { games: 1, wins: won ? 1 : 0 } },
-    updatedAt,
-  }
-}
-
-function mergeAggregate(
-  current: DeeplolPlayerAggregate,
-  next: DeeplolPlayerAggregate,
-): DeeplolPlayerAggregate {
-  const champions = { ...current.champions }
-  for (const [name, value] of Object.entries(next.champions)) {
-    champions[name] = {
-      games: (champions[name]?.games ?? 0) + value.games,
-      wins: (champions[name]?.wins ?? 0) + value.wins,
-    }
-  }
-  const positions = { ...current.positions }
-  for (const [name, value] of Object.entries(next.positions)) {
-    positions[name] = {
-      games: (positions[name]?.games ?? 0) + value.games,
-      wins: (positions[name]?.wins ?? 0) + value.wins,
-    }
-  }
-  const deaths = current.deaths + next.deaths
-  return {
-    ...current,
-    matches: current.matches + next.matches,
-    wins: current.wins + next.wins,
-    losses: current.losses + next.losses,
-    kills: current.kills + next.kills,
-    deaths,
-    assists: current.assists + next.assists,
-    kda: deaths > 0 ? (current.kills + next.kills + current.assists + next.assists) / deaths : current.kills + next.kills + current.assists + next.assists,
-    champions,
-    positions,
-    updatedAt: next.updatedAt,
-  }
-}
-
 async function loadTeamMembership(scheduleId: string) {
   const snapshot = await adminDb
     .collection('league_schedules')
@@ -148,13 +75,6 @@ async function loadTeamMembership(scheduleId: string) {
 
 function teamKey(team: NormalizedTeamMembership) {
   return team.teamKey
-}
-
-function participantMatchesLeague(
-  participant: DeeplolMatch['participants'][number],
-  membership: Map<string, NormalizedTeamMembership>,
-) {
-  return Boolean(participant.puuId && membership.has(participant.puuId))
 }
 
 function groupMatchParticipantsByTeam(
