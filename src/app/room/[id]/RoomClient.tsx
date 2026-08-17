@@ -96,7 +96,7 @@ export function RoomClient({
   const [noticeText, setNoticeText] = useState("");
   const [isSendingNotice, setIsSendingNotice] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
 
   const router = useRouter();
@@ -163,18 +163,12 @@ export function RoomClient({
   });
 
   useEffect(() => {
-    if (!timerEndsAt) {
-      setIsExpired(false);
-      return;
-    }
-    const update = () => {
-      const remain = new Date(timerEndsAt).getTime() - Date.now();
-      setIsExpired(remain <= 0);
-    };
-    update();
-    const t = setInterval(update, 500);
-    return () => clearInterval(t);
+    if (!timerEndsAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(timer);
   }, [timerEndsAt]);
+
+  const isExpired = Boolean(timerEndsAt && new Date(timerEndsAt).getTime() <= now);
 
   useEffect(() => {
     const inProgress = (!!timerEndsAt && !isExpired) || sealedBid?.phase === "ACTIVE";

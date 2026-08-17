@@ -275,8 +275,10 @@ export function useCreateRoom() {
 
   useEffect(() => {
     if (!isOpen) return;
-    void checkActiveRooms();
-    void loadScheduleOptions();
+    void Promise.all([
+      Promise.resolve().then(checkActiveRooms),
+      Promise.resolve().then(loadScheduleOptions),
+    ]);
   }, [checkActiveRooms, isOpen, loadScheduleOptions]);
 
   const syncCaptains = (count: number) => {

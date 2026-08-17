@@ -55,9 +55,11 @@ export function SealedBiddingControl({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setAmount(defaultAmount);
-    setSubmittedAmount(null);
-    setError(null);
+    queueMicrotask(() => {
+      setAmount(defaultAmount);
+      setSubmittedAmount(null);
+      setError(null);
+    });
   }, [currentPlayer?.id, sealedBid.roundId, defaultAmount]);
 
   const submit = async (nextAmount: number) => {

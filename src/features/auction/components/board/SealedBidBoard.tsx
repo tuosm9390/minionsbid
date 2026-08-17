@@ -153,7 +153,7 @@ export function SealedBidBoard({
     : teams;
 
   useEffect(() => {
-    setRevealedCount(0);
+    queueMicrotask(() => setRevealedCount(0));
   }, [revealKey]);
 
   useEffect(() => {

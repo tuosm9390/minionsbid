@@ -190,12 +190,12 @@ export function useAuctionBoard({
   }, [players, teamMap, currentPlayerId])
 
   useEffect(() => {
-    setLotteryDone(false)
+    queueMicrotask(() => setLotteryDone(false))
   }, [lotteryPlayerId])
 
   useEffect(() => {
     if (E2E_AUCTION_FIXTURE && isLotteryActive) {
-      setLotteryDone(true)
+      queueMicrotask(() => setLotteryDone(true))
     }
   }, [isLotteryActive])
 

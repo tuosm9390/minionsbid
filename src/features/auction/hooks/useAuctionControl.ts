@@ -29,6 +29,7 @@ export function useAuctionControl({
   // lotteryPlayer는 Zustand store로 관리됨.
   // CLOSE_LOTTERY는 useAuctionRealtime에서 setLotteryPlayer(null) 처리.
   const prevPlayersRef = useRef<Player[]>([])
+  const playersRef = useRef<Player[]>(players)
 
   useEffect(() => {
     const prev = prevPlayersRef.current
@@ -48,6 +49,7 @@ export function useAuctionControl({
       }
     }
     prevPlayersRef.current = curr
+    playersRef.current = curr
   }, [players, setLotteryPlayer])
 
   // 2. 추첨 모달 닫기 — Server Action 경유로 CLOSE_LOTTERY 브로드캐스트
@@ -68,8 +70,6 @@ export function useAuctionControl({
 
   // 3. 타이머 만료 시 자동 낙찰 처리 (ORGANIZER 클라이언트만 실행)
   const awardLock = useRef(false)
-  const playersRef = useRef(players)
-  playersRef.current = players
   const triggerAward = useCallback(async (playerId: string) => {
     if (auctionMode === 'SEALED_BID') return
     if (awardLock.current) return

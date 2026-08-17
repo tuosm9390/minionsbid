@@ -74,7 +74,7 @@ export function ScheduleCalendar({
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(selectedDate));
 
   useEffect(() => {
-    setViewMonth(startOfMonth(selectedDate));
+    queueMicrotask(() => setViewMonth(startOfMonth(selectedDate)));
   }, [selectedDate]);
 
   const cells = useMemo(() => buildMonthCells(viewMonth), [viewMonth]);

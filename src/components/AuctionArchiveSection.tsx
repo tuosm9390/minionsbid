@@ -214,7 +214,7 @@ export function AuctionArchiveSection({
 
   useEffect(() => {
     if (isOpen) {
-      void fetchArchives();
+      void Promise.resolve().then(fetchArchives);
     }
   }, [isOpen, fetchArchives]);
 

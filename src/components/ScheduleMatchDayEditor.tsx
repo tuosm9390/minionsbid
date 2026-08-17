@@ -49,7 +49,7 @@ function BufferedTextInput({
   const [draft, setDraft] = useState(value);
 
   useEffect(() => {
-    setDraft(value);
+    queueMicrotask(() => setDraft(value));
   }, [value]);
 
   return (
@@ -82,7 +82,7 @@ function BufferedTextarea({
   const [draft, setDraft] = useState(value);
 
   useEffect(() => {
-    setDraft(value);
+    queueMicrotask(() => setDraft(value));
   }, [value]);
 
   return (

@@ -113,15 +113,19 @@ export function useBiddingControl({
 
   // ── Effects ──
   useEffect(() => {
-    setBidAmount((prev) => {
-      const normalized = normalizeBidAmountInput(prev, minBid)
-      return normalized === '' ? minBid : normalized
+    queueMicrotask(() => {
+      setBidAmount((prev) => {
+        const normalized = normalizeBidAmountInput(prev, minBid)
+        return normalized === '' ? minBid : normalized
+      })
     })
   }, [minBid])
 
   useEffect(() => {
-    setBidAmount(minBid)
-    setBidError(null)
+    queueMicrotask(() => {
+      setBidAmount(minBid)
+      setBidError(null)
+    })
   }, [currentPlayer?.id, minBid])
 
   useEffect(() => {
