@@ -142,6 +142,32 @@ describe('DeeplolMemberImportPanel', () => {
     expect(screen.getByText(/선택된 구성원을 Red에 일괄 배정했습니다/)).toBeInTheDocument()
   })
 
+  it('uses the roster-card mapping state instead of unrelated saved participants', async () => {
+    const user = userEvent.setup()
+    render(
+      <DeeplolMemberImportPanel
+        scheduleId="schedule-1"
+        rosterTeams={rosterTeams}
+        existingParticipants={[
+          { puuId: 'legacy-blue', riotName: 'auto-player', riotTag: 'KR1', teamId: 'team-blue', teamName: 'Blue', position: null, status: 'ACTIVE' },
+          { puuId: 'legacy-red', riotName: 'manual-player', riotTag: 'KR1', teamId: 'team-red', teamName: 'Red', position: null, status: 'ACTIVE' },
+        ]}
+        rosterPuuidMappings={[
+          { teamId: 'team-blue', teamName: 'Blue', playerName: 'auto-player', puuId: 'legacy-blue' },
+        ]}
+        adminCode="secret"
+        isAdminVerified
+        onSaved={vi.fn(async () => undefined)}
+      />,
+    )
+
+    await user.click(screen.getByTestId('deeplol-member-import-open'))
+    await waitFor(() => expect(screen.getByTestId('deeplol-roster-sync-panel')).toBeInTheDocument())
+    expect(screen.getByText(/미확보 선수 1명/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('auto-player Deeplol 구성원')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('manual-player Deeplol 구성원')).toBeInTheDocument()
+  })
+
   it('syncs missing roster slots with automatic and manual PUUID assignments', async () => {
     const user = userEvent.setup()
     const onSaved = vi.fn(async () => undefined)

@@ -61,6 +61,13 @@ type RosterSlot = {
   playerName: string;
 };
 
+export type RosterPuuidMapping = {
+  teamId: string;
+  teamName: string;
+  playerName: string;
+  puuId: string;
+};
+
 function memberMatchesRosterPlayer(member: DeeplolMember, playerName: string) {
   const rosterId = splitRiotId(playerName);
   const memberName = riotMatchKey(member.riotName);
@@ -90,6 +97,7 @@ export function DeeplolMemberImportPanel({
   scheduleId,
   rosterTeams,
   existingParticipants,
+  rosterPuuidMappings,
   adminCode,
   isAdminVerified,
   onSaved,
@@ -97,6 +105,7 @@ export function DeeplolMemberImportPanel({
   scheduleId: string;
   rosterTeams: LeagueRosterTeam[];
   existingParticipants: LeagueDeeplolParticipant[];
+  rosterPuuidMappings?: RosterPuuidMapping[];
   adminCode: string;
   isAdminVerified: boolean;
   onSaved: () => Promise<void>;
@@ -181,7 +190,26 @@ export function DeeplolMemberImportPanel({
     [rosterTeams],
   );
 
-  const savedRosterSlotKeys = useMemo(() => new Set(rosterSlots.filter((slot) => existingParticipants.some((participant) => participant.teamId === slot.teamId && memberMatchesRosterPlayer(participant, slot.playerName))).map((slot) => slot.key)), [existingParticipants, rosterSlots]);
+  const savedRosterSlotKeys = useMemo(() => {
+    const mappings = rosterPuuidMappings ?? existingParticipants
+      .filter((participant) => participant.status === 'ACTIVE')
+      .map((participant) => ({
+        teamId: participant.teamId ?? '',
+        teamName: participant.teamName ?? '',
+        playerName: participant.riotName ?? '',
+        puuId: participant.puuId,
+      }));
+
+    return new Set(
+      rosterSlots
+        .filter((slot) => mappings.some((mapping) =>
+          mapping.teamId === slot.teamId &&
+          (key(mapping.playerName) === key(splitRiotId(slot.playerName).name) ||
+            key(mapping.playerName) === key(slot.playerName)),
+        ))
+        .map((slot) => slot.key),
+    );
+  }, [existingParticipants, rosterPuuidMappings, rosterSlots]);
   const missingRosterSlots = useMemo(() => rosterSlots.filter((slot) => !savedRosterSlotKeys.has(slot.key)), [rosterSlots, savedRosterSlotKeys]);
   const filteredRosterSlots = useMemo(() => {
     const normalizedQuery = key(rosterQuery);

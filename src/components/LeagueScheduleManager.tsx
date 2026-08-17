@@ -43,7 +43,10 @@ import {
   type MatchEditorRow,
 } from "@/components/ScheduleMatchDayEditor";
 import { ScheduleRosterPanel } from "@/components/ScheduleRosterPanel";
-import { DeeplolMemberImportPanel } from "@/components/DeeplolMemberImportPanel";
+import {
+  DeeplolMemberImportPanel,
+  type RosterPuuidMapping,
+} from "@/components/DeeplolMemberImportPanel";
 import { LeagueRecordSummaryPanel } from "@/components/LeagueRecordSummaryPanel";
 
 function startOfSelectedDay(date: Date) {
@@ -300,6 +303,40 @@ export function LeagueScheduleManager() {
       });
     return lookup;
   }, [timeline?.deeplolParticipants]);
+
+  const rosterPuuidMappings = useMemo<RosterPuuidMapping[]>(() => {
+    if (!timeline) return [];
+
+    return timeline.rosterTeams.flatMap((team) => {
+      const activeParticipants = timeline.deeplolParticipants.filter(
+        (participant) =>
+          participant.status === 'ACTIVE' &&
+          (participant.teamId === team.id ||
+            normalizeRosterLookupKey(participant.teamName) === normalizeRosterLookupKey(team.name)),
+      );
+
+      return team.players.flatMap((player) => {
+        const participant =
+          deeplolParticipantLookup.get(
+            `${normalizeRosterLookupKey(team.name)}::${normalizeRosterLookupKey(player.name)}`,
+          ) ??
+          activeParticipants.find(
+            (candidate) =>
+              normalizeRosterLookupKey(candidate.riotName) ===
+              normalizeRosterLookupKey(player.name),
+          );
+
+        return participant
+          ? [{
+              teamId: team.id,
+              teamName: team.name,
+              playerName: player.name,
+              puuId: participant.puuId,
+            }]
+          : [];
+      });
+    });
+  }, [deeplolParticipantLookup, timeline]);
 
   useEffect(() => {
     setMatchRows(buildEditorRows(selectedDay));
@@ -795,6 +832,7 @@ export function LeagueScheduleManager() {
                     scheduleId={timeline.schedule.id}
                     rosterTeams={timeline.rosterTeams}
                     existingParticipants={timeline.deeplolParticipants}
+                    rosterPuuidMappings={rosterPuuidMappings}
                     adminCode={adminCode}
                     isAdminVerified={isAdminVerified}
                     onSaved={async () => {
