@@ -330,6 +330,68 @@ export async function updateTeamName(
   }
 }
 
+// ---------- 활성 방 조회 ----------
+
+export interface ActiveRoomSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+  // 인증 토큰을 노출하지 않기 위해 서버 조회 결과는 관전자 경로만 제공한다.
+  roomPath: string;
+}
+
+function timestampToISO(value: unknown): string {
+  if (value && typeof value === "object" && "toDate" in value) {
+    const toDate = (value as { toDate?: () => Date }).toDate;
+    if (typeof toDate === "function") return toDate.call(value).toISOString();
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date(0).toISOString();
+}
+
+/** 배포 환경의 Firestore에서 아직 종료되지 않은 모든 방을 조회한다. */
+export async function getActiveRooms(): Promise<{
+  rooms: ActiveRoomSummary[];
+  error?: string;
+}> {
+  try {
+    const roomSnapshots = await getAuctionServerServices()
+      .firestore.collection("rooms")
+      .get();
+
+    const rooms = await Promise.all(
+      roomSnapshots.docs.map(async (roomDoc) => {
+        const roomData = roomDoc.data() ?? {};
+        if (roomData.roomDeleted === true) return null;
+
+        const playersSnap = await roomDoc.ref.collection("players").get();
+        const playerDocs = playersSnap.docs.map((playerDoc) => playerDoc.data());
+        const allSold =
+          playerDocs.length > 0 && playerDocs.every((player) => player.status === "SOLD");
+        if (allSold) return null;
+
+        return {
+          id: roomDoc.id,
+          name: String(roomData.name ?? "경매방"),
+          createdAt: timestampToISO(roomData.created_at),
+          roomPath: `/room/${roomDoc.id}?role=VIEWER`,
+        };
+      }),
+    );
+
+    return {
+      rooms: rooms
+        .filter((room): room is ActiveRoomSummary => room !== null)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "활성 방 목록을 불러오지 못했습니다.";
+    console.error("[room] getActiveRooms failed", { error: message });
+    return { rooms: [], error: message };
+  }
+}
+
 // ---------- 방 삭제 ----------
 
 /** 방 종료 — 토큰 무효화 후 재귀 삭제 */

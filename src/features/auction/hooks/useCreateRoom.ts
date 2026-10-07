@@ -2,7 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { createRoom as createRoomAction } from "@/features/auction/api/auctionActions";
+import {
+  createRoom as createRoomAction,
+  getActiveRooms as getActiveRoomsAction,
+} from "@/features/auction/api/auctionActions";
 import { getLeagueScheduleCatalog } from "@/features/schedules/api/scheduleActions";
 import type { LeagueScheduleItem } from "@/features/schedules/types";
 import {
@@ -72,6 +75,7 @@ export interface StoredRoom {
   name: string;
   organizerPath: string;
   createdAt: string;
+  isOwner?: boolean;
 }
 
 type ExcelModule = typeof import("xlsx");
@@ -241,24 +245,35 @@ export function useCreateRoom() {
   const checkActiveRooms = useCallback(async () => {
     setIsCheckingRooms(true);
     try {
-      const { firestore } = getAuctionClientServices();
       const storedStr = localStorage.getItem(LS_KEY);
       const stored: StoredRoom[] = JSON.parse(storedStr || "[]");
-      if (stored.length === 0) return;
+      const storedById = new Map(stored.map((room) => [room.id, room]));
+      const serverResult = await getActiveRoomsAction();
 
+      if (!serverResult.error) {
+        setActiveRooms(
+          serverResult.rooms.map((room) => {
+            const localRoom = storedById.get(room.id);
+            return localRoom
+              ? { ...room, ...localRoom, isOwner: true }
+              : {
+                  id: room.id,
+                  name: room.name,
+                  organizerPath: room.roomPath,
+                  createdAt: room.createdAt,
+                  isOwner: false,
+                };
+          }),
+        );
+        return;
+      }
+
+      // 서버 조회가 일시적으로 실패하면 기존 브라우저 기록으로만 보조 표시한다.
+      const { firestore } = getAuctionClientServices();
       const active: StoredRoom[] = [];
       for (const room of stored) {
         const roomDoc = await getDoc(doc(firestore, "rooms", room.id));
-        if (!roomDoc.exists()) {
-          const prev: StoredRoom[] = JSON.parse(
-            localStorage.getItem(LS_KEY) || "[]",
-          );
-          localStorage.setItem(
-            LS_KEY,
-            JSON.stringify(prev.filter((r) => r.id !== room.id)),
-          );
-          continue;
-        }
+        if (!roomDoc.exists()) continue;
         const playersSnap = await getDocs(
           collection(firestore, "rooms", room.id, "players"),
         );
@@ -270,6 +285,7 @@ export function useCreateRoom() {
       setActiveRooms(active);
     } catch (err) {
       console.error("checkActiveRooms error:", err);
+      setActiveRooms([]);
     } finally {
       setIsCheckingRooms(false);
     }

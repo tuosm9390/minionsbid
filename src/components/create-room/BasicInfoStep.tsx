@@ -36,7 +36,7 @@ export function BasicInfoStep({
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-black text-orange-700">
             <AlertTriangle size={16} />
-            진행 중인 경매방이 있습니다
+            종료되지 않은 경매방이 있습니다
           </p>
           <div className="space-y-2">
             {activeRooms.map((room) => (
@@ -53,7 +53,7 @@ export function BasicInfoStep({
                   </p>
                 </div>
                 <button onClick={() => goToRoom(room.organizerPath)} className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0">
-                  이 방으로 이동 <ArrowRight size={12} />
+                  {room.isOwner ? "주최자로 입장" : "방 보기"} <ArrowRight size={12} />
                 </button>
               </div>
             ))}
