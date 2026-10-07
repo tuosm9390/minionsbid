@@ -138,14 +138,13 @@ export async function getAuctionArchivesForHof(): Promise<AuctionArchiveForHof[]
 
 export async function getVisibleAuctionArchives(): Promise<AuctionArchiveForHof[]> {
   try {
-    const [excludedArchiveIds, snapshot] = await Promise.all([
-      getHallOfFameArchiveIdSet(),
-      adminDb.collection('auction_archives').orderBy('closed_at', 'desc').limit(20).get(),
-    ])
+    const snapshot = await adminDb
+      .collection('auction_archives')
+      .orderBy('closed_at', 'desc')
+      .limit(20)
+      .get()
 
-    return snapshot.docs
-      .filter((doc) => !excludedArchiveIds.has(doc.id))
-      .map(mapAuctionArchive)
+    return snapshot.docs.map(mapAuctionArchive)
   } catch {
     return []
   }

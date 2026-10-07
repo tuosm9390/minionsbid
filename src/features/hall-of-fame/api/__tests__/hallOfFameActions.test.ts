@@ -319,6 +319,15 @@ describe('hallOfFameActions', () => {
     expect(result.map((archive) => archive.id)).toEqual(['arc-visible'])
   })
 
+  it('getVisibleAuctionArchives includes archives already registered in the hall of fame', async () => {
+    seedArchive()
+    dbState.hallOfFame.set('entry1', { archive_id: 'arc1' })
+    const { getVisibleAuctionArchives } = await import('../hallOfFameActions')
+    const result = await getVisibleAuctionArchives()
+
+    expect(result.map((archive) => archive.id)).toEqual(['arc1'])
+  })
+
   describe('deleteHallOfFameEntry', () => {
     it('잘못된 관리자 코드 → error 반환', async () => {
       dbState.hallOfFame.set('entry1', { archive_id: 'arc1' })
