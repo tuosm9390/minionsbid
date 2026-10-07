@@ -6,7 +6,10 @@ import {
   getAuctionSlotsPerTeam,
   normalizeCaptainMode,
 } from "@/features/auction/utils/roster";
-import { normalizeAuctionMode } from "@/features/auction/utils/auctionMode";
+import {
+  normalizeAuctionMode,
+  normalizeBidIncrement,
+} from "@/features/auction/utils/auctionMode";
 import type { AuctionEventEnvelope } from "@/features/auction/utils/auctionRealtime";
 import type {
   SealedBidRevealCard,
@@ -107,6 +110,10 @@ export async function submitSealedBid(
     const minAmount = roomData.sealed_bid_min_amount ?? 0;
     if (amount > 0 && amount < minAmount) {
       return { error: `재입찰 최소 금액은 ${minAmount}P입니다.` };
+    }
+    const bidIncrement = normalizeBidIncrement(roomData.bid_increment);
+    if (amount > 0 && amount % bidIncrement !== 0) {
+      return { error: `${bidIncrement}P 단위로 입찰해야 합니다.` };
     }
 
     await roomRef

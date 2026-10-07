@@ -7,7 +7,10 @@ import {
   normalizeCaptainMode,
 } from "@/features/auction/utils/roster";
 import type { AuctionMode } from "@/features/auction/utils/auctionMode";
-import { normalizeAuctionMode } from "@/features/auction/utils/auctionMode";
+import {
+  normalizeAuctionMode,
+  normalizeBidIncrement,
+} from "@/features/auction/utils/auctionMode";
 import { getAuctionServerServices } from "@/features/auction/realtime/serverAdapter";
 import {
   createE2EAuctionFixtureRoom,
@@ -46,6 +49,7 @@ export interface CreateRoomPayload {
   membersPerTeam: number;
   captainMode?: CaptainMode;
   auctionMode?: AuctionMode;
+  bidIncrement?: number;
   scheduleId?: string | null;
   scheduleName?: string | null;
   linkedAuctionId?: string | null;
@@ -123,6 +127,7 @@ export async function createRoom(
     const batch = firestore.batch();
 
     const captainMode = normalizeCaptainMode(payload.captainMode);
+    const bidIncrement = normalizeBidIncrement(payload.bidIncrement);
     const auctionSlotsPerTeam = getAuctionSlotsPerTeam(
       payload.membersPerTeam,
       captainMode,
@@ -139,6 +144,7 @@ export async function createRoom(
       members_per_team: payload.membersPerTeam,
       captain_mode: captainMode,
       auction_mode: normalizeAuctionMode(payload.auctionMode),
+      bid_increment: bidIncrement,
       sealed_bid_phase: null,
       sealed_bid_round_id: null,
       sealed_bid_round_number: 0,

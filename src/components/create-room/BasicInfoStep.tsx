@@ -244,6 +244,35 @@ export function BasicInfoStep({
         </div>
       </div>
 
+      {basic.auctionMode === "SEALED_BID" && (
+        <div>
+          <label className="text-sm font-bold text-gray-700 block mb-1.5">
+            입찰 금액 단위
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              max={100000}
+              step={1}
+              value={basic.bidIncrement}
+              onChange={(e) =>
+                setBasic((prev) => ({
+                  ...prev,
+                  bidIncrement:
+                    e.target.value === "" ? 0 : parseInt(e.target.value, 10),
+                }))
+              }
+              className="w-full bg-white border-2 border-black rounded-0 px-4 py-3 text-sm focus:bg-yellow-50 outline-none"
+            />
+            <span className="shrink-0 text-sm font-black">P 단위</span>
+          </div>
+          <p className="text-xs font-bold text-gray-500 mt-2">
+            설정한 단위의 배수로만 입찰할 수 있습니다. 예: 50P 설정 시 50P, 100P, 150P
+          </p>
+        </div>
+      )}
+
       <div className="bg-blue-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm text-gray-600 space-y-1">
         <p className="font-bold text-black mb-1">요약</p>
         <p>· 총 {basic.teamCount}팀, 팀당 {basic.membersPerTeam}명</p>
@@ -261,6 +290,11 @@ export function BasicInfoStep({
             {basic.auctionMode === "SEALED_BID" ? "비공개 입찰" : "실시간 공개 입찰"}
           </span>
         </p>
+        {basic.auctionMode === "SEALED_BID" && (
+          <p>
+            · 입찰 금액 단위: <span className="font-bold text-black">{basic.bidIncrement}P</span>
+          </p>
+        )}
       </div>
     </div>
   );

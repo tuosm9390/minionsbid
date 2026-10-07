@@ -22,6 +22,7 @@ interface SealedBiddingControlProps {
   isTeamFull: boolean;
   allDone: boolean;
   sealedBid: SealedBidState;
+  bidIncrement?: number;
   desiredTeamConflict?: DesiredTeamConflictEvaluation | null;
   isLocalConnected?: boolean;
   timerSyncStatus?: TimerSyncStatus;
@@ -38,6 +39,7 @@ export function SealedBiddingControl({
   isTeamFull,
   allDone,
   sealedBid,
+  bidIncrement = 10,
   desiredTeamConflict = null,
   isLocalConnected = true,
   timerSyncStatus = "SYNCED",
@@ -100,11 +102,14 @@ export function SealedBiddingControl({
 
   const numericAmount =
     typeof amount === "string" ? parseInt(amount, 10) || 0 : amount;
+  const isValidBidIncrement =
+    numericAmount === 0 || numericAmount % bidIncrement === 0;
   const clampedBidAmount = Math.max(
     minAmount,
     Math.min(pointBalance, numericAmount),
   );
-  const canBidAmount = canSubmit && pointBalance >= minAmount;
+  const canBidAmount =
+    canSubmit && pointBalance >= minAmount && isValidBidIncrement;
   const inactiveMessage = !currentPlayer
     ? "다음 선수를 기다리는 중..."
     : isTeamFull
@@ -176,6 +181,9 @@ export function SealedBiddingControl({
           <p className="text-fluid-lg font-black text-minion-red tabular-nums">
             {minAmount.toLocaleString()}P
           </p>
+          <p className="text-[11px] font-bold text-gray-500">
+            {bidIncrement}P 단위
+          </p>
         </div>
         <div className="text-right">
           <p className="text-fluid-xs font-heading text-gray-400 uppercase">
@@ -228,7 +236,7 @@ export function SealedBiddingControl({
           value={amount}
           min={minAmount}
           max={pointBalance}
-          step={1}
+          step={bidIncrement}
           onChange={(event) =>
             setAmount(
               event.target.value === "" ? "" : parseInt(event.target.value, 10),

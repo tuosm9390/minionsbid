@@ -75,6 +75,7 @@ export function RoomClient({
   const membersPerTeam = useAuctionStore((s) => s.membersPerTeam);
   const captainMode = useAuctionStore((s) => s.captainMode);
   const auctionMode = useAuctionStore((s) => s.auctionMode);
+  const bidIncrement = useAuctionStore((s) => s.bidIncrement);
   const auctionTransport = useAuctionStore((s) => s.auctionTransport);
   const sealedBid = useAuctionStore((s) => s.sealedBid);
   const presences = useAuctionStore((s) => s.presences);
@@ -511,6 +512,7 @@ export function RoomClient({
                     isTeamFull={isTeamFull}
                     allDone={allDone}
                     sealedBid={sealedBid}
+                    bidIncrement={bidIncrement}
                     desiredTeamConflict={desiredTeamConflict}
                     isLocalConnected={isLocalConnected}
                     timerSyncStatus={timerSyncStatus}

@@ -122,6 +122,7 @@ interface AuctionState {
   roomAuthToken: string | null
   captainMode: CaptainMode
   auctionMode: AuctionMode
+  bidIncrement: number
   auctionTransport: AuctionTransport
 
   // Realtime Data sync
@@ -180,6 +181,7 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   roomAuthToken: null,
   captainMode: 'IN_ROSTER',
   auctionMode: 'OPEN_ASCENDING',
+  bidIncrement: 10,
   auctionTransport: 'FIREBASE',
 
   basePoint: 1000,

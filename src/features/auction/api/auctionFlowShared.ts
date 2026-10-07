@@ -35,6 +35,7 @@ export function getAuctionFirestore() {
 
 export type AuctionRoomState = {
   auction_mode?: string | null;
+  bid_increment?: number;
   current_player_id?: string | null;
   timer_ends_at?: Timestamp | null;
   next_auction_duration_ms?: number | null;
@@ -375,4 +376,3 @@ export async function lockSealedBidRoundInternal(
     return { error: message };
   }
 }
-

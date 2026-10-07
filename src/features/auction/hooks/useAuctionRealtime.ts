@@ -25,7 +25,10 @@ import type {
   TeamAssignmentState,
 } from '../store/useAuctionStore'
 import { normalizeCaptainMode } from '../utils/roster'
-import { normalizeAuctionMode } from '../utils/auctionMode'
+import {
+  normalizeAuctionMode,
+  normalizeBidIncrement,
+} from '../utils/auctionMode'
 import { normalizeAuctionTransport } from '../utils/auctionTransport'
 import { recoverExpiredAuction } from '../api/auctionActions'
 import {
@@ -47,6 +50,7 @@ interface FirestoreRoomData {
   members_per_team?: number
   captain_mode?: string
   auction_mode?: string
+  bid_increment?: number
   auction_transport?: string
   total_teams?: number
   timer_ends_at?: Timestamp | null
@@ -432,6 +436,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         membersPerTeam: data.members_per_team ?? 5,
         captainMode: normalizeCaptainMode(data.captain_mode),
         auctionMode: normalizeAuctionMode(data.auction_mode),
+        bidIncrement: normalizeBidIncrement(data.bid_increment),
         auctionTransport: normalizeAuctionTransport(data.auction_transport),
         totalTeams: data.total_teams ?? 0,
         createdAt: timestampToISO(data.created_at),

@@ -52,6 +52,7 @@ export interface BasicInfo {
   membersPerTeam: number;
   captainMode: CaptainMode;
   auctionMode: AuctionMode;
+  bidIncrement: number;
   totalPoints: number;
   scheduleId: string | null;
   linkedAuctionId: string | null;
@@ -204,6 +205,7 @@ export function useCreateRoom() {
     membersPerTeam: 5,
     captainMode: "IN_ROSTER",
     auctionMode: "OPEN_ASCENDING",
+    bidIncrement: 10,
     totalPoints: 1000,
     scheduleId: null,
     linkedAuctionId: null,
@@ -327,6 +329,7 @@ export function useCreateRoom() {
       membersPerTeam: basic.membersPerTeam,
       captainMode: basic.captainMode,
       auctionMode: basic.auctionMode,
+      bidIncrement: basic.bidIncrement,
       captains,
       players,
     });
@@ -768,6 +771,13 @@ export function useCreateRoom() {
         return alert("팀당 인원은 최소 2명 이상이어야 합니다.");
       if (!basic.totalPoints || basic.totalPoints < 100)
         return alert("총 포인트는 최소 100 이상이어야 합니다.");
+      if (
+        basic.auctionMode === "SEALED_BID" &&
+        (!Number.isInteger(basic.bidIncrement) ||
+          basic.bidIncrement < 1 ||
+          basic.bidIncrement > 100_000)
+      )
+        return alert("입찰 금액 단위는 1P 이상 100,000P 이하의 정수로 입력해주세요.");
       syncCaptains(basic.teamCount);
       setStep(1);
     } else if (step === 1) {
@@ -808,6 +818,7 @@ export function useCreateRoom() {
       membersPerTeam: 5,
       captainMode: "IN_ROSTER",
       auctionMode: "OPEN_ASCENDING",
+      bidIncrement: 10,
       totalPoints: 1000,
       scheduleId: null,
       linkedAuctionId: null,
