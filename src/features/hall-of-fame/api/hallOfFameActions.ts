@@ -49,6 +49,25 @@ function toIsoString(value: unknown): string {
   return ''
 }
 
+function toSerializable(value: unknown): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value
+  }
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value === 'object' && value !== null && 'toDate' in value && typeof value.toDate === 'function') {
+    return value.toDate().toISOString()
+  }
+  if (Array.isArray(value)) return value.map(toSerializable)
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .map(([key, entry]) => [key, toSerializable(entry)])
+        .filter(([, entry]) => entry !== undefined),
+    )
+  }
+  return undefined
+}
+
 function normalizeHofPlayers(players: unknown): { name: string; sold_price: number | null }[] {
   if (!Array.isArray(players)) return []
   return players
@@ -76,9 +95,11 @@ function mapAuctionArchive(
     closed_at: toIsoString(data.closed_at),
     team_assignment:
       typeof data.team_assignment === 'object' && data.team_assignment !== null
-        ? data.team_assignment
+        ? (toSerializable(data.team_assignment) as AuctionArchiveForHof['team_assignment'])
         : null,
-    result_snapshot: Array.isArray(data.result_snapshot) ? data.result_snapshot : [],
+    result_snapshot: Array.isArray(data.result_snapshot)
+      ? (toSerializable(data.result_snapshot) as AuctionArchiveForHof['result_snapshot'])
+      : [],
   }
 }
 
