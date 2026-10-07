@@ -4,7 +4,10 @@ import { createPortal } from "react-dom";
 import { useEffect, useState, useCallback } from "react";
 import { X, RefreshCw, Save } from "@/components/ui/CyberIcons";
 import { ThreeDIcon } from "@/components/ui/ThreeDIcon";
-import { getVisibleAuctionArchives } from "@/features/hall-of-fame/api/hallOfFameActions";
+import {
+  getVisibleAuctionArchives,
+  updateAuctionArchiveTeamAssignment,
+} from "@/features/hall-of-fame/api/hallOfFameActions";
 import type { ArchiveTeam } from "@/features/auction/api/auctionActions";
 import { useOverlayDismiss } from "@/components/ui/useOverlayDismiss";
 import {
@@ -12,6 +15,7 @@ import {
   getArchiveRosterExcelFileName,
 } from "@/components/auctionArchiveExcel";
 import { buildAssignedTeamLabelMap } from "@/features/auction/utils/teamAssignmentDisplay";
+import { getAllTeamIds } from "@/features/auction/utils/desiredTeamAssignment";
 
 interface AuctionArchiveRow {
   id: string;
@@ -38,6 +42,45 @@ function ArchiveDetailModal({
   const assignedTeamLabels = buildAssignedTeamLabelMap(archive.team_assignment);
   const overlayDismiss = useOverlayDismiss<HTMLDivElement>(onClose);
   const [isExporting, setIsExporting] = useState(false);
+  const [isEditingAssignment, setIsEditingAssignment] = useState(false);
+  const [adminCode, setAdminCode] = useState("");
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [assignmentDraft, setAssignmentDraft] = useState<Record<string, string>>(
+    () => buildArchiveAssignmentDraft(archive),
+  );
+  const [isSavingAssignment, setIsSavingAssignment] = useState(false);
+  const usedAssignedTeamIds = new Set(
+    Object.values(assignmentDraft)
+      .filter((value) => value && value !== "DEFERRED")
+      .map(Number),
+  );
+
+  const handleSaveAssignment = async () => {
+    if (isSavingAssignment) return;
+    setIsSavingAssignment(true);
+    setAssignmentError(null);
+    try {
+      const result = await updateAuctionArchiveTeamAssignment(
+        archive.id,
+        adminCode,
+        archive.result_snapshot.map((team) => ({
+          auctionTeamId: team.id,
+          assignedTeamId:
+            assignmentDraft[team.id] === "DEFERRED" || !assignmentDraft[team.id]
+              ? null
+              : Number(assignmentDraft[team.id]),
+          status: assignmentDraft[team.id] === "DEFERRED" ? "DEFERRED" : "CONFIRMED",
+        })),
+      );
+      if (result.error) {
+        setAssignmentError(result.error);
+        return;
+      }
+      window.location.reload();
+    } finally {
+      setIsSavingAssignment(false);
+    }
+  };
 
   const handleExportExcel = async () => {
     if (isExporting) return;
@@ -107,9 +150,43 @@ function ArchiveDetailModal({
                         <div className="text-fluid-xs font-heading text-minion-blue mb-2">
                           {team.name}
                         </div>
-                        {assignedTeamLabels.get(team.id) && (
+                        {isEditingAssignment ? (
+                          <label className="mb-2 block text-left text-[10px] font-black text-black">
+                            배정 상태
+                            <select
+                              aria-label={`${team.name} 아카이브 배정`}
+                              value={assignmentDraft[team.id] ?? ""}
+                              onChange={(event) =>
+                                setAssignmentDraft((current) => ({
+                                  ...current,
+                                  [team.id]: event.target.value,
+                                }))
+                              }
+                              className="mt-1 w-full border-2 border-black bg-white px-1 py-1 text-[10px] font-black"
+                            >
+                              <option value="">미배정</option>
+                              <option value="DEFERRED">추후 배정 예정</option>
+                              {getAllTeamIds(archive.result_snapshot.length).map((teamId) => (
+                                <option
+                                  key={teamId}
+                                  value={teamId}
+                                  disabled={
+                                    usedAssignedTeamIds.has(teamId) &&
+                                    assignmentDraft[team.id] !== String(teamId)
+                                  }
+                                >
+                                  {teamId}팀
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : assignedTeamLabels.get(team.id) ? (
                           <div className="mb-2 inline-block border-2 border-black bg-minion-yellow px-2 py-1 text-fluid-xs font-heading text-black">
                             {assignedTeamLabels.get(team.id)}
+                          </div>
+                        ) : (
+                          <div className="mb-2 inline-block border-2 border-minion-red bg-red-50 px-2 py-1 text-[10px] font-black text-minion-red">
+                            추후 배정 예정
                           </div>
                         )}
                         <div className="inline-block border-2 border-black bg-minion-yellow text-black font-heading text-fluid-xs px-2 py-1 uppercase">
@@ -170,6 +247,25 @@ function ArchiveDetailModal({
           </div>
         </div>
 
+        {assignmentError && (
+          <p className="border-t-4 border-minion-red bg-red-50 px-6 py-3 text-fluid-xs font-black text-minion-red">
+            {assignmentError}
+          </p>
+        )}
+        {isEditingAssignment && (
+          <div className="border-t-4 border-black bg-yellow-50 px-6 py-3">
+            <label className="block text-fluid-xs font-black text-black">
+              관리자 코드
+              <input
+                type="password"
+                value={adminCode}
+                onChange={(event) => setAdminCode(event.target.value)}
+                className="mt-1 w-full border-2 border-black bg-white px-3 py-2 text-fluid-xs font-black"
+                placeholder="아카이브 팀 배정 수정 권한"
+              />
+            </label>
+          </div>
+        )}
         <div className="px-6 py-4 border-t-4 border-black bg-white shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={handleExportExcel}
@@ -179,15 +275,57 @@ function ArchiveDetailModal({
             <Save size={14} /> {isExporting ? "EXPORTING..." : "DOWNLOAD XLSX"}
           </button>
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (isEditingAssignment) {
+                setIsEditingAssignment(false);
+                setAssignmentError(null);
+                setAssignmentDraft(buildArchiveAssignmentDraft(archive));
+                return;
+              }
+              onClose();
+            }}
             className="pixel-button w-full py-3 bg-black text-white text-fluid-xs font-heading"
           >
-            CLOSE
+            {isEditingAssignment ? "CANCEL" : "CLOSE"}
+          </button>
+          <button
+            onClick={() => {
+              if (!isEditingAssignment) {
+                setIsEditingAssignment(true);
+                return;
+              }
+              void handleSaveAssignment();
+            }}
+            disabled={isSavingAssignment}
+            className="pixel-button w-full py-3 bg-minion-yellow text-black text-fluid-xs font-heading disabled:opacity-60"
+          >
+            {isSavingAssignment ? "SAVING..." : isEditingAssignment ? "SAVE ASSIGNMENT" : "REASSIGN TEAMS"}
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+function buildArchiveAssignmentDraft(archive: AuctionArchiveRow) {
+  const draft: Record<string, string> = {};
+  const assignments = Array.isArray(archive.team_assignment?.assignments)
+    ? archive.team_assignment.assignments
+    : [];
+  for (const assignment of assignments) {
+    if (typeof assignment !== "object" || assignment === null) continue;
+    const record = assignment as Record<string, unknown>;
+    const auctionTeamId = typeof record.auction_team_id === "string"
+      ? record.auction_team_id
+      : "";
+    if (!auctionTeamId) continue;
+    draft[auctionTeamId] = record.status === "DEFERRED"
+      ? "DEFERRED"
+      : typeof record.assigned_team_id === "number"
+        ? String(record.assigned_team_id)
+        : "";
+  }
+  return draft;
 }
 
 export function AuctionArchiveSection({

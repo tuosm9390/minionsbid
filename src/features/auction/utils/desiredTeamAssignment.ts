@@ -9,6 +9,7 @@ export type AssignmentSelectionStatus =
   | "MANUAL"
   | "SUGGESTED"
   | "EXCEPTION"
+  | "DEFERRED"
   | "UNASSIGNED";
 
 export interface DesiredTeamParseResult {

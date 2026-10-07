@@ -151,6 +151,73 @@ export async function getVisibleAuctionArchives(): Promise<AuctionArchiveForHof[
   }
 }
 
+export async function updateAuctionArchiveTeamAssignment(
+  archiveId: string,
+  adminCode: string,
+  assignments: Array<{
+    auctionTeamId: string
+    assignedTeamId: number | null
+    status: 'CONFIRMED' | 'DEFERRED'
+  }>,
+): Promise<{ error?: string }> {
+  const { error } = verifyAdminCode(adminCode)
+  if (error) return { error }
+  if (!normalizeText(archiveId) || assignments.length === 0) {
+    return { error: '수정할 아카이브 팀 배정이 없습니다.' }
+  }
+
+  const assignedTeamIds = new Set<number>()
+  for (const assignment of assignments) {
+    if (!normalizeText(assignment.auctionTeamId)) {
+      return { error: '팀 배정 식별자가 올바르지 않습니다.' }
+    }
+    if (assignment.status === 'DEFERRED') {
+      if (assignment.assignedTeamId !== null) {
+        return { error: '추후 배정 예정 팀은 실제 팀을 지정할 수 없습니다.' }
+      }
+      continue
+    }
+    if (assignment.assignedTeamId === null) {
+      return { error: '모든 팀을 배정하거나 추후 배정 예정으로 지정해주세요.' }
+    }
+    if (assignedTeamIds.has(assignment.assignedTeamId)) {
+      return { error: '하나의 실제 팀은 한 경매 팀에만 배정할 수 있습니다.' }
+    }
+    assignedTeamIds.add(assignment.assignedTeamId)
+  }
+
+  try {
+    const archiveRef = adminDb.collection('auction_archives').doc(archiveId)
+    const archiveSnapshot = await archiveRef.get()
+    if (!archiveSnapshot.exists) return { error: '아카이브를 찾을 수 없습니다.' }
+    const resultSnapshot = Array.isArray(archiveSnapshot.data()?.result_snapshot)
+      ? archiveSnapshot.data()?.result_snapshot
+      : []
+    const teamIds = new Set(
+      resultSnapshot
+        .map((team: unknown) => (typeof team === 'object' && team !== null ? normalizeText((team as Record<string, unknown>).id) : ''))
+        .filter(Boolean),
+    )
+    if (teamIds.size !== assignments.length || assignments.some((assignment) => !teamIds.has(assignment.auctionTeamId))) {
+      return { error: '아카이브의 모든 팀을 정확히 한 번씩 배정해주세요.' }
+    }
+    await archiveRef.update({
+      team_assignment: {
+        status: 'CONFIRMED',
+        updated_at: FieldValue.serverTimestamp(),
+        assignments: assignments.map((assignment) => ({
+          auction_team_id: assignment.auctionTeamId,
+          assigned_team_id: assignment.assignedTeamId,
+          status: assignment.status,
+        })),
+      },
+    })
+    return {}
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : '아카이브 팀 배정 수정에 실패했습니다.' }
+  }
+}
+
 export async function registerHallOfFameEntry(
   payload: HallOfFameRegistrationPayload,
   adminCode: string

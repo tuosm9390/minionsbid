@@ -33,7 +33,7 @@ export function TeamAssignmentPanel({
   onSaved,
 }: TeamAssignmentPanelProps) {
   const [manualSelections, setManualSelections] = useState<
-    Record<string, number | null>
+    Record<string, number | "DEFERRED" | null>
   >({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,6 +58,13 @@ export function TeamAssignmentPanel({
       const candidate = candidateRows.find(
         (row) => row.auctionTeamId === auctionTeamId,
       );
+      if (assignedTeamId === "DEFERRED") {
+        return {
+          auctionTeamId,
+          assignedTeamId: null,
+          status: "DEFERRED" as const,
+        };
+      }
       const isException =
         typeof assignedTeamId === "number" &&
         candidate !== undefined &&
@@ -85,7 +92,7 @@ export function TeamAssignmentPanel({
       .filter((teamId): teamId is number => typeof teamId === "number"),
   );
   const canConfirm = resolvedRows.every(
-    (row) => typeof row.assignedTeamId === "number",
+    (row) => typeof row.assignedTeamId === "number" || row.status === "DEFERRED",
   );
 
   const handleSave = async () => {
@@ -175,9 +182,12 @@ export function TeamAssignmentPanel({
                   <select
                     value={assignedValue}
                     onChange={(event) => {
-                      const nextValue = event.target.value
-                        ? Number(event.target.value)
-                        : null;
+                      const rawValue = event.target.value;
+                      const nextValue = rawValue === "DEFERRED"
+                        ? "DEFERRED" as const
+                        : rawValue
+                          ? Number(rawValue)
+                          : null;
                       setManualSelections((current) => ({
                         ...current,
                         [team.id]: nextValue,
@@ -186,6 +196,7 @@ export function TeamAssignmentPanel({
                     className="border-4 border-black bg-white px-3 py-2 text-fluid-xs font-black text-black"
                   >
                     <option value="">미배정</option>
+                    <option value="DEFERRED">추후 배정 예정</option>
                     {getAllTeamIds(totalTeamCount).map((teamId) => (
                       <option
                         key={teamId}
@@ -230,6 +241,7 @@ function resolveExceptionReason(candidate: {
 function statusLabel(status: AssignmentSelectionStatus, assignedTeamId: number | null) {
   if (status === "SUGGESTED" && assignedTeamId) return `${assignedTeamId}팀 제안`;
   if (status === "EXCEPTION") return "예외 배정";
+  if (status === "DEFERRED") return "추후 배정 예정";
   if (status === "MANUAL" && assignedTeamId) return `${assignedTeamId}팀 확정 전`;
   return "제안 대기";
 }

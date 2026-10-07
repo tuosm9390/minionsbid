@@ -51,6 +51,7 @@ import {
   AUCTION_DURATION_MS,
   SEALED_BID_DURATION_MS,
 } from "@/features/auction/constants/auctionTimings";
+import { evaluateDesiredTeamConflict } from "@/features/auction/utils/desiredTeamAssignment";
 
 const REQUIRE_ALL_LEADERS_CONNECTED =
   process.env.NEXT_PUBLIC_REQUIRE_ALL_LEADERS_CONNECTED === "1";
@@ -302,6 +303,16 @@ export function RoomClient({
     (isRoomComplete || players.length === soldPlayers.length);
   const shouldExpandTeamRoster =
     effectiveRole === "ORGANIZER" || effectiveRole === "LEADER";
+  const desiredTeamConflict =
+    effectiveRole === "LEADER" && storeTeamId && currentPlayer
+      ? evaluateDesiredTeamConflict(
+          players.filter(
+            (player) => player.team_id === storeTeamId && player.status === "SOLD",
+          ),
+          currentPlayer,
+          teams.length,
+        )
+      : null;
 
   const handleEndRoom = async (saveResult: boolean) => {
     if (!roomId) return;
@@ -507,6 +518,7 @@ export function RoomClient({
                     isTeamFull={isTeamFull}
                     allDone={allDone}
                     sealedBid={sealedBid}
+                    desiredTeamConflict={desiredTeamConflict}
                   />
                 ) : (
                   <BiddingControl

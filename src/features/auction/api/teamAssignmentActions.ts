@@ -35,8 +35,17 @@ export async function saveTeamAssignment(
 
   const assignedTeamIds = new Set<number>();
   for (const assignment of payload.assignments) {
-    if (!assignment.auctionTeamId.trim() || assignment.assignedTeamId === null) {
+    if (!assignment.auctionTeamId.trim()) {
       return { error: "모든 경매 팀에 실제 팀을 배정해주세요." };
+    }
+    if (assignment.status === "DEFERRED") {
+      if (assignment.assignedTeamId !== null) {
+        return { error: "추후 배정 예정 팀은 실제 팀을 지정할 수 없습니다." };
+      }
+      continue;
+    }
+    if (assignment.assignedTeamId === null) {
+      return { error: "모든 경매 팀에 실제 팀을 배정하거나 추후 배정을 선택해주세요." };
     }
     if (assignedTeamIds.has(assignment.assignedTeamId)) {
       return { error: "하나의 실제 팀은 한 경매 팀에만 배정할 수 있습니다." };

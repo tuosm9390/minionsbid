@@ -8,6 +8,8 @@ import {
   type Team,
 } from "@/features/auction/store/useAuctionStore";
 import { submitSealedBid } from "@/features/auction/api/auctionActions";
+import { DesiredTeamConflictWarning } from "@/features/auction/components/DesiredTeamConflictWarning";
+import type { DesiredTeamConflictEvaluation } from "@/features/auction/utils/desiredTeamAssignment";
 
 interface SealedBiddingControlProps {
   roomId: string;
@@ -19,6 +21,7 @@ interface SealedBiddingControlProps {
   isTeamFull: boolean;
   allDone: boolean;
   sealedBid: SealedBidState;
+  desiredTeamConflict?: DesiredTeamConflictEvaluation | null;
 }
 
 export function SealedBiddingControl({
@@ -31,6 +34,7 @@ export function SealedBiddingControl({
   isTeamFull,
   allDone,
   sealedBid,
+  desiredTeamConflict = null,
 }: SealedBiddingControlProps) {
   const pointBalance = myTeam?.point_balance ?? 0;
   const minAmount = sealedBid.minAmount;
@@ -172,6 +176,20 @@ export function SealedBiddingControl({
           </p>
         </div>
       </div>
+
+      {desiredTeamConflict?.status === "CONFLICT" && (
+        <div className="mb-4">
+          <DesiredTeamConflictWarning evaluation={desiredTeamConflict} />
+          <p className="mt-2 border-2 border-minion-red bg-red-50 px-3 py-2 text-center text-[11px] font-black leading-snug text-minion-red">
+            이 경고는 입찰을 차단하지 않습니다. 입찰은 가능하지만 낙찰 후 희망팀과 다른 실제 팀으로 배정될 수 있습니다.
+          </p>
+        </div>
+      )}
+      {desiredTeamConflict?.status === "NARROWED" && (
+        <div className="mb-4">
+          <DesiredTeamConflictWarning evaluation={desiredTeamConflict} />
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 bg-minion-red/10 border-4 border-minion-red px-4 py-2 text-center text-fluid-xs font-bold text-minion-red">

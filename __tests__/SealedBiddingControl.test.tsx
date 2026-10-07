@@ -98,4 +98,31 @@ describe("SealedBiddingControl", () => {
     expect(screen.getByRole("button", { name: "제출" })).toBeInTheDocument();
     expect(screen.getByRole("spinbutton")).toBeInTheDocument();
   });
+
+  it("희망팀 충돌이어도 제출 버튼을 유지하고 강력한 경고를 표시한다", () => {
+    render(
+      <SealedBiddingControl
+        roomId="room-1"
+        teamId="team-2"
+        leaderToken="leader-token"
+        currentPlayer={currentPlayer}
+        myTeam={myTeam}
+        isAuctionActive
+        isTeamFull={false}
+        allDone={false}
+        sealedBid={makeSealedBid(null)}
+        desiredTeamConflict={{
+          status: "CONFLICT",
+          rosterCandidateTeamIds: [1],
+          targetCandidateTeamIds: [3],
+          remainingTeamIds: [],
+          invalidReasons: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("desired-team-conflict-warning")).toBeInTheDocument();
+    expect(screen.getByText(/입찰을 차단하지 않습니다/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "제출" })).toBeEnabled();
+  });
 });

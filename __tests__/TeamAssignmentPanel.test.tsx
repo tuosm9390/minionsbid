@@ -305,4 +305,37 @@ describe("TeamAssignmentPanel", () => {
     expect(row).not.toHaveTextContent("경고");
     expect(row).not.toHaveTextContent("희망 팀 조건을 만족하는 배정 후보가 없습니다");
   });
+
+  it("모든 팀을 추후 배정 예정으로 저장해 경매를 종료할 수 있다", async () => {
+    const onSaved = vi.fn();
+    render(
+      <TeamAssignmentPanel
+        roomId="room-1"
+        organizerToken="organizer-token"
+        teams={teams.slice(0, 2)}
+        players={players.slice(0, 2)}
+        totalTeamCount={2}
+        onSaved={onSaved}
+      />,
+    );
+
+    for (const team of teams.slice(0, 2)) {
+      await userEvent.selectOptions(
+        within(screen.getByTestId(`team-assignment-row-${team.id}`)).getByLabelText(
+          "배정 예정 팀",
+        ),
+        "DEFERRED",
+      );
+    }
+
+    expect(screen.getByRole("button", { name: "최종 배정 확정" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "최종 배정 확정" }));
+
+    const { saveTeamAssignment } = await import("@/features/auction/api/teamAssignmentActions");
+    expect(saveTeamAssignment).toHaveBeenCalledWith(expect.objectContaining({
+      assignments: expect.arrayContaining([
+        expect.objectContaining({ status: "DEFERRED", assignedTeamId: null }),
+      ]),
+    }));
+  });
 });
