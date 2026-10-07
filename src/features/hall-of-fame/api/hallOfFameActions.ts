@@ -140,12 +140,20 @@ export async function getVisibleAuctionArchives(): Promise<AuctionArchiveForHof[
   try {
     const snapshot = await adminDb
       .collection('auction_archives')
-      .orderBy('closed_at', 'desc')
-      .limit(20)
       .get()
 
-    return snapshot.docs.map(mapAuctionArchive)
-  } catch {
+    return snapshot.docs
+      .map(mapAuctionArchive)
+      .sort((left, right) => {
+        const leftTime = Date.parse(left.closed_at) || 0
+        const rightTime = Date.parse(right.closed_at) || 0
+        return rightTime - leftTime
+      })
+      .slice(0, 20)
+  } catch (error) {
+    console.error('[hall-of-fame] getVisibleAuctionArchives failed', {
+      error: error instanceof Error ? error.message : String(error),
+    })
     return []
   }
 }
