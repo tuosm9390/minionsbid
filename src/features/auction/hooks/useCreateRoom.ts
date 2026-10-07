@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import {
   createRoom as createRoomAction,
   getActiveRooms as getActiveRoomsAction,
@@ -274,13 +274,7 @@ export function useCreateRoom() {
       for (const room of stored) {
         const roomDoc = await getDoc(doc(firestore, "rooms", room.id));
         if (!roomDoc.exists()) continue;
-        const playersSnap = await getDocs(
-          collection(firestore, "rooms", room.id, "players"),
-        );
-        const playerDocs = playersSnap.docs.map((d) => d.data());
-        const allSold =
-          playerDocs.length > 0 && playerDocs.every((p) => p.status === "SOLD");
-        if (!allSold) active.push(room);
+        active.push(room);
       }
       setActiveRooms(active);
     } catch (err) {

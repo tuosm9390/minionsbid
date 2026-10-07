@@ -365,12 +365,6 @@ export async function getActiveRooms(): Promise<{
         const roomData = roomDoc.data() ?? {};
         if (roomData.roomDeleted === true) return null;
 
-        const playersSnap = await roomDoc.ref.collection("players").get();
-        const playerDocs = playersSnap.docs.map((playerDoc) => playerDoc.data());
-        const allSold =
-          playerDocs.length > 0 && playerDocs.every((player) => player.status === "SOLD");
-        if (allSold) return null;
-
         return {
           id: roomDoc.id,
           name: String(roomData.name ?? "경매방"),
