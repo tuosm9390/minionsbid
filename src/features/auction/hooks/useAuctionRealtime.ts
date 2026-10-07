@@ -131,12 +131,11 @@ function resolveTimerEndsAtFromDuration(event: AuctionEventEnvelope) {
     return event.timerEndsAt
   }
 
-  const localTimerEndsAt = new Date(Date.now() + event.timerDurationMs).toISOString()
-  if (!event.timerEndsAt) return localTimerEndsAt
-
-  return new Date(localTimerEndsAt).getTime() > new Date(event.timerEndsAt).getTime()
-    ? event.timerEndsAt
-    : localTimerEndsAt
+  if (event.timerEndsAt) return event.timerEndsAt
+  const serverCreatedAt = Date.parse(event.serverCreatedAt)
+  return Number.isFinite(serverCreatedAt)
+    ? new Date(serverCreatedAt + event.timerDurationMs).toISOString()
+    : null
 }
 
 function recordBidLatencyFromEvent(

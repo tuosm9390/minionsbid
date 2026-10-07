@@ -30,5 +30,19 @@ describe("CenterTimer", () => {
 
     expect(onExpire).toHaveBeenCalledTimes(1);
   });
-});
 
+  it("PC 시각이 10초 달라도 서버 시간 보정값으로 동일한 남은 시간을 표시한다", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-03T03:00:10.000Z"));
+
+    render(
+      <CenterTimer
+        timerEndsAt="2026-06-03T03:00:05.000Z"
+        serverTimeOffset={-10_000}
+        auctionDurationMs={5_000}
+      />,
+    );
+
+    expect(screen.getByRole("timer")).toHaveAccessibleName("남은 시간: 4.9초");
+  });
+});

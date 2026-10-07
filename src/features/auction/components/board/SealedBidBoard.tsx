@@ -34,6 +34,7 @@ interface SealedBidBoardProps {
   currentPlayer: Player;
   teams: Team[];
   timerEndsAt: string | null;
+  serverTimeOffset?: number;
   sealedBid: SealedBidState;
   onTimerExpire?: () => void;
   desiredTeamConflict?: DesiredTeamConflictEvaluation | null;
@@ -132,6 +133,7 @@ export function SealedBidBoard({
   currentPlayer,
   teams,
   timerEndsAt,
+  serverTimeOffset = 0,
   sealedBid,
   onTimerExpire,
   desiredTeamConflict,
@@ -235,6 +237,7 @@ export function SealedBidBoard({
           {sealedBid.phase === "ACTIVE" && timerEndsAt && (
             <CenterTimer
               timerEndsAt={timerEndsAt}
+              serverTimeOffset={serverTimeOffset}
               auctionDurationMs={SEALED_BID_DURATION_MS}
               onExpire={onTimerExpire}
             />

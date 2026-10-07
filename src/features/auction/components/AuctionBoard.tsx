@@ -121,6 +121,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
   const roomAuthToken = useAuctionStore((s) => s.roomAuthToken);
   const totalTeams = useAuctionStore((s) => s.totalTeams);
   const teamAssignment = useAuctionStore((s) => s.teamAssignment);
+  const serverTimeOffset = useAuctionStore((s) => s.serverTimeOffset);
 
   const {
     teams,
@@ -365,6 +366,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                   >
                     <CenterTimer
                       timerEndsAt={timerEndsAt}
+                      serverTimeOffset={serverTimeOffset}
                       auctionDurationMs={
                         nextAuctionDurationMs ?? AUCTION_DURATION_MS
                       }
@@ -411,6 +413,7 @@ export function AuctionBoard(props: AuctionBoardProps) {
                 teams={teams}
                 timerEndsAt={timerEndsAt}
                 sealedBid={sealedBid}
+                serverTimeOffset={serverTimeOffset}
                 onTimerExpire={props.onTimerExpire}
                 desiredTeamConflict={desiredTeamConflict}
               />

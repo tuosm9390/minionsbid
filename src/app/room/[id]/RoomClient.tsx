@@ -47,11 +47,8 @@ import {
   bucketAuctionPlayers,
   isAuctionRoomComplete,
 } from "@/features/auction/store/auctionSelectors";
-import {
-  AUCTION_DURATION_MS,
-  SEALED_BID_DURATION_MS,
-} from "@/features/auction/constants/auctionTimings";
 import { evaluateDesiredTeamConflict } from "@/features/auction/utils/desiredTeamAssignment";
+import { getEstimatedServerNow } from "@/features/auction/utils/serverClock";
 
 const REQUIRE_ALL_LEADERS_CONNECTED =
   process.env.NEXT_PUBLIC_REQUIRE_ALL_LEADERS_CONNECTED === "1";
@@ -88,7 +85,7 @@ export function RoomClient({
   const setLotteryPlayer = useAuctionStore((s) => s.setLotteryPlayer);
   const setRoomContext = useAuctionStore((s) => s.setRoomContext);
   const setRealtimeData = useAuctionStore((s) => s.setRealtimeData);
-  const nextAuctionDurationMs = useAuctionStore((s) => s.nextAuctionDurationMs);
+  const serverTimeOffset = useAuctionStore((s) => s.serverTimeOffset);
 
   const [isLeaveRoomOpen, setIsLeaveRoomOpen] = useState(false);
   const [isEndRoomOpen, setIsEndRoomOpen] = useState(false);
@@ -97,7 +94,8 @@ export function RoomClient({
   const [noticeText, setNoticeText] = useState("");
   const [isSendingNotice, setIsSendingNotice] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [localNow, setLocalNow] = useState(() => Date.now());
+  const now = getEstimatedServerNow(serverTimeOffset, localNow);
   const [isTeamsExpanded, setIsTeamsExpanded] = useState(false);
 
   const router = useRouter();
@@ -165,9 +163,12 @@ export function RoomClient({
 
   useEffect(() => {
     if (!timerEndsAt) return;
-    const timer = setInterval(() => setNow(Date.now()), 500);
+    const timer = setInterval(
+      () => setLocalNow(Date.now()),
+      500,
+    );
     return () => clearInterval(timer);
-  }, [timerEndsAt]);
+  }, [serverTimeOffset, timerEndsAt]);
 
   const isExpired = Boolean(timerEndsAt && new Date(timerEndsAt).getTime() <= now);
 
@@ -216,6 +217,7 @@ export function RoomClient({
     players,
     currentPlayerId,
     timerEndsAt,
+    serverTimeOffset,
   });
 
   const handleNotice = async () => {
@@ -240,21 +242,10 @@ export function RoomClient({
   };
 
   const handleStart = async () => {
-    const optimisticDurationMs =
-      nextAuctionDurationMs ??
-      (auctionMode === "SEALED_BID"
-        ? SEALED_BID_DURATION_MS
-        : AUCTION_DURATION_MS);
-    const optimisticTimerEndsAt = new Date(
-      Date.now() + optimisticDurationMs,
-    ).toISOString();
     setLotteryPlayer(null);
-    setRealtimeData({ timerEndsAt: optimisticTimerEndsAt });
     try {
       const res = await startAuction(roomId, organizerToken ?? "");
       if (res.error) {
-        // 경매 시작 실패 — 타이머를 원래 상태(null)로 롤백
-        setRealtimeData({ timerEndsAt: null });
         alert(res.error);
         return;
       }
@@ -270,7 +261,6 @@ export function RoomClient({
         }
       }
     } catch (error) {
-      setRealtimeData({ timerEndsAt: null });
       throw error;
     }
   };

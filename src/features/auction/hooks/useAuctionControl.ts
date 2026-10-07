@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useAuctionStore, Player, Role } from '@/features/auction/store/useAuctionStore'
 import { awardPlayer, closeLotteryAction } from '@/features/auction/api/auctionActions'
+import { getEstimatedServerNow } from '@/features/auction/utils/serverClock'
 
 interface UseAuctionControlProps {
   roomId: string
@@ -9,6 +10,7 @@ interface UseAuctionControlProps {
   players: Player[]
   currentPlayerId: string | null
   timerEndsAt: string | null
+  serverTimeOffset?: number
 }
 
 const AWARD_GRACE_MS = 1_500
@@ -20,6 +22,7 @@ export function useAuctionControl({
   players,
   currentPlayerId,
   timerEndsAt,
+  serverTimeOffset = 0,
 }: UseAuctionControlProps) {
   const setLotteryPlayer = useAuctionStore(s => s.setLotteryPlayer)
   const lotteryPlayer = useAuctionStore(s => s.lotteryPlayer)
@@ -110,7 +113,7 @@ export function useAuctionControl({
     if (!cp) return
 
     const playerId = cp.id
-    const delay = Math.max(0, new Date(timerEndsAt).getTime() - Date.now()) + AWARD_GRACE_MS
+    const delay = Math.max(0, new Date(timerEndsAt).getTime() - getEstimatedServerNow(serverTimeOffset)) + AWARD_GRACE_MS
 
     let cancelled = false
     const t = setTimeout(async () => {
@@ -119,7 +122,7 @@ export function useAuctionControl({
     }, delay)
 
     return () => { cancelled = true; clearTimeout(t) }
-  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId, auctionMode, triggerAward])
+  }, [timerEndsAt, roomId, effectiveRole, currentPlayerId, auctionMode, serverTimeOffset, triggerAward])
 
   return {
     lotteryPlayer,
