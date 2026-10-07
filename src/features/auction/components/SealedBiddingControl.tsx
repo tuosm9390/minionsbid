@@ -6,6 +6,7 @@ import {
   type Player,
   type SealedBidState,
   type Team,
+  type TimerSyncStatus,
 } from "@/features/auction/store/useAuctionStore";
 import { submitSealedBid } from "@/features/auction/api/auctionActions";
 import { DesiredTeamConflictWarning } from "@/features/auction/components/DesiredTeamConflictWarning";
@@ -22,6 +23,9 @@ interface SealedBiddingControlProps {
   allDone: boolean;
   sealedBid: SealedBidState;
   desiredTeamConflict?: DesiredTeamConflictEvaluation | null;
+  isLocalConnected?: boolean;
+  timerSyncStatus?: TimerSyncStatus;
+  timerSyncLatencyMs?: number | null;
 }
 
 export function SealedBiddingControl({
@@ -35,6 +39,9 @@ export function SealedBiddingControl({
   allDone,
   sealedBid,
   desiredTeamConflict = null,
+  isLocalConnected = true,
+  timerSyncStatus = "SYNCED",
+  timerSyncLatencyMs,
 }: SealedBiddingControlProps) {
   const pointBalance = myTeam?.point_balance ?? 0;
   const minAmount = sealedBid.minAmount;
@@ -48,7 +55,9 @@ export function SealedBiddingControl({
     sealedBid.phase === "ACTIVE" &&
     isEligible &&
     !isTeamFull &&
-    !allDone;
+    !allDone &&
+    isLocalConnected &&
+    timerSyncStatus !== "STALE";
   const defaultAmount = useMemo(
     () => Math.min(pointBalance, minAmount > 0 ? minAmount : 0),
     [minAmount, pointBalance],
@@ -105,6 +114,11 @@ export function SealedBiddingControl({
         : sealedBid.phase === "LOCKED" || sealedBid.phase === "REVEALING"
           ? "입찰이 마감되었습니다"
           : "비공개 입찰 대기중...";
+  const effectiveInactiveMessage = !isLocalConnected
+    ? "연결 복구 중..."
+    : timerSyncStatus === "STALE"
+      ? "경매 상태 동기화 중..."
+      : inactiveMessage;
 
   if (isRebidExcluded) {
     return (
@@ -136,7 +150,7 @@ export function SealedBiddingControl({
         </div>
         <div className="h-14 flex items-center justify-center">
           <span className="text-fluid-xs font-heading text-gray-500 uppercase">
-            {inactiveMessage}
+            {effectiveInactiveMessage}
           </span>
         </div>
       </div>
@@ -196,6 +210,17 @@ export function SealedBiddingControl({
           {error}
         </div>
       )}
+
+      {!isLocalConnected ? (
+        <div className="mb-4 border-4 border-minion-red bg-red-50 px-4 py-2 text-center text-fluid-xs font-black text-minion-red">
+          연결 복구 중입니다. 연결이 확인될 때까지 입찰할 수 없습니다.
+        </div>
+      ) : timerSyncStatus === "DELAYED" ? (
+        <div className="mb-4 border-2 border-minion-yellow bg-yellow-50 px-4 py-2 text-center text-[11px] font-black text-black">
+          네트워크 지연으로 입찰 결과 반영이 늦을 수 있습니다.
+          {timerSyncLatencyMs != null && ` (${Math.round(timerSyncLatencyMs)}ms)`}
+        </div>
+      ) : null}
 
       <div className="flex gap-3 h-14 relative">
         <input

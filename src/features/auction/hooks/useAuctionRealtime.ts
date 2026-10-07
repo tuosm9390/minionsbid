@@ -36,6 +36,7 @@ import {
   type AuctionEventEnvelope,
 } from '../utils/auctionRealtime'
 import { recordAuctionLatencyMarker } from '../utils/latencyDebug'
+import { getEstimatedServerNow } from '../utils/serverClock'
 import { getAuctionClientServices } from '../realtime/clientAdapter'
 import { bucketAuctionPlayers, findCurrentAuctionPlayerId } from '../store/auctionSelectors'
 
@@ -106,6 +107,17 @@ interface FirestoreMessageData {
 const LATENCY_DEBUG = process.env.NEXT_PUBLIC_DEBUG_LATENCY === '1'
 const E2E_AUCTION_FIXTURE = process.env.NEXT_PUBLIC_E2E_AUCTION_FIXTURE === '1'
 const RECOVERY_GRACE_MS = 1_500
+
+function getTimerSyncState(serverCreatedAt: string | undefined, serverTimeOffset: number) {
+  if (!serverCreatedAt) return { timerSyncStatus: 'SYNCED' as const, timerSyncLatencyMs: null }
+  const createdAt = Date.parse(serverCreatedAt)
+  if (!Number.isFinite(createdAt)) return { timerSyncStatus: 'SYNCED' as const, timerSyncLatencyMs: null }
+  const latencyMs = Math.max(0, getEstimatedServerNow(serverTimeOffset) - createdAt)
+  return {
+    timerSyncStatus: latencyMs >= 3_000 ? 'STALE' as const : latencyMs >= 1_000 ? 'DELAYED' as const : 'SYNCED' as const,
+    timerSyncLatencyMs: latencyMs,
+  }
+}
 
 function timestampToISO(ts: Timestamp | null | undefined): string | null {
   if (!ts) return null
@@ -182,6 +194,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
   const setMessages = useAuctionStore(s => s.setMessages)
   const appendMessage = useAuctionStore(s => s.appendMessage)
   const setAuctionEventRevision = useAuctionStore(s => s.setAuctionEventRevision)
+  const serverTimeOffset = useAuctionStore(s => s.serverTimeOffset)
 
   const currentPlayerIdRef = useRef<string | null>(null)
   const bidsUnsubRef = useRef<Unsubscribe | null>(null)
@@ -219,6 +232,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         currentPlayerId,
         timerEndsAt,
         graceMs: RECOVERY_GRACE_MS,
+        now: getEstimatedServerNow(serverTimeOffset),
         recoveryKey: getAuctionRecoveryKey({
           currentPlayerId,
           timerEndsAt,
@@ -245,7 +259,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
 
       const delay = getAuctionExpiryWakeUpDelay(
         timerEndsAt,
-        Date.now(),
+        getEstimatedServerNow(serverTimeOffset),
         RECOVERY_GRACE_MS,
       )
       expiryWakeUpTimeoutRef.current = window.setTimeout(() => {
@@ -407,6 +421,10 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
       // >= 대신 > 사용: 같은 revision의 RTDB 이벤트가 먼저 적용되었을 때 Firestore snapshot이 덮어쓰는 것 방지
       const snapshotIsCurrentOrNewer = roomRevision > currentAuctionRevision
       const fallbackEvent = data.last_auction_event ?? null
+      const snapshotTimerSync = getTimerSyncState(
+        fallbackEvent?.serverCreatedAt,
+        serverTimeOffset,
+      )
 
       setRealtimeData({
         roomName: data.name ?? null,
@@ -442,6 +460,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           // timerEndsAt은 RTDB 이벤트(applyLiveAuctionEvent)가 브라우저 클럭 기준으로 관리
           currentPlayerId: data.current_player_id ?? null,
         }),
+        ...(data.timer_ends_at ? snapshotTimerSync : {}),
       })
       const currentPlayerId = data.current_player_id ?? null
 
@@ -671,6 +690,7 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
         }
       }
       recordBidLatencyFromEvent(event, 'rtdb')
+      const timerSync = getTimerSyncState(event.serverCreatedAt, serverTimeOffset)
       setLiveBid(next.liveBid)
       setLotteryPlayer(next.lotteryPlayer)
       setAuctionEventRevision(next.revision)
@@ -680,6 +700,9 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
           timerEndsAt: next.timerEndsAt,
           currentPlayerId: next.currentPlayerId,
           sealedBid: next.sealedBid,
+          ...(next.timerEndsAt
+            ? timerSync
+            : { timerSyncStatus: 'SYNCED' as const, timerSyncLatencyMs: null }),
         })
       scheduleExpiryWakeUp(next.timerEndsAt, next.currentPlayerId, next.revision)
       triggerRecovery(next.timerEndsAt, next.currentPlayerId, next.revision)
@@ -813,5 +836,6 @@ export function useFirebaseRealtime(roomId: string, effectiveRole?: Role | null)
     setMessages,
     appendMessage,
     setAuctionEventRevision,
+    serverTimeOffset,
   ])
 }

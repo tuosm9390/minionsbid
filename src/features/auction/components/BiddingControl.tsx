@@ -3,6 +3,7 @@
 import {
   type Player,
   type Team,
+  type TimerSyncStatus,
 } from "@/features/auction/store/useAuctionStore";
 import { useBiddingControl } from "@/features/auction/hooks/useBiddingControl";
 import { PIXEL_ICONS } from "@/features/auction/constants/icons";
@@ -19,6 +20,9 @@ interface BiddingControlProps {
   minBid: number;
   isTeamFull: boolean;
   allDone: boolean;
+  isLocalConnected?: boolean;
+  timerSyncStatus?: TimerSyncStatus;
+  timerSyncLatencyMs?: number | null;
 }
 
 export function BiddingControl(props: BiddingControlProps) {
@@ -44,7 +48,12 @@ export function BiddingControl(props: BiddingControlProps) {
     isTeamFull,
     myTeam,
     allDone,
+    isLocalConnected = true,
+    timerSyncStatus = "SYNCED",
+    timerSyncLatencyMs,
   } = props;
+
+  const canInteract = isLocalConnected && timerSyncStatus !== "STALE";
 
   const pointBalance = myTeam?.point_balance ?? 0;
   const pointRatio = Math.min(100, (pointBalance / 1000) * 100);
@@ -114,6 +123,21 @@ export function BiddingControl(props: BiddingControlProps) {
         </div>
       )}
 
+      {!isLocalConnected ? (
+        <div className="mb-4 border-4 border-minion-red bg-red-50 px-4 py-2 text-center text-fluid-xs font-black text-minion-red">
+          연결 복구 중입니다. 연결이 확인될 때까지 입찰할 수 없습니다.
+        </div>
+      ) : timerSyncStatus === "STALE" ? (
+        <div className="mb-4 border-4 border-minion-red bg-red-50 px-4 py-2 text-center text-fluid-xs font-black text-minion-red">
+          경매 상태 동기화가 지연되고 있습니다. 최신 상태 확인 후 입찰할 수 있습니다.
+        </div>
+      ) : timerSyncStatus === "DELAYED" ? (
+        <div className="mb-4 border-2 border-minion-yellow bg-yellow-50 px-4 py-2 text-center text-[11px] font-black text-black">
+          네트워크 지연으로 입찰 결과 반영이 늦을 수 있습니다.
+          {timerSyncLatencyMs != null && ` (${Math.round(timerSyncLatencyMs)}ms)`}
+        </div>
+      ) : null}
+
       <div className="flex gap-3 h-14 relative group/control">
         {allDone ? (
           <div className="w-full h-full pixel-box bg-green-500/15 border-green-600 flex items-center justify-center">
@@ -123,7 +147,7 @@ export function BiddingControl(props: BiddingControlProps) {
           </div>
         ) : (
           <>
-            {!isAuctionActive && (
+            {(!isAuctionActive || !canInteract) && (
               <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex items-center justify-center border-4 border-black pixel-box shadow-none">
                 <div className="flex items-center gap-3">
                   <PixelIcon
@@ -133,9 +157,13 @@ export function BiddingControl(props: BiddingControlProps) {
                     animation="active"
                   />
                   <p className="text-fluid-xs font-heading text-gray-500 uppercase tracking-widest">
-                    {!currentPlayer
-                      ? "다음 선수 추첨을 기다리는 중..."
-                      : "경매 대기중..."}
+                    {!isLocalConnected
+                      ? "연결 복구 중..."
+                      : timerSyncStatus === "STALE"
+                        ? "경매 상태 동기화 중..."
+                        : !currentPlayer
+                          ? "다음 선수 추첨을 기다리는 중..."
+                          : "경매 대기중..."}
                   </p>
                 </div>
               </div>
@@ -144,7 +172,7 @@ export function BiddingControl(props: BiddingControlProps) {
             <div className="flex gap-1 h-full flex-none">
               <button
                 onClick={decrementBid}
-                disabled={!canBid || numericBidAmount <= minBid}
+                disabled={!canBid || !canInteract || numericBidAmount <= minBid}
                 className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-colors"
               >
                 -
@@ -158,7 +186,7 @@ export function BiddingControl(props: BiddingControlProps) {
                   step={10}
                   onChange={(e) => setBidAmount(e.target.value)}
                   onFocus={(e) => e.target.select()}
-                  disabled={!canBid}
+                  disabled={!canBid || !canInteract}
                   className="w-full h-full bg-yellow-50/30 border-4 border-black px-4 text-fluid-base font-black text-center focus:bg-white focus:outline-none tabular-nums transition-colors"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 font-black text-fluid-xs pointer-events-none transition-colors">
@@ -168,7 +196,7 @@ export function BiddingControl(props: BiddingControlProps) {
 
               <button
                 onClick={incrementBid}
-                disabled={!canBid}
+                disabled={!canBid || !canInteract}
                 className="pixel-button bg-white text-black w-14 h-full text-fluid-lg font-heading hover:bg-gray-50 active:translate-y-1 uppercase shadow-pixel-sm transition-colors"
               >
                 +
@@ -177,7 +205,7 @@ export function BiddingControl(props: BiddingControlProps) {
 
             <button
               onClick={handleBid}
-              disabled={!canBid}
+              disabled={!canBid || !canInteract}
               className={`flex-1 h-full pixel-button font-heading text-fluid-xs px-6 uppercase tracking-tighter transition-colors relative overflow-hidden group/btn ${
                 isLeading
                   ? "bg-black text-minion-yellow border-minion-yellow shadow-[0_0_15px_rgba(251,224,66,0.4)]"

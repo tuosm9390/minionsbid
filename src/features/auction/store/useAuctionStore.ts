@@ -9,6 +9,7 @@ import {
 } from '@/features/auction/store/auctionSelectors'
 
 export type Role = 'ORGANIZER' | 'LEADER' | 'VIEWER' | null
+export type TimerSyncStatus = 'SYNCED' | 'DELAYED' | 'STALE'
 export type PlayerStatus = 'WAITING' | 'IN_AUCTION' | 'SOLD' | 'UNSOLD'
 export type MessageRole = 'ORGANIZER' | 'LEADER' | 'VIEWER' | 'SYSTEM' | 'NOTICE'
 
@@ -149,6 +150,8 @@ interface AuctionState {
   isLocalConnected: boolean
   hasPresenceAuthError: boolean
   serverTimeOffset: number
+  timerSyncStatus: TimerSyncStatus
+  timerSyncLatencyMs: number | null
 
   // 추첨 모달 상태 (Broadcast CLOSE_LOTTERY로 동기화)
   lotteryPlayer: Player | null
@@ -212,6 +215,8 @@ export const useAuctionStore = create<AuctionState>((set) => ({
   isLocalConnected: true,
   hasPresenceAuthError: false,
   serverTimeOffset: 0,
+  timerSyncStatus: 'SYNCED',
+  timerSyncLatencyMs: null,
   lotteryPlayer: null,
 
   setRoomContext: (roomId, role, teamId, roomAuthToken) => set({
@@ -223,6 +228,8 @@ export const useAuctionStore = create<AuctionState>((set) => ({
     roomExists: true,
     nextAuctionDurationMs: null,
     auctionEventRevision: 0,
+    timerSyncStatus: 'SYNCED',
+    timerSyncLatencyMs: null,
     teamAssignment: null,
     auctionTransport: 'FIREBASE',
   }),

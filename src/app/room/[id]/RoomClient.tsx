@@ -79,6 +79,9 @@ export function RoomClient({
   const sealedBid = useAuctionStore((s) => s.sealedBid);
   const presences = useAuctionStore((s) => s.presences);
   const isPresenceLoaded = useAuctionStore((s) => s.isPresenceLoaded);
+  const isLocalConnected = useAuctionStore((s) => s.isLocalConnected);
+  const timerSyncStatus = useAuctionStore((s) => s.timerSyncStatus);
+  const timerSyncLatencyMs = useAuctionStore((s) => s.timerSyncLatencyMs);
   const storeTeamId = useAuctionStore((s) => s.teamId);
   const organizerToken = useAuctionStore((s) => s.organizerToken);
   const roomAuthToken = useAuctionStore((s) => s.roomAuthToken);
@@ -509,6 +512,9 @@ export function RoomClient({
                     allDone={allDone}
                     sealedBid={sealedBid}
                     desiredTeamConflict={desiredTeamConflict}
+                    isLocalConnected={isLocalConnected}
+                    timerSyncStatus={timerSyncStatus}
+                    timerSyncLatencyMs={timerSyncLatencyMs}
                   />
                 ) : (
                   <BiddingControl
@@ -522,6 +528,9 @@ export function RoomClient({
                     minBid={minBid}
                     isTeamFull={isTeamFull}
                     allDone={allDone}
+                    isLocalConnected={isLocalConnected}
+                    timerSyncStatus={timerSyncStatus}
+                    timerSyncLatencyMs={timerSyncLatencyMs}
                   />
                 )}
               </div>

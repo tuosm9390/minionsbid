@@ -50,6 +50,9 @@ export function LatencyDebugPanel() {
   const currentPlayerId = useAuctionStore((s) => s.currentPlayerId);
   const revision = useAuctionStore((s) => s.auctionEventRevision);
   const liveBid = useAuctionStore((s) => s.liveBid);
+  const timerSyncStatus = useAuctionStore((s) => s.timerSyncStatus);
+  const timerSyncLatencyMs = useAuctionStore((s) => s.timerSyncLatencyMs);
+  const isLocalConnected = useAuctionStore((s) => s.isLocalConnected);
 
   useEffect(() => {
     if (!isDebugEnabled()) return;
@@ -90,6 +93,10 @@ export function LatencyDebugPanel() {
           <span>{liveBid ? `${liveBid.team_id}:${liveBid.amount}` : "-"}</span>
           <span className="text-blue-200">timer</span>
           <span>{timerEndsAt ? "active" : "paused"}</span>
+          <span className="text-blue-200">sync</span>
+          <span>{timerSyncStatus}{timerSyncLatencyMs != null ? ` ${Math.round(timerSyncLatencyMs)}ms` : ""}</span>
+          <span className="text-blue-200">network</span>
+          <span>{isLocalConnected ? "connected" : "offline"}</span>
         </div>
 
         <div className="space-y-2">

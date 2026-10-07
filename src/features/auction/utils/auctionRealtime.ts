@@ -202,6 +202,7 @@ export function shouldRecoverExpiredAuction(args: {
   recoveryKey?: string | null
   lastRecoveryKey?: string | null
   graceMs?: number
+  now?: number
 }) {
   if (!args.currentPlayerId || !args.timerEndsAt) {
     return { shouldRecover: false, recoveryKey: null as string | null }
@@ -217,7 +218,7 @@ export function shouldRecoverExpiredAuction(args: {
   }
 
   const isExpired =
-    new Date(args.timerEndsAt).getTime() + (args.graceMs ?? 0) <= Date.now()
+    new Date(args.timerEndsAt).getTime() + (args.graceMs ?? 0) <= (args.now ?? Date.now())
   // 모든 역할이 복구 트리거 가능 — 서버 액션(awardPlayer)이 멱등성 보장
   const shouldRecover =
     isExpired &&
