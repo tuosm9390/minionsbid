@@ -26,7 +26,6 @@ src/app/
 | 방 Firebase token | `api/room-auth/firebase-token/route.ts` | custom claim은 rules와 연결됨 |
 | E2E 경매 fixture | `api/e2e/auction-fixture/**/route.ts` | 운영 계약과 다른 성공 경로를 만들지 말 것 |
 | Firebase emulator fixture | `api/e2e/firebase-auction/**/route.ts` | emulator 플래그 없이 활성화하지 말 것 |
-| 단축 링크 | `api/short-links/route.ts` | 외부 API 실패 시 사용자 메시지와 내부 오류 구분 |
 
 ## CONVENTIONS
 

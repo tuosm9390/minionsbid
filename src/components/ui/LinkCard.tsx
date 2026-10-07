@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Check, Copy } from "@/components/ui/CyberIcons";
 
 interface LinkCardProps {
@@ -12,15 +12,6 @@ interface LinkCardProps {
   onCopy: (text: string, key: string) => void;
   variant?: "default" | "compact";
 }
-
-type ShortLinkResponse = {
-  links?: Array<{
-    key: string;
-    orgUrl: string;
-    shortUrl: string | null;
-    error: string | null;
-  }>;
-};
 
 function stripAuthToken(value: string) {
   try {
@@ -43,52 +34,9 @@ export function LinkCard({
 }: LinkCardProps) {
   const isCompact = variant === "compact";
   const sanitizedLink = useMemo(() => stripAuthToken(link), [link]);
-  const [shortLink, setShortLink] = useState<{
-    linkKey: string;
-    originalLink: string;
-    shortUrl: string;
-  } | null>(null);
-  const displayLink =
-    shortLink?.linkKey === linkKey && shortLink.originalLink === sanitizedLink
-      ? shortLink.shortUrl
-      : sanitizedLink;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const shorten = async () => {
-      try {
-        const response = await fetch("/api/short-links", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            links: [{ key: linkKey, orgUrl: sanitizedLink }],
-          }),
-        });
-
-        if (!response.ok) return;
-        const payload = (await response.json()) as ShortLinkResponse;
-        const result = payload.links?.find((item) => item.key === linkKey);
-        if (!cancelled && result?.shortUrl) {
-          setShortLink({
-            linkKey,
-            originalLink: sanitizedLink,
-            shortUrl: result.shortUrl,
-          });
-        }
-      } catch {
-        // 단축 실패 시 authToken을 제거한 원본 링크를 그대로 사용한다.
-      }
-    };
-
-    void shorten();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sanitizedLink, linkKey]);
+  // 인증 정보가 포함된 링크는 화면에 노출하지 않되, invite 링크는
+  // 외부 단축 서비스를 거치지 않고 원본 URL을 그대로 사용한다.
+  const displayLink = sanitizedLink;
 
   return (
     <div className={`border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative flex items-center gap-4 ${isCompact ? "p-3 mb-3" : "p-4 mb-4"}`}>
