@@ -17,7 +17,11 @@ import {
   deleteFixtureRoom,
   isE2EAuctionFixtureEnabled,
 } from "@/features/auction/api/e2eAuctionFixture";
-import { requireRoomOrganizer } from "@/features/auction/api/organizerAuth";
+import {
+  isTemporaryPublicOrganizerAccessEnabled,
+  ORGANIZER_AUTH_ERROR,
+  requireRoomOrganizer,
+} from "@/features/auction/api/organizerAuth";
 import { createRoomInviteToken } from "@/features/auction/utils/roomInviteToken";
 
 // ---------- 타입 ----------
@@ -369,7 +373,9 @@ export async function getActiveRooms(): Promise<{
           id: roomDoc.id,
           name: String(roomData.name ?? "경매방"),
           createdAt: timestampToISO(roomData.created_at),
-          roomPath: `/room/${roomDoc.id}?role=VIEWER`,
+          roomPath: isTemporaryPublicOrganizerAccessEnabled()
+            ? `/room/${roomDoc.id}?role=ORGANIZER`
+            : `/room/${roomDoc.id}?role=VIEWER`,
         };
       }),
     );
@@ -384,6 +390,16 @@ export async function getActiveRooms(): Promise<{
     console.error("[room] getActiveRooms failed", { error: message });
     return { rooms: [], error: message };
   }
+}
+
+/** 임시 전체 주최자 모드에서 방 목록의 방 데이터를 삭제한다. */
+export async function deleteRoomFromActiveList(
+  roomId: string,
+): Promise<{ error?: string }> {
+  if (!isTemporaryPublicOrganizerAccessEnabled()) {
+    return { error: ORGANIZER_AUTH_ERROR };
+  }
+  return deleteRoom(roomId, "");
 }
 
 // ---------- 방 삭제 ----------

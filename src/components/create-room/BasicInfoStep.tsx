@@ -14,6 +14,8 @@ interface BasicInfoStepProps {
   activeRooms: StoredRoom[];
   isCheckingRooms: boolean;
   goToRoom: (path: string) => void;
+  deleteRoom: (roomId: string) => Promise<void>;
+  deletingRoomId: string | null;
   minPlayers: number;
 }
 
@@ -26,6 +28,8 @@ export function BasicInfoStep({
   activeRooms,
   isCheckingRooms,
   goToRoom,
+  deleteRoom,
+  deletingRoomId,
   minPlayers,
 }: BasicInfoStepProps) {
   const selectedSchedule = scheduleOptions.find((schedule) => schedule.id === basic.scheduleId);
@@ -52,9 +56,27 @@ export function BasicInfoStep({
                     })} 생성
                   </p>
                 </div>
-                <button onClick={() => goToRoom(room.organizerPath)} className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0">
-                  {room.isOwner ? "주최자로 입장" : "방 보기"} <ArrowRight size={12} />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => goToRoom(room.organizerPath)} className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap">
+                    {room.isOwner ? "주최자로 입장" : "방 입장"} <ArrowRight size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletingRoomId !== null}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `「${room.name}」 방의 팀·선수·인증 데이터를 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+                        )
+                      ) {
+                        void deleteRoom(room.id);
+                      }
+                    }}
+                    className="border-2 border-red-600 bg-white px-2 py-2 text-xs font-black text-red-600 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {deletingRoomId === room.id ? "삭제 중" : "삭제"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

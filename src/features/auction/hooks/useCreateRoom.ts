@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import {
   createRoom as createRoomAction,
+  deleteRoomFromActiveList,
   getActiveRooms as getActiveRoomsAction,
 } from "@/features/auction/api/auctionActions";
 import { getLeagueScheduleCatalog } from "@/features/schedules/api/scheduleActions";
@@ -198,6 +199,7 @@ export function useCreateRoom() {
 
   const [activeRooms, setActiveRooms] = useState<StoredRoom[]>([]);
   const [isCheckingRooms, setIsCheckingRooms] = useState(false);
+  const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
   const [scheduleOptions, setScheduleOptions] = useState<LeagueScheduleItem[]>(
     [],
   );
@@ -853,6 +855,20 @@ export function useCreateRoom() {
     close();
     window.location.href = organizerPath;
   };
+  const deleteActiveRoom = async (roomId: string) => {
+    if (deletingRoomId) return;
+    setDeletingRoomId(roomId);
+    try {
+      const result = await deleteRoomFromActiveList(roomId);
+      if (result.error) {
+        alert(`방 삭제에 실패했습니다: ${result.error}`);
+        return;
+      }
+      await checkActiveRooms();
+    } finally {
+      setDeletingRoomId(null);
+    }
+  };
 
   const openTemplateModal = () => {
     setTemplateData(
@@ -883,6 +899,7 @@ export function useCreateRoom() {
     fileInputRef,
     activeRooms,
     isCheckingRooms,
+    deletingRoomId,
     basic,
     setBasic,
     captains,
@@ -913,6 +930,7 @@ export function useCreateRoom() {
     reset,
     close,
     goToRoom,
+    deleteActiveRoom,
     openTemplateModal,
     applyTemplate,
     buildTemplateData,

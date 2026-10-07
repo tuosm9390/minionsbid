@@ -28,6 +28,7 @@ export function CreateRoomModal() {
     fileInputRef,
     activeRooms,
     isCheckingRooms,
+    deletingRoomId,
     basic,
     setBasic,
     scheduleOptions,
@@ -57,6 +58,7 @@ export function CreateRoomModal() {
     copyToClipboard,
     close,
     goToRoom,
+    deleteActiveRoom,
     openTemplateModal,
     applyTemplate,
     buildTemplateData,
@@ -231,6 +233,8 @@ export function CreateRoomModal() {
                       activeRooms={activeRooms}
                       isCheckingRooms={isCheckingRooms}
                       goToRoom={goToRoom}
+                      deleteRoom={deleteActiveRoom}
+                      deletingRoomId={deletingRoomId}
                       minPlayers={minPlayers}
                     />
                   </div>

@@ -4,10 +4,15 @@ import { getAuctionServerServices } from '@/features/auction/realtime/serverAdap
 
 export const ORGANIZER_AUTH_ERROR = '주최자 권한이 필요합니다.'
 
+export function isTemporaryPublicOrganizerAccessEnabled(): boolean {
+  return process.env.TEMP_PUBLIC_ORGANIZER_ACCESS === '1'
+}
+
 export async function requireRoomOrganizer(
   roomId: string,
   token?: string,
 ): Promise<string | null> {
+  if (isTemporaryPublicOrganizerAccessEnabled()) return null
   if (!token) return ORGANIZER_AUTH_ERROR
 
   const { firestore } = getAuctionServerServices()
